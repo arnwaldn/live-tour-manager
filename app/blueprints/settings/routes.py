@@ -993,7 +993,7 @@ def professions_create():
             category=ProfessionCategory[form.category.data],
             description=form.description.data,
             sort_order=form.sort_order.data or 0,
-            default_access_level=AccessLevel[form.default_access_level.data],
+            default_access_level=form.default_access_level.data,
             is_active=form.is_active.data,
             show_rate=form.show_rate.data,
             daily_rate=form.daily_rate.data,
@@ -1031,7 +1031,7 @@ def professions_edit(id):
     if request.method == 'GET':
         # Pre-fill form
         form.category.data = profession.category.name if profession.category else ''
-        form.default_access_level.data = profession.default_access_level.name if profession.default_access_level else 'STAFF'
+        form.default_access_level.data = profession.default_access_level if profession.default_access_level else 'STAFF'
 
     if form.validate_on_submit():
         profession.code = form.code.data.upper()
@@ -1040,7 +1040,7 @@ def professions_edit(id):
         profession.category = ProfessionCategory[form.category.data]
         profession.description = form.description.data
         profession.sort_order = form.sort_order.data or 0
-        profession.default_access_level = AccessLevel[form.default_access_level.data]
+        profession.default_access_level = form.default_access_level.data
         profession.is_active = form.is_active.data
         profession.show_rate = form.show_rate.data
         profession.daily_rate = form.daily_rate.data
