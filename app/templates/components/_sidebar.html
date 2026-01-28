@@ -89,7 +89,7 @@
             </li>
             {% endif %}
 
-            {% if current_user.has_role('MANAGER') %}
+            {% if current_user.is_manager_or_above() %}
             <li class="nav-item mt-3">
                 <span class="nav-link text-muted small text-uppercase">Finances</span>
             </li>
