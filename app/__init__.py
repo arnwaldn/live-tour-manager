@@ -404,7 +404,7 @@ def register_context_processors(app):
     def pending_registrations_processor():
         """Provide pending registrations count to templates (managers only)."""
         pending_count = 0
-        if current_user.is_authenticated and current_user.has_role('MANAGER'):
+        if current_user.is_authenticated and current_user.is_manager_or_above():
             from app.models.user import User
             # Count users who are inactive and have no invitation token
             # (invitation_token means they were invited, not self-registered)

@@ -631,26 +631,26 @@ class TourStop(db.Model):
         """Check if user can view this tour stop."""
         if self.tour:
             return (self.tour.can_view(user) or
-                    user.has_permission('view_show'))
+                    user.is_staff_or_above())
         # Standalone event: check band membership
         if self.band:
-            return self.band.is_member(user) or user.has_permission('view_show')
-        return user.has_permission('view_show')
+            return self.band.is_member(user) or user.is_staff_or_above()
+        return user.is_staff_or_above()
 
     def can_manage_guestlist(self, user):
         """Check if user can manage guestlist for this stop."""
         if self.tour:
             return (self.tour.can_edit(user) or
-                    user.has_permission('manage_guestlist'))
+                    user.is_staff_or_above())
         # Standalone event: check band permissions
         if self.band:
-            return self.band.is_manager(user) or user.has_permission('manage_guestlist')
-        return user.has_permission('manage_guestlist')
+            return self.band.is_manager(user) or user.is_staff_or_above()
+        return user.is_staff_or_above()
 
     def can_check_in_guests(self, user):
         """Check if user can check in guests at this stop."""
         return (self.can_manage_guestlist(user) or
-                user.has_permission('check_in_guests'))
+                user.is_staff_or_above())
 
     # ============================================================
     # STATUS WORKFLOW METHODS (Pattern Dolibarr)

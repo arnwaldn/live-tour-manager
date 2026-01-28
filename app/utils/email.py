@@ -509,10 +509,10 @@ def _get_manager_emails(band=None):
         if band.manager and band.manager.email:
             emails.append(band.manager.email)
 
-        # Also get users with MANAGER or GUESTLIST_MANAGER role
+        # Also get users with MANAGER level or above
         for membership in band.memberships:
             if membership.user and membership.user.email:
-                if membership.user.has_role('MANAGER') or membership.user.has_role('GUESTLIST_MANAGER'):
+                if membership.user.is_manager_or_above():
                     if membership.user.email not in emails:
                         emails.append(membership.user.email)
         return emails

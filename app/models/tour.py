@@ -103,12 +103,12 @@ class Tour(db.Model):
     def can_edit(self, user):
         """Check if user can edit this tour."""
         return (self.band.is_manager(user) or
-                user.has_permission('manage_tour'))
+                user.is_manager_or_above())
 
     def can_view(self, user):
         """Check if user can view this tour."""
         return (self.band.has_access(user) or
-                user.has_permission('view_tour'))
+                user.is_staff_or_above())
 
     def duplicate(self, new_name=None, new_start_date=None, include_stops=True):
         """
