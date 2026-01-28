@@ -33,8 +33,8 @@ def get_visible_logistics(stop, user):
     if stop.tour and stop.tour.band.is_manager(user):
         return list(stop.logistics)
 
-    # Permission manage_logistics voit tout
-    if user.has_permission('manage_logistics'):
+    # Manager ou admin voit tout
+    if user.is_manager_or_above():
         return list(stop.logistics)
 
     # Autres: seulement les items ou ils sont assignes
@@ -56,7 +56,7 @@ def manage(stop_id):
         return redirect(url_for('main.dashboard'))
 
     # Check if user is manager (for full visibility)
-    is_manager = tour.band.is_manager(current_user) or current_user.has_permission('manage_logistics')
+    is_manager = tour.band.is_manager(current_user) or current_user.is_manager_or_above()
 
     # Get visible logistics based on user role
     visible_logistics = get_visible_logistics(stop, current_user)

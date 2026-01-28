@@ -19,7 +19,7 @@ from app.models.document import Document, DocumentType, DocumentShare, ShareType
 from app.models.user import User
 from app.models.band import Band
 from app.models.tour import Tour
-from app.decorators.auth import permission_required
+from app.decorators.auth import requires_manager
 from app.blueprints.documents import documents_bp
 from app.blueprints.documents.forms import (
     DocumentUploadForm, DocumentEditForm, DocumentFilterForm
@@ -195,7 +195,7 @@ def index():
 
 @documents_bp.route('/upload', methods=['GET', 'POST'])
 @login_required
-@permission_required('manage_band')
+@requires_manager
 def upload():
     """Upload a new document."""
     form = DocumentUploadForm()
@@ -301,7 +301,7 @@ def detail(id):
 
 @documents_bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-@permission_required('manage_band')
+@requires_manager
 def edit(id):
     """Edit document metadata."""
     document = Document.query.get_or_404(id)
@@ -381,7 +381,7 @@ def view(id):
 
 @documents_bp.route('/<int:id>/delete', methods=['POST'])
 @login_required
-@permission_required('manage_band')
+@requires_manager
 def delete(id):
     """Delete a document."""
     document = Document.query.get_or_404(id)
@@ -410,7 +410,7 @@ def by_user(user_id):
     user = User.query.get_or_404(user_id)
 
     # Security: only allow viewing own documents or if manager
-    if user_id != current_user.id and not current_user.has_role('MANAGER'):
+    if user_id != current_user.id and not current_user.is_manager_or_above():
         abort(403)
 
     documents = Document.query.filter_by(user_id=user_id).order_by(Document.created_at.desc()).all()

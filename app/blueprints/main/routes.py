@@ -71,7 +71,7 @@ def dashboard():
 
     # Pending guestlist requests (for managers)
     pending_guestlist = []
-    if current_user.has_permission('manage_guestlist'):
+    if current_user.is_staff_or_above():
         pending_guestlist = GuestlistEntry.query.join(TourStop).join(Tour).filter(
             Tour.band_id.in_(user_band_ids),
             GuestlistEntry.status == GuestlistStatus.PENDING
@@ -107,7 +107,7 @@ def global_calendar():
     - MANAGER: voit TOUS les événements de TOUS les groupes
     - Autres: voient UNIQUEMENT les événements où ils sont assignés
     """
-    is_manager = current_user.has_role('MANAGER')
+    is_manager = current_user.is_manager_or_above()
 
     if is_manager:
         # MANAGER voit toutes les tournées
@@ -156,7 +156,7 @@ def global_calendar_events():
     tour_id = request.args.get('tour_id', type=int)
 
     # Build query based on user role
-    if current_user.has_role('MANAGER'):
+    if current_user.is_manager_or_above():
         # MANAGER = voit TOUT (admin global)
         # Pas de filtre par groupe - afficher tous les événements
         query = TourStop.query.outerjoin(Tour, TourStop.tour_id == Tour.id)

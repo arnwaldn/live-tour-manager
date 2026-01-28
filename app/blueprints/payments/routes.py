@@ -38,7 +38,7 @@ def manager_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login'))
-        if not current_user.has_role('MANAGER'):
+        if not current_user.is_manager_or_above():
             flash('Acces reserve aux managers.', 'danger')
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)

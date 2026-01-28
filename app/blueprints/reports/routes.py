@@ -34,7 +34,7 @@ except ImportError:
 @login_required
 def index():
     """Reports overview page with general stats."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -69,7 +69,7 @@ def index():
 @login_required
 def financial():
     """Financial reports overview - all tours."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -100,7 +100,7 @@ def financial_tour(tour_id):
         flash('Acces non autorise.', 'error')
         return redirect(url_for('main.dashboard'))
 
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -127,7 +127,7 @@ def export_financial_csv(tour_id):
         flash('Acces non autorise.', 'error')
         return redirect(url_for('main.dashboard'))
 
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -150,7 +150,7 @@ def export_financial_csv(tour_id):
 @login_required
 def guestlist_analytics():
     """Guestlist analytics report."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -204,7 +204,7 @@ def guestlist_analytics():
 @login_required
 def financial_dashboard():
     """Advanced financial dashboard with KPIs and charts."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -245,7 +245,7 @@ def financial_dashboard():
 @login_required
 def settlements_list():
     """Liste complète de tous les settlements (passés et futurs)."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -307,7 +307,7 @@ def settlement(stop_id):
             flash('Acces non autorise.', 'error')
             return redirect(url_for('main.dashboard'))
 
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -342,7 +342,7 @@ def settlement_pdf(stop_id):
             flash('Acces non autorise.', 'error')
             return redirect(url_for('main.dashboard'))
 
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -379,7 +379,7 @@ def dashboard_chart_data():
     """API endpoint for dashboard chart data (JSON)."""
     import json
 
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         return {'error': 'Unauthorized'}, 403
 
     user_bands = current_user.bands + current_user.managed_bands
@@ -416,7 +416,7 @@ def dashboard_chart_data():
 @login_required
 def accounting_index():
     """Page d'accueil des exports comptables."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -447,7 +447,7 @@ def accounting_index():
 @login_required
 def accounting_bordereau(tour_id):
     """Generer le bordereau de paiement PDF pour une tournee."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -486,7 +486,7 @@ def accounting_bordereau(tour_id):
 @login_required
 def accounting_masse_salariale(tour_id):
     """Exporter la masse salariale CSV pour une tournee."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -525,7 +525,7 @@ def accounting_masse_salariale(tour_id):
 @login_required
 def accounting_paiements_a_effectuer():
     """Exporter la liste des paiements a effectuer (approuves, non payes)."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -558,7 +558,7 @@ def accounting_paiements_a_effectuer():
 @login_required
 def accounting_fiche_membre(user_id):
     """Generer la fiche recapitulative PDF pour un membre."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -601,7 +601,7 @@ def accounting_fiche_membre(user_id):
 @login_required
 def accounting_budget(tour_id):
     """Generer le rapport budget PDF pour une tournee."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -640,7 +640,7 @@ def accounting_budget(tour_id):
 @login_required
 def accounting_attestation(payment_id):
     """Generer l'attestation de paiement PDF."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Acces reserve aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 

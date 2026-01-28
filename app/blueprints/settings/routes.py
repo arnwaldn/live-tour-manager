@@ -26,7 +26,7 @@ from app.models.document import Document, DocumentType
 from app.models.band import Band
 from app.models.guestlist import GuestlistEntry
 from app.models.payments import UserPaymentConfig, StaffCategory, StaffRole, ContractType, PaymentFrequency
-from app.decorators import role_required, requires_manager
+from app.decorators import requires_manager
 from app.utils.email import send_invitation_email, send_registration_notification, send_approval_email, send_rejection_email
 
 
@@ -187,7 +187,7 @@ def generate_unique_filename(original_filename):
 @login_required
 def index():
     """Settings overview page."""
-    if not current_user.has_role('MANAGER'):
+    if not current_user.is_manager_or_above():
         flash('Accès réservé aux managers.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -522,7 +522,7 @@ def notifications():
 
 @settings_bp.route('/users')
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def users_list():
     """List all users."""
     users = User.query.order_by(User.created_at.desc()).all()
@@ -531,7 +531,7 @@ def users_list():
 
 @settings_bp.route('/users/<int:id>')
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def user_detail(id):
     """View user profile with documents (manager only)."""
     user = User.query.get_or_404(id)
@@ -846,7 +846,7 @@ def users_edit(id):
 
 @settings_bp.route('/users/<int:id>/delete', methods=['POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def users_delete(id):
     """Deactivate a user (soft delete)."""
     user = User.query.get_or_404(id)
@@ -864,7 +864,7 @@ def users_delete(id):
 
 @settings_bp.route('/users/<int:id>/resend', methods=['POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def users_resend_invite(id):
     """Resend invitation email to a user."""
     user = User.query.get_or_404(id)
@@ -924,7 +924,7 @@ def api_professions_list():
 
 @settings_bp.route('/users/<int:id>/travel-cards', methods=['POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def add_travel_card(id):
     """Add a travel card to a user (manager only)."""
     user = User.query.get_or_404(id)
@@ -951,7 +951,7 @@ def add_travel_card(id):
 
 @settings_bp.route('/users/<int:id>/travel-cards/<int:card_id>/delete', methods=['POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def delete_travel_card(id, card_id):
     """Delete a travel card from a user (manager only)."""
     card = TravelCard.query.filter_by(id=card_id, user_id=id).first_or_404()
@@ -1001,7 +1001,7 @@ def delete_own_travel_card(card_id):
 
 @settings_bp.route('/users/<int:id>/hard-delete', methods=['POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def users_hard_delete(id):
     """Permanently delete a user from the system."""
     user = User.query.get_or_404(id)
@@ -1044,7 +1044,7 @@ def users_hard_delete(id):
 
 @settings_bp.route('/pending-registrations')
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def pending_registrations():
     """List all pending user registrations awaiting approval."""
     # Get users who are inactive and have no invitation token
@@ -1059,7 +1059,7 @@ def pending_registrations():
 
 @settings_bp.route('/users/<int:id>/approve', methods=['POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def approve_user(id):
     """Approve a pending user registration."""
     user = User.query.get_or_404(id)
@@ -1089,7 +1089,7 @@ def approve_user(id):
 
 @settings_bp.route('/users/<int:id>/reject', methods=['POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def reject_user(id):
     """Reject and delete a pending user registration."""
     user = User.query.get_or_404(id)
@@ -1157,7 +1157,7 @@ def integrations():
 
 @settings_bp.route('/email-preview')
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def email_preview_list():
     """List all available email templates for preview."""
     templates = [
@@ -1178,7 +1178,7 @@ def email_preview_list():
 
 @settings_bp.route('/email-preview/<template_name>')
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def email_preview(template_name):
     """Preview a specific email template with mock data."""
     from datetime import date, time
@@ -1316,7 +1316,7 @@ def email_preview(template_name):
 
 @settings_bp.route('/email-config', methods=['GET', 'POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def email_config():
     """Configure SMTP settings via web interface."""
     from app.models.system_settings import SystemSettings
@@ -1363,7 +1363,7 @@ def email_config():
 
 @settings_bp.route('/email-config/test', methods=['POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def email_config_test():
     """Test email configuration by sending a test email."""
     from flask_mail import Message

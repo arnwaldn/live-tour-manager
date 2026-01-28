@@ -14,7 +14,7 @@ from app.blueprints.bands.forms import BandForm, BandMemberInviteForm, BandMembe
 from app.models.band import Band, BandMembership
 from app.models.user import User
 from app.extensions import db
-from app.decorators import role_required, band_access_required
+from app.decorators import requires_manager, band_access_required
 from app.utils.audit import log_create, log_update, log_delete
 
 
@@ -77,7 +77,7 @@ def index():
 
 @bands_bp.route('/create', methods=['GET', 'POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def create():
     """Create a new band."""
     form = BandForm()

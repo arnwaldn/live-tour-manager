@@ -10,7 +10,7 @@ from app.blueprints.venues.forms import VenueForm, VenueContactForm
 from app.models.venue import Venue, VenueContact
 from app.extensions import db
 from sqlalchemy import func
-from app.decorators import role_required
+from app.decorators import requires_manager
 from app.utils.audit import log_create, log_update, log_delete
 
 
@@ -120,7 +120,7 @@ def index():
 
 @venues_bp.route('/create', methods=['GET', 'POST'])
 @login_required
-@role_required('MANAGER', 'PROMOTER')
+@requires_manager
 def create():
     """Create a new venue."""
     form = VenueForm()
@@ -179,7 +179,7 @@ def detail(id):
 
 @venues_bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
-@role_required('MANAGER', 'PROMOTER')
+@requires_manager
 def edit(id):
     """Edit a venue."""
     venue = Venue.query.get_or_404(id)
@@ -221,7 +221,7 @@ def edit(id):
 
 @venues_bp.route('/<int:id>/delete', methods=['POST'])
 @login_required
-@role_required('MANAGER')
+@requires_manager
 def delete(id):
     """Delete a venue."""
     venue = Venue.query.get_or_404(id)
@@ -244,7 +244,7 @@ def delete(id):
 # Venue Contacts
 @venues_bp.route('/<int:id>/contacts/add', methods=['GET', 'POST'])
 @login_required
-@role_required('MANAGER', 'PROMOTER')
+@requires_manager
 def add_contact(id):
     """Add a contact to a venue."""
     venue = Venue.query.get_or_404(id)
@@ -272,7 +272,7 @@ def add_contact(id):
 
 @venues_bp.route('/<int:id>/contacts/<int:contact_id>/edit', methods=['GET', 'POST'])
 @login_required
-@role_required('MANAGER', 'PROMOTER')
+@requires_manager
 def edit_contact(id, contact_id):
     """Edit a venue contact."""
     venue = Venue.query.get_or_404(id)
@@ -294,7 +294,7 @@ def edit_contact(id, contact_id):
 
 @venues_bp.route('/<int:id>/contacts/<int:contact_id>/delete', methods=['POST'])
 @login_required
-@role_required('MANAGER', 'PROMOTER')
+@requires_manager
 def delete_contact(id, contact_id):
     """Delete a venue contact."""
     contact = VenueContact.query.filter_by(id=contact_id, venue_id=id).first_or_404()

@@ -40,7 +40,7 @@ def index():
 @login_required
 def check_in_select():
     """Check-in selection - select a tour stop for check-in."""
-    if not current_user.has_permission('check_in_guests'):
+    if not current_user.is_staff_or_above():
         flash('Vous n\'avez pas la permission d\'effectuer des check-ins.', 'error')
         return redirect(url_for('main.dashboard'))
 
@@ -76,7 +76,7 @@ def manage(stop_id):
 
     # G-H2: Filter entries by permissions
     # Users without manage_guestlist can only see their own requests or entries where they are the artist
-    if not current_user.has_permission('manage_guestlist'):
+    if not current_user.is_staff_or_above():
         query = query.filter(
             db.or_(
                 GuestlistEntry.requested_by_id == current_user.id,
@@ -114,7 +114,7 @@ def manage(stop_id):
 
     # Get all entries for stats (without pagination) - with permission filter (G-H2)
     all_query = GuestlistEntry.query.filter_by(tour_stop_id=stop_id)
-    if not current_user.has_permission('manage_guestlist'):
+    if not current_user.is_staff_or_above():
         all_query = all_query.filter(
             db.or_(
                 GuestlistEntry.requested_by_id == current_user.id,
@@ -128,7 +128,7 @@ def manage(stop_id):
         tour_stop_id=stop_id,
         status=GuestlistStatus.PENDING
     )
-    if not current_user.has_permission('manage_guestlist'):
+    if not current_user.is_staff_or_above():
         pending_query = pending_query.filter(
             db.or_(
                 GuestlistEntry.requested_by_id == current_user.id,
@@ -177,7 +177,7 @@ def add_entry(stop_id):
         return redirect(url_for('main.dashboard'))
 
     # Check permission to request guestlist
-    if not current_user.has_permission('request_guestlist'):
+    if not current_user.is_staff_or_above():
         flash('Vous n\'avez pas la permission d\'ajouter des invités.', 'error')
         return redirect(url_for('guestlist.manage', stop_id=stop_id))
 
@@ -223,7 +223,7 @@ def add_entry(stop_id):
         )
 
         # Auto-approve if user has guestlist management permission
-        if current_user.has_permission('manage_guestlist'):
+        if current_user.is_staff_or_above():
             entry.status = GuestlistStatus.APPROVED
             entry.approved_by_id = current_user.id
 
@@ -298,7 +298,7 @@ def edit_entry(id):
         return redirect(url_for('main.dashboard'))
 
     # Only requester or manager can edit
-    if entry.requested_by_id != current_user.id and not current_user.has_permission('manage_guestlist'):
+    if entry.requested_by_id != current_user.id and not current_user.is_staff_or_above():
         flash('Vous ne pouvez pas modifier cette entrée.', 'error')
         return redirect(url_for('guestlist.manage', stop_id=stop.id))
 
@@ -379,7 +379,7 @@ def approve_entry(id):
         flash('Accès non autorisé.', 'error')
         return redirect(url_for('main.dashboard'))
 
-    if not current_user.has_permission('manage_guestlist'):
+    if not current_user.is_staff_or_above():
         flash('Vous n\'avez pas la permission de gérer la guestlist.', 'error')
         return redirect(url_for('guestlist.manage', stop_id=stop.id))
 
@@ -413,7 +413,7 @@ def deny_entry(id):
         flash('Accès non autorisé.', 'error')
         return redirect(url_for('main.dashboard'))
 
-    if not current_user.has_permission('manage_guestlist'):
+    if not current_user.is_staff_or_above():
         flash('Vous n\'avez pas la permission de gérer la guestlist.', 'error')
         return redirect(url_for('guestlist.manage', stop_id=stop.id))
 
@@ -453,7 +453,7 @@ def delete_entry(id):
         return redirect(url_for('main.dashboard'))
 
     # Only requester or manager can delete
-    if entry.requested_by_id != current_user.id and not current_user.has_permission('manage_guestlist'):
+    if entry.requested_by_id != current_user.id and not current_user.is_staff_or_above():
         flash('Vous ne pouvez pas supprimer cette entrée.', 'error')
         return redirect(url_for('guestlist.manage', stop_id=stop.id))
 
@@ -508,7 +508,7 @@ def do_check_in(id):
     stop = entry.tour_stop
 
     # Check permission
-    if not current_user.has_permission('check_in_guests'):
+    if not current_user.is_staff_or_above():
         return jsonify({'success': False, 'message': 'Permission refusée'}), 403
 
     if entry.status != GuestlistStatus.APPROVED:
@@ -546,7 +546,7 @@ def undo_check_in(id):
     stop = entry.tour_stop
 
     # Check permission
-    if not current_user.has_permission('check_in_guests'):
+    if not current_user.is_staff_or_above():
         return jsonify({'success': False, 'message': 'Permission refusée'}), 403
 
     if entry.status != GuestlistStatus.CHECKED_IN:
@@ -579,7 +579,7 @@ def bulk_action(stop_id):
     tour = stop.tour
 
     # Check access and permission
-    if not current_user.has_permission('manage_guestlist'):
+    if not current_user.is_staff_or_above():
         flash('Permission refusée.', 'error')
         return redirect(url_for('guestlist.manage', stop_id=stop_id))
 
@@ -651,7 +651,7 @@ def export_csv(stop_id):
         flash('Accès non autorisé.', 'error')
         return redirect(url_for('main.dashboard'))
 
-    if not current_user.has_permission('export_guestlist'):
+    if not current_user.is_staff_or_above():
         flash('Permission refusée.', 'error')
         return redirect(url_for('guestlist.manage', stop_id=stop_id))
 
