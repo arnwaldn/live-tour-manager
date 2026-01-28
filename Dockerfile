@@ -49,9 +49,9 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-# Initialize database and run Gunicorn
-# Use db.create_all() for fresh database, skip migrations
+# Initialize database, create initial users, and run Gunicorn
 CMD python -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.create_all(); print('Database tables created')" && \
+    python setup_users.py && \
     gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 \
     --access-logfile - --error-logfile - \
     "app:create_app()"
