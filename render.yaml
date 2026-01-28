@@ -1,0 +1,52 @@
+# Render.com Blueprint - Live Tour Manager
+# Deploy: https://render.com/deploy?repo=https://github.com/arnwaldn/live-tour-manager
+
+services:
+  # Web Service
+  - type: web
+    name: live-tour-manager
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 2 "app:create_app()"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: live-tour-manager-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: live-tour-manager-redis
+          type: redis
+          property: connectionString
+      - key: CACHE_TYPE
+        value: RedisCache
+      - key: CACHE_REDIS_URL
+        fromService:
+          name: live-tour-manager-redis
+          type: redis
+          property: connectionString
+      - key: RATELIMIT_STORAGE_URL
+        fromService:
+          name: live-tour-manager-redis
+          type: redis
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+    healthCheckPath: /health
+    plan: free
+
+databases:
+  - name: live-tour-manager-db
+    plan: free
+    databaseName: live_tour_manager
+    user: tour_manager
+
+  - name: live-tour-manager-redis
+    type: redis
+    plan: free
