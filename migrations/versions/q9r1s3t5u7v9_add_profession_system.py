@@ -1,7 +1,7 @@
 """Add profession system with access levels and labels
 
-Revision ID: f6h8j0l2n4p6
-Revises: 5fc84d517d83
+Revision ID: q9r1s3t5u7v9
+Revises: t1z2n3e4w5b6
 Create Date: 2026-01-25 13:30:00.000000
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from datetime import datetime
 
 # revision identifiers, used by Alembic.
-revision = 'f6h8j0l2n4p6'
-down_revision = '5fc84d517d83'
+revision = 'q9r1s3t5u7v9'
+down_revision = 't1z2n3e4w5b6'
 branch_labels = None
 depends_on = None
 
