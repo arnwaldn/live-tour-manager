@@ -67,8 +67,8 @@
                 <span class="nav-link text-muted small text-uppercase">Événements</span>
             </li>
 
-            <!-- Guestlist (if permission) -->
-            {% if current_user.has_permission('manage_guestlist') or current_user.has_permission('request_guestlist') %}
+            <!-- Guestlist (staff and above) -->
+            {% if current_user.is_staff_or_above() %}
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'guestlist' in request.endpoint and 'check_in' not in request.endpoint else '' }}"
                    href="{{ url_for('guestlist.index') }}">
@@ -79,7 +79,7 @@
             {% endif %}
 
             <!-- Check-in (if permission) -->
-            {% if current_user.has_permission('check_in_guests') %}
+            {% if current_user.is_staff_or_above() %}
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'check_in' in request.endpoint else '' }}"
                    href="{{ url_for('guestlist.check_in_select') }}">
