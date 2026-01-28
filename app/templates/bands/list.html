@@ -8,7 +8,7 @@
         <i class="bi bi-people me-2"></i>
         Mes Groupes
     </h1>
-    {% if current_user.has_role('MANAGER') and (managed_bands or member_bands) %}
+    {% if current_user.is_manager_or_above() and (managed_bands or member_bands) %}
     <a href="{{ url_for('bands.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i>
         Nouveau groupe
@@ -125,7 +125,7 @@
     <p class="text-muted">
         Vous n'êtes membre d'aucun groupe pour le moment.
     </p>
-    {% if current_user.has_role('MANAGER') %}
+    {% if current_user.is_manager_or_above() %}
     <a href="{{ url_for('bands.create') }}" class="btn btn-primary mt-2">
         <i class="bi bi-plus-lg me-1"></i>
         Créer un groupe

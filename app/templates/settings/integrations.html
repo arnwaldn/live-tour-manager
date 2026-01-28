@@ -158,7 +158,7 @@
 </div>
 
 <!-- Admin Setup Card (only if not fully configured) -->
-{% if current_user.has_role('MANAGER') and (not google_configured or not outlook_configured) %}
+{% if current_user.is_manager_or_above() and (not google_configured or not outlook_configured) %}
 <div class="row mt-4">
     <div class="col-12">
         <div class="card border-0 shadow-sm border-start border-primary border-4">

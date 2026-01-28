@@ -88,7 +88,7 @@
     </div>
 
     <!-- Users Management (Manager only) -->
-    {% if current_user.has_role('MANAGER') %}
+    {% if current_user.is_manager_or_above() %}
     <div class="col">
         <div class="card h-100 border-primary">
             <div class="card-body">

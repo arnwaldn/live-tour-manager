@@ -113,7 +113,7 @@
                             <i class="bi bi-person me-2"></i>Mon profil
                         </a>
                     </li>
-                    {% if current_user.has_role('MANAGER') %}
+                    {% if current_user.is_manager_or_above() %}
                     <li>
                         <a class="dropdown-item" href="{{ url_for('settings.index') }}">
                             <i class="bi bi-gear me-2"></i>Paramètres

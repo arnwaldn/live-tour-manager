@@ -8,7 +8,7 @@
         <h1 class="h2 mb-1">Bonjour, {{ current_user.first_name }}!</h1>
         <p class="text-muted mb-0">Voici un résumé de votre activité</p>
     </div>
-    {% if current_user.has_role('MANAGER') %}
+    {% if current_user.is_manager_or_above() %}
     <div class="mt-3 mt-md-0">
         <a href="{{ url_for('bands.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-lg me-1"></i>
@@ -176,7 +176,7 @@
                 <div class="text-center py-4">
                     <i class="bi bi-calendar-plus text-muted" style="font-size: 2rem;"></i>
                     <p class="text-muted mt-2 mb-0">Aucun concert prévu</p>
-                    {% if current_user.has_role('MANAGER') %}
+                    {% if current_user.is_manager_or_above() %}
                     <a href="{{ url_for('tours.index') }}" class="btn btn-sm btn-primary mt-2">
                         Créer une tournée
                     </a>
