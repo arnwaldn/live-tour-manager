@@ -39,14 +39,14 @@ RUN chown -R tourmanager:tourmanager /app
 # Switch to non-root user
 USER tourmanager
 
-# Expose port (Fly.io uses 8080 by default)
+# Expose port
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-# Run Gunicorn with dynamic port
-CMD gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 \
+# Initialize database and run Gunicorn
+CMD flask db upgrade && gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 \
     --access-logfile - --error-logfile - \
     "app:create_app()"
