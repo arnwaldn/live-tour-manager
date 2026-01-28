@@ -1173,24 +1173,126 @@ def calendar_events(id, tour=None):
 @login_required
 @tour_access_required
 def export_ical(id, tour=None):
-    """Export tour stops as iCal file."""
-    ical = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tour Manager//EN']
+    """
+    Export tour stops as iCal file.
 
-    for stop in tour.stops:
-        ical.append('BEGIN:VEVENT')
-        ical.append(f'UID:stop-{stop.id}@tourmanager')
-        ical.append(f'DTSTART;VALUE=DATE:{stop.date.strftime("%Y%m%d")}')
-        ical.append(f'SUMMARY:{tour.band.name} @ {stop.venue.name}')
-        ical.append(f'LOCATION:{stop.venue.address or ""}, {stop.venue.city}, {stop.venue.country}')
-        if stop.notes:
-            ical.append(f'DESCRIPTION:{stop.notes}')
-        ical.append('END:VEVENT')
+    Generates a proper iCal calendar file with:
+    - Timezone support (Europe/Paris)
+    - Proper start/end times (set_time → curfew_time)
+    - Rich descriptions with call times and venue info
+    - VALARM reminders (1 day before)
+    - Categories by event type
+    - Status (CONFIRMED, TENTATIVE, CANCELLED)
+    """
+    from app.utils.ical import generate_tour_ical
 
-    ical.append('END:VCALENDAR')
+    ical_content = generate_tour_ical(tour, include_alarms=True)
 
-    response = Response('\r\n'.join(ical), mimetype='text/calendar')
+    response = Response(ical_content, mimetype='text/calendar')
     response.headers['Content-Disposition'] = f'attachment; filename="{tour.name}.ics"'
+    response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
     return response
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/export.ics')
+@login_required
+@tour_access_required
+def export_stop_ical(id, stop_id, tour=None):
+    """
+    Export a single tour stop as iCal file.
+
+    Allows users to add a single event to their calendar.
+    """
+    from app.utils.ical import generate_stop_ical
+
+    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+
+    ical_content = generate_stop_ical(stop, tour, include_alarm=True)
+
+    # Build filename
+    date_str = stop.date.strftime('%Y-%m-%d')
+    location = stop.venue.name if stop.venue else stop.location_city or 'event'
+    filename = f"{date_str}_{location}.ics".replace(' ', '_')
+
+    response = Response(ical_content, mimetype='text/calendar')
+    response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
+    return response
+
+
+@tours_bp.route('/<int:id>/calendar.ics')
+def calendar_feed(id):
+    """
+    Calendar subscription feed (URL for Google Calendar/Apple Calendar).
+
+    This endpoint can be used as a subscription URL - calendar apps will
+    automatically fetch updates. No login required (uses token authentication).
+
+    Usage:
+        1. Copy the URL with token: /tours/123/calendar.ics?token=xxx
+        2. In Google Calendar: Add calendar → From URL → Paste URL
+        3. Calendar will auto-sync updates
+    """
+    from app.utils.ical import generate_tour_ical
+
+    # Check token authentication for public access
+    token = request.args.get('token')
+    tour = Tour.query.get_or_404(id)
+
+    # If user is logged in, allow access
+    if current_user.is_authenticated:
+        if not tour.can_view(current_user):
+            abort(403)
+    else:
+        # For anonymous access, require valid token
+        if not token:
+            abort(401, description="Token requis pour accès au calendrier. Connectez-vous ou utilisez un lien avec token.")
+
+        # Validate token (simple hash of tour_id + band_id + secret)
+        expected_token = _generate_calendar_token(tour)
+        if token != expected_token:
+            abort(403, description="Token invalide")
+
+    ical_content = generate_tour_ical(tour, include_alarms=False)  # No alarms for feeds
+
+    response = Response(ical_content, mimetype='text/calendar')
+    response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
+    # Allow caching for 1 hour (feeds are polled periodically)
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+
+def _generate_calendar_token(tour):
+    """Generate a simple token for calendar feed authentication."""
+    import hashlib
+    from flask import current_app
+
+    secret = current_app.config.get('SECRET_KEY', 'default-secret')
+    data = f"calendar-{tour.id}-{tour.band_id}-{secret}"
+    return hashlib.sha256(data.encode()).hexdigest()[:32]
+
+
+@tours_bp.route('/<int:id>/calendar-url')
+@login_required
+@tour_access_required
+def get_calendar_url(id, tour=None):
+    """
+    Get the subscription URL for this tour's calendar.
+
+    Returns JSON with the feed URL that can be added to calendar apps.
+    """
+    token = _generate_calendar_token(tour)
+    feed_url = url_for('tours.calendar_feed', id=id, token=token, _external=True)
+
+    return jsonify({
+        'success': True,
+        'feed_url': feed_url,
+        'instructions': {
+            'google': 'Google Calendar → Autres agendas → À partir de l\'URL → Coller l\'URL',
+            'apple': 'Calendrier → Fichier → Nouvel abonnement → Coller l\'URL',
+            'outlook': 'Outlook → Ajouter un calendrier → À partir d\'Internet → Coller l\'URL'
+        }
+    })
 
 
 # ==================== GESTION DES MEMBRES ASSIGNÉS ====================
