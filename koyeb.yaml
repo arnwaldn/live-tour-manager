@@ -11,10 +11,14 @@ env:
     value: production
   - key: FLASK_DEBUG
     value: "false"
-  - key: SECRET_KEY
-    value: "91820b2a25d3d71ce96beb33a088e0669026044babc5bf289cd1b0446a29032f"
-  - key: DATABASE_URL
-    value: "sqlite:///tour_manager.db"
+  # IMPORTANT: Set these in Koyeb dashboard > Service > Environment Variables
+  # DO NOT commit real secrets to this file!
+  # - key: SECRET_KEY
+  #   value: "<generate with: python -c 'import secrets; print(secrets.token_hex(32))'>"
+  # - key: DATABASE_URL
+  #   value: "<your-postgresql-connection-string>"
+  # - key: REDIS_URL
+  #   value: "<your-redis-connection-string>"
 ports:
   - port: 8080
     protocol: http
