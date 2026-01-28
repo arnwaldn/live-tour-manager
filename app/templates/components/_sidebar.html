@@ -170,7 +170,7 @@
                 <div>
                     <strong>{{ current_user.full_name }}</strong>
                     <br>
-                    <small class="text-muted">{{ current_user.roles[0].name if current_user.roles else 'Utilisateur' }}</small>
+                    <small class="text-muted">{{ current_user.access_level_label }}</small>
                 </div>
                         </div>
         </div>
