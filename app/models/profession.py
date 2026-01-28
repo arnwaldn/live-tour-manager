@@ -67,6 +67,13 @@ class Profession(db.Model):
     # Default access level suggestion (can be overridden per user)
     default_access_level = db.Column(db.String(20), default='STAFF')
 
+    # Default rates for this profession
+    show_rate = db.Column(db.Numeric(10, 2), nullable=True)
+    daily_rate = db.Column(db.Numeric(10, 2), nullable=True)
+    weekly_rate = db.Column(db.Numeric(10, 2), nullable=True)
+    per_diem = db.Column(db.Numeric(10, 2), nullable=True)
+    default_frequency = db.Column(db.String(20), nullable=True)
+
     # Relationships
     user_professions = db.relationship('UserProfession', back_populates='profession', lazy='dynamic')
 
