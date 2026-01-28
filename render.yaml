@@ -6,7 +6,7 @@ services:
   - type: web
     name: live-tour-manager
     runtime: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 2 "app:create_app()"
     envVars:
       - key: FLASK_ENV
