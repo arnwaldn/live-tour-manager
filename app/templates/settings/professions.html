@@ -99,8 +99,8 @@
                                         <td>{{ profession.name_en }}</td>
                                         <td>
                                             {% if profession.default_access_level %}
-                                            <span class="badge bg-{% if profession.default_access_level.name == 'ADMIN' %}danger{% elif profession.default_access_level.name == 'MANAGER' %}primary{% elif profession.default_access_level.name == 'STAFF' %}info{% elif profession.default_access_level.name == 'VIEWER' %}secondary{% else %}warning{% endif %}">
-                                                {{ profession.default_access_level.value }}
+                                            <span class="badge bg-{% if profession.default_access_level == 'ADMIN' %}danger{% elif profession.default_access_level == 'MANAGER' %}primary{% elif profession.default_access_level == 'STAFF' %}info{% elif profession.default_access_level == 'VIEWER' %}secondary{% else %}warning{% endif %}">
+                                                {{ profession.default_access_level }}
                                             </span>
                                             {% else %}
                                             <span class="text-muted">-</span>
