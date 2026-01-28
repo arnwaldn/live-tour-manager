@@ -50,6 +50,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
 # Initialize database and run Gunicorn
-CMD flask db upgrade && gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 \
+# Use "heads" to handle multiple migration branches
+CMD flask db upgrade heads && gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 \
     --access-logfile - --error-logfile - \
     "app:create_app()"
