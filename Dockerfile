@@ -39,14 +39,14 @@ RUN chown -R tourmanager:tourmanager /app
 # Switch to non-root user
 USER tourmanager
 
-# Expose port
-EXPOSE 8000
+# Expose port (Fly.io uses 8080 by default)
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
-# Run Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2", \
-     "--worker-class", "gthread", "--access-logfile", "-", "--error-logfile", "-", \
-     "--capture-output", "--enable-stdio-inheritance", "run:app"]
+# Run Gunicorn with dynamic port
+CMD gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 \
+    --access-logfile - --error-logfile - \
+    "app:create_app()"
