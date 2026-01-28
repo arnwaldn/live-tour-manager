@@ -43,9 +43,9 @@ python-dotenv==1.0.0
 # Utilities
 python-dateutil==2.8.2
 
-# PDF Generation (xhtml2pdf - pure Python, works on all cloud platforms)
-# Note: WeasyPrint removed - requires libcairo not available on serverless platforms
-xhtml2pdf>=0.2.11
+# PDF Generation - DISABLED for Render deployment (pycairo compilation issues)
+# TODO: Re-enable after demo or use alternative PDF library
+# xhtml2pdf>=0.2.11
 
 # Calendar Integrations (OAuth2 + iCal export)
 google-api-python-client>=2.111.0
