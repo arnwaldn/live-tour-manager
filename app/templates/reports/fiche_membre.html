@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Fiche membre - {{ user.full_name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #333;
+        }
+        .header {
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .subtitle {
+            font-size: 9pt;
+            color: #666;
+        }
+        h1 {
+            font-size: 16pt;
+            color: #1e40af;
+            margin: 20px 0 10px 0;
+        }
+        h2 {
+            font-size: 12pt;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 5px;
+            margin: 25px 0 10px 0;
+        }
+        .member-info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .member-info table {
+            width: 100%;
+            border: none;
+        }
+        .member-info td {
+            border: none;
+            padding: 4px 10px 4px 0;
+            vertical-align: top;
+        }
+        .member-info .label {
+            font-weight: bold;
+            color: #6b7280;
+            width: 150px;
+        }
+        .bank-info {
+            background: #dbeafe;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+        }
+        table.payments {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        table.payments th {
+            background: #2563eb;
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 9pt;
+        }
+        table.payments td {
+            padding: 6px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 9pt;
+        }
+        table.payments tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        .amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        .summary-box {
+            display: inline-block;
+            background: #f3f4f6;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 5px 10px 5px 0;
+            text-align: center;
+        }
+        .summary-box .value {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        .summary-box .label {
+            font-size: 8pt;
+            color: #6b7280;
+        }
+        .total-section {
+            margin-top: 30px;
+            padding: 15px;
+            background: #1e40af;
+            color: white;
+            border-radius: 4px;
+        }
+        .total-amount {
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 8pt;
+            color: #6b7280;
+        }
+        .tour-section {
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        .tour-header {
+            background: #e5e7eb;
+            padding: 8px 12px;
+            font-weight: bold;
+            border-left: 4px solid #2563eb;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .badge-intermittent { background: #dcfce7; color: #166534; }
+        .badge-freelance { background: #fef3c7; color: #92400e; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">STUDIO PALENQUE TOUR</div>
+        <div class="subtitle">Fiche récapitulative membre</div>
+    </div>
+
+    <h1>{{ user.full_name }}</h1>
+
+    <div class="member-info">
+        <table>
+            <tr>
+                <td class="label">Email:</td>
+                <td>{{ user.email }}</td>
+                <td class="label">Téléphone:</td>
+                <td>{{ user.phone or '-' }}</td>
+            </tr>
+            {% if config %}
+            <tr>
+                <td class="label">Catégorie:</td>
+                <td>{{ config.staff_category.value.title() if config.staff_category else '-' }}</td>
+                <td class="label">Role:</td>
+                <td>{{ config.staff_role.value.replace('_', ' ').title() if config.staff_role else '-' }}</td>
+            </tr>
+            <tr>
+                <td class="label">Type contrat:</td>
+                <td>
+                    {{ config.contract_type.value.upper() if config.contract_type else '-' }}
+                    {% if config.is_intermittent %}
+                    <span class="badge badge-intermittent">Intermittent</span>
+                    {% endif %}
+                </td>
+                <td class="label">Fréquence:</td>
+                <td>{{ config.payment_frequency.value.replace('_', ' ').title() if config.payment_frequency else '-' }}</td>
+            </tr>
+            {% if config.siret %}
+            <tr>
+                <td class="label">SIRET:</td>
+                <td colspan="3">{{ config.siret }}</td>
+            </tr>
+            {% endif %}
+            {% if config.conges_spectacle_id %}
+            <tr>
+                <td class="label">Congés spectacles:</td>
+                <td colspan="3">{{ config.conges_spectacle_id }}</td>
+            </tr>
+            {% endif %}
+            {% endif %}
+        </table>
+    </div>
+
+    {% if config and config.iban %}
+    <div class="bank-info">
+        <strong>Coordonnées bancaires:</strong><br>
+        IBAN: {{ config.iban }}<br>
+        {% if config.bic %}BIC: {{ config.bic }}<br>{% endif %}
+        {% if config.bank_name %}Banque: {{ config.bank_name }}{% endif %}
+    </div>
+    {% endif %}
+
+    <h2>Résumé des paiements</h2>
+
+    {% if start_date or end_date %}
+    <p style="color: #6b7280; font-size: 9pt;">
+        Période: {{ start_date.strftime('%d/%m/%Y') if start_date else 'Début' }}
+        au {{ end_date.strftime('%d/%m/%Y') if end_date else "Aujourd'hui" }}
+    </p>
+    {% endif %}
+
+    <div style="margin: 20px 0;">
+        <div class="summary-box">
+            <div class="value">{{ "{:,.2f}".format(totals.cachets) }} EUR</div>
+            <div class="label">Cachets</div>
+        </div>
+        <div class="summary-box">
+            <div class="value">{{ "{:,.2f}".format(totals.per_diems) }} EUR</div>
+            <div class="label">Per diems</div>
+        </div>
+        <div class="summary-box">
+            <div class="value">{{ "{:,.2f}".format(totals.overtime) }} EUR</div>
+            <div class="label">H. supplémentaires</div>
+        </div>
+        <div class="summary-box">
+            <div class="value">{{ "{:,.2f}".format(totals.bonus) }} EUR</div>
+            <div class="label">Bonus</div>
+        </div>
+    </div>
+
+    {% for tour_name, data in payments_by_tour.items() %}
+    <div class="tour-section">
+        <div class="tour-header">
+            {{ tour_name }} - Sous-total: {{ "{:,.2f}".format(data.total) }} EUR
+        </div>
+        <table class="payments">
+            <thead>
+                <tr>
+                    <th style="width: 15%">Référence</th>
+                    <th style="width: 15%">Type</th>
+                    <th style="width: 35%">Description</th>
+                    <th style="width: 15%">Date</th>
+                    <th style="width: 20%" class="amount">Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in data.payments %}
+                <tr>
+                    <td>{{ payment.reference }}</td>
+                    <td>{{ payment.payment_type.value if payment.payment_type else '-' }}</td>
+                    <td>{{ payment.description or '-' }}</td>
+                    <td>{{ payment.work_date.strftime('%d/%m/%Y') if payment.work_date else '-' }}</td>
+                    <td class="amount">{{ "{:,.2f}".format(payment.amount) }} EUR</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+
+    <div class="total-section">
+        <table style="margin: 0; border: none; width: 100%;">
+            <tr style="background: transparent;">
+                <td style="border: none; padding: 0;">
+                    <strong>TOTAL GÉNÉRAL</strong><br>
+                    <span style="font-size: 9pt;">{{ payments|length }} paiement(s)</span>
+                </td>
+                <td style="border: none; padding: 0; text-align: right;">
+                    <span class="total-amount">{{ "{:,.2f}".format(totals.total) }} EUR</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <strong>Document généré le:</strong> {{ generated_at.strftime('%d/%m/%Y à %H:%M') }}<br>
+        <strong>Studio Palenque Tour Manager</strong> - Fiche récapitulative des paiements pour {{ user.full_name }}
+    </div>
+</body>
+</html>

@@ -1,0 +1,144 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Partager {{ document.name }} - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-share me-2"></i>Partager le document
+    </h1>
+    <div>
+        <a href="{{ url_for('documents.detail', id=document.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour au document
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Document Info -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    {% if document.mime_type and 'pdf' in document.mime_type %}
+                    <i class="bi bi-file-earmark-pdf text-danger display-6 me-3"></i>
+                    {% elif document.mime_type and 'image' in document.mime_type %}
+                    <i class="bi bi-file-earmark-image text-success display-6 me-3"></i>
+                    {% else %}
+                    <i class="bi bi-file-earmark display-6 me-3"></i>
+                    {% endif %}
+                    <div>
+                        <h5 class="mb-1">{{ document.name }}</h5>
+                        <small class="text-muted">{{ document.file_size_formatted }} - {{ document.original_filename }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Share Form -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>Partager avec un utilisateur</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('documents.share_document', id=document.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label for="user_id" class="form-label">Utilisateur</label>
+                        <select name="user_id" id="user_id" class="form-select" required>
+                            <option value="">-- Sélectionner un utilisateur --</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.full_name }} ({{ user.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Type de partage</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="share_type" id="share_view" value="view" checked>
+                                <label class="form-check-label" for="share_view">
+                                    <i class="bi bi-eye me-1"></i>Lecture seule
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="share_type" id="share_edit" value="edit">
+                                <label class="form-check-label" for="share_edit">
+                                    <i class="bi bi-pencil me-1"></i>Modification
+                                </label>
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            "Lecture seule" permet de visualiser et télécharger. "Modification" permet aussi d'éditer les métadonnées.
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-share me-2"></i>Partager
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Existing Shares -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>Partages actifs</h5>
+            </div>
+            {% if existing_shares %}
+            <ul class="list-group list-group-flush">
+                {% for share in existing_shares %}
+                <li class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ share.shared_to.full_name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ share.shared_to.email }}</small>
+                            <br>
+                            <span class="badge bg-{{ 'warning text-dark' if share.share_type.value == 'edit' else 'secondary' }}">
+                                {{ 'Modification' if share.share_type.value == 'edit' else 'Lecture' }}
+                            </span>
+                            <small class="text-muted ms-2">
+                                Partage le {{ share.shared_at.strftime('%d/%m/%Y') }}
+                            </small>
+                        </div>
+                        <form action="{{ url_for('documents.remove_share', id=document.id, share_id=share.id) }}"
+                              method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('Retirer ce partage?');">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="card-body text-center text-muted">
+                <i class="bi bi-inbox display-6"></i>
+                <p class="mb-0 mt-2">Aucun partage actif</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Info Card -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6><i class="bi bi-info-circle me-2"></i>À propos du partage</h6>
+                <small class="text-muted">
+                    <ul class="ps-3 mb-0">
+                        <li>L'utilisateur recevra une notification</li>
+                        <li>Il pourra accéder au document depuis son espace</li>
+                        <li>Vous pouvez retirer le partage à tout moment</li>
+                    </ul>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

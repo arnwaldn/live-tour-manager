@@ -1,0 +1,804 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Carte - {{ tour.name }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS - Using jsdelivr (CSP whitelisted) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+#tourMap {
+    height: calc(100vh - 280px);
+    min-height: 400px;
+    border-radius: 0.5rem;
+    background: #2a2a3e;
+}
+/* DO NOT override Leaflet z-indexes - they are carefully set */
+.leaflet-container {
+    background: #f0f0f0 !important;
+}
+.map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    color: #e0e0e0;
+}
+.legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.stop-popup {
+    min-width: 200px;
+}
+.stop-popup h6 {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+.stop-popup .popup-date {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+.stop-popup .popup-venue {
+    margin-bottom: 0.5rem;
+}
+.stop-popup .popup-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #dee2e6;
+}
+/* Custom marker styles */
+.custom-marker {
+    border: none !important;
+    background: none !important;
+}
+.marker-number {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.map-stats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+.map-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.map-stat-value {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+.map-stat-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+}
+.map-stats-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+.map-stats-card .map-stat-value {
+    color: #ffffff;
+}
+.map-stats-card .bi {
+    filter: brightness(1.2);
+}
+@media (max-width: 768px) {
+    #tourMap {
+        height: 60vh;
+        min-height: 300px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+        <li class="breadcrumb-item active">Carte</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">Carte de la tournée</h1>
+        <p class="text-muted mb-0">{{ tour.name }} - {{ tour.band.name }}</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('tours.detail', id=tour.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-list me-1"></i>Liste
+        </a>
+        <a href="{{ url_for('tours.calendar', id=tour.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-calendar3 me-1"></i>Calendrier
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="card border-0 shadow-sm mb-3 map-stats-card">
+    <div class="card-body py-3">
+        <div class="map-stats">
+            <div class="map-stat">
+                <i class="bi bi-geo-alt text-primary" style="font-size: 1.25rem;"></i>
+                <div>
+                    <span class="map-stat-value">{{ stops_with_coords|length }}</span>
+                    <span class="map-stat-label">/ {{ tour.stops|length }} dates sur la carte</span>
+                </div>
+            </div>
+            <div class="map-stat">
+                <i class="bi bi-calendar-range text-success" style="font-size: 1.25rem;"></i>
+                <div>
+                    <span class="map-stat-value">{{ tour.start_date.strftime('%d/%m/%Y') }}</span>
+                    <span class="map-stat-label">au {{ tour.end_date.strftime('%d/%m/%Y') }}</span>
+                </div>
+            </div>
+            {% set confirmed_count = tour.stops|selectattr('status.value', 'equalto', 'confirmed')|list|length %}
+            <div class="map-stat">
+                <i class="bi bi-check-circle text-success" style="font-size: 1.25rem;"></i>
+                <div>
+                    <span class="map-stat-value">{{ confirmed_count }}</span>
+                    <span class="map-stat-label">dates confirmées</span>
+                </div>
+            </div>
+            {% if total_distance %}
+            <div class="map-stat">
+                <i class="bi bi-signpost-2 text-info" style="font-size: 1.25rem;"></i>
+                <div>
+                    <span class="map-stat-value">{{ total_distance }} km</span>
+                    <span class="map-stat-label">distance totale ({{ valid_segments }} trajets)</span>
+                </div>
+            </div>
+            {% endif %}
+            {% if hotels %}
+            <div class="map-stat">
+                <i class="bi bi-building text-info" style="font-size: 1.25rem;"></i>
+                <div>
+                    <span class="map-stat-value">{{ hotels|length }}</span>
+                    <span class="map-stat-label">hotel(s) sur la carte</span>
+                </div>
+            </div>
+            {% endif %}
+            {% if transports %}
+            <div class="map-stat">
+                <i class="bi bi-airplane text-primary" style="font-size: 1.25rem;"></i>
+                <div>
+                    <span class="map-stat-value">{{ transports|length }}</span>
+                    <span class="map-stat-label">transport(s) sur la carte</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="map-legend">
+    <span class="text-muted me-2" style="font-size: 0.75rem;">DATES:</span>
+    <div class="legend-item"><span class="legend-color" style="background: #198754;"></span>Concert</div>
+    <div class="legend-item"><span class="legend-color" style="background: #6c757d;"></span>Jour off</div>
+    <div class="legend-item"><span class="legend-color" style="background: #0d6efd;"></span>Voyage</div>
+    <div class="legend-item"><span class="legend-color" style="background: #6f42c1;"></span>Studio</div>
+    <div class="legend-item"><span class="legend-color" style="background: #fd7e14;"></span>Promo</div>
+    <div class="legend-item"><span class="legend-color" style="background: #ffc107;"></span>Répétition</div>
+    <span class="text-muted mx-2">|</span>
+    <span class="text-muted me-2" style="font-size: 0.75rem;">LOGISTIQUE:</span>
+    <div class="legend-item"><i class="bi bi-building text-info me-1"></i>Hôtel</div>
+    <div class="legend-item"><i class="bi bi-airplane text-primary me-1"></i>Vol</div>
+    <div class="legend-item"><i class="bi bi-train-front text-success me-1"></i>Train</div>
+    <div class="legend-item"><i class="bi bi-bus-front text-warning me-1"></i>Bus</div>
+</div>
+
+<!-- Map Container - Toujours visible -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div id="tourMap"></div>
+    </div>
+</div>
+
+<!-- Warning si certaines dates n'ont pas de coordonnees -->
+{% set missing_coords = tour.stops|length - stops_with_coords|length %}
+{% if missing_coords > 0 %}
+<div class="alert alert-{{ 'warning' if stops_with_coords else 'info' }} mt-3">
+    <i class="bi bi-{{ 'exclamation-triangle' if stops_with_coords else 'info-circle' }} me-2"></i>
+    {% if stops_with_coords %}
+    <strong>{{ missing_coords }}</strong> date(s) sans coordonnées GPS.
+    {% else %}
+    <strong>Aucune date avec coordonnées GPS.</strong>
+    {% endif %}
+    <a href="{{ url_for('tours.detail', id=tour.id) }}" class="alert-link ms-2">
+        Modifier les salles pour ajouter les coordonnées
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS - Using jsdelivr (CSP whitelisted) -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+{% autoescape false %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Event type colors
+    const eventTypeColors = {
+        'show': '#198754',
+        'day_off': '#6c757d',
+        'travel': '#0d6efd',
+        'studio': '#6f42c1',
+        'promo': '#fd7e14',
+        'rehearsal': '#ffc107',
+        'press': '#d63384',
+        'meet_greet': '#20c997',
+        'photo_video': '#0dcaf0',
+        'other': '#adb5bd'
+    };
+
+    // Event type labels
+    const eventTypeLabels = {
+        'show': 'Concert',
+        'day_off': 'Jour off',
+        'travel': 'Voyage',
+        'studio': 'Studio',
+        'promo': 'Promo',
+        'rehearsal': 'Répétition',
+        'press': 'Presse',
+        'meet_greet': 'Meet & Greet',
+        'photo_video': 'Photo/Video',
+        'other': 'Autre'
+    };
+
+    // Status labels
+    const statusLabels = {
+        'hold': 'En attente',
+        'pending': 'En négociation',
+        'confirmed': 'Confirmé',
+        'advanced': 'Avancé',
+        'completed': 'Terminé',
+        'cancelled': 'Annulé'
+    };
+
+    const statusClasses = {
+        'hold': 'secondary',
+        'pending': 'warning',
+        'confirmed': 'success',
+        'advanced': 'info',
+        'completed': 'primary',
+        'cancelled': 'danger'
+    };
+
+    // Tour stops data (venue OU lieu direct)
+    const stops = [
+        {% for stop in stops_with_coords|sort(attribute='date') %}
+        {
+            id: {{ stop.id }},
+            lat: {{ stop.get_coordinates[0] }},
+            lng: {{ stop.get_coordinates[1] }},
+            date: '{{ stop.date.strftime("%d/%m/%Y") }}',
+            dateSort: '{{ stop.date.strftime("%Y-%m-%d") }}',
+            venue: {{ stop.map_location_name|tojson }},
+            city: {{ stop.map_location_city|tojson }},
+            country: {{ stop.map_location_country|tojson }},
+            eventType: '{{ stop.event_type.value if stop.event_type else "show" }}',
+            status: '{{ stop.status.value }}',
+            detailUrl: '{{ url_for("tours.stop_detail", id=tour.id, stop_id=stop.id) }}',
+            order: {{ loop.index }},
+            hasVenue: {{ 'true' if stop.venue else 'false' }},
+            {% if stop.id in distance_to_next %}
+            distanceToNext: {{ distance_to_next[stop.id].distance_km }},
+            travelTime: '{{ distance_to_next[stop.id].travel_time }}'
+            {% else %}
+            distanceToNext: null,
+            travelTime: null
+            {% endif %}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // Initialize map with default view (France center)
+    const map = L.map('tourMap', {
+        center: [46.603354, 1.888334],
+        zoom: 6,
+        zoomControl: true,
+        scrollWheelZoom: true
+    });
+
+    // Try multiple tile providers with fallback
+    var tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri'
+    });
+
+    tileLayer.on('tileerror', function(e) {
+        console.error('Tile error, trying fallback:', e);
+        // Fallback to CartoDB
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20,
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd'
+        }).addTo(map);
+    });
+
+    tileLayer.addTo(map);
+
+    console.log('Map initialized, adding tiles...');
+
+    // Force map resize after short delay (fixes container sizing issues)
+    setTimeout(function() {
+        map.invalidateSize();
+        console.log('Leaflet tour map initialized');
+    }, 100);
+
+    // Debug: Log tile loading errors
+    map.on('tileerror', function(error) {
+        console.error('Tile load error:', error);
+    });
+
+    // Create markers and collect bounds
+    const markers = [];
+    const bounds = L.latLngBounds();
+    const routeCoords = [];
+
+    stops.forEach((stop, index) => {
+        const coords = [stop.lat, stop.lng];
+        bounds.extend(coords);
+        routeCoords.push(coords);
+
+        // Get color for event type
+        const color = eventTypeColors[stop.eventType] || '#198754';
+        const textColor = ['rehearsal', 'photo_video', 'other'].includes(stop.eventType) ? '#212529' : '#ffffff';
+
+        // Custom marker with number
+        const markerIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `
+                <div style="background-color: ${color}; color: ${textColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-weight: 600; font-size: 14px;">
+                    ${stop.order}
+                </div>
+            `,
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
+        });
+
+        const marker = L.marker(coords, { icon: markerIcon });
+
+        // Create popup content
+        let distanceInfo = '';
+        if (stop.distanceToNext) {
+            distanceInfo = `
+                <div class="popup-distance" style="font-size: 0.8rem; color: #0d6efd; margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: #e7f1ff; border-radius: 4px;">
+                    <i class="bi bi-arrow-right-circle me-1"></i>
+                    Prochain stop: <strong>${stop.distanceToNext} km</strong> (~${stop.travelTime} en voiture)
+                </div>
+            `;
+        }
+
+        // Icône différente pour lieu externe vs salle
+        const locationIcon = stop.hasVenue ? 'bi-building' : 'bi-pin-map';
+        const locationLabel = stop.hasVenue ? '' : '<span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">Lieu externe</span>';
+
+        const popupContent = `
+            <div class="stop-popup">
+                <h6><i class="bi ${locationIcon} me-1"></i>${stop.venue}${locationLabel}</h6>
+                <div class="popup-date">
+                    <i class="bi bi-calendar3 me-1"></i>${stop.date}
+                </div>
+                <div class="popup-venue">
+                    <i class="bi bi-geo-alt me-1 text-muted"></i>${stop.city}${stop.country ? ', ' + stop.country : ''}
+                </div>
+                ${distanceInfo}
+                <div class="popup-footer">
+                    <span class="badge" style="background-color: ${color}; color: ${textColor};">
+                        ${eventTypeLabels[stop.eventType] || 'Concert'}
+                    </span>
+                    <a href="${stop.detailUrl}" class="btn btn-sm btn-primary">
+                        Voir <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        `;
+
+        marker.bindPopup(popupContent);
+        markers.push(marker);
+    });
+
+    // Route polyline will be added to stopsLayer below
+
+    // Fit map to show all markers
+    if (stops.length > 0) {
+        map.fitBounds(bounds, { padding: [30, 30] });
+    } else {
+        // Default view (France)
+        map.setView([46.603354, 1.888334], 6);
+    }
+
+    // Force Leaflet to recalculate dimensions after render
+    setTimeout(function() {
+        map.invalidateSize();
+        if (stops.length > 0) {
+            map.fitBounds(bounds, { padding: [30, 30] });
+        }
+    }, 200);
+
+    // Add zoom controls
+    L.control.scale({ metric: true, imperial: false }).addTo(map);
+
+    // ===== LOGISTICS LAYERS =====
+
+    // Hôtels data - filter only those with valid coordinates
+    const hotels = [
+        {% for hotel in hotels if hotel.lat and hotel.lng %}
+        {
+            id: {{ hotel.id }},
+            lat: {{ hotel.lat }},
+            lng: {{ hotel.lng }},
+            name: {{ hotel.name|tojson }},
+            address: {{ hotel.address|tojson }},
+            city: {{ hotel.city|tojson }},
+            type: '{{ hotel.type }}',
+            typeLabel: '{{ hotel.type_label }}',
+            checkIn: {{ 'null' if not hotel.check_in else "'" ~ hotel.check_in ~ "'" }},
+            checkOut: {{ 'null' if not hotel.check_out else "'" ~ hotel.check_out ~ "'" }},
+            rooms: {{ hotel.rooms }},
+            breakfast: {{ 'true' if hotel.breakfast else 'false' }},
+            stopDate: '{{ hotel.stop_date }}',
+            stopId: {{ hotel.stop_id or 'null' }},
+            status: '{{ hotel.status }}',
+            statusLabel: '{{ hotel.status_label }}',
+            icon: '{{ hotel.icon }}',
+            color: '{{ hotel.color }}',
+            assignedUsers: [
+                {% for user in hotel.assigned_users %}
+                { name: {{ user.name|tojson }}, room: {{ user.room|tojson }} }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ]
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // Transports data
+    const transports = [
+        {% for transport in transports %}
+        {
+            id: {{ transport.id }},
+            type: '{{ transport.type }}',
+            typeLabel: {{ transport.type_label|tojson }},
+            provider: {{ transport.provider|tojson }},
+            stopDate: '{{ transport.stop_date }}',
+            stopId: {{ transport.stop_id or 'null' }},
+            status: '{{ transport.status }}',
+            statusLabel: '{{ transport.status_label }}',
+            icon: '{{ transport.icon }}',
+            color: '{{ transport.color }}',
+            flightNumber: '{{ transport.flight_number|default("", true) }}',
+            assignedUsers: [
+                {% for user in transport.assigned_users %}
+                { name: {{ user.name|tojson }}, seat: {{ user.seat|tojson }} }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            departure: {% if transport.departure %}{
+                lat: {{ transport.departure.lat }},
+                lng: {{ transport.departure.lng }},
+                airport: {{ transport.departure.airport|default("", true)|tojson }},
+                terminal: {{ transport.departure.terminal|default("", true)|tojson }},
+                location: {{ transport.departure.location|default("", true)|tojson }},
+                time: '{{ transport.departure.time|default("", true) }}'
+            }{% else %}null{% endif %},
+            arrival: {% if transport.arrival %}{
+                lat: {{ transport.arrival.lat }},
+                lng: {{ transport.arrival.lng }},
+                airport: {{ transport.arrival.airport|default("", true)|tojson }},
+                terminal: {{ transport.arrival.terminal|default("", true)|tojson }},
+                time: '{{ transport.arrival.time|default("", true) }}'
+            }{% else %}null{% endif %}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // Transport type icons
+    const transportIcons = {
+        'flight': 'bi-airplane',
+        'train': 'bi-train-front',
+        'bus': 'bi-bus-front',
+        'ferry': 'bi-water',
+        'rental_car': 'bi-car-front',
+        'taxi': 'bi-taxi-front',
+        'ground_transport': 'bi-truck'
+    };
+
+    // Transport type colors
+    const transportColors = {
+        'flight': '#0d6efd',
+        'train': '#198754',
+        'bus': '#fd7e14',
+        'ferry': '#0dcaf0',
+        'rental_car': '#6f42c1',
+        'taxi': '#ffc107',
+        'ground_transport': '#6c757d'
+    };
+
+    // Create layer groups
+    const stopsLayer = L.layerGroup();
+    const hotelLayer = L.layerGroup();
+    const transportLayer = L.layerGroup();
+
+    // Move existing markers to stops layer
+    markers.forEach(marker => {
+        stopsLayer.addLayer(marker);
+    });
+
+    // Add polyline to stops layer
+    if (routeCoords.length > 1) {
+        const existingPolyline = L.polyline(routeCoords, {
+            color: '#0d6efd',
+            weight: 3,
+            opacity: 0.7,
+            dashArray: '10, 10',
+            lineJoin: 'round'
+        });
+        stopsLayer.addLayer(existingPolyline);
+    }
+
+    // Create hotel markers
+    hotels.forEach(hotel => {
+        const hotelIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `
+                <div style="background-color: ${hotel.color}; color: white; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                    <i class="${hotel.icon}" style="font-size: 14px;"></i>
+                </div>
+            `,
+            iconSize: [28, 28],
+            iconAnchor: [14, 28],
+            popupAnchor: [0, -28]
+        });
+
+        const marker = L.marker([hotel.lat, hotel.lng], { icon: hotelIcon });
+
+        let hotelDetails = '';
+        if (hotel.checkIn || hotel.checkOut) {
+            hotelDetails += `<div style="font-size: 0.8rem; margin-top: 0.25rem;">`;
+            if (hotel.checkIn) hotelDetails += `<i class="bi bi-box-arrow-in-right me-1"></i>Check-in: ${hotel.checkIn}`;
+            if (hotel.checkIn && hotel.checkOut) hotelDetails += ' | ';
+            if (hotel.checkOut) hotelDetails += `<i class="bi bi-box-arrow-right me-1"></i>Check-out: ${hotel.checkOut}`;
+            hotelDetails += `</div>`;
+        }
+        if (hotel.rooms > 1 || hotel.breakfast) {
+            hotelDetails += `<div style="font-size: 0.8rem;">`;
+            if (hotel.rooms > 1) hotelDetails += `<i class="bi bi-door-open me-1"></i>${hotel.rooms} chambres`;
+            if (hotel.rooms > 1 && hotel.breakfast) hotelDetails += ' | ';
+            if (hotel.breakfast) hotelDetails += `<i class="bi bi-cup-hot me-1"></i>PDJ inclus`;
+            hotelDetails += `</div>`;
+        }
+
+        // Build assigned users section for hotel
+        let hotelUsersHtml = '';
+        if (hotel.assignedUsers && hotel.assignedUsers.length > 0) {
+            const userBadges = hotel.assignedUsers.map(u => {
+                let badge = `<span style="display: inline-block; background: #d4a574; color: #1a1a2e; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin: 2px;">`;
+                badge += `<i class="bi bi-person-fill me-1"></i>${u.name}`;
+                if (u.room) badge += ` <small>(${u.room})</small>`;
+                badge += `</span>`;
+                return badge;
+            }).join('');
+            hotelUsersHtml = `
+                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #dee2e6;">
+                    <div style="font-size: 0.75rem; color: #6c757d; margin-bottom: 0.25rem;">
+                        <i class="bi bi-people-fill me-1"></i>Personnes:
+                    </div>
+                    <div>${userBadges}</div>
+                </div>
+            `;
+        }
+
+        const popupContent = `
+            <div class="stop-popup">
+                <h6><i class="${hotel.icon} me-1"></i>${hotel.name}</h6>
+                <div style="color: #6c757d; font-size: 0.875rem; margin-bottom: 0.25rem;">
+                    <i class="bi bi-calendar3 me-1"></i>${hotel.stopDate}
+                </div>
+                <div style="margin-bottom: 0.25rem;">
+                    <i class="bi bi-geo-alt me-1 text-muted"></i>${hotel.address}${hotel.city ? ', ' + hotel.city : ''}
+                </div>
+                ${hotelDetails}
+                ${hotelUsersHtml}
+                <div class="popup-footer">
+                    <span class="badge bg-info">${hotel.typeLabel}</span>
+                    <span class="badge bg-${hotel.status === 'confirmed' ? 'success' : hotel.status === 'cancelled' ? 'danger' : 'warning'}">${hotel.statusLabel}</span>
+                </div>
+            </div>
+        `;
+
+        marker.bindPopup(popupContent);
+        hotelLayer.addLayer(marker);
+        bounds.extend([hotel.lat, hotel.lng]);
+    });
+
+    // Create transport markers
+    transports.forEach(transport => {
+        const iconClass = transportIcons[transport.type] || 'bi-geo-alt';
+        const color = transportColors[transport.type] || '#6c757d';
+
+        // Build passengers section for transport (shared between dep/arr popups)
+        let passengersHtml = '';
+        if (transport.assignedUsers && transport.assignedUsers.length > 0) {
+            const userBadges = transport.assignedUsers.map(u => {
+                let badge = `<span style="display: inline-block; background: #d4a574; color: #1a1a2e; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin: 2px;">`;
+                badge += `<i class="bi bi-person-fill me-1"></i>${u.name}`;
+                if (u.seat) badge += ` <small>(${u.seat})</small>`;
+                badge += `</span>`;
+                return badge;
+            }).join('');
+            passengersHtml = `
+                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #dee2e6;">
+                    <div style="font-size: 0.75rem; color: #6c757d; margin-bottom: 0.25rem;">
+                        <i class="bi bi-people-fill me-1"></i>Passagers:
+                    </div>
+                    <div>${userBadges}</div>
+                </div>
+            `;
+        }
+
+        // Departure marker (only if valid coordinates)
+        if (transport.departure && transport.departure.lat && transport.departure.lng) {
+            const depIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `
+                    <div style="background-color: ${color}; color: white; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                        <i class="${iconClass}" style="font-size: 14px;"></i>
+                    </div>
+                `,
+                iconSize: [28, 28],
+                iconAnchor: [14, 28],
+                popupAnchor: [0, -28]
+            });
+
+            const depMarker = L.marker([transport.departure.lat, transport.departure.lng], { icon: depIcon });
+
+            let locationInfo = transport.departure.airport || transport.departure.location || '';
+            if (transport.departure.terminal) locationInfo += ` (Terminal ${transport.departure.terminal})`;
+
+            const depPopup = `
+                <div class="stop-popup">
+                    <h6><i class="${iconClass} me-1"></i>${transport.typeLabel}</h6>
+                    <div style="color: #6c757d; font-size: 0.875rem;">
+                        <i class="bi bi-calendar3 me-1"></i>${transport.stopDate}
+                    </div>
+                    ${transport.flightNumber ? `<div><strong>Vol:</strong> ${transport.flightNumber}</div>` : ''}
+                    <div style="margin-top: 0.25rem;">
+                        <i class="bi bi-arrow-up-right-circle text-success me-1"></i><strong>Départ:</strong> ${locationInfo}
+                        ${transport.departure.time ? ' à' + transport.departure.time : ''}
+                    </div>
+                    ${transport.arrival ? `
+                        <div>
+                            <i class="bi bi-arrow-down-left-circle text-danger me-1"></i><strong>Arrivée:</strong> ${transport.arrival.airport || transport.arrival.location || ''}
+                            ${transport.arrival.terminal ? ' (Terminal ' + transport.arrival.terminal + ')' : ''}
+                            ${transport.arrival.time ? ' à' + transport.arrival.time : ''}
+                        </div>
+                    ` : ''}
+                    ${passengersHtml}
+                    <div class="popup-footer">
+                        <span class="badge" style="background-color: ${color};">${transport.type.replace('_', ' ')}</span>
+                        <span class="badge bg-${transport.status === 'confirmed' ? 'success' : transport.status === 'cancelled' ? 'danger' : 'warning'}">${transport.statusLabel}</span>
+                    </div>
+                </div>
+            `;
+
+            depMarker.bindPopup(depPopup);
+            transportLayer.addLayer(depMarker);
+            bounds.extend([transport.departure.lat, transport.departure.lng]);
+        }
+
+        // Arrival marker (only if valid coordinates)
+        if (transport.arrival && transport.arrival.lat && transport.arrival.lng) {
+            const arrIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `
+                    <div style="background-color: ${color}; color: white; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); opacity: 0.8;">
+                        <i class="bi-geo-alt-fill" style="font-size: 14px;"></i>
+                    </div>
+                `,
+                iconSize: [28, 28],
+                iconAnchor: [14, 28],
+                popupAnchor: [0, -28]
+            });
+
+            const arrMarker = L.marker([transport.arrival.lat, transport.arrival.lng], { icon: arrIcon });
+
+            let arrLocationInfo = transport.arrival.airport || transport.arrival.location || '';
+            if (transport.arrival.terminal) arrLocationInfo += ` (Terminal ${transport.arrival.terminal})`;
+
+            const arrPopup = `
+                <div class="stop-popup">
+                    <h6><i class="bi-geo-alt-fill me-1"></i>Arrivée -${transport.typeLabel}</h6>
+                    <div style="color: #6c757d; font-size: 0.875rem;">
+                        <i class="bi bi-calendar3 me-1"></i>${transport.stopDate}
+                    </div>
+                    ${transport.flightNumber ? `<div><strong>Vol:</strong> ${transport.flightNumber}</div>` : ''}
+                    <div style="margin-top: 0.25rem;">
+                        <i class="bi bi-arrow-down-left-circle text-danger me-1"></i><strong>Arrivée:</strong> ${arrLocationInfo}
+                        ${transport.arrival.time ? ' à' + transport.arrival.time : ''}
+                    </div>
+                    ${passengersHtml}
+                    <div class="popup-footer">
+                        <span class="badge" style="background-color: ${color};">${transport.type.replace('_', ' ')}</span>
+                    </div>
+                </div>
+            `;
+
+            arrMarker.bindPopup(arrPopup);
+            transportLayer.addLayer(arrMarker);
+            bounds.extend([transport.arrival.lat, transport.arrival.lng]);
+
+            // Draw flight path line between departure and arrival (only if both have valid coords)
+            if (transport.departure && transport.departure.lat && transport.departure.lng) {
+                const flightPath = L.polyline([
+                    [transport.departure.lat, transport.departure.lng],
+                    [transport.arrival.lat, transport.arrival.lng]
+                ], {
+                    color: color,
+                    weight: 2,
+                    opacity: 0.6,
+                    dashArray: '5, 10'
+                });
+                transportLayer.addLayer(flightPath);
+            }
+        }
+    });
+
+    // Add all layers to map
+    stopsLayer.addTo(map);
+    hotelLayer.addTo(map);
+    transportLayer.addTo(map);
+
+    // Layer control
+    const overlayMaps = {
+        '<i class="bi bi-geo-alt me-1"></i> Dates de tournée': stopsLayer,
+        '<i class="bi bi-building me-1"></i> Hôtels': hotelLayer,
+        '<i class="bi bi-airplane me-1"></i> Transports': transportLayer
+    };
+
+    L.control.layers(null, overlayMaps, {
+        collapsed: false,
+        position: 'topright'
+    }).addTo(map);
+
+    // Refit bounds if we have logistics markers
+    if (hotels.length > 0 || transports.length > 0) {
+        map.fitBounds(bounds, { padding: [30, 30] });
+    }
+});
+</script>
+{% endautoescape %}
+{% endblock %}

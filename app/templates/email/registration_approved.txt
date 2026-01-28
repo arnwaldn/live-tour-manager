@@ -1,0 +1,31 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+VOTRE INSCRIPTION A ETE APPROUVEE
+
+Bonjour {{ user.first_name }},
+
+Felicitations! Votre demande d'inscription a Studio Palenque Tour a ete approuvee.
+
+---
+CONNEXION
+---
+{{ login_url }}
+
+Vous pouvez maintenant vous connecter avec vos identifiants et acceder a la plateforme.
+
+---
+VOS INFORMATIONS
+---
+Nom: {{ user.full_name }}
+Email: {{ user.email }}
+
+Bienvenue dans l'equipe!
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group
+Cet email a ete envoye automatiquement.

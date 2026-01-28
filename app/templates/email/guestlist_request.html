@@ -1,0 +1,49 @@
+{% extends "email/base.html" %}
+
+{% block title %}Nouvelle demande Guestlist - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<h2>Nouvelle demande guestlist</h2>
+
+<p>Bonjour,</p>
+
+<p>Une nouvelle demande d'accès guestlist vient d'être soumise et nécessite votre validation.</p>
+
+<div class="info-box">
+    <h3>Détails de l'événement</h3>
+    <p><span class="label">Artiste:</span> <span class="value">{{ band.name }}</span></p>
+    <p><span class="label">Tournée:</span> <span class="value">{{ tour.name }}</span></p>
+    <p><span class="label">Lieu:</span> <span class="value">{{ venue.name }}</span></p>
+    <p><span class="label">Date:</span> <span class="value">{{ tour_stop.date.strftime('%d/%m/%Y') }}</span></p>
+</div>
+
+<div class="info-box">
+    <h3>Demande</h3>
+    <p><span class="label">Invité:</span> <span class="value">{{ entry.guest_name }}</span></p>
+    {% if entry.guest_email %}
+    <p><span class="label">Email:</span> <span class="value">{{ entry.guest_email }}</span></p>
+    {% endif %}
+    <p><span class="label">Type d'accès:</span> <span class="value">{{ entry.entry_type.value|replace('_', ' ')|title }}</span></p>
+    {% if entry.plus_ones > 0 %}
+    <p><span class="label">Accompagnants:</span> <span class="value">+{{ entry.plus_ones }}</span></p>
+    {% endif %}
+    {% if entry.requested_by %}
+    <p><span class="label">Demandé par:</span> <span class="value">{{ entry.requested_by.full_name }}</span></p>
+    {% endif %}
+    {% if entry.notes %}
+    <p><span class="label">Notes:</span> <span class="value">{{ entry.notes }}</span></p>
+    {% endif %}
+    <p><span class="label">Statut:</span> <span class="status-pending">En attente</span></p>
+</div>
+
+<p style="text-align: center;">
+    <a href="#" class="btn">Voir dans l'application</a>
+</p>
+
+<p>Connectez-vous à Studio Palenque Tour pour approuver ou refuser cette demande.</p>
+
+<p style="margin-top: 30px;">
+    Cordialement,<br>
+    <strong>Studio Palenque Tour</strong>
+</p>
+{% endblock %}

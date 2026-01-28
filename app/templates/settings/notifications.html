@@ -1,0 +1,119 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Notifications - Tour Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-bell me-2"></i>Préférences de notifications
+    </h1>
+    <a href="{{ url_for('settings.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Retour
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-envelope me-2"></i>Notifications par email
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Choisissez les notifications que vous souhaitez recevoir par email.
+                </p>
+
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.notify_new_tour(class="form-check-input", role="switch") }}
+                            <label class="form-check-label" for="notify_new_tour">
+                                <i class="bi bi-calendar-plus me-2 text-primary"></i>
+                                {{ form.notify_new_tour.label.text }}
+                            </label>
+                            <small class="d-block text-muted ms-4">
+                                Recevoir un email quand une nouvelle tournée est créée pour un de vos groupes.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.notify_guestlist_request(class="form-check-input", role="switch") }}
+                            <label class="form-check-label" for="notify_guestlist_request">
+                                <i class="bi bi-person-plus me-2 text-warning"></i>
+                                {{ form.notify_guestlist_request.label.text }}
+                            </label>
+                            <small class="d-block text-muted ms-4">
+                                Recevoir un email quand quelqu'un fait une demande de guestlist.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.notify_guestlist_approved(class="form-check-input", role="switch") }}
+                            <label class="form-check-label" for="notify_guestlist_approved">
+                                <i class="bi bi-check-circle me-2 text-success"></i>
+                                {{ form.notify_guestlist_approved.label.text }}
+                            </label>
+                            <small class="d-block text-muted ms-4">
+                                Recevoir un email quand votre demande de guestlist est traitée.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.notify_tour_reminder(class="form-check-input", role="switch") }}
+                            <label class="form-check-label" for="notify_tour_reminder">
+                                <i class="bi bi-alarm me-2 text-info"></i>
+                                {{ form.notify_tour_reminder.label.text }}
+                            </label>
+                            <small class="d-block text-muted ms-4">
+                                Recevoir un rappel 24h avant chaque concert.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            {{ form.notify_document_shared(class="form-check-input", role="switch") }}
+                            <label class="form-check-label" for="notify_document_shared">
+                                <i class="bi bi-file-earmark-arrow-down me-2 text-secondary"></i>
+                                {{ form.notify_document_shared.label.text }}
+                            </label>
+                            <small class="d-block text-muted ms-4">
+                                Recevoir un email quand un document est partagé avec vous.
+                            </small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="card-title text-muted">
+                    <i class="bi bi-info-circle me-2"></i>Information
+                </h6>
+                <p class="card-text small text-muted mb-0">
+                    Les emails sont envoyés à l'adresse <strong>{{ current_user.email }}</strong>.
+                    Vous pouvez modifier votre email dans les
+                    <a href="{{ url_for('settings.profile') }}">paramètres du profil</a>.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Inscription en attente - Tour Manager{% endblock %}
+
+{% block body %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center auth-page py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="auth-card card border-0 shadow-lg">
+                    <div class="card-body p-4 p-md-5 text-center">
+                        <!-- Icon -->
+                        <div class="mb-4">
+                            <i class="bi bi-hourglass-split display-1 text-warning"></i>
+                        </div>
+
+                        <!-- Title -->
+                        <h2 class="h3 mb-3">Inscription en attente</h2>
+
+                        <!-- Message -->
+                        <p class="text-muted mb-4">
+                            Votre inscription a été reçue et est en attente d'approbation par un manager.
+                            <br><br>
+                            Vous recevrez un email dès que votre compte sera activé.
+                        </p>
+
+                        <!-- Info Alert -->
+                        <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <small>Cette validation est nécessaire pour garantir la sécurité de la plateforme.</small>
+                        </div>
+
+                        <!-- Back Button -->
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left me-1"></i>Retour à la connexion
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

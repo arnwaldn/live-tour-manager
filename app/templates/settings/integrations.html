@@ -1,0 +1,345 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Intégrations Calendrier - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('settings.index') }}">Paramètres</a></li>
+        <li class="breadcrumb-item active">Intégrations Calendrier</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Intégrations Calendrier</h1>
+        <p class="text-muted mb-0">Synchronisez vos événements avec Google Calendar ou Outlook</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Google Calendar Card -->
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="icon-box bg-danger bg-opacity-10 text-danger me-3">
+                        <i class="bi bi-google fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">Google Calendar</h5>
+                        <small class="text-muted">Synchronisez avec votre calendrier Google</small>
+                    </div>
+                    {% if google_connected %}
+                    <span class="badge bg-success ms-auto">Connecté</span>
+                    {% endif %}
+                </div>
+
+                {% if not google_configured %}
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Configuration requise</strong>
+                    <p class="mb-1 mt-2">L'intégration Google Calendar doit être configurée par l'administrateur.</p>
+                    <small class="text-muted d-block">
+                        <i class="bi bi-file-earmark-text me-1"></i>
+                        Voir le guide: <code>docs/OAUTH_SETUP.md</code>
+                    </small>
+                </div>
+                {% elif google_connected %}
+                <div class="mb-3">
+                    <div class="row g-2 text-muted small">
+                        {% if google_token.last_sync %}
+                        <div class="col-6">
+                            <i class="bi bi-clock me-1"></i>
+                            Dernière sync: {{ google_token.last_sync.strftime('%d/%m/%Y %H:%M') }}
+                        </div>
+                        {% endif %}
+                        {% if google_token.calendar_id %}
+                        <div class="col-6">
+                            <i class="bi bi-calendar3 me-1"></i>
+                            {{ google_token.calendar_id }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if google_token.sync_error %}
+                    <div class="alert alert-danger mt-2 mb-0 py-2">
+                        <small><i class="bi bi-exclamation-circle me-1"></i>{{ google_token.sync_error }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" onclick="syncGoogle()">
+                        <i class="bi bi-arrow-repeat me-1"></i>Synchroniser
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="disconnectGoogle()">
+                        <i class="bi bi-x-circle me-1"></i>Déconnecter
+                    </button>
+                </div>
+                {% else %}
+                <p class="mb-3">
+                    Connectez votre compte Google pour synchroniser automatiquement les dates de tournée avec votre calendrier.
+                </p>
+                <a href="{{ url_for('integrations.google_authorize') }}" class="btn btn-danger">
+                    <i class="bi bi-google me-2"></i>Connecter Google Calendar
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Outlook Calendar Card -->
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="icon-box bg-primary bg-opacity-10 text-primary me-3">
+                        <i class="bi bi-microsoft fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">Outlook Calendar</h5>
+                        <small class="text-muted">Synchronisez avec Microsoft Outlook</small>
+                    </div>
+                    {% if outlook_connected %}
+                    <span class="badge bg-success ms-auto">Connecté</span>
+                    {% endif %}
+                </div>
+
+                {% if not outlook_configured %}
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Configuration requise</strong>
+                    <p class="mb-1 mt-2">L'intégration Outlook doit être configurée par l'administrateur.</p>
+                    <small class="text-muted d-block">
+                        <i class="bi bi-file-earmark-text me-1"></i>
+                        Voir le guide: <code>docs/OAUTH_SETUP.md</code>
+                    </small>
+                </div>
+                {% elif outlook_connected %}
+                <div class="mb-3">
+                    <div class="row g-2 text-muted small">
+                        {% if outlook_token.last_sync %}
+                        <div class="col-6">
+                            <i class="bi bi-clock me-1"></i>
+                            Dernière sync: {{ outlook_token.last_sync.strftime('%d/%m/%Y %H:%M') }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if outlook_token.sync_error %}
+                    <div class="alert alert-danger mt-2 mb-0 py-2">
+                        <small><i class="bi bi-exclamation-circle me-1"></i>{{ outlook_token.sync_error }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" onclick="syncOutlook()">
+                        <i class="bi bi-arrow-repeat me-1"></i>Synchroniser
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="disconnectOutlook()">
+                        <i class="bi bi-x-circle me-1"></i>Déconnecter
+                    </button>
+                </div>
+                {% else %}
+                <p class="mb-3">
+                    Connectez votre compte Microsoft pour synchroniser automatiquement les dates de tournée avec Outlook.
+                </p>
+                <a href="{{ url_for('integrations.outlook_authorize') }}" class="btn btn-primary">
+                    <i class="bi bi-microsoft me-2"></i>Connecter Outlook
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Setup Card (only if not fully configured) -->
+{% if current_user.has_role('MANAGER') and (not google_configured or not outlook_configured) %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm border-start border-primary border-4">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="bi bi-gear me-2 text-primary"></i>Configuration Administrateur</h5>
+                <p class="text-muted mb-3">
+                    En tant qu'administrateur, vous pouvez configurer les intégrations calendrier pour tous les utilisateurs.
+                    Une fois configurées, chaque utilisateur pourra connecter son calendrier en un clic.
+                </p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-1-circle me-2"></i>Guide de configuration OAuth</h6>
+                        <p class="small text-muted">Instructions pas-à-pas pour Google et Microsoft</p>
+                        <code class="d-block mb-3">docs/OAUTH_SETUP.md</code>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-2-circle me-2"></i>Guide de déploiement</h6>
+                        <p class="small text-muted">Hébergement et mise en production</p>
+                        <code class="d-block mb-3">docs/DEPLOYMENT.md</code>
+                    </div>
+                </div>
+                <div class="alert alert-light mb-0">
+                    <small>
+                        <i class="bi bi-lightbulb me-1"></i>
+                        <strong>Temps estimé:</strong> ~30 minutes pour configurer les deux intégrations
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Information Card -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="bi bi-info-circle me-2"></i>Comment fonctionne la synchronisation ?</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Événements synchronisés</h6>
+                        <ul class="text-muted small">
+                            <li>Tous les concerts et événements de vos tournées</li>
+                            <li>Dates de voyage et jours off</li>
+                            <li>Sessions studio, répétitions, promos</li>
+                            <li>Meet & Greet et séances photo/vidéo</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Informations incluses</h6>
+                        <ul class="text-muted small">
+                            <li>Nom de la tournée et du lieu</li>
+                            <li>Horaires (load-in, portes, concert)</li>
+                            <li>Adresse du venue</li>
+                            <li>Notes et détails techniques</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function syncGoogle() {
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Synchronisation...';
+
+    fetch('{{ url_for("integrations.google_sync") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', `${data.synced} événement(s) synchronisé(s) avec Google Calendar`);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('error', data.error || 'Erreur lors de la synchronisation');
+        }
+    })
+    .catch(error => {
+        showToast('error', 'Erreur de connexion');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+function disconnectGoogle() {
+    if (!confirm('Voulez-vous vraiment déconnecter Google Calendar ?')) return;
+
+    fetch('{{ url_for("integrations.google_disconnect") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', 'Déconnecté de Google Calendar');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('error', data.error || 'Erreur lors de la déconnexion');
+        }
+    })
+    .catch(error => {
+        showToast('error', 'Erreur de connexion');
+    });
+}
+
+function syncOutlook() {
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Synchronisation...';
+
+    fetch('{{ url_for("integrations.outlook_sync") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', `${data.synced} événement(s) synchronisé(s) avec Outlook`);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('error', data.error || 'Erreur lors de la synchronisation');
+        }
+    })
+    .catch(error => {
+        showToast('error', 'Erreur de connexion');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+function disconnectOutlook() {
+    if (!confirm('Voulez-vous vraiment déconnecter Outlook ?')) return;
+
+    fetch('{{ url_for("integrations.outlook_disconnect") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', 'Déconnecté de Outlook');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('error', data.error || 'Erreur lors de la déconnexion');
+        }
+    })
+    .catch(error => {
+        showToast('error', 'Erreur de connexion');
+    });
+}
+
+function showToast(type, message) {
+    // Simple toast notification (uses existing toast system if available)
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+}
+</script>
+{% endblock %}

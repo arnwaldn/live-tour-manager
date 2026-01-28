@@ -1,0 +1,35 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+{% if notification_type == 'created' %}NOUVELLE DATE AJOUTEE{% elif notification_type == 'updated' %}DATE MODIFIEE{% elif notification_type == 'cancelled' %}DATE ANNULEE{% else %}MISE A JOUR TOURNEE{% endif %}
+
+{% if notification_type == 'created' %}Une nouvelle date vient d'etre ajoutee a la tournee {{ tour.name }}.{% elif notification_type == 'updated' %}Une date de la tournee {{ tour.name }} a ete mise a jour.{% elif notification_type == 'cancelled' %}Une date de la tournee {{ tour.name }} a ete annulee.{% else %}Des modifications ont ete apportees a la tournee {{ tour.name }}.{% endif %}
+
+---
+DETAILS DE L'EVENEMENT
+---
+Artiste: {{ band.name }}
+Tournee: {{ tour.name }}
+Lieu: {{ venue.name }}
+Ville: {{ venue.city }}, {{ venue.country }}
+Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
+{% if tour_stop.doors_time %}Portes: {{ tour_stop.doors_time.strftime('%H:%M') }}{% endif %}
+{% if tour_stop.soundcheck_time %}Soundcheck: {{ tour_stop.soundcheck_time.strftime('%H:%M') }}{% endif %}
+{% if tour_stop.set_time %}Set: {{ tour_stop.set_time.strftime('%H:%M') }}{% endif %}
+
+{% if venue.address %}---
+ADRESSE
+---
+{{ venue.address }}
+{{ venue.postal_code }} {{ venue.city }}
+{{ venue.country }}{% endif %}
+
+Connectez-vous a Studio Palenque Tour pour plus de details.
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group
+Cet email a ete envoye automatiquement.

@@ -1,0 +1,110 @@
+{% extends "email/base.html" %}
+
+{% block title %}Rappel - {{ tour_stop.event_label }} - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<h2>
+    {% if reminder_type == 'j7' %}
+    Rappel J-7
+    {% else %}
+    Rappel: C'est demain!
+    {% endif %}
+</h2>
+
+<p>Bonjour {{ user.first_name }},</p>
+
+{% if reminder_type == 'j7' %}
+<p>Ceci est un rappel pour votre evenement dans <strong>7 jours</strong>.</p>
+{% else %}
+<p>Ceci est un rappel pour votre evenement de <strong>demain</strong>.</p>
+{% endif %}
+
+<div class="info-box">
+    <h3>{{ tour_stop.event_label }}</h3>
+    <p>
+        <span class="label">Date :</span>
+        <span class="value">{{ tour_stop.date.strftime('%A %d %B %Y') }}</span>
+    </p>
+    {% if venue %}
+    <p>
+        <span class="label">Lieu :</span>
+        <span class="value">{{ venue.name }}, {{ venue.city }}</span>
+    </p>
+    {% elif tour_stop.location_city %}
+    <p>
+        <span class="label">Lieu :</span>
+        <span class="value">{{ tour_stop.location_city }}{% if tour_stop.location_country %}, {{ tour_stop.location_country }}{% endif %}</span>
+    </p>
+    {% endif %}
+    {% if tour %}
+    <p>
+        <span class="label">Tournee :</span>
+        <span class="value">{{ tour.name }}</span>
+    </p>
+    {% endif %}
+    {% if band %}
+    <p>
+        <span class="label">Groupe :</span>
+        <span class="value">{{ band.name }}</span>
+    </p>
+    {% endif %}
+</div>
+
+{% if reminder_type == 'j1' and (tour_stop.load_in_time or tour_stop.soundcheck_time or tour_stop.set_time or tour_stop.doors_time) %}
+<div class="info-box" style="background-color: #fff3cd; border-left-color: #ffc107;">
+    <h3 style="color: #856404;">Horaires de demain</h3>
+    {% if tour_stop.load_in_time %}
+    <p>
+        <span class="label">Load-in :</span>
+        <span class="value"><strong>{{ tour_stop.load_in_time.strftime('%H:%M') }}</strong></span>
+    </p>
+    {% endif %}
+    {% if tour_stop.soundcheck_time %}
+    <p>
+        <span class="label">Soundcheck :</span>
+        <span class="value"><strong>{{ tour_stop.soundcheck_time.strftime('%H:%M') }}</strong></span>
+    </p>
+    {% endif %}
+    {% if tour_stop.set_time %}
+    <p>
+        <span class="label">Concert :</span>
+        <span class="value"><strong>{{ tour_stop.set_time.strftime('%H:%M') }}</strong></span>
+    </p>
+    {% endif %}
+    {% if tour_stop.doors_time %}
+    <p>
+        <span class="label">Ouverture portes :</span>
+        <span class="value">{{ tour_stop.doors_time.strftime('%H:%M') }}</span>
+    </p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if venue and venue.address %}
+<div class="info-box" style="background-color: #f8f9fa; border-left-color: #6c757d;">
+    <h3 style="color: #333333;">Adresse</h3>
+    <p style="color: #666666;">
+        {{ venue.address }}<br>
+        {% if venue.postal_code or venue.city %}{{ venue.postal_code }} {{ venue.city }}{% endif %}
+        {% if venue.country %}<br>{{ venue.country }}{% endif %}
+    </p>
+</div>
+{% endif %}
+
+{% if tour_stop.notes %}
+<div class="info-box" style="background-color: #f8f9fa; border-left-color: #6c757d;">
+    <h3 style="color: #333333;">Notes</h3>
+    <p style="color: #666666;">{{ tour_stop.notes }}</p>
+</div>
+{% endif %}
+
+<p style="margin-top: 30px;">
+    Bon concert!<br>
+    <strong>L'equipe Studio Palenque</strong>
+</p>
+
+<p style="color: #999999; font-size: 12px; margin-top: 20px; border-top: 1px solid #eeeeee; padding-top: 15px;">
+    Vous recevez cet email car vous etes inscrit a cet evenement.
+    Vous pouvez gerer vos preferences de rappels dans vos parametres.
+</p>
+{% endblock %}

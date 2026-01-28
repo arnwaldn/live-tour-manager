@@ -1,0 +1,93 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - {{ venue.name }} - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('venues.index') }}">Salles</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('venues.detail', id=venue.id) }}">{{ venue.name }}</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">{{ title }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <p class="text-muted mb-4">
+                    Ajoutez un contact pour <strong>{{ venue.name }}</strong>.
+                </p>
+
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nom <span class="text-danger">*</span></label>
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""),
+                           placeholder="Jean Dupont") }}
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback">{{ form.name.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Rôle / Fonction</label>
+                        {{ form.role(class="form-control" + (" is-invalid" if form.role.errors else ""),
+                           placeholder="Ex: Directeur technique, Booking...") }}
+                        {% if form.role.errors %}
+                        <div class="invalid-feedback">{{ form.role.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Téléphone</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                            {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""),
+                               placeholder="+33 6 12 34 56 78") }}
+                            {% if form.phone.errors %}
+                            <div class="invalid-feedback">{{ form.phone.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="email" class="form-label">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""),
+                               placeholder="jean.dupont@salle.com") }}
+                            {% if form.email.errors %}
+                            <div class="invalid-feedback">{{ form.email.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">Notes</label>
+                        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""),
+                           rows="2", placeholder="Notes sur ce contact...") }}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback">{{ form.notes.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('venues.detail', id=venue.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

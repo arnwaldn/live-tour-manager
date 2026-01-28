@@ -1,0 +1,364 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Rapport Financier - {{ tour.name }} - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">
+            <i class="bi bi-currency-euro me-2"></i>{{ tour.name }}
+        </h1>
+        <p class="text-muted mb-0">{{ tour.band.name if tour.band else 'N/A' }}</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('reports.financial') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+        <a href="{{ url_for('reports.export_financial_csv', tour_id=tour.id) }}" class="btn btn-success">
+            <i class="bi bi-download me-1"></i>Exporter CSV
+        </a>
+    </div>
+</div>
+
+<!-- Tour Info -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-1"><strong>Période:</strong>
+                    {{ tour.start_date.strftime('%d/%m/%Y') }} - {{ tour.end_date.strftime('%d/%m/%Y') if tour.end_date else 'En cours' }}
+                </p>
+                <p class="mb-0"><strong>Statut:</strong>
+                    <span class="badge bg-{{ 'success' if tour_data.status == 'active' else ('secondary' if tour_data.status == 'completed' else 'warning') }}">
+                        {{ tour_data.status|capitalize }}
+                    </span>
+                </p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <p class="mb-1"><strong>Nombre de dates:</strong> {{ tour_data.num_stops }}</p>
+                <p class="mb-0"><strong>Devise principale:</strong> {{ tour_data.currency }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
+    <div class="col">
+        <div class="card text-center h-100 border-success">
+            <div class="card-body">
+                <i class="bi bi-cash-stack display-4 text-success mb-2"></i>
+                <h2 class="card-title h4">{{ "{:,.2f}".format(tour_data.total_estimated_revenue) }}</h2>
+                <small class="text-muted">{{ tour_data.currency }}</small>
+                <p class="card-text text-muted mb-0">Revenus totaux estimés</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-shield-check display-4 text-primary mb-2"></i>
+                <h2 class="card-title h4">{{ "{:,.2f}".format(tour_data.total_guarantee) }}</h2>
+                <small class="text-muted">{{ tour_data.currency }}</small>
+                <p class="card-text text-muted mb-0">Cachets garantis</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-door-open display-4 text-info mb-2"></i>
+                <h2 class="card-title h4">{{ "{:,.2f}".format(tour_data.total_door_deal_revenue) }}</h2>
+                <small class="text-muted">{{ tour_data.currency }}</small>
+                <p class="card-text text-muted mb-0">Part de porte</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-graph-up display-4 text-warning mb-2"></i>
+                <h2 class="card-title h4">{{ "{:,.2f}".format(tour_data.avg_revenue_per_stop) }}</h2>
+                <small class="text-muted">{{ tour_data.currency }}</small>
+                <p class="card-text text-muted mb-0">Moyenne par date</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tickets Stats -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Billets Vendus</h5>
+                <h2 class="display-5 text-primary">{{ "{:,}".format(tour_data.total_sold_tickets) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Capacité Totale</h5>
+                <h2 class="display-5 text-secondary">{{ "{:,}".format(tour_data.total_capacity) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Taux de Remplissage</h5>
+                {% set fill_class = 'success' if tour_data.avg_fill_rate >= 80 else ('warning' if tour_data.avg_fill_rate >= 50 else 'danger') %}
+                <h2 class="display-5 text-{{ fill_class }}">{{ tour_data.avg_fill_rate }}%</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Logistics Costs Section (Informatif) -->
+{% if tour_data.logistics_costs and tour_data.logistics_costs.total > 0 %}
+<div class="card mb-4" style="border-color: var(--sp-gold, #C9A962);">
+    <div class="card-header" style="background-color: rgba(201, 169, 98, 0.15); border-bottom-color: var(--sp-gold, #C9A962);">
+        <h5 class="mb-0" style="color: var(--sp-gold, #C9A962);">
+            <i class="bi bi-truck me-2"></i>Frais Logistiques
+            <small class="text-muted fw-normal ms-2">(Informatif - non déduit des revenus)</small>
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-5 g-3">
+            <!-- Total -->
+            <div class="col">
+                <div class="card h-100 text-center border-0" style="background-color: rgba(201, 169, 98, 0.1);">
+                    <div class="card-body py-3">
+                        <i class="bi bi-calculator display-6 mb-2" style="color: var(--sp-gold, #C9A962);"></i>
+                        <h4 class="card-title h5 mb-1" style="color: var(--sp-gold, #C9A962);">
+                            {{ "{:,.2f}".format(tour_data.logistics_costs.total) }}
+                        </h4>
+                        <small class="text-muted">{{ tour_data.currency }}</small>
+                        <p class="card-text small text-muted mb-0">Total Frais</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Transport -->
+            <div class="col">
+                <div class="card h-100 text-center border-0 bg-light">
+                    <div class="card-body py-3">
+                        <i class="bi bi-airplane display-6 text-info mb-2"></i>
+                        <h4 class="card-title h5 mb-1">{{ "{:,.2f}".format(tour_data.logistics_costs.transport) }}</h4>
+                        <small class="text-muted">{{ tour_data.currency }}</small>
+                        <p class="card-text small text-muted mb-0">Transport</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Hébergement -->
+            <div class="col">
+                <div class="card h-100 text-center border-0 bg-light">
+                    <div class="card-body py-3">
+                        <i class="bi bi-building display-6 text-primary mb-2"></i>
+                        <h4 class="card-title h5 mb-1">{{ "{:,.2f}".format(tour_data.logistics_costs.accommodation) }}</h4>
+                        <small class="text-muted">{{ tour_data.currency }}</small>
+                        <p class="card-text small text-muted mb-0">Hébergement</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Équipement -->
+            <div class="col">
+                <div class="card h-100 text-center border-0 bg-light">
+                    <div class="card-body py-3">
+                        <i class="bi bi-gear display-6 text-secondary mb-2"></i>
+                        <h4 class="card-title h5 mb-1">{{ "{:,.2f}".format(tour_data.logistics_costs.equipment) }}</h4>
+                        <small class="text-muted">{{ tour_data.currency }}</small>
+                        <p class="card-text small text-muted mb-0">Équipement</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Services -->
+            <div class="col">
+                <div class="card h-100 text-center border-0 bg-light">
+                    <div class="card-body py-3">
+                        <i class="bi bi-cup-hot display-6 text-warning mb-2"></i>
+                        <h4 class="card-title h5 mb-1">{{ "{:,.2f}".format(tour_data.logistics_costs.services) }}</h4>
+                        <small class="text-muted">{{ tour_data.currency }}</small>
+                        <p class="card-text small text-muted mb-0">Services</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if tour_data.logistics_by_paid_by %}
+        <hr class="my-3">
+        <div class="row">
+            <div class="col-12">
+                <h6 class="text-muted mb-2"><i class="bi bi-wallet2 me-1"></i>Répartition par payeur</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for paid_by, amount in tour_data.logistics_by_paid_by.items() %}
+                    <span class="badge bg-secondary py-2 px-3">
+                        {{ paid_by|capitalize }}: {{ "{:,.2f}".format(amount) }} {{ tour_data.currency }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if tour_data.logistics_unpaid and tour_data.logistics_unpaid > 0 %}
+        <div class="alert alert-warning mt-3 mb-0 py-2">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>{{ "{:,.2f}".format(tour_data.logistics_unpaid) }} {{ tour_data.currency }}</strong> de frais non payés
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Stops Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Détail par date</h5>
+    </div>
+    <div class="card-body">
+        {% if tour_data.stops_data %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Salle</th>
+                        <th>Ville</th>
+                        <th class="text-center">Statut</th>
+                        <th class="text-end">Cachet</th>
+                        <th class="text-end">Billetterie</th>
+                        <th class="text-end">Part Porte</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Remplissage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stop in tour_data.stops_data %}
+                    <tr>
+                        <td>
+                            <strong>{{ stop.date.strftime('%d/%m/%Y') if stop.date else 'N/A' }}</strong>
+                        </td>
+                        <td>{{ stop.venue_name }}</td>
+                        <td>{{ stop.venue_city }}</td>
+                        <td class="text-center">
+                            {% set status_class = 'success' if stop.status == 'confirmed' else ('warning' if stop.status == 'pending' else 'secondary') %}
+                            <span class="badge bg-{{ status_class }}">{{ stop.status|capitalize }}</span>
+                        </td>
+                        <td class="text-end">
+                            {{ "{:,.2f}".format(stop.guarantee) }}
+                            <small class="text-muted">{{ stop.currency }}</small>
+                        </td>
+                        <td class="text-end">
+                            {{ "{:,.2f}".format(stop.ticket_revenue) }}
+                        </td>
+                        <td class="text-end">
+                            {{ "{:,.2f}".format(stop.door_deal_revenue) }}
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-success">{{ "{:,.2f}".format(stop.total_estimated_revenue) }}</strong>
+                        </td>
+                        <td class="text-center">
+                            {% set fill_class = 'success' if stop.fill_rate >= 80 else ('warning' if stop.fill_rate >= 50 else 'danger') %}
+                            <div class="d-flex align-items-center justify-content-center">
+                                <div class="progress flex-grow-1 me-2" style="height: 8px; max-width: 60px;">
+                                    <div class="progress-bar bg-{{ fill_class }}"
+                                         style="width: {{ stop.fill_rate }}%"></div>
+                                </div>
+                                <span class="badge bg-{{ fill_class }}">{{ stop.fill_rate }}%</span>
+                            </div>
+                            <small class="text-muted">{{ stop.sold_tickets }}/{{ stop.capacity }}</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-secondary">
+                    <tr class="fw-bold">
+                        <td colspan="4">TOTAL</td>
+                        <td class="text-end text-primary">
+                            {{ "{:,.2f}".format(tour_data.total_guarantee) }} {{ tour_data.currency }}
+                        </td>
+                        <td class="text-end">
+                            {{ "{:,.2f}".format(tour_data.total_ticket_revenue) }}
+                        </td>
+                        <td class="text-end">
+                            {{ "{:,.2f}".format(tour_data.total_door_deal_revenue) }}
+                        </td>
+                        <td class="text-end text-success">
+                            {{ "{:,.2f}".format(tour_data.total_estimated_revenue) }} {{ tour_data.currency }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-info">{{ tour_data.avg_fill_rate }}%</span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <p class="text-muted mt-3">Aucune date pour cette tournée.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Revenue Breakdown Chart Placeholder -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Répartition des revenus</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted">Par source</h6>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Cachets garantis</span>
+                        <span class="fw-bold">{{ "{:,.2f}".format(tour_data.total_guarantee) }} {{ tour_data.currency }}</span>
+                    </div>
+                    {% set guarantee_pct = (tour_data.total_guarantee / tour_data.total_estimated_revenue * 100) if tour_data.total_estimated_revenue > 0 else 0 %}
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-primary" style="width: {{ guarantee_pct }}%">{{ "{:.1f}".format(guarantee_pct) }}%</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Part de porte</span>
+                        <span class="fw-bold">{{ "{:,.2f}".format(tour_data.total_door_deal_revenue) }} {{ tour_data.currency }}</span>
+                    </div>
+                    {% set door_pct = (tour_data.total_door_deal_revenue / tour_data.total_estimated_revenue * 100) if tour_data.total_estimated_revenue > 0 else 0 %}
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-info" style="width: {{ door_pct }}%">{{ "{:.1f}".format(door_pct) }}%</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted">Statistiques</h6>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Revenu moyen par date</span>
+                        <strong>{{ "{:,.2f}".format(tour_data.avg_revenue_per_stop) }} {{ tour_data.currency }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Meilleure date</span>
+                        {% set best_stop = tour_data.stops_data|sort(attribute='total_estimated_revenue', reverse=true)|first if tour_data.stops_data else none %}
+                        <strong>{{ "{:,.2f}".format(best_stop.total_estimated_revenue) if best_stop else '0.00' }} {{ tour_data.currency }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Taux remplissage moyen</span>
+                        <strong>{{ tour_data.avg_fill_rate }}%</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Info Alert -->
+<div class="alert alert-info mt-4">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Note:</strong> Les revenus estimés sont calculés comme suit: Cachet garanti + (Billetterie x Part de porte %).
+    Les chiffres réels peuvent varier selon les accords spécifiques avec chaque salle.
+</div>
+{% endblock %}

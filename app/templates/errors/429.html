@@ -1,0 +1,61 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Trop de requêtes - Tour Manager{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6 text-center">
+                <div class="mb-4">
+                    <i class="bi bi-hourglass-split text-warning" style="font-size: 5rem;"></i>
+                </div>
+                <h1 class="display-1 fw-bold text-warning">429</h1>
+                <h2 class="h3 mb-3">Trop de requêtes</h2>
+                <p class="text-muted mb-4">
+                    Vous avez effectué trop de tentatives en peu de temps.
+                    Veuillez patienter quelques instants avant de réessayer.
+                </p>
+
+                <!-- Countdown timer -->
+                <div class="mb-4 p-4 bg-white rounded shadow-sm">
+                    <p class="mb-2">Veuillez attendre environ:</p>
+                    <h3 class="text-primary" id="countdown">60 secondes</h3>
+                </div>
+
+                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Réessayer
+                    </a>
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-house me-1"></i>Accueil
+                    </a>
+                </div>
+
+                <!-- Info -->
+                <div class="mt-5">
+                    <p class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Cette limite protège votre compte contre les tentatives d'accès non autorisées.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Simple countdown timer
+    let seconds = 60;
+    const countdownEl = document.getElementById('countdown');
+    const timer = setInterval(() => {
+        seconds--;
+        if (seconds <= 0) {
+            clearInterval(timer);
+            countdownEl.textContent = 'Vous pouvez réessayer';
+        } else {
+            countdownEl.textContent = seconds + ' secondes';
+        }
+    }, 1000);
+</script>
+{% endblock %}

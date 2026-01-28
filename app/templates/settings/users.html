@@ -1,0 +1,224 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Gestion des utilisateurs - Tour Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-people-fill me-2"></i>Gestion des utilisateurs
+    </h1>
+    <a href="{{ url_for('settings.users_create') }}" class="btn btn-primary">
+        <i class="bi bi-person-plus me-2"></i>Nouvel utilisateur
+    </a>
+</div>
+
+<!-- Flash Messages -->
+{% include "components/_flash_messages.html" %}
+
+<!-- User Stats -->
+<div class="row row-cols-1 row-cols-md-4 g-3 mb-4">
+    <div class="col">
+        <div class="card bg-dark text-white">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ users|length }}</h2>
+                <small class="text-muted">Total utilisateurs</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ users|selectattr('is_active')|selectattr('email_verified')|list|length }}</h2>
+                <small>Actifs</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ users|selectattr('is_active')|rejectattr('email_verified')|list|length }}</h2>
+                <small>En attente</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ users|rejectattr('is_active')|list|length }}</h2>
+                <small>Inactifs</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Liste des utilisateurs</h5>
+        <div class="input-group" style="max-width: 300px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="searchUsers" placeholder="Rechercher...">
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="usersTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Utilisateur</th>
+                        <th>Email</th>
+                        <th>Accès</th>
+                        <th>Profession(s)</th>
+                        <th>Statut</th>
+                        <th>Créé le</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="user-row {% if not user.is_active %}table-secondary{% endif %}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if user.profile_picture_data %}
+                                <img src="{{ url_for('settings.serve_profile_picture', user_id=user.id) }}"
+                                     alt="{{ user.full_name }}"
+                                     class="avatar-circle me-2"
+                                     style="object-fit: cover; {% if not user.is_active %}opacity: 0.5;{% endif %}">
+                                {% else %}
+                                <div class="avatar-circle me-2 {% if user.is_active %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ user.full_name }}</strong>
+                                    {% if user.phone %}
+                                    <br><small class="text-muted">{{ user.phone }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="badge bg-{% if user.access_level.name == 'ADMIN' %}danger{% elif user.access_level.name == 'MANAGER' %}primary{% elif user.access_level.name == 'STAFF' %}info{% elif user.access_level.name == 'VIEWER' %}secondary{% else %}warning{% endif %}">
+                                {% if user.access_level.name == 'ADMIN' %}<i class="bi bi-shield-fill-check me-1"></i>
+                                {% elif user.access_level.name == 'MANAGER' %}<i class="bi bi-person-gear me-1"></i>
+                                {% elif user.access_level.name == 'STAFF' %}<i class="bi bi-person me-1"></i>
+                                {% elif user.access_level.name == 'VIEWER' %}<i class="bi bi-eye me-1"></i>
+                                {% else %}<i class="bi bi-person-badge me-1"></i>{% endif %}
+                                {{ user.access_level_label }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if user.primary_profession %}
+                            <span class="badge bg-{% if user.primary_profession.category.name == 'MUSICIEN' %}info{% elif user.primary_profession.category.name == 'ARTISTE' %}danger{% elif user.primary_profession.category.name == 'TECHNICIEN' %}warning text-dark{% elif user.primary_profession.category.name == 'PRODUCTION' %}primary{% elif user.primary_profession.category.name == 'SECURITE' %}dark{% else %}success{% endif %}">
+                                {{ user.primary_profession.name_fr }}
+                            </span>
+                            {% set other_count = user.professions|length - 1 %}
+                            {% if other_count > 0 %}
+                            <span class="badge bg-secondary" title="{{ user.professions|map(attribute='name_fr')|join(', ') }}">+{{ other_count }}</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            {% if not user.is_active %}
+                            <span class="badge bg-secondary">Inactif</span>
+                            {% elif not user.email_verified %}
+                            <span class="badge bg-warning text-dark" title="Invitation en attente">
+                                <i class="bi bi-clock me-1"></i>En attente
+                            </span>
+                            {% else %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Actif
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('settings.user_detail', id=user.id) }}"
+                                   class="btn btn-outline-secondary" title="Voir la fiche">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('settings.users_edit', id=user.id) }}"
+                                   class="btn btn-outline-primary" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if user.id != current_user.id %}
+                                {% if not user.email_verified and user.is_active %}
+                                <form action="{{ url_for('settings.users_resend_invite', id=user.id) }}"
+                                      method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-info" title="Renvoyer l'invitation">
+                                        <i class="bi bi-envelope"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                {% if user.is_active %}
+                                <form action="{{ url_for('settings.users_delete', id=user.id) }}"
+                                      method="POST" class="d-inline"
+                                      onsubmit="return confirm('Voulez-vous vraiment désactiver cet utilisateur ?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-danger" title="Désactiver">
+                                        <i class="bi bi-person-x"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <!-- Utilisateur inactif - proposer suppression définitive -->
+                                <form action="{{ url_for('settings.users_hard_delete', id=user.id) }}"
+                                      method="POST" class="d-inline"
+                                      onsubmit="return confirm('⚠️ ATTENTION: Cette action est IRRÉVERSIBLE!\n\nSupprimer définitivement cet utilisateur?\nToutes ses données seront perdues.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger" title="Supprimer définitivement">
+                                        <i class="bi bi-trash3-fill"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-people fs-1 d-block mb-2"></i>
+                            Aucun utilisateur trouvé
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Simple search filter
+document.getElementById('searchUsers').addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#usersTable tbody .user-row');
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

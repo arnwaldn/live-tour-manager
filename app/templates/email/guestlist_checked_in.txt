@@ -1,0 +1,34 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+CONFIRMATION DE CHECK-IN
+
+Bonjour,
+
+Nous vous confirmons que votre check-in a ete enregistre avec succes.
+
+---
+DETAILS DE L'EVENEMENT
+---
+Artiste: {{ band.name }}
+{% if tour %}Tournee: {{ tour.name }}{% endif %}
+Lieu: {{ venue.name }}
+Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
+
+---
+VOTRE ENTREE
+---
+Nom: {{ entry.guest_name }}
+Type d'acces: {{ entry.entry_type.value|replace('_', ' ')|title }}
+{% if entry.plus_ones > 0 %}Accompagnants: +{{ entry.plus_ones }}{% endif %}
+Statut: CHECK-IN EFFECTUE
+
+Passez une excellente soiree!
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group
+Cet email a ete envoye automatiquement.

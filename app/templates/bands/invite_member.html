@@ -1,0 +1,133 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Inviter un membre - {{ band.name }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+<style>
+    .ts-wrapper {
+        background-color: var(--bs-body-bg);
+    }
+    .ts-wrapper .ts-control {
+        background-color: var(--bs-body-bg);
+        border-color: var(--bs-border-color);
+        color: var(--bs-body-color);
+    }
+    .ts-wrapper .ts-control input {
+        color: var(--bs-body-color);
+    }
+    .ts-dropdown {
+        background-color: var(--bs-body-bg);
+        border-color: var(--bs-border-color);
+    }
+    .ts-dropdown .option {
+        color: var(--bs-body-color);
+    }
+    .ts-dropdown .option.active {
+        background-color: var(--bs-primary);
+        color: white;
+    }
+    .ts-dropdown .option:hover {
+        background-color: rgba(var(--bs-primary-rgb), 0.1);
+    }
+    .user-option-email {
+        font-size: 0.85em;
+        opacity: 0.7;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('bands.index') }}">Groupes</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('bands.detail', id=band.id) }}">{{ band.name }}</a></li>
+        <li class="breadcrumb-item active">Inviter un membre</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">Inviter un membre</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <p class="text-muted mb-4">
+                    Invitez un utilisateur existant à rejoindre <strong>{{ band.name }}</strong>.
+                </p>
+
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="user_id" class="form-label">Utilisateur <span class="text-danger">*</span></label>
+                        <select id="user_id" name="user_id" class="form-select{% if form.user_id.errors %} is-invalid{% endif %}">
+                            {% for value, label in form.user_id.choices %}
+                            <option value="{{ value }}"{% if form.user_id.data == value %} selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.user_id.errors %}
+                        <div class="invalid-feedback">{{ form.user_id.errors[0] }}</div>
+                        {% endif %}
+                        <div class="form-text">Recherchez par nom ou email</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="instrument" class="form-label">Instrument</label>
+                        {{ form.instrument(class="form-control" + (" is-invalid" if form.instrument.errors else ""),
+                           placeholder="Ex: Guitare, Batterie, Chant...") }}
+                        {% if form.instrument.errors %}
+                        <div class="invalid-feedback">{{ form.instrument.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="role_in_band" class="form-label">Rôle dans le groupe</label>
+                        {{ form.role_in_band(class="form-control" + (" is-invalid" if form.role_in_band.errors else ""),
+                           placeholder="Ex: Guitariste lead, Backing vocals...") }}
+                        {% if form.role_in_band.errors %}
+                        <div class="invalid-feedback">{{ form.role_in_band.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('bands.detail', id=band.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    new TomSelect('#user_id', {
+        placeholder: 'Rechercher un utilisateur...',
+        allowEmptyOption: true,
+        sortField: {
+            field: 'text',
+            direction: 'asc'
+        },
+        searchField: ['text'],
+        render: {
+            option: function(data, escape) {
+                return '<div class="py-2">' + escape(data.text) + '</div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.text) + '</div>';
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

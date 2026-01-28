@@ -1,0 +1,265 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Analytique Guestlist - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-people me-2"></i>Analytique Guestlist
+    </h1>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+</div>
+
+{% if tour_stats %}
+<!-- Global Summary -->
+{% set total_entries = tour_stats|sum(attribute='total_entries') %}
+{% set total_plus_ones = tour_stats|sum(attribute='total_plus_ones') %}
+{% set total_checked_in = tour_stats|sum(attribute='checked_in') %}
+{% set total_approved = tour_stats|sum(attribute='approved') %}
+{% set total_pending = tour_stats|sum(attribute='pending') %}
+{% set total_denied = tour_stats|sum(attribute='denied') %}
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-people-fill display-4 text-primary mb-2"></i>
+                <h2 class="card-title h4">{{ total_entries }}</h2>
+                <p class="card-text text-muted">Invitations totales</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-person-plus display-4 text-info mb-2"></i>
+                <h2 class="card-title h4">{{ total_plus_ones }}</h2>
+                <p class="card-text text-muted">+1 (accompagnants)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-check-circle display-4 text-success mb-2"></i>
+                <h2 class="card-title h4">{{ total_checked_in }}</h2>
+                <p class="card-text text-muted">Check-ins effectués</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-percent display-4 text-warning mb-2"></i>
+                {% set checkin_rate = (total_checked_in / total_approved * 100) if total_approved > 0 else 0 %}
+                <h2 class="card-title h4">{{ "{:.1f}".format(checkin_rate) }}%</h2>
+                <p class="card-text text-muted">Taux de présence</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Breakdown -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Répartition par statut</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="bi bi-hourglass text-warning me-2"></i>En attente</span>
+                        <span class="fw-bold">{{ total_pending }}</span>
+                    </div>
+                    {% set pending_pct = (total_pending / total_entries * 100) if total_entries > 0 else 0 %}
+                    <div class="progress" style="height: 15px;">
+                        <div class="progress-bar bg-warning" style="width: {{ pending_pct }}%">{{ "{:.0f}".format(pending_pct) }}%</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="bi bi-check-lg text-success me-2"></i>Approuvés</span>
+                        <span class="fw-bold">{{ total_approved }}</span>
+                    </div>
+                    {% set approved_pct = (total_approved / total_entries * 100) if total_entries > 0 else 0 %}
+                    <div class="progress" style="height: 15px;">
+                        <div class="progress-bar bg-success" style="width: {{ approved_pct }}%">{{ "{:.0f}".format(approved_pct) }}%</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="bi bi-check-circle-fill text-primary me-2"></i>Présents (check-in)</span>
+                        <span class="fw-bold">{{ total_checked_in }}</span>
+                    </div>
+                    {% set checkedin_pct = (total_checked_in / total_entries * 100) if total_entries > 0 else 0 %}
+                    <div class="progress" style="height: 15px;">
+                        <div class="progress-bar bg-primary" style="width: {{ checkedin_pct }}%">{{ "{:.0f}".format(checkedin_pct) }}%</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><i class="bi bi-x-lg text-danger me-2"></i>Refusés</span>
+                        <span class="fw-bold">{{ total_denied }}</span>
+                    </div>
+                    {% set denied_pct = (total_denied / total_entries * 100) if total_entries > 0 else 0 %}
+                    <div class="progress" style="height: 15px;">
+                        <div class="progress-bar bg-danger" style="width: {{ denied_pct }}%">{{ "{:.0f}".format(denied_pct) }}%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-tags me-2"></i>Répartition par type d'entrée</h5>
+            </div>
+            <div class="card-body">
+                {% set all_types = {} %}
+                {% for stats in tour_stats %}
+                    {% for entry_type, count in stats.by_type.items() %}
+                        {% set _ = all_types.update({entry_type: all_types.get(entry_type, 0) + count}) %}
+                    {% endfor %}
+                {% endfor %}
+
+                {% if all_types %}
+                    {% for entry_type, count in all_types.items() %}
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span>
+                            {% if entry_type == 'vip' %}
+                                <i class="bi bi-star-fill text-warning me-2"></i>VIP
+                            {% elif entry_type == 'guest' %}
+                                <i class="bi bi-person me-2"></i>Invité
+                            {% elif entry_type == 'press' %}
+                                <i class="bi bi-newspaper me-2"></i>Presse
+                            {% elif entry_type == 'industry' %}
+                                <i class="bi bi-briefcase me-2"></i>Industrie
+                            {% elif entry_type == 'artist' %}
+                                <i class="bi bi-music-note me-2"></i>Artiste
+                            {% elif entry_type == 'crew' %}
+                                <i class="bi bi-tools me-2"></i>Crew
+                            {% else %}
+                                <i class="bi bi-question-circle me-2"></i>{{ entry_type|capitalize }}
+                            {% endif %}
+                        </span>
+                        <span class="badge bg-secondary">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">Aucune donnée disponible</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Per Tour Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-table me-2"></i>Détail par tournée</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Tournée</th>
+                        <th>Groupe</th>
+                        <th class="text-center">Total</th>
+                        <th class="text-center">+1</th>
+                        <th class="text-center">En attente</th>
+                        <th class="text-center">Approuvés</th>
+                        <th class="text-center">Refusés</th>
+                        <th class="text-center">Présents</th>
+                        <th class="text-center">Taux présence</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stats in tour_stats %}
+                    <tr>
+                        <td><strong>{{ stats.tour.name }}</strong></td>
+                        <td>{{ stats.tour.band.name if stats.tour.band else 'N/A' }}</td>
+                        <td class="text-center">{{ stats.total_entries }}</td>
+                        <td class="text-center">{{ stats.total_plus_ones }}</td>
+                        <td class="text-center">
+                            {% if stats.pending > 0 %}
+                            <span class="badge bg-warning">{{ stats.pending }}</span>
+                            {% else %}
+                            <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="text-success">{{ stats.approved }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if stats.denied > 0 %}
+                            <span class="text-danger">{{ stats.denied }}</span>
+                            {% else %}
+                            <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-primary">{{ stats.checked_in }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% set presence_rate = (stats.checked_in / stats.approved * 100) if stats.approved > 0 else 0 %}
+                            {% set rate_class = 'success' if presence_rate >= 80 else ('warning' if presence_rate >= 50 else 'danger') %}
+                            <span class="badge bg-{{ rate_class }}">{{ "{:.0f}".format(presence_rate) }}%</span>
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('tours.detail', id=stats.tour.id) }}"
+                               class="btn btn-sm btn-outline-primary" title="Voir tournée">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-secondary">
+                    <tr class="fw-bold">
+                        <td colspan="2">TOTAL</td>
+                        <td class="text-center">{{ total_entries }}</td>
+                        <td class="text-center">{{ total_plus_ones }}</td>
+                        <td class="text-center">{{ total_pending }}</td>
+                        <td class="text-center">{{ total_approved }}</td>
+                        <td class="text-center">{{ total_denied }}</td>
+                        <td class="text-center">{{ total_checked_in }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-info">{{ "{:.0f}".format(checkin_rate) }}%</span>
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Insights -->
+<div class="alert alert-info mt-4">
+    <h5><i class="bi bi-lightbulb me-2"></i>Insights</h5>
+    <ul class="mb-0">
+        <li>Total personnes attendues (invités + accompagnants): <strong>{{ total_entries + total_plus_ones }}</strong></li>
+        <li>Taux d'approbation: <strong>{{ "{:.1f}".format((total_approved + total_checked_in) / total_entries * 100 if total_entries > 0 else 0) }}%</strong></li>
+        {% if total_pending > 0 %}
+        <li class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i><strong>{{ total_pending }}</strong> demandes en attente de validation</li>
+        {% endif %}
+    </ul>
+</div>
+
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <p class="text-muted mt-3">Aucune donnée guestlist disponible.</p>
+        <a href="{{ url_for('tours.index') }}" class="btn btn-primary mt-2">
+            <i class="bi bi-calendar-event me-1"></i>Voir les tournées
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

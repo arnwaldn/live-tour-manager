@@ -1,0 +1,37 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+NOUVELLE DEMANDE GUESTLIST
+
+Une nouvelle demande d'acces guestlist a ete soumise.
+
+---
+DETAILS DE LA DEMANDE
+---
+Nom: {{ entry.guest_name }}
+Email: {{ entry.guest_email }}
+Type: {{ entry.entry_type.value|replace('_', ' ')|title }}
+{% if entry.plus_ones > 0 %}Accompagnants: +{{ entry.plus_ones }}{% endif %}
+{% if entry.notes %}Notes: {{ entry.notes }}{% endif %}
+
+---
+DETAILS DE L'EVENEMENT
+---
+Artiste: {{ band.name }}
+{% if tour %}Tournee: {{ tour.name }}{% endif %}
+Lieu: {{ venue.name }}
+Adresse: {{ venue.address }}, {{ venue.city }}
+Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
+
+---
+ACTION REQUISE
+---
+Connectez-vous a Studio Palenque Tour pour approuver ou refuser cette demande.
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group
+Cet email a ete envoye automatiquement.

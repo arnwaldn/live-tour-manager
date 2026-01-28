@@ -1,0 +1,257 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('payments.index') }}">Paiements</a></li>
+                <li class="breadcrumb-item active">{{ title }}</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0">
+            <i class="bi bi-wallet2 me-2"></i>
+            {{ title }}
+        </h1>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" class="needs-validation" novalidate>
+            {{ form.hidden_tag() }}
+
+            <!-- Beneficiaire -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-person me-2"></i>Bénéficiaire</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="user_id" class="form-label">Membre de l'équipe *</label>
+                            {{ form.user_id(class="form-select" + (" is-invalid" if form.user_id.errors else ""), id="user_id") }}
+                            {% for error in form.user_id.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="staff_category" class="form-label">Catégorie *</label>
+                            {{ form.staff_category(class="form-select" + (" is-invalid" if form.staff_category.errors else ""), id="staff_category") }}
+                            {% for error in form.staff_category.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="staff_role" class="form-label">Rôle</label>
+                            {{ form.staff_role(class="form-select", id="staff_role") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contexte -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Contexte</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="tour_id" class="form-label">Tournée</label>
+                            {{ form.tour_id(class="form-select", id="tour_id") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tour_stop_id" class="form-label">Concert/Date</label>
+                            {{ form.tour_stop_id(class="form-select", id="tour_stop_id") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="work_date" class="form-label">Date de travail</label>
+                            {{ form.work_date(class="form-control", id="work_date", type="date") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="due_date" class="form-label">Date échéance</label>
+                            {{ form.due_date(class="form-control", id="due_date", type="date") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paiement -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-cash me-2"></i>Paiement</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="payment_type" class="form-label">Type de paiement *</label>
+                            {{ form.payment_type(class="form-select" + (" is-invalid" if form.payment_type.errors else ""), id="payment_type") }}
+                            {% for error in form.payment_type.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="payment_frequency" class="form-label">Fréquence</label>
+                            {{ form.payment_frequency(class="form-select", id="payment_frequency") }}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="description" class="form-label">Description</label>
+                            {{ form.description(class="form-control", id="description", placeholder="Ex: Cachet concert Paris") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="quantity" class="form-label">Quantité</label>
+                            {{ form.quantity(class="form-control", id="quantity", step="0.5", min="0") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="unit_rate" class="form-label">Taux unitaire</label>
+                            <div class="input-group">
+                                {{ form.unit_rate(class="form-control", id="unit_rate", step="0.01", min="0") }}
+                                <span class="input-group-text">EUR</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="amount" class="form-label">Montant total *</label>
+                            <div class="input-group">
+                                {{ form.amount(class="form-control" + (" is-invalid" if form.amount.errors else ""), id="amount", step="0.01", min="0") }}
+                                {{ form.currency(class="form-select", style="max-width: 100px;") }}
+                            </div>
+                            {% for error in form.amount.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="payment_method" class="form-label">Méthode de paiement</label>
+                            {{ form.payment_method(class="form-select", id="payment_method") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-chat-text me-2"></i>Notes</h5>
+                </div>
+                <div class="card-body">
+                    {{ form.notes(class="form-control", rows="3", placeholder="Notes internes...") }}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Annuler
+                </a>
+                <div>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Aide</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">
+                    <strong>Cachet:</strong> Rémunération pour un concert ou une journée de travail.
+                </p>
+                <p class="small text-muted mb-2">
+                    <strong>Per Diem:</strong> Indemnité journalière pour frais de repas et déplacements.
+                </p>
+                <p class="small text-muted mb-2">
+                    <strong>Heures sup:</strong> Majoration pour heures supplémentaires (25% ou 50%).
+                </p>
+                <p class="small text-muted mb-0">
+                    <strong>Remboursement:</strong> Remboursement de frais avancés par le membre.
+                </p>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-lightning me-2"></i>Actions rapides</h6>
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('payments.batch_per_diems') }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                    <i class="bi bi-lightning me-1"></i>Générer per diems
+                </a>
+                <a href="{{ url_for('payments.config_list') }}" class="btn btn-outline-secondary btn-sm w-100">
+                    <i class="bi bi-gear me-1"></i>Configurer taux
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-calculate amount from quantity * unit_rate
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInput = document.getElementById('quantity');
+    const unitRateInput = document.getElementById('unit_rate');
+    const amountInput = document.getElementById('amount');
+
+    function calculateAmount() {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const unitRate = parseFloat(unitRateInput.value) || 0;
+        if (quantity > 0 && unitRate > 0) {
+            amountInput.value = (quantity * unitRate).toFixed(2);
+        }
+    }
+
+    quantityInput.addEventListener('input', calculateAmount);
+    unitRateInput.addEventListener('input', calculateAmount);
+
+    // Load user config when user changes
+    const userSelect = document.getElementById('user_id');
+    userSelect.addEventListener('change', function() {
+        if (this.value && this.value != '0') {
+            fetch(`/payments/api/user-config/${this.value}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.staff_category) {
+                        document.getElementById('staff_category').value = data.staff_category;
+                    }
+                    if (data.staff_role) {
+                        document.getElementById('staff_role').value = data.staff_role;
+                    }
+                });
+        }
+    });
+
+    // Load tour stops when tour changes
+    const tourSelect = document.getElementById('tour_id');
+    const stopSelect = document.getElementById('tour_stop_id');
+
+    tourSelect.addEventListener('change', function() {
+        if (this.value && this.value != '0') {
+            fetch(`/payments/api/tour-stops/${this.value}`)
+                .then(response => response.json())
+                .then(data => {
+                    stopSelect.innerHTML = '<option value="0">-- Optionnel --</option>';
+                    data.forEach(stop => {
+                        const option = document.createElement('option');
+                        option.value = stop.id;
+                        option.textContent = `${stop.date} - ${stop.venue} (${stop.event_type})`;
+                        stopSelect.appendChild(option);
+                    });
+                });
+        } else {
+            stopSelect.innerHTML = '<option value="0">-- Optionnel --</option>';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,287 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ entry.guest_name }} - Guestlist - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=entry.tour_stop.tour.id) }}">{{ entry.tour_stop.tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('guestlist.manage', stop_id=entry.tour_stop.id) }}">Guestlist</a></li>
+        <li class="breadcrumb-item active">{{ entry.guest_name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">
+            {% if entry.user %}
+            <i class="bi bi-person-badge text-primary me-2" title="Artiste lié au profil utilisateur"></i>
+            {% endif %}
+            {{ entry.guest_name }}
+        </h1>
+        <p class="text-muted mb-0">
+            <i class="bi bi-calendar me-1"></i>
+            {{ entry.tour_stop.venue.name }} · {{ entry.tour_stop.date.strftime('%d/%m/%Y') }}
+        </p>
+    </div>
+    <div>
+        {% if entry.status.value == 'pending' %}
+        <span class="badge bg-warning fs-6">En attente</span>
+        {% elif entry.status.value == 'approved' %}
+        <span class="badge bg-success fs-6">Approuvé</span>
+        {% elif entry.status.value == 'denied' %}
+        <span class="badge bg-danger fs-6">Refusé</span>
+        {% elif entry.status.value == 'checked_in' %}
+        <span class="badge bg-primary fs-6">Check-in effectué</span>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Main Info -->
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-person me-2"></i>Informations de l'invité</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-12 col-md-6">
+                        <h6 class="text-muted mb-1">Nom</h6>
+                        <p class="mb-0 fs-5">{{ entry.guest_name }}</p>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <h6 class="text-muted mb-1">Email</h6>
+                        {% if entry.guest_email %}
+                        <p class="mb-0">
+                            <a href="mailto:{{ entry.guest_email }}">{{ entry.guest_email }}</a>
+                        </p>
+                        {% else %}
+                        <p class="mb-0 text-muted">Non renseigné</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <h6 class="text-muted mb-1">Type d'entrée</h6>
+                        <span class="badge bg-secondary fs-6">{{ entry.entry_type.value }}</span>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <h6 class="text-muted mb-1">Accompagnants</h6>
+                        <p class="mb-0 fs-5">
+                            +{{ entry.plus_ones }}
+                            <small class="text-muted">({{ entry.plus_ones + 1 }} personnes total)</small>
+                        </p>
+                    </div>
+
+                    {% if entry.notes %}
+                    <div class="col-12">
+                        <h6 class="text-muted mb-1">Notes</h6>
+                        <p class="mb-0">{{ entry.notes }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if entry.user %}
+                    <div class="col-12">
+                        <hr class="my-2">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                                <i class="bi bi-person-badge text-primary fs-5"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-muted mb-0">Profil utilisateur lié</h6>
+                                <a href="{{ url_for('settings.user_detail', id=entry.user.id) }}" class="text-decoration-none">
+                                    <strong>{{ entry.user.full_name }}</strong>
+                                    <small class="text-muted ms-2">{{ entry.user.email }}</small>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historique</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex mb-3">
+                        <div class="me-3">
+                            <span class="badge bg-secondary rounded-circle p-2">
+                                <i class="bi bi-plus-lg"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Demande créée</strong>
+                            <br>
+                            <small class="text-muted">
+                                Par {{ entry.requested_by.full_name }}
+                                · {{ entry.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                            </small>
+                        </div>
+                    </li>
+
+                    {% if entry.approved_by %}
+                    <li class="d-flex mb-3">
+                        <div class="me-3">
+                            {% if entry.status.value == 'approved' or entry.status.value == 'checked_in' %}
+                            <span class="badge bg-success rounded-circle p-2">
+                                <i class="bi bi-check-lg"></i>
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger rounded-circle p-2">
+                                <i class="bi bi-x-lg"></i>
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <strong>
+                                {% if entry.status.value == 'denied' %}Refusé{% else %}Approuvé{% endif %}
+                            </strong>
+                            <br>
+                            <small class="text-muted">
+                                Par {{ entry.approved_by.full_name }}
+                                {% if entry.approved_at %}
+                                · {{ entry.approved_at.strftime('%d/%m/%Y à %H:%M') }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    </li>
+                    {% endif %}
+
+                    {% if entry.status.value == 'checked_in' %}
+                    <li class="d-flex">
+                        <div class="me-3">
+                            <span class="badge bg-primary rounded-circle p-2">
+                                <i class="bi bi-check2-circle"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Check-in effectué</strong>
+                            <br>
+                            <small class="text-muted">
+                                {% if entry.checked_in_at %}
+                                {{ entry.checked_in_at.strftime('%d/%m/%Y à %H:%M') }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Sidebar -->
+    <div class="col-12 col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Actions</h5>
+            </div>
+            <div class="card-body">
+                {% if entry.status.value == 'pending' %}
+                <div class="d-grid gap-2">
+                    <form action="{{ url_for('guestlist.approve_entry', id=entry.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-check-lg me-1"></i>Approuver
+                        </button>
+                    </form>
+                    <form action="{{ url_for('guestlist.deny_entry', id=entry.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-x-lg me-1"></i>Refuser
+                        </button>
+                    </form>
+                </div>
+                {% elif entry.status.value == 'approved' %}
+                <form action="{{ url_for('guestlist.do_check_in', id=entry.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary w-100 btn-lg">
+                        <i class="bi bi-check2-circle me-1"></i>Check-in
+                    </button>
+                </form>
+                {% elif entry.status.value == 'checked_in' %}
+                <div class="alert alert-success mb-0">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Cet invité est déjà enregistré.
+                </div>
+                {% elif entry.status.value == 'denied' %}
+                <div class="alert alert-danger mb-0">
+                    <i class="bi bi-x-circle me-2"></i>
+                    Cette demande a été refusée.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Event Info -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Événement</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>{{ entry.tour_stop.tour.name }}</strong>
+                </p>
+                <p class="mb-2">
+                    <i class="bi bi-building me-2 text-muted"></i>
+                    {{ entry.tour_stop.venue.name }}
+                </p>
+                <p class="mb-2">
+                    <i class="bi bi-geo-alt me-2 text-muted"></i>
+                    {{ entry.tour_stop.venue.city }}, {{ entry.tour_stop.venue.country }}
+                </p>
+                <p class="mb-3">
+                    <i class="bi bi-calendar me-2 text-muted"></i>
+                    {{ entry.tour_stop.date.strftime('%A %d %B %Y') }}
+                </p>
+
+                {% if entry.tour_stop.doors_time %}
+                <p class="mb-0">
+                    <i class="bi bi-door-open me-2 text-muted"></i>
+                    Portes: {{ entry.tour_stop.doors_time.strftime('%H:%M') }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('tours.stop_detail', id=entry.tour_stop.tour.id, stop_id=entry.tour_stop.id) }}"
+                   class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-eye me-1"></i>Voir le concert
+                </a>
+            </div>
+        </div>
+
+        <!-- Edit/Delete -->
+        {% if entry.tour_stop.tour.band.is_manager(current_user) or current_user.has_permission('manage_guestlist') %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('guestlist.edit_entry', id=entry.id) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil me-1"></i>Modifier
+                    </a>
+                    <form action="{{ url_for('guestlist.delete_entry', id=entry.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger w-100"
+                                onclick="return confirm('Supprimer cet invité de la guestlist?')">
+                            <i class="bi bi-trash me-1"></i>Supprimer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

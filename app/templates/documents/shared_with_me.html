@@ -1,0 +1,112 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Documents partagés avec moi - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-share me-2"></i>Documents partagés avec moi
+    </h1>
+    <div>
+        <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Tous les documents
+        </a>
+    </div>
+</div>
+
+{% if shares %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Document</th>
+                    <th>Type</th>
+                    <th>Partage par</th>
+                    <th>Permission</th>
+                    <th>Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for share in shares %}
+                <tr>
+                    <td>
+                        {% if share.document.mime_type and 'pdf' in share.document.mime_type %}
+                        <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                        {% elif share.document.mime_type and 'image' in share.document.mime_type %}
+                        <i class="bi bi-file-earmark-image text-success me-2"></i>
+                        {% elif share.document.mime_type and 'word' in share.document.mime_type %}
+                        <i class="bi bi-file-earmark-word text-primary me-2"></i>
+                        {% else %}
+                        <i class="bi bi-file-earmark me-2"></i>
+                        {% endif %}
+                        <a href="{{ url_for('documents.detail', id=share.document.id) }}">
+                            {{ share.document.name }}
+                        </a>
+                        <br>
+                        <small class="text-muted">{{ share.document.file_size_formatted }}</small>
+                    </td>
+                    <td>
+                        {% if share.document.document_type.value == 'passport' %}
+                        <span class="badge bg-primary">Passeport</span>
+                        {% elif share.document.document_type.value == 'visa' %}
+                        <span class="badge bg-info">Visa</span>
+                        {% elif share.document.document_type.value == 'contract' %}
+                        <span class="badge bg-success">Contrat</span>
+                        {% elif share.document.document_type.value == 'rider' %}
+                        <span class="badge bg-warning text-dark">Rider</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ share.document.document_type.value }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <i class="bi bi-person me-1"></i>{{ share.shared_by.full_name }}
+                    </td>
+                    <td>
+                        {% if share.share_type.value == 'edit' %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-pencil me-1"></i>Modification
+                        </span>
+                        {% else %}
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-eye me-1"></i>Lecture
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small>{{ share.shared_at.strftime('%d/%m/%Y') }}</small>
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('documents.detail', id=share.document.id) }}"
+                               class="btn btn-outline-primary" title="Voir">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ url_for('documents.download', id=share.document.id) }}"
+                               class="btn btn-outline-success" title="Télécharger">
+                                <i class="bi bi-download"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <h4 class="mt-3 text-muted">Aucun document partagé</h4>
+        <p class="text-muted">
+            Les documents que d'autres utilisateurs partagent avec vous apparaîtront ici.
+        </p>
+        <a href="{{ url_for('documents.index') }}" class="btn btn-primary">
+            <i class="bi bi-folder me-2"></i>Voir tous les documents
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

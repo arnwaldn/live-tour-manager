@@ -1,0 +1,1065 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Logistique - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+.autocomplete-wrapper { position: relative; }
+
+/* Force dark theme on autocomplete dropdowns */
+.autocomplete-dropdown {
+    position: absolute; top: 100%; left: 0; z-index: 1050;
+    display: none; max-height: 350px; overflow-y: auto;
+    background-color: #1a1a2e !important;
+    border: 1px solid var(--sp-border, #333) !important;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.4);
+}
+.autocomplete-dropdown.show { display: block; }
+
+/* Dark theme for dropdown items */
+.autocomplete-dropdown .dropdown-item,
+.autocomplete-dropdown .autocomplete-item {
+    background-color: #1a1a2e !important;
+    color: #e0e0e0 !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+}
+.autocomplete-dropdown .dropdown-item:last-child,
+.autocomplete-dropdown .autocomplete-item:last-child {
+    border-bottom: none;
+}
+.autocomplete-dropdown .dropdown-item:hover,
+.autocomplete-dropdown .autocomplete-item:hover,
+.autocomplete-dropdown .dropdown-item.active,
+.autocomplete-dropdown .autocomplete-item.active {
+    background-color: var(--bs-primary, #0d6efd) !important;
+    color: white !important;
+}
+
+/* Fix text colors in dark dropdown */
+.autocomplete-dropdown .text-muted {
+    color: #adb5bd !important;
+}
+.autocomplete-dropdown .text-primary {
+    color: var(--sp-gold, #c9a962) !important;
+}
+.autocomplete-dropdown .badge.bg-primary {
+    background-color: var(--sp-gold, #c9a962) !important;
+}
+.autocomplete-dropdown .text-success {
+    color: #28a745 !important;
+}
+
+.gps-indicator {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    pointer-events: none;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=stop.tour.id) }}">{{ stop.tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('logistics.manage', stop_id=stop.id) }}">Logistique</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">
+    <i class="bi bi-truck me-2"></i>{{ title }}
+</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="alert alert-info d-flex align-items-center mb-4">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <div>
+                        Logistique pour <strong>{{ stop.display_location }}</strong>
+                        le <strong>{{ stop.date.strftime('%d/%m/%Y') }}</strong>
+                    </div>
+                </div>
+
+                <form method="POST" novalidate id="logistics-form">
+                    {{ form.hidden_tag() }}
+
+                    {# ===== TYPE & STATUS SECTION ===== #}
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-6">
+                            <label for="logistics_type" class="form-label fw-semibold">
+                                <i class="bi bi-tag me-1"></i>Type <span class="text-danger">*</span>
+                            </label>
+                            {{ form.logistics_type(class="form-select form-select-lg" + (" is-invalid" if form.logistics_type.errors else ""), id="logistics_type") }}
+                            {% if form.logistics_type.errors %}
+                            <div class="invalid-feedback">{{ form.logistics_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="status" class="form-label fw-semibold">
+                                <i class="bi bi-flag me-1"></i>Statut
+                            </label>
+                            {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}
+                            {% if form.status.errors %}
+                            <div class="invalid-feedback">{{ form.status.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# ===== BASIC INFO SECTION ===== #}
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">
+                                <i class="bi bi-building me-2"></i>Informations générales
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label for="provider" class="form-label">Fournisseur / Compagnie</label>
+                                    {{ form.provider(class="form-control" + (" is-invalid" if form.provider.errors else ""),
+                                       placeholder="Ex: Air France, Marriott, Uber...") }}
+                                    {% if form.provider.errors %}
+                                    <div class="invalid-feedback">{{ form.provider.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="confirmation_number" class="form-label">Numéro de confirmation</label>
+                                    {{ form.confirmation_number(class="form-control" + (" is-invalid" if form.confirmation_number.errors else ""),
+                                       placeholder="Ex: ABC123XYZ") }}
+                                    {% if form.confirmation_number.errors %}
+                                    <div class="invalid-feedback">{{ form.confirmation_number.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ===== TIMING SECTION ===== #}
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">
+                                <i class="bi bi-clock me-2"></i>Horaires
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label for="start_datetime" class="form-label">Date/Heure de début</label>
+                                    {{ form.start_datetime(class="form-control" + (" is-invalid" if form.start_datetime.errors else ""),
+                                       type="datetime-local") }}
+                                    {% if form.start_datetime.errors %}
+                                    <div class="invalid-feedback">{{ form.start_datetime.errors[0] }}</div>
+                                    {% endif %}
+                                    <div class="form-text" id="start-help">Heure de départ / check-in</div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="end_datetime" class="form-label">Date/Heure de fin</label>
+                                    {{ form.end_datetime(class="form-control" + (" is-invalid" if form.end_datetime.errors else ""),
+                                       type="datetime-local") }}
+                                    {% if form.end_datetime.errors %}
+                                    <div class="invalid-feedback">{{ form.end_datetime.errors[0] }}</div>
+                                    {% endif %}
+                                    <div class="form-text" id="end-help">Heure d'arrivée / check-out</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ===== FLIGHT SECTION (conditional) ===== #}
+                    <div id="flight-section" class="card border-primary border-2 mb-4" style="display: none;">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-airplane me-2"></i>Détails du vol
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-4">
+                                    <label for="flight_number" class="form-label">Numéro de vol</label>
+                                    {{ form.flight_number(class="form-control" + (" is-invalid" if form.flight_number.errors else ""),
+                                       placeholder="Ex: AF1234") }}
+                                    {% if form.flight_number.errors %}
+                                    <div class="invalid-feedback">{{ form.flight_number.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label for="departure_airport" class="form-label">
+                                        Aéroport de départ
+                                        <small class="text-white-50 fw-normal ms-1">
+                                            <i class="bi bi-magic"></i> Autocomplétion
+                                        </small>
+                                    </label>
+                                    {{ form.departure_airport(class="form-control" + (" is-invalid" if form.departure_airport.errors else ""),
+                                       placeholder="Code IATA ou nom...",
+                                       id="departure_airport",
+                                       autocomplete="off") }}
+                                    {% if form.departure_airport.errors %}
+                                    <div class="invalid-feedback">{{ form.departure_airport.errors[0] }}</div>
+                                    {% endif %}
+                                    <div class="form-text text-white-50">
+                                        <i class="bi bi-info-circle me-1"></i>Tapez un code (CDG, MRS) ou une ville
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label for="arrival_airport" class="form-label">
+                                        Aéroport d'arrivée
+                                        <small class="text-white-50 fw-normal ms-1">
+                                            <i class="bi bi-magic"></i> Autocomplétion
+                                        </small>
+                                    </label>
+                                    {{ form.arrival_airport(class="form-control" + (" is-invalid" if form.arrival_airport.errors else ""),
+                                       placeholder="Code IATA ou nom...",
+                                       id="arrival_airport",
+                                       autocomplete="off") }}
+                                    {% if form.arrival_airport.errors %}
+                                    <div class="invalid-feedback">{{ form.arrival_airport.errors[0] }}</div>
+                                    {% endif %}
+                                    <div class="form-text text-white-50">
+                                        <i class="bi bi-info-circle me-1"></i>Tapez un code (LHR, JFK) ou une ville
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="departure_terminal" class="form-label">Terminal départ</label>
+                                    {{ form.departure_terminal(class="form-control" + (" is-invalid" if form.departure_terminal.errors else ""),
+                                       placeholder="Ex: 2E") }}
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="arrival_terminal" class="form-label">Terminal arrivée</label>
+                                    {{ form.arrival_terminal(class="form-control" + (" is-invalid" if form.arrival_terminal.errors else ""),
+                                       placeholder="Ex: 5") }}
+                                </div>
+
+                                {# GPS Coordinates Info #}
+                                <div class="col-12">
+                                    <div class="alert alert-light border mb-0 py-2">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-geo-alt-fill text-success me-2"></i>
+                                            <small>
+                                                <strong>Coordonnées GPS</strong> - Remplies automatiquement pour l'affichage sur la carte
+                                            </small>
+                                            <span id="departure-gps-status" class="ms-3 badge bg-secondary d-none">
+                                                <i class="bi bi-check"></i> Départ OK
+                                            </span>
+                                            <span id="arrival-gps-status" class="ms-2 badge bg-secondary d-none">
+                                                <i class="bi bi-check"></i> Arrivée OK
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ===== HOTEL SECTION (conditional) ===== #}
+                    <div id="hotel-section" class="card border-success border-2 mb-4" style="display: none;">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-building me-2"></i>Détails hébergement
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-4">
+                                    <label for="room_type" class="form-label">Type de chambre</label>
+                                    {{ form.room_type(class="form-select" + (" is-invalid" if form.room_type.errors else "")) }}
+                                    {% if form.room_type.errors %}
+                                    <div class="invalid-feedback">{{ form.room_type.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label for="number_of_rooms" class="form-label">Nombre de chambres</label>
+                                    {{ form.number_of_rooms(class="form-control" + (" is-invalid" if form.number_of_rooms.errors else ""),
+                                       type="number", min="1", max="100") }}
+                                    {% if form.number_of_rooms.errors %}
+                                    <div class="invalid-feedback">{{ form.number_of_rooms.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <div class="form-check mt-4">
+                                        {{ form.breakfast_included(class="form-check-input") }}
+                                        <label class="form-check-label" for="breakfast_included">
+                                            <i class="bi bi-cup-hot me-1"></i>Petit-déjeuner inclus
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="check_in_time" class="form-label">Heure de check-in</label>
+                                    {{ form.check_in_time(class="form-control" + (" is-invalid" if form.check_in_time.errors else ""),
+                                       type="time") }}
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="check_out_time" class="form-label">Heure de check-out</label>
+                                    {{ form.check_out_time(class="form-control" + (" is-invalid" if form.check_out_time.errors else ""),
+                                       type="time") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ===== LOCATION SECTION (conditional) ===== #}
+                    <div id="location-section" class="card bg-light border-0 mb-4" style="display: none;">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">
+                                <i class="bi bi-geo-alt me-2"></i>Localisation
+                            </h5>
+
+                            {# Hidden fields for GPS coordinates #}
+                            <input type="hidden" id="logistics_latitude" name="latitude" value="{{ logistics.latitude if logistics and logistics.latitude else '' }}">
+                            <input type="hidden" id="logistics_longitude" name="longitude" value="{{ logistics.longitude if logistics and logistics.longitude else '' }}">
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="logistics_address" class="form-label">
+                                        Adresse
+                                        <small class="text-muted fw-normal ms-2">
+                                            <i class="bi bi-magic"></i> Autocomplétion active
+                                        </small>
+                                    </label>
+                                    {{ form.address(class="form-control" + (" is-invalid" if form.address.errors else ""),
+                                       placeholder="Commencez à taper pour voir les suggestions...",
+                                       id="logistics_address",
+                                       autocomplete="off") }}
+                                    {% if form.address.errors %}
+                                    <div class="invalid-feedback">{{ form.address.errors[0] }}</div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Tapez une adresse pour voir les suggestions et remplir automatiquement les coordonnées GPS.
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="city" class="form-label">Ville</label>
+                                    {{ form.city(class="form-control" + (" is-invalid" if form.city.errors else ""),
+                                       placeholder="Paris",
+                                       id="logistics_city") }}
+                                    {% if form.city.errors %}
+                                    <div class="invalid-feedback">{{ form.city.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="country" class="form-label">Pays</label>
+                                    {{ form.country(class="form-control" + (" is-invalid" if form.country.errors else ""),
+                                       placeholder="France",
+                                       id="logistics_country") }}
+                                    {% if form.country.errors %}
+                                    <div class="invalid-feedback">{{ form.country.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                {# GPS Status Indicator #}
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center p-2 rounded" style="background: rgba(0,0,0,0.05);">
+                                        <i class="bi bi-geo-alt-fill me-2 text-success"></i>
+                                        <small class="text-muted">
+                                            <strong>Coordonnées GPS</strong> - Remplies automatiquement lors de la sélection d'une adresse
+                                        </small>
+                                        <span id="logistics-gps-status" class="ms-auto badge bg-secondary d-none">
+                                            <i class="bi bi-check-circle"></i> GPS OK
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ===== GROUND TRANSPORT SECTION (conditional) ===== #}
+                    <div id="transport-section" class="card mb-4" style="display: none; border: 2px solid var(--sp-gold);">
+                        <div class="card-header" style="background-color: rgba(201, 169, 98, 0.15); border-bottom-color: var(--sp-gold);">
+                            <h5 class="card-title mb-0 text-gold">
+                                <i class="bi bi-truck me-2"></i>Détails transport
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label for="transport_pickup" class="form-label">
+                                        Lieu de départ / Pickup
+                                        <small class="text-muted fw-normal ms-2">
+                                            <i class="bi bi-magic"></i> Autocomplétion
+                                        </small>
+                                    </label>
+                                    {{ form.pickup_location(class="form-control" + (" is-invalid" if form.pickup_location.errors else ""),
+                                       placeholder="Commencez à taper pour voir les suggestions...",
+                                       id="transport_pickup",
+                                       autocomplete="off") }}
+                                    <input type="hidden" id="departure_lat" name="departure_lat" value="{{ logistics.departure_lat if logistics and logistics.departure_lat else '' }}">
+                                    <input type="hidden" id="departure_lng" name="departure_lng" value="{{ logistics.departure_lng if logistics and logistics.departure_lng else '' }}">
+                                    {% if form.pickup_location.errors %}
+                                    <div class="invalid-feedback">{{ form.pickup_location.errors[0] }}</div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        <i class="bi bi-geo-alt me-1"></i>
+                                        <span id="pickup-gps-status" class="{% if logistics and logistics.departure_lat %}text-success{% else %}text-muted{% endif %}">
+                                            {% if logistics and logistics.departure_lat %}GPS OK{% else %}GPS en attente{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="transport_dropoff" class="form-label">
+                                        Lieu d'arrivée / Dropoff
+                                        <small class="text-muted fw-normal ms-2">
+                                            <i class="bi bi-magic"></i> Autocomplétion
+                                        </small>
+                                    </label>
+                                    {{ form.dropoff_location(class="form-control" + (" is-invalid" if form.dropoff_location.errors else ""),
+                                       placeholder="Commencez à taper pour voir les suggestions...",
+                                       id="transport_dropoff",
+                                       autocomplete="off") }}
+                                    <input type="hidden" id="arrival_lat" name="arrival_lat" value="{{ logistics.arrival_lat if logistics and logistics.arrival_lat else '' }}">
+                                    <input type="hidden" id="arrival_lng" name="arrival_lng" value="{{ logistics.arrival_lng if logistics and logistics.arrival_lng else '' }}">
+                                    {% if form.dropoff_location.errors %}
+                                    <div class="invalid-feedback">{{ form.dropoff_location.errors[0] }}</div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        <i class="bi bi-geo-alt me-1"></i>
+                                        <span id="dropoff-gps-status" class="{% if logistics and logistics.arrival_lat %}text-success{% else %}text-muted{% endif %}">
+                                            {% if logistics and logistics.arrival_lat %}GPS OK{% else %}GPS en attente{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label for="vehicle_type" class="form-label">Type de véhicule</label>
+                                    {{ form.vehicle_type(class="form-select" + (" is-invalid" if form.vehicle_type.errors else "")) }}
+                                    {% if form.vehicle_type.errors %}
+                                    <div class="invalid-feedback">{{ form.vehicle_type.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label for="driver_name" class="form-label">Nom du chauffeur</label>
+                                    {{ form.driver_name(class="form-control" + (" is-invalid" if form.driver_name.errors else ""),
+                                       placeholder="Ex: Jean Dupont") }}
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label for="driver_phone" class="form-label">Téléphone chauffeur</label>
+                                    {{ form.driver_phone(class="form-control" + (" is-invalid" if form.driver_phone.errors else ""),
+                                       placeholder="Ex: +33 6 12 34 56 78") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ===== CONTACT SECTION ===== #}
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">
+                                <i class="bi bi-person-lines-fill me-2"></i>Contact sur place
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-4">
+                                    <label for="contact_name" class="form-label">Nom du contact</label>
+                                    {{ form.contact_name(class="form-control" + (" is-invalid" if form.contact_name.errors else ""),
+                                       placeholder="Ex: Marie Martin") }}
+                                    {% if form.contact_name.errors %}
+                                    <div class="invalid-feedback">{{ form.contact_name.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label for="contact_phone" class="form-label">Téléphone</label>
+                                    {{ form.contact_phone(class="form-control" + (" is-invalid" if form.contact_phone.errors else ""),
+                                       placeholder="+33 6 12 34 56 78") }}
+                                    {% if form.contact_phone.errors %}
+                                    <div class="invalid-feedback">{{ form.contact_phone.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label for="contact_email" class="form-label">Email</label>
+                                    {{ form.contact_email(class="form-control" + (" is-invalid" if form.contact_email.errors else ""),
+                                       placeholder="contact@example.com", type="email") }}
+                                    {% if form.contact_email.errors %}
+                                    <div class="invalid-feedback">{{ form.contact_email.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ===== COST SECTION ===== #}
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">
+                                <i class="bi bi-currency-euro me-2"></i>Coûts
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-3">
+                                    <label for="cost" class="form-label">Montant</label>
+                                    {{ form.cost(class="form-control" + (" is-invalid" if form.cost.errors else ""),
+                                       placeholder="0.00", step="0.01", min="0") }}
+                                    {% if form.cost.errors %}
+                                    <div class="invalid-feedback">{{ form.cost.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12 col-md-3">
+                                    <label for="currency" class="form-label">Devise</label>
+                                    {{ form.currency(class="form-select" + (" is-invalid" if form.currency.errors else "")) }}
+                                </div>
+
+                                <div class="col-12 col-md-3">
+                                    <label for="paid_by" class="form-label">Payé par</label>
+                                    {{ form.paid_by(class="form-select" + (" is-invalid" if form.paid_by.errors else "")) }}
+                                </div>
+
+                                <div class="col-12 col-md-3">
+                                    <div class="form-check mt-4">
+                                        {{ form.is_paid(class="form-check-input") }}
+                                        <label class="form-check-label" for="is_paid">
+                                            <i class="bi bi-check-circle me-1"></i>Déjà payé
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ===== NOTES SECTION ===== #}
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">
+                                <i class="bi bi-journal-text me-2"></i>Notes
+                            </h5>
+                            {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""),
+                               rows="3", placeholder="Informations complémentaires, instructions spéciales...") }}
+                            {% if form.notes.errors %}
+                            <div class="invalid-feedback">{{ form.notes.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# ===== ASSIGNATION SECTION ===== #}
+                    {% if available_users %}
+                    <div class="card border-0 mb-4" style="border-left: 3px solid var(--sp-gold) !important;">
+                        <div class="card-header bg-transparent" style="border-bottom: 1px solid var(--sp-border);">
+                            <h5 class="card-title mb-0" style="color: var(--sp-gold);">
+                                <i class="bi bi-people-fill me-2"></i>Personnes assignees
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Recherchez et selectionnez les personnes a assigner.
+                            </p>
+
+                            {# Zone des tags selectionnes #}
+                            <div id="selected-users-container" class="mb-3">
+                                <div id="selected-users-tags" class="d-flex flex-wrap gap-2">
+                                    {# Tags dynamiques inseres ici par JS #}
+                                </div>
+                            </div>
+
+                            {# Hidden inputs container pour le formulaire #}
+                            <div id="hidden-inputs-container">
+                                {# Pre-remplir avec les utilisateurs deja assignes #}
+                                {% for user_id in (form.assigned_users.data or []) %}
+                                <input type="hidden" name="assigned_users" value="{{ user_id }}" data-user-id="{{ user_id }}">
+                                {% endfor %}
+                            </div>
+
+                            {# Champ de recherche #}
+                            <div class="position-relative">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white">
+                                        <i class="bi bi-search text-muted"></i>
+                                    </span>
+                                    <input type="text"
+                                           id="user-search-input"
+                                           class="form-control"
+                                           placeholder="Rechercher une personne..."
+                                           autocomplete="off">
+                                </div>
+
+                                {# Dropdown des resultats #}
+                                <div id="user-search-dropdown" class="dropdown-menu w-100 shadow-lg" style="max-height: 250px; overflow-y: auto;">
+                                    {# Resultats de recherche inseres ici par JS #}
+                                </div>
+                            </div>
+
+                            {% if form.assigned_users.errors %}
+                            <div class="text-danger mt-2">{{ form.assigned_users.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# Donnees utilisateurs pour JavaScript #}
+                    <script type="application/json" id="available-users-data">
+                    [
+                        {% for user in available_users %}
+                        {
+                            "id": {{ user.id }},
+                            "firstName": {{ user.first_name|tojson }},
+                            "lastName": {{ user.last_name|tojson }},
+                            "role": {{ (user.role or '')|tojson }},
+                            "fullName": {{ (user.first_name ~ ' ' ~ user.last_name)|tojson }}
+                        }{% if not loop.last %},{% endif %}
+                        {% endfor %}
+                    ]
+                    </script>
+
+                    {# Pre-selection pour JavaScript #}
+                    <script type="application/json" id="preselected-users-data">
+                    {{ (form.assigned_users.data or [])|tojson }}
+                    </script>
+                    {% else %}
+                    <div class="alert alert-warning mb-4">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Aucun utilisateur disponible pour l'assignation.
+                        <a href="{{ url_for('users.index') }}">Ajouter des utilisateurs</a> d'abord.
+                    </div>
+                    {% endif %}
+
+                    {# ===== FORM ACTIONS ===== #}
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        <div>
+                            <button type="submit" name="save_add" value="1" class="btn btn-outline-primary me-2">
+                                <i class="bi bi-plus-circle me-1"></i>Enregistrer et ajouter
+                            </button>
+                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{# Autocomplete scripts #}
+<script src="{{ url_for('static', filename='js/airports-data.js') }}"></script>
+<script src="{{ url_for('static', filename='js/airport-autocomplete.js') }}"></script>
+<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const logisticsType = document.getElementById('logistics_type');
+
+    // ===== ADDRESS AUTOCOMPLETE INITIALIZATION (for Location section) =====
+    if (typeof initAddressAutocomplete === 'function') {
+        initAddressAutocomplete('#logistics_address', {
+            latField: '#logistics_latitude',
+            lngField: '#logistics_longitude',
+            cityField: '#logistics_city',
+            countryField: '#logistics_country',
+            geoapifyKey: '{{ config.GEOAPIFY_API_KEY or "" }}',
+            onSelect: function(suggestion) {
+                // Show GPS status badge
+                var badge = document.getElementById('logistics-gps-status');
+                if (badge && suggestion.latitude && suggestion.longitude) {
+                    badge.classList.remove('d-none', 'bg-secondary');
+                    badge.classList.add('bg-success');
+                    badge.innerHTML = '<i class="bi bi-check-circle"></i> GPS OK';
+                }
+                console.log('Address selected:', suggestion.display_name, suggestion.latitude, suggestion.longitude);
+            }
+        });
+    }
+
+    // ===== AIRPORT AUTOCOMPLETE INITIALIZATION =====
+    if (typeof initAirportAutocomplete === 'function') {
+        // Departure airport
+        initAirportAutocomplete('#departure_airport', {
+            displayFormat: 'code',
+            onSelect: function(airport) {
+                // Show GPS status badge
+                var badge = document.getElementById('departure-gps-status');
+                if (badge) {
+                    badge.classList.remove('d-none', 'bg-secondary');
+                    badge.classList.add('bg-success');
+                    badge.innerHTML = '<i class="bi bi-check-circle"></i> ' + airport.iata + ' OK';
+                }
+                console.log('Departure airport selected:', airport.iata, airport.city, airport.lat, airport.lng);
+            }
+        });
+
+        // Arrival airport
+        initAirportAutocomplete('#arrival_airport', {
+            displayFormat: 'code',
+            onSelect: function(airport) {
+                // Show GPS status badge
+                var badge = document.getElementById('arrival-gps-status');
+                if (badge) {
+                    badge.classList.remove('d-none', 'bg-secondary');
+                    badge.classList.add('bg-success');
+                    badge.innerHTML = '<i class="bi bi-check-circle"></i> ' + airport.iata + ' OK';
+                }
+                console.log('Arrival airport selected:', airport.iata, airport.city, airport.lat, airport.lng);
+            }
+        });
+    }
+
+    // ===== TRANSPORT PICKUP/DROPOFF AUTOCOMPLETE INITIALIZATION =====
+    if (typeof initAddressAutocomplete === 'function') {
+        // Pickup location autocomplete
+        initAddressAutocomplete('#transport_pickup', {
+            latField: '#departure_lat',
+            lngField: '#departure_lng',
+            geoapifyKey: '{{ config.GEOAPIFY_API_KEY or "" }}',
+            onSelect: function(suggestion) {
+                var status = document.getElementById('pickup-gps-status');
+                if (status && suggestion.latitude && suggestion.longitude) {
+                    status.classList.remove('text-muted');
+                    status.classList.add('text-success');
+                    status.textContent = 'GPS OK';
+                }
+                console.log('Pickup selected:', suggestion.display_name, suggestion.latitude, suggestion.longitude);
+            }
+        });
+
+        // Dropoff location autocomplete
+        initAddressAutocomplete('#transport_dropoff', {
+            latField: '#arrival_lat',
+            lngField: '#arrival_lng',
+            geoapifyKey: '{{ config.GEOAPIFY_API_KEY or "" }}',
+            onSelect: function(suggestion) {
+                var status = document.getElementById('dropoff-gps-status');
+                if (status && suggestion.latitude && suggestion.longitude) {
+                    status.classList.remove('text-muted');
+                    status.classList.add('text-success');
+                    status.textContent = 'GPS OK';
+                }
+                console.log('Dropoff selected:', suggestion.display_name, suggestion.latitude, suggestion.longitude);
+            }
+        });
+    }
+
+    // Sections conditionnelles
+    const flightSection = document.getElementById('flight-section');
+    const hotelSection = document.getElementById('hotel-section');
+    const locationSection = document.getElementById('location-section');
+    const transportSection = document.getElementById('transport-section');
+
+    // Helpers pour les textes dynamiques
+    const startHelp = document.getElementById('start-help');
+    const endHelp = document.getElementById('end-help');
+
+    // Configuration des sections par type
+    const typeConfig = {
+        'FLIGHT': {
+            sections: ['flight'],
+            startHelp: 'Heure de départ du vol',
+            endHelp: 'Heure d\'arrivée du vol'
+        },
+        'TRAIN': {
+            sections: ['transport', 'location'],
+            startHelp: 'Heure de départ du train',
+            endHelp: 'Heure d\'arrivée du train'
+        },
+        'BUS': {
+            sections: ['transport', 'location'],
+            startHelp: 'Heure de départ',
+            endHelp: 'Heure d\'arrivée'
+        },
+        'FERRY': {
+            sections: ['transport', 'location'],
+            startHelp: 'Heure de départ du ferry',
+            endHelp: 'Heure d\'arrivée du ferry'
+        },
+        'RENTAL_CAR': {
+            sections: ['transport', 'location'],
+            startHelp: 'Heure de prise en charge',
+            endHelp: 'Heure de restitution'
+        },
+        'TAXI': {
+            sections: ['transport'],
+            startHelp: 'Heure de pickup',
+            endHelp: 'Heure d\'arrivée estimée'
+        },
+        'GROUND_TRANSPORT': {
+            sections: ['transport', 'location'],
+            startHelp: 'Heure de départ',
+            endHelp: 'Heure d\'arrivée'
+        },
+        'HOTEL': {
+            sections: ['hotel', 'location'],
+            startHelp: 'Date de check-in',
+            endHelp: 'Date de check-out'
+        },
+        'APARTMENT': {
+            sections: ['hotel', 'location'],
+            startHelp: 'Date d\'arrivée',
+            endHelp: 'Date de départ'
+        },
+        'RENTAL': {
+            sections: ['location'],
+            startHelp: 'Heure de livraison',
+            endHelp: 'Heure de récupération'
+        },
+        'EQUIPMENT': {
+            sections: ['location'],
+            startHelp: 'Heure de livraison',
+            endHelp: 'Heure de récupération'
+        },
+        'BACKLINE': {
+            sections: ['location'],
+            startHelp: 'Heure de livraison',
+            endHelp: 'Heure de récupération'
+        },
+        'CATERING': {
+            sections: ['location'],
+            startHelp: 'Heure de début service',
+            endHelp: 'Heure de fin service'
+        },
+        'MEAL': {
+            sections: ['location'],
+            startHelp: 'Heure du repas',
+            endHelp: ''
+        },
+        'PARKING': {
+            sections: ['location'],
+            startHelp: 'Heure d\'arrivée',
+            endHelp: 'Heure de départ'
+        },
+        'OTHER': {
+            sections: ['location'],
+            startHelp: 'Heure de début',
+            endHelp: 'Heure de fin'
+        }
+    };
+
+    function updateSections() {
+        const selectedType = logisticsType.value;
+        const config = typeConfig[selectedType] || { sections: [], startHelp: '', endHelp: '' };
+
+        // Masquer toutes les sections
+        flightSection.style.display = 'none';
+        hotelSection.style.display = 'none';
+        locationSection.style.display = 'none';
+        transportSection.style.display = 'none';
+
+        // Afficher les sections pertinentes
+        if (config.sections.includes('flight')) {
+            flightSection.style.display = 'block';
+        }
+        if (config.sections.includes('hotel')) {
+            hotelSection.style.display = 'block';
+        }
+        if (config.sections.includes('location')) {
+            locationSection.style.display = 'block';
+        }
+        if (config.sections.includes('transport')) {
+            transportSection.style.display = 'block';
+        }
+
+        // Mettre à jour les textes d'aide
+        if (startHelp) startHelp.textContent = config.startHelp || '';
+        if (endHelp) endHelp.textContent = config.endHelp || '';
+    }
+
+    // Initialiser et écouter les changements
+    if (logisticsType) {
+        logisticsType.addEventListener('change', updateSections);
+        updateSections(); // Initialisation
+    }
+
+    // Auto-fill date based on tour stop date
+    const startDatetime = document.getElementById('start_datetime');
+    const stopDate = '{{ stop.date.strftime("%Y-%m-%d") }}';
+
+    if (startDatetime && !startDatetime.value) {
+        startDatetime.value = stopDate + 'T10:00';
+    }
+
+    // ===== USER SEARCH FUNCTIONALITY =====
+    const userSearchInput = document.getElementById('user-search-input');
+    const userSearchDropdown = document.getElementById('user-search-dropdown');
+    const selectedUsersTags = document.getElementById('selected-users-tags');
+    const hiddenInputsContainer = document.getElementById('hidden-inputs-container');
+
+    // Charger les donnees
+    const availableUsersData = document.getElementById('available-users-data');
+    const preselectedUsersData = document.getElementById('preselected-users-data');
+
+    if (userSearchInput && availableUsersData) {
+        const allUsers = JSON.parse(availableUsersData.textContent);
+        const preselectedIds = preselectedUsersData ? JSON.parse(preselectedUsersData.textContent) : [];
+        const selectedUsers = new Map();
+
+        // Initialiser avec les utilisateurs pre-selectionnes
+        preselectedIds.forEach(userId => {
+            const user = allUsers.find(u => u.id === userId);
+            if (user) {
+                selectedUsers.set(user.id, user);
+                renderTag(user);
+            }
+        });
+
+        // Fonction pour creer un tag
+        function renderTag(user) {
+            const tag = document.createElement('span');
+            tag.className = 'badge bg-primary d-inline-flex align-items-center gap-1 py-2 px-3';
+            tag.dataset.userId = user.id;
+            tag.innerHTML = `
+                <i class="bi bi-person-fill"></i>
+                ${user.firstName} ${user.lastName}
+                <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.6rem;" aria-label="Retirer"></button>
+            `;
+
+            // Bouton de suppression
+            tag.querySelector('.btn-close').addEventListener('click', function(e) {
+                e.preventDefault();
+                removeUser(user.id);
+            });
+
+            selectedUsersTags.appendChild(tag);
+        }
+
+        // Ajouter un utilisateur
+        function addUser(user) {
+            if (selectedUsers.has(user.id)) return;
+
+            selectedUsers.set(user.id, user);
+            renderTag(user);
+
+            // Ajouter hidden input
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'assigned_users';
+            hidden.value = user.id;
+            hidden.dataset.userId = user.id;
+            hiddenInputsContainer.appendChild(hidden);
+
+            // Vider la recherche
+            userSearchInput.value = '';
+            hideDropdown();
+        }
+
+        // Retirer un utilisateur
+        function removeUser(userId) {
+            selectedUsers.delete(userId);
+
+            // Supprimer le tag
+            const tag = selectedUsersTags.querySelector(`[data-user-id="${userId}"]`);
+            if (tag) tag.remove();
+
+            // Supprimer le hidden input
+            const hidden = hiddenInputsContainer.querySelector(`input[data-user-id="${userId}"]`);
+            if (hidden) hidden.remove();
+        }
+
+        // Afficher le dropdown
+        function showDropdown() {
+            userSearchDropdown.classList.add('show');
+        }
+
+        // Masquer le dropdown
+        function hideDropdown() {
+            userSearchDropdown.classList.remove('show');
+        }
+
+        // Filtrer et afficher les resultats
+        function filterUsers(query) {
+            const q = query.toLowerCase().trim();
+            userSearchDropdown.innerHTML = '';
+
+            const filtered = allUsers.filter(user => {
+                // Exclure les deja selectionnes
+                if (selectedUsers.has(user.id)) return false;
+
+                // Filtrer par nom
+                if (!q) return true;
+                return user.fullName.toLowerCase().includes(q) ||
+                       user.firstName.toLowerCase().includes(q) ||
+                       user.lastName.toLowerCase().includes(q);
+            });
+
+            if (filtered.length === 0) {
+                const noResult = document.createElement('div');
+                noResult.className = 'dropdown-item text-muted';
+                noResult.textContent = q ? 'Aucun resultat' : 'Tous les utilisateurs sont assignes';
+                userSearchDropdown.appendChild(noResult);
+            } else {
+                filtered.forEach(user => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'dropdown-item d-flex align-items-center py-2';
+                    item.innerHTML = `
+                        <i class="bi bi-person-circle me-2 text-muted"></i>
+                        <div>
+                            <strong>${user.firstName} ${user.lastName}</strong>
+                            ${user.role ? `<br><small class="text-muted">${user.role}</small>` : ''}
+                        </div>
+                    `;
+                    item.addEventListener('click', function() {
+                        addUser(user);
+                    });
+                    userSearchDropdown.appendChild(item);
+                });
+            }
+
+            showDropdown();
+        }
+
+        // Evenements
+        userSearchInput.addEventListener('focus', function() {
+            filterUsers(this.value);
+        });
+
+        userSearchInput.addEventListener('input', function() {
+            filterUsers(this.value);
+        });
+
+        // Fermer dropdown quand on clique ailleurs
+        document.addEventListener('click', function(e) {
+            if (!userSearchInput.contains(e.target) && !userSearchDropdown.contains(e.target)) {
+                hideDropdown();
+            }
+        });
+
+        // Navigation clavier
+        userSearchInput.addEventListener('keydown', function(e) {
+            const items = userSearchDropdown.querySelectorAll('.dropdown-item:not(.text-muted)');
+            const activeItem = userSearchDropdown.querySelector('.dropdown-item.active');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (!activeItem && items.length > 0) {
+                    items[0].classList.add('active');
+                } else if (activeItem && activeItem.nextElementSibling) {
+                    activeItem.classList.remove('active');
+                    activeItem.nextElementSibling.classList.add('active');
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (activeItem && activeItem.previousElementSibling) {
+                    activeItem.classList.remove('active');
+                    activeItem.previousElementSibling.classList.add('active');
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (activeItem) {
+                    activeItem.click();
+                }
+            } else if (e.key === 'Escape') {
+                hideDropdown();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

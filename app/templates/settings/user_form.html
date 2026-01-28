@@ -1,0 +1,856 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Tour Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-person-{% if user %}gear{% else %}plus{% endif %} me-2"></i>{{ title }}
+    </h1>
+    <a href="{{ url_for('settings.users_list') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Retour
+    </a>
+</div>
+
+{% include "components/_flash_messages.html" %}
+
+{% if form.errors %}
+<div class="alert alert-danger mb-4">
+    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Erreurs de validation</h6>
+    <ul class="mb-0">
+    {% for field, errors in form.errors.items() %}
+        {% for error in errors %}
+        <li><strong>{{ field }}</strong>: {{ error }}</li>
+        {% endfor %}
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+
+    <!-- Navigation Onglets -->
+    <ul class="nav nav-tabs mb-4" id="userTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="identite-tab" data-bs-toggle="tab" data-bs-target="#identite" type="button" role="tab">
+                <i class="bi bi-person me-1"></i>Identité
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="voyage-tab" data-bs-toggle="tab" data-bs-target="#voyage" type="button" role="tab">
+                <i class="bi bi-airplane me-1"></i>Voyage
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="urgence-tab" data-bs-toggle="tab" data-bs-target="#urgence" type="button" role="tab">
+                <i class="bi bi-telephone-fill me-1"></i>Urgence
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sante-tab" data-bs-toggle="tab" data-bs-target="#sante" type="button" role="tab">
+                <i class="bi bi-heart-pulse me-1"></i>Santé
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="facturation-tab" data-bs-toggle="tab" data-bs-target="#facturation" type="button" role="tab">
+                <i class="bi bi-credit-card me-1"></i>Facturation
+            </button>
+        </li>
+    </ul>
+
+    <!-- Contenu des Onglets -->
+    <div class="tab-content" id="userTabsContent">
+
+        <!-- ========== ONGLET 1: IDENTITE ========== -->
+        <div class="tab-pane fade show active" id="identite" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Informations de base</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Prénom -->
+                        <div class="col-md-6">
+                            <label for="first_name" class="form-label">Prénom <span class="text-danger">*</span></label>
+                            {{ form.first_name(class="form-control" + (" is-invalid" if form.first_name.errors else ""), placeholder="Prénom") }}
+                            {% if form.first_name.errors %}
+                            <div class="invalid-feedback">{{ form.first_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Nom -->
+                        <div class="col-md-6">
+                            <label for="last_name" class="form-label">Nom <span class="text-danger">*</span></label>
+                            {{ form.last_name(class="form-control" + (" is-invalid" if form.last_name.errors else ""), placeholder="Nom") }}
+                            {% if form.last_name.errors %}
+                            <div class="invalid-feedback">{{ form.last_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="email@exemple.com") }}
+                            </div>
+                            {% if form.email.errors %}
+                            <div class="text-danger small mt-1">{{ form.email.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Téléphone -->
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Téléphone</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), placeholder="+33 6 00 00 00 00") }}
+                            </div>
+                            {% if form.phone.errors %}
+                            <div class="text-danger small mt-1">{{ form.phone.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Date de naissance -->
+                        <div class="col-md-6">
+                            <label for="date_of_birth" class="form-label">Date de naissance</label>
+                            {{ form.date_of_birth(class="form-control", type="date") }}
+                        </div>
+
+                        <!-- Nationalité -->
+                        <div class="col-md-6">
+                            <label for="nationality" class="form-label">Nationalité</label>
+                            {{ form.nationality(class="form-control", placeholder="Ex: Française") }}
+                        </div>
+
+                        <!-- Statut compte (edit only) -->
+                        {% if user %}
+                        <div class="col-md-6">
+                            <label class="form-label d-block">Statut du compte</label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.is_active(class="form-check-input") }}
+                                <label class="form-check-label" for="is_active">Compte actif</label>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Niveau d'accès & Label -->
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="bi bi-shield-lock me-2"></i>Permissions & Affiliation</h6>
+                    <div class="row g-3">
+                        <!-- Niveau d'accès -->
+                        <div class="col-md-6">
+                            <label for="access_level" class="form-label">Niveau d'accès <span class="text-danger">*</span></label>
+                            {{ form.access_level(class="form-select" + (" is-invalid" if form.access_level.errors else "")) }}
+                            {% if form.access_level.errors %}
+                            <div class="invalid-feedback">{{ form.access_level.errors[0] }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Détermine les permissions dans l'application</small>
+                        </div>
+
+                        <!-- Label -->
+                        <div class="col-md-6">
+                            <label for="label_name" class="form-label">Label</label>
+                            {{ form.label_name(class="form-control", placeholder="Ex: Universal Music, Sony Music...") }}
+                            <small class="form-text text-muted">Affiliation à un label musical (optionnel)</small>
+                        </div>
+
+                        <!-- Preference emails -->
+                        <div class="col-md-12 mt-3">
+                            <div class="form-check form-switch">
+                                {{ form.receive_emails(class="form-check-input") }}
+                                <label class="form-check-label" for="receive_emails">
+                                    <i class="bi bi-envelope me-1"></i>Recevoir les emails de l'application
+                                </label>
+                                <small class="form-text text-muted d-block">
+                                    Invitations, rappels de concerts, notifications, partage de documents, etc.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profession (une seule) -->
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="bi bi-briefcase me-2"></i>Profession</h6>
+                    <p class="text-muted small mb-3">Sélectionnez la profession de l'utilisateur.</p>
+
+                    {% if professions_by_category %}
+                    <div class="accordion" id="professionsAccordion">
+                        {% for category, data in professions_by_category.items() %}
+                        <div class="accordion-item bg-dark">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button {% if not loop.first %}collapsed{% endif %} bg-dark text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ category.name }}">
+                                    <span class="badge bg-{% if category.name == 'MUSICIEN' %}info{% elif category.name == 'ARTISTE' %}danger{% elif category.name == 'TECHNICIEN' %}warning{% elif category.name == 'PRODUCTION' %}primary{% elif category.name == 'STYLE' %}pink{% elif category.name == 'SECURITE' %}dark{% else %}success{% endif %} me-2">
+                                        {% if category.name == 'MUSICIEN' %}<i class="bi bi-music-note-beamed"></i>
+                                        {% elif category.name == 'ARTISTE' %}<i class="bi bi-star-fill"></i>
+                                        {% elif category.name == 'TECHNICIEN' %}<i class="bi bi-tools"></i>
+                                        {% elif category.name == 'PRODUCTION' %}<i class="bi bi-clipboard-check"></i>
+                                        {% elif category.name == 'STYLE' %}<i class="bi bi-palette"></i>
+                                        {% elif category.name == 'SECURITE' %}<i class="bi bi-shield-check"></i>
+                                        {% else %}<i class="bi bi-briefcase"></i>{% endif %}
+                                    </span>
+                                    {{ data.label }} <span class="text-muted ms-2">({{ data.professions|length }})</span>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ category.name }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+                                <div class="accordion-body">
+                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2">
+                                        {% for profession in data.professions %}
+                                        <div class="col">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="profession"
+                                                       id="profession_{{ profession.id }}" value="{{ profession.id }}"
+                                                       {% if form.profession.data == profession.id or form.profession.data|string == profession.id|string %}checked{% endif %}>
+                                                <label class="form-check-label" for="profession_{{ profession.id }}">
+                                                    {{ profession.name_fr }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Aucune profession configurée dans le systeme.
+                    </div>
+                    {% endif %}
+
+                    {% if form.profession.errors %}
+                    <div class="text-danger small mt-2">{{ form.profession.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== ONGLET 2: VOYAGE ========== -->
+        <div class="tab-pane fade" id="voyage" role="tabpanel">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-airplane me-2"></i>Préférences de voyage</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="preferred_airline" class="form-label">Compagnie aérienne préférée</label>
+                            {{ form.preferred_airline(class="form-control", placeholder="Ex: Air France") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="seat_preference" class="form-label">Préférence siège</label>
+                            {{ form.seat_preference(class="form-select") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="meal_preference" class="form-label">Repas en vol</label>
+                            {{ form.meal_preference(class="form-select") }}
+                        </div>
+                        <div class="col-12">
+                            <label for="hotel_preferences" class="form-label">Préférences hôtel</label>
+                            {{ form.hotel_preferences(class="form-control", rows="3", placeholder="Chambre non-fumeur, étage élevé, près de l'ascenseur...") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cartes Voyageur -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-credit-card-2-front me-2"></i>Cartes Voyageur</h5>
+                </div>
+                <div class="card-body">
+                    {% if user %}
+                    <!-- Liste des cartes existantes -->
+                    {% if user.travel_cards %}
+                    <div class="mb-4">
+                        {% for card in user.travel_cards %}
+                        <div class="card bg-dark mb-2">
+                            <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ card.card_name or card.card_number }}</strong>
+                                    <span class="badge bg-{% if card.card_type == 'loyalty_airline' %}info{% elif card.card_type == 'rail_subscription' %}success{% elif card.card_type == 'car_rental' %}warning{% elif card.card_type == 'hotel_loyalty' %}primary{% else %}secondary{% endif %} ms-2">
+                                        {{ card.type_label }}
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">
+                                        N° {{ card.card_number }}
+                                        {% if card.expiry_date %}
+                                        • Expire: {{ card.expiry_date.strftime('%d/%m/%Y') }}
+                                        {% if card.is_expired %}
+                                        <span class="badge bg-danger ms-1">Expirée</span>
+                                        {% elif card.expires_soon %}
+                                        <span class="badge bg-warning text-dark ms-1">Expire bientôt</span>
+                                        {% endif %}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger delete-card-btn"
+                                        data-card-id="{{ card.id }}" title="Supprimer">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-4"><i class="bi bi-info-circle me-2"></i>Aucune carte voyageur enregistrée.</p>
+                    {% endif %}
+
+                    <!-- Formulaire d'ajout de carte (AJAX - pas de form imbriqué) -->
+                    <div class="card bg-secondary bg-opacity-10 border-secondary">
+                        <div class="card-header bg-transparent">
+                            <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Ajouter une carte</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="add-card-section">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Numéro de carte <span class="text-danger">*</span></label>
+                                        <input type="text" id="new_card_number" class="form-control" placeholder="Ex: 123456789" maxlength="50">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Type <span class="text-danger">*</span></label>
+                                        <select id="new_card_type" class="form-select">
+                                            <option value="loyalty_airline">Fidélité aérienne</option>
+                                            <option value="rail_subscription">Abonnement rail (SNCF, Eurostar...)</option>
+                                            <option value="car_rental">Carte loueur (Hertz, Avis...)</option>
+                                            <option value="hotel_loyalty">Fidélité hôtel</option>
+                                            <option value="other">Autre</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Nom de la carte</label>
+                                        <input type="text" id="new_card_name" class="form-control" placeholder="Ex: Flying Blue" maxlength="100">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Date de validité</label>
+                                        <input type="date" id="new_card_expiry" class="form-control">
+                                    </div>
+                                    <div class="col-md-8 d-flex align-items-end">
+                                        <button type="button" class="btn btn-success" id="add-card-btn">
+                                            <i class="bi bi-plus-circle me-2"></i>Ajouter la carte
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Les cartes voyageur pourront être ajoutées après la création de l'utilisateur.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== ONGLET 3: URGENCE ========== -->
+        <div class="tab-pane fade" id="urgence" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-telephone-fill me-2"></i>Contact d'urgence</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="emergency_contact_name" class="form-label">Nom complet</label>
+                            {{ form.emergency_contact_name(class="form-control", placeholder="Nom du contact") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="emergency_contact_relation" class="form-label">Relation</label>
+                            {{ form.emergency_contact_relation(class="form-control", placeholder="Ex: Conjoint, Parent...") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="emergency_contact_phone" class="form-label">Téléphone</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                {{ form.emergency_contact_phone(class="form-control", placeholder="+33 6 12 34 56 78") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="emergency_contact_email" class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                {{ form.emergency_contact_email(class="form-control", placeholder="email@exemple.com") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== ONGLET 4: SANTE ========== -->
+        <div class="tab-pane fade" id="sante" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-heart-pulse me-2"></i>Santé & Alimentation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="dietary_restrictions" class="form-label">Restrictions alimentaires</label>
+                            {{ form.dietary_restrictions(class="form-control", rows="3", placeholder="Vegetarien, sans gluten, sans lactose...") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="allergies" class="form-label">Allergies</label>
+                            {{ form.allergies(class="form-control", rows="3", placeholder="Fruits de mer, arachides, pollen...") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== ONGLET 5: FACTURATION & PAIEMENT ========== -->
+        <div class="tab-pane fade" id="facturation" role="tabpanel">
+            <div class="row">
+                <!-- Contrat & Fréquence -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Contrat</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">
+                                <i class="bi bi-info-circle me-1"></i>
+                                La profession est définie dans l'onglet Identité. Les taux seront pré-remplis automatiquement.
+                            </p>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="contract_type" class="form-label">Type de contrat</label>
+                                    {{ form.contract_type(class="form-select") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="payment_frequency" class="form-label">Frequence paiement</label>
+                                    {{ form.payment_frequency(class="form-select") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Taux standards -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-currency-euro me-2"></i>Taux standards</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="show_rate" class="form-label">Tarif concert</label>
+                                    <div class="input-group">
+                                        {{ form.show_rate(class="form-control", placeholder="0.00") }}
+                                        <span class="input-group-text">EUR</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="daily_rate" class="form-label">Tarif journalier</label>
+                                    <div class="input-group">
+                                        {{ form.daily_rate(class="form-control", placeholder="0.00") }}
+                                        <span class="input-group-text">EUR</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="half_day_rate" class="form-label">Tarif demi-journee</label>
+                                    <div class="input-group">
+                                        {{ form.half_day_rate(class="form-control", placeholder="0.00") }}
+                                        <span class="input-group-text">EUR</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="hourly_rate" class="form-label">Tarif horaire</label>
+                                    <div class="input-group">
+                                        {{ form.hourly_rate(class="form-control", placeholder="0.00") }}
+                                        <span class="input-group-text">EUR</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="per_diem" class="form-label">Per diem</label>
+                                    <div class="input-group">
+                                        {{ form.per_diem(class="form-control", placeholder="35.00") }}
+                                        <span class="input-group-text">EUR</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Majorations -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-percent me-2"></i>Majorations</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="overtime_rate_25" class="form-label">Heures sup +25%</label>
+                                    <div class="input-group">
+                                        {{ form.overtime_rate_25(class="form-control", placeholder="1.25") }}
+                                        <span class="input-group-text">x</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="overtime_rate_50" class="form-label">Heures sup +50%</label>
+                                    <div class="input-group">
+                                        {{ form.overtime_rate_50(class="form-control", placeholder="1.50") }}
+                                        <span class="input-group-text">x</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="weekend_rate" class="form-label">Weekend</label>
+                                    <div class="input-group">
+                                        {{ form.weekend_rate(class="form-control", placeholder="1.25") }}
+                                        <span class="input-group-text">x</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="holiday_rate" class="form-label">Jours feries</label>
+                                    <div class="input-group">
+                                        {{ form.holiday_rate(class="form-control", placeholder="2.00") }}
+                                        <span class="input-group-text">x</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="night_rate" class="form-label">Nuit</label>
+                                    <div class="input-group">
+                                        {{ form.night_rate(class="form-control", placeholder="1.25") }}
+                                        <span class="input-group-text">x</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Informations bancaires SEPA -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-bank me-2"></i>Informations bancaires SEPA</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label for="iban" class="form-label">IBAN</label>
+                                    {{ form.iban(class="form-control", placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX") }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="bic" class="form-label">BIC</label>
+                                    {{ form.bic(class="form-control", placeholder="BNPAFRPP") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="bank_name" class="form-label">Nom de la banque</label>
+                                    {{ form.bank_name(class="form-control", placeholder="Ex: BNP Paribas") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="account_holder" class="form-label">Titulaire du compte</label>
+                                    {{ form.account_holder(class="form-control", placeholder="Nom complet") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Informations fiscales -->
+                <div class="col-lg-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Informations fiscales</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="siret" class="form-label">SIRET</label>
+                                    {{ form.siret(class="form-control", placeholder="14 chiffres") }}
+                                    <small class="form-text text-muted">Auto-entrepreneur</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="siren" class="form-label">SIREN</label>
+                                    {{ form.siren(class="form-control", placeholder="9 chiffres") }}
+                                    <small class="form-text text-muted">Societe</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="vat_number" class="form-label">N TVA intracommunautaire</label>
+                                    {{ form.vat_number(class="form-control", placeholder="FRXX XXXXXXXXX") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Boutons Submit (toujours visibles) -->
+    <div class="card mt-4">
+        <div class="card-body d-flex justify-content-between">
+            <a href="{{ url_for('settings.users_list') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle me-2"></i>Annuler
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg">
+                {% if user %}
+                <i class="bi bi-check-circle me-2"></i>Enregistrer les modifications
+                {% else %}
+                <i class="bi bi-person-plus me-2"></i>Creer et envoyer l'invitation
+                {% endif %}
+            </button>
+        </div>
+    </div>
+</form>
+
+{% if not user %}
+<!-- Info Box pour nouveaux utilisateurs -->
+<div class="alert alert-info mt-3">
+    <h6 class="alert-heading">
+        <i class="bi bi-info-circle me-2"></i>Comment ca marche ?
+    </h6>
+    <p class="mb-0">
+        Si "Recevoir les emails" est active, l'utilisateur recevra un email d'invitation
+        avec un lien pour definir son mot de passe (valable <strong>72 heures</strong>).<br>
+        Il recevra egalement toutes les notifications de l'application (rappels, partages, etc.).<br>
+        Si desactive, aucun email ne lui sera envoye par l'application.
+    </p>
+</div>
+{% endif %}
+
+{% if user and not user.email_verified %}
+<!-- Alerte invitation en attente -->
+<div class="alert alert-warning mt-3">
+    <h6 class="alert-heading">
+        <i class="bi bi-clock me-2"></i>Invitation en attente
+    </h6>
+    <p class="mb-2">
+        Cet utilisateur n'a pas encore defini son mot de passe.
+    </p>
+    <form action="{{ url_for('settings.users_resend_invite', id=user.id) }}" method="POST" class="d-inline">
+        <button type="submit" class="btn btn-sm btn-warning">
+            <i class="bi bi-envelope me-2"></i>Renvoyer l'invitation
+        </button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Cache des professions pour éviter requêtes multiples
+let professionsCache = {};
+
+// Gestion de l'onglet actif via hash URL
+document.addEventListener('DOMContentLoaded', function() {
+    // Si hash present, activer l'onglet correspondant
+    if (window.location.hash) {
+        const hash = window.location.hash.substring(1);
+        const tabTrigger = document.querySelector(`#${hash}-tab`);
+        if (tabTrigger) {
+            const tab = new bootstrap.Tab(tabTrigger);
+            tab.show();
+        }
+    }
+
+    // Mettre a jour le hash quand on change d'onglet
+    const tabLinks = document.querySelectorAll('#userTabs button[data-bs-toggle="tab"]');
+    tabLinks.forEach(function(tabLink) {
+        tabLink.addEventListener('shown.bs.tab', function(event) {
+            const targetId = event.target.getAttribute('data-bs-target').substring(1);
+            history.replaceState(null, null, '#' + targetId);
+        });
+    });
+
+    // ============ AUTO-SUGGESTION PROFESSION → ACCESS LEVEL + TAUX ============
+    const professionRadios = document.querySelectorAll('input[name="profession"]');
+    const accessLevelSelect = document.getElementById('access_level');
+    const isEditMode = {{ 'true' if user else 'false' }};
+
+    // Charger le cache des professions
+    fetch('{{ url_for("settings.api_professions_list") }}')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(p => {
+                professionsCache[p.id] = p;
+            });
+        })
+        .catch(err => console.error('Erreur chargement professions:', err));
+
+    // Fonction pour obtenir la profession sélectionnée (radio button = une seule)
+    function getSelectedProfession() {
+        const selected = document.querySelector('input[name="profession"]:checked');
+        return selected ? parseInt(selected.value) : null;
+    }
+
+    // Fonction pour appliquer les defaults d'une profession
+    function applyProfessionDefaults(professionId) {
+        const profession = professionsCache[professionId];
+        if (!profession) return;
+
+        // Auto-suggérer access_level (seulement en mode création ou si pas déjà modifié)
+        if (!isEditMode && accessLevelSelect) {
+            const currentValue = accessLevelSelect.value;
+            // Ne suggérer que si valeur par défaut (STAFF) ou vide
+            if (!currentValue || currentValue === 'STAFF') {
+                accessLevelSelect.value = profession.default_access_level;
+                // Animation visuelle
+                accessLevelSelect.classList.add('border-success');
+                setTimeout(() => accessLevelSelect.classList.remove('border-success'), 2000);
+            }
+        }
+
+        // Pré-remplir les taux de paiement (seulement si vides)
+        const rates = profession.default_rates;
+        if (rates) {
+            // Frequency
+            const freqField = document.getElementById('payment_frequency');
+            if (freqField && !freqField.value && rates.frequency) {
+                freqField.value = rates.frequency;
+            }
+
+            // Show rate
+            const showRateField = document.getElementById('show_rate');
+            if (showRateField && !showRateField.value && rates.show_rate) {
+                showRateField.value = rates.show_rate;
+                showRateField.classList.add('border-success');
+                setTimeout(() => showRateField.classList.remove('border-success'), 2000);
+            }
+
+            // Daily rate
+            const dailyRateField = document.getElementById('daily_rate');
+            if (dailyRateField && !dailyRateField.value && rates.daily_rate) {
+                dailyRateField.value = rates.daily_rate;
+                dailyRateField.classList.add('border-success');
+                setTimeout(() => dailyRateField.classList.remove('border-success'), 2000);
+            }
+
+            // Weekly rate
+            const weeklyRateField = document.getElementById('weekly_rate');
+            if (weeklyRateField && !weeklyRateField.value && rates.weekly_rate) {
+                weeklyRateField.value = rates.weekly_rate;
+            }
+
+            // Per diem
+            const perDiemField = document.getElementById('per_diem');
+            if (perDiemField && !perDiemField.value && rates.per_diem !== undefined) {
+                perDiemField.value = rates.per_diem;
+            }
+        }
+    }
+
+    // Écouter les changements de profession (radio buttons)
+    professionRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const profId = getSelectedProfession();
+            if (profId) {
+                applyProfessionDefaults(profId);
+            }
+        });
+    });
+
+    // Appliquer au chargement si profession déjà sélectionnée (mode création)
+    if (!isEditMode) {
+        setTimeout(() => {
+            const profId = getSelectedProfession();
+            if (profId) {
+                applyProfessionDefaults(profId);
+            }
+        }, 500); // Attendre que le cache soit chargé
+    }
+
+    // ============ GESTION CARTES VOYAGE VIA AJAX ============
+    // (Evite les formulaires imbriqués qui causent des bugs de soumission)
+    {% if user %}
+    const userId = {{ user.id }};
+    const csrfToken = '{{ csrf_token() }}';
+
+    // Supprimer une carte via AJAX
+    document.querySelectorAll('.delete-card-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            if (!confirm('Supprimer cette carte ?')) return;
+
+            const cardId = this.dataset.cardId;
+            const cardElement = this.closest('.card.bg-dark');
+
+            try {
+                const response = await fetch(`/settings/users/${userId}/travel-cards/${cardId}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `csrf_token=${encodeURIComponent(csrfToken)}`
+                });
+
+                if (response.ok || response.redirected) {
+                    // Supprimer visuellement la carte
+                    cardElement.remove();
+                    // Vérifier s'il reste des cartes
+                    const remainingCards = document.querySelectorAll('.delete-card-btn');
+                    if (remainingCards.length === 0) {
+                        const cardsContainer = document.querySelector('.mb-4');
+                        if (cardsContainer) {
+                            cardsContainer.innerHTML = '<p class="text-muted mb-4"><i class="bi bi-info-circle me-2"></i>Aucune carte voyageur enregistrée.</p>';
+                        }
+                    }
+                } else {
+                    alert('Erreur lors de la suppression de la carte');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la suppression');
+            }
+        });
+    });
+
+    // Ajouter une carte via AJAX
+    const addCardBtn = document.getElementById('add-card-btn');
+    if (addCardBtn) {
+        addCardBtn.addEventListener('click', async function() {
+            const cardNumber = document.getElementById('new_card_number').value.trim();
+            const cardType = document.getElementById('new_card_type').value;
+            const cardName = document.getElementById('new_card_name').value.trim();
+            const expiryDate = document.getElementById('new_card_expiry').value;
+
+            if (!cardNumber) {
+                alert('Le numéro de carte est requis');
+                document.getElementById('new_card_number').focus();
+                return;
+            }
+
+            const formData = new URLSearchParams();
+            formData.append('csrf_token', csrfToken);
+            formData.append('card_number', cardNumber);
+            formData.append('card_type', cardType);
+            formData.append('card_name', cardName);
+            formData.append('expiry_date', expiryDate);
+
+            try {
+                const response = await fetch(`/settings/users/${userId}/travel-cards`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData.toString()
+                });
+
+                if (response.ok || response.redirected) {
+                    // Recharger la page pour voir la nouvelle carte
+                    window.location.href = window.location.pathname + '#voyage';
+                    window.location.reload();
+                } else {
+                    alert('Erreur lors de l\'ajout de la carte');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de l\'ajout');
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

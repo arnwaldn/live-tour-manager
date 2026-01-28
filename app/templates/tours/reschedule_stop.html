@@ -1,0 +1,130 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Reporter le concert - {{ tour.name }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+.current-date-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 4px solid #c9a227;
+}
+.venue-info {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournees</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
+        <li class="breadcrumb-item active">Reporter</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">
+    <i class="bi bi-arrow-repeat text-warning"></i>
+    Reporter le concert
+</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <!-- Info concert actuel -->
+        <div class="card current-date-card mb-4">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2">Concert actuel</h6>
+                <div class="d-flex align-items-center gap-3">
+                    <div>
+                        <span class="h4 mb-0">{{ stop.date.strftime('%d %B %Y') }}</span>
+                        {% if stop.venue %}
+                        <p class="venue-info mb-0 mt-1">
+                            <i class="bi bi-geo-alt"></i>
+                            {{ stop.venue.name }} - {{ stop.venue.city }}
+                        </p>
+                        {% elif stop.location_city %}
+                        <p class="venue-info mb-0 mt-1">
+                            <i class="bi bi-geo-alt"></i>
+                            {{ stop.location_city }}{% if stop.location_country %}, {{ stop.location_country }}{% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'secondary' }}">
+                        {{ stop.status.value|capitalize }}
+                    </span>
+                </div>
+                {% if stop.is_rescheduled %}
+                <div class="alert alert-info mt-3 mb-0 py-2">
+                    <small>
+                        <i class="bi bi-info-circle"></i>
+                        Ce concert a deja ete reporte {{ stop.reschedule_count }} fois.
+                        Date initiale: <strong>{{ stop.original_date.strftime('%d/%m/%Y') }}</strong>
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Formulaire de report -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-warning bg-opacity-10 border-0">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-calendar-plus"></i>
+                    Nouvelle date
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-4">
+                        <label for="new_date" class="form-label">
+                            Nouvelle date <span class="text-danger">*</span>
+                        </label>
+                        {{ form.new_date(class="form-control form-control-lg" + (" is-invalid" if form.new_date.errors else ""),
+                           type="date", min=tour.start_date.strftime('%Y-%m-%d'), max=tour.end_date.strftime('%Y-%m-%d')) }}
+                        {% if form.new_date.errors %}
+                        <div class="invalid-feedback">{{ form.new_date.errors[0] }}</div>
+                        {% endif %}
+                        <div class="form-text">
+                            La tournee se deroule du {{ tour.start_date.strftime('%d/%m/%Y') }} au {{ tour.end_date.strftime('%d/%m/%Y') }}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="reason" class="form-label">Raison du report</label>
+                        {{ form.reason(class="form-select" + (" is-invalid" if form.reason.errors else "")) }}
+                        {% if form.reason.errors %}
+                        <div class="invalid-feedback">{{ form.reason.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">Notes additionnelles</label>
+                        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows="3",
+                           placeholder="Informations complementaires sur le report...") }}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback">{{ form.notes.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg"></i> Annuler
+                        </a>
+                        {{ form.submit(class="btn btn-warning") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

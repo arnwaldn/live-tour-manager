@@ -1,0 +1,302 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Dashboard - Studio Palenque Tour{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Bonjour, {{ current_user.first_name }}!</h1>
+        <p class="text-muted mb-0">Voici un résumé de votre activité</p>
+    </div>
+    {% if current_user.has_role('MANAGER') %}
+    <div class="mt-3 mt-md-0">
+        <a href="{{ url_for('bands.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>
+            <span class="d-none d-lg-inline">Nouveau groupe</span>
+            <span class="d-none d-sm-inline d-lg-none">Groupe</span>
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+                            <i class="bi bi-calendar-event text-primary fs-4"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h3 class="h2 mb-0">{{ stats.total_tours }}</h3>
+                        <p class="text-muted small mb-0">Tournées actives</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-success bg-opacity-10 rounded-3 p-3">
+                            <i class="bi bi-geo-alt text-success fs-4"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h3 class="h2 mb-0">{{ stats.upcoming_shows }}</h3>
+                        <p class="text-muted small mb-0">Concerts à venir</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-warning bg-opacity-10 rounded-3 p-3">
+                            <i class="bi bi-person-check text-warning fs-4"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h3 class="h2 mb-0">{{ stats.pending_guestlist }}</h3>
+                        <p class="text-muted small mb-0">Guestlist en attente</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-info bg-opacity-10 rounded-3 p-3">
+                            <i class="bi bi-people text-info fs-4"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h3 class="h2 mb-0">{{ stats.total_bands }}</h3>
+                        <p class="text-muted small mb-0">Groupes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Today's Shows -->
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-day me-2 text-primary"></i>
+                    Aujourd'hui
+                </h5>
+                <span class="badge bg-primary">{{ today_stops|length }} concert(s)</span>
+            </div>
+            <div class="card-body">
+                {% if today_stops %}
+                <div class="list-group list-group-flush">
+                    {% for stop in today_stops %}
+                    <a href="{{ url_for('tours.stop_detail', id=stop.tour_id, stop_id=stop.id) }}"
+                       class="list-group-item list-group-item-action px-0">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ stop.venue.name }}</h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ stop.venue.city }}
+                                    {% if stop.set_time %}
+                                    <span class="ms-2">
+                                        <i class="bi bi-clock me-1"></i>{{ stop.set_time.strftime('%H:%M') }}
+                                    </span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'warning' }}">
+                                {{ stop.status.value }}
+                            </span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-calendar-x text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mt-2 mb-0">Aucun concert aujourd'hui</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Shows -->
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-week me-2 text-success"></i>
+                    Prochains concerts
+                </h5>
+                <a href="{{ url_for('tours.index') }}" class="btn btn-sm btn-outline-primary">
+                    Voir tout
+                </a>
+            </div>
+            <div class="card-body">
+                {% if upcoming_stops %}
+                <div class="list-group list-group-flush">
+                    {% for stop in upcoming_stops %}
+                    <a href="{{ url_for('tours.stop_detail', id=stop.tour_id, stop_id=stop.id) }}"
+                       class="list-group-item list-group-item-action px-0">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ stop.venue.name }}</h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar me-1"></i>{{ stop.date.strftime('%d/%m/%Y') }}
+                                    <span class="ms-2">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ stop.venue.city }}
+                                    </span>
+                                </small>
+                            </div>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-calendar-plus text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mt-2 mb-0">Aucun concert prévu</p>
+                    {% if current_user.has_role('MANAGER') %}
+                    <a href="{{ url_for('tours.index') }}" class="btn btn-sm btn-primary mt-2">
+                        Créer une tournée
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tours -->
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-music-note-list me-2 text-info"></i>
+                    Tournées actives
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if active_tours %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tournée</th>
+                                <th class="d-none d-md-table-cell">Groupe</th>
+                                <th class="d-none d-sm-table-cell">Dates</th>
+                                <th>Statut</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tour in active_tours %}
+                            <tr>
+                                <td>
+                                    <strong>{{ tour.name }}</strong>
+                                    <br class="d-md-none">
+                                    <small class="text-muted d-md-none">{{ tour.band.name }}</small>
+                                </td>
+                                <td class="d-none d-md-table-cell">{{ tour.band.name }}</td>
+                                <td class="d-none d-sm-table-cell">
+                                    <small>
+                                        {{ tour.start_date.strftime('%d/%m') }} - {{ tour.end_date.strftime('%d/%m/%Y') }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' }}">
+                                        {{ tour.status.value }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('tours.detail', id=tour.id) }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-calendar-range text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mt-2 mb-0">Aucune tournée active</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Guestlist -->
+    {% if pending_guestlist %}
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm border-warning">
+            <div class="card-header bg-warning bg-opacity-10 border-0">
+                <h5 class="mb-0 text-warning">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Guestlist en attente
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for entry in pending_guestlist[:5] %}
+                    <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ entry.guest_name }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {{ entry.tour_stop.venue.name }} - {{ entry.tour_stop.date.strftime('%d/%m') }}
+                            </small>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <form action="{{ url_for('guestlist.approve_entry', id=entry.id) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-success" title="Approuver">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </form>
+                            <form action="{{ url_for('guestlist.deny_entry', id=entry.id) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger" title="Refuser">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if pending_guestlist|length > 5 %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('tours.index') }}" class="btn btn-sm btn-warning">
+                        Voir tout ({{ pending_guestlist|length }})
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

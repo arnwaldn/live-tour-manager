@@ -1,0 +1,37 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+VOTRE DEMANDE GUESTLIST A ETE APPROUVEE
+
+Bonjour,
+
+Nous avons le plaisir de vous confirmer que votre demande d'acces guestlist a ete APPROUVEE.
+
+---
+DETAILS DE L'EVENEMENT
+---
+Artiste: {{ band.name }}
+{% if tour %}Tournee: {{ tour.name }}{% endif %}
+Lieu: {{ venue.name }}
+Adresse: {{ venue.address }}, {{ venue.city }}
+Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
+{% if tour_stop.doors_time %}Ouverture des portes: {{ tour_stop.doors_time.strftime('%H:%M') }}{% endif %}
+
+---
+VOTRE INVITATION
+---
+Nom: {{ entry.guest_name }}
+Type d'acces: {{ entry.entry_type.value|replace('_', ' ')|title }}
+{% if entry.plus_ones > 0 %}Accompagnants: +{{ entry.plus_ones }}{% endif %}
+
+IMPORTANT: Presentez-vous a l'entree guestlist avec une piece d'identite. Mentionnez votre nom a l'accueil.
+
+Nous vous souhaitons un excellent concert!
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group
+Cet email a ete envoye automatiquement.

@@ -1,0 +1,269 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Programmation - {{ stop.date.strftime('%d/%m/%Y') }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+.lineup-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+}
+.lineup-card:hover {
+    border-color: rgba(201, 162, 39, 0.5);
+}
+.lineup-order {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #c9a227, #a88620);
+    color: #1a1a2e;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.performer-type-badge {
+    font-size: 0.75rem;
+    padding: 0.25em 0.5em;
+}
+.performer-type-main_artist { background-color: #c9a227; color: #1a1a2e; }
+.performer-type-opening_act { background-color: #198754; color: white; }
+.performer-type-support { background-color: #0d6efd; color: white; }
+.performer-type-dj_set { background-color: #6f42c1; color: white; }
+.performer-type-special_guest { background-color: #d63384; color: white; }
+.performer-type-other { background-color: #6c757d; color: white; }
+.time-display {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #c9a227;
+}
+.confirmed-badge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.confirmed-yes { background-color: #198754; }
+.confirmed-no { background-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournees</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
+        <li class="breadcrumb-item active">Programmation</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">
+        <i class="bi bi-music-note-list text-warning"></i>
+        Programmation du concert
+    </h1>
+    <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour au concert
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Info concert -->
+    <div class="col-12 mb-4">
+        <div class="card border-0 shadow-sm" style="background: rgba(255, 255, 255, 0.05); border-left: 4px solid #c9a227 !important;">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div>
+                        <h5 class="mb-1">{{ stop.date.strftime('%A %d %B %Y') }}</h5>
+                        {% if stop.venue %}
+                        <span class="text-muted">
+                            <i class="bi bi-geo-alt"></i>
+                            {{ stop.venue.name }} - {{ stop.venue.city }}
+                        </span>
+                        {% elif stop.location_city %}
+                        <span class="text-muted">
+                            <i class="bi bi-geo-alt"></i>
+                            {{ stop.location_city }}{% if stop.location_country %}, {{ stop.location_country }}{% endif %}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if stop.set_time %}
+                    <div class="ms-auto text-end">
+                        <small class="text-muted d-block">Heure du set</small>
+                        <span class="time-display">{{ stop.set_time.strftime('%H:%M') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste du lineup existant -->
+    <div class="col-12 col-lg-7 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-list-ol"></i>
+                    Ordre de passage
+                </h5>
+                <span class="badge bg-secondary">{{ stop.lineup_slots|length }} artiste{% if stop.lineup_slots|length > 1 %}s{% endif %}</span>
+            </div>
+            <div class="card-body">
+                {% if stop.lineup_slots %}
+                <div class="d-flex flex-column gap-3" id="lineup-list">
+                    {% for slot in stop.lineup_slots %}
+                    <div class="lineup-card card" data-slot-id="{{ slot.id }}">
+                        <div class="card-body py-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="lineup-order">{{ slot.order }}</div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <h6 class="mb-0">{{ slot.performer_name }}</h6>
+                                        <span class="badge performer-type-badge performer-type-{{ slot.performer_type.value }}">
+                                            {{ slot.performer_type_label }}
+                                        </span>
+                                        <span class="confirmed-badge {{ 'confirmed-yes' if slot.is_confirmed else 'confirmed-no' }}"
+                                              title="{{ 'Confirme' if slot.is_confirmed else 'Non confirme' }}"></span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3 text-muted small">
+                                        <span class="time-display">{{ slot.time_range_formatted }}</span>
+                                        {% if slot.duration_formatted %}
+                                        <span><i class="bi bi-clock"></i> {{ slot.duration_formatted }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if slot.notes %}
+                                    <small class="text-muted d-block mt-1">{{ slot.notes }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex gap-1">
+                                    <a href="{{ url_for('tours.edit_lineup_slot', id=tour.id, stop_id=stop.id, slot_id=slot.id) }}"
+                                       class="btn btn-sm btn-outline-primary" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="{{ url_for('tours.delete_lineup_slot', id=tour.id, stop_id=stop.id, slot_id=slot.id) }}"
+                                          method="POST" style="display: inline;"
+                                          onsubmit="return confirm('Supprimer {{ slot.performer_name }} de la programmation ?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-music-note-list fs-1 d-block mb-3"></i>
+                    <p class="mb-0">Aucun artiste programme pour ce concert.</p>
+                    <small>Utilisez le formulaire pour ajouter des artistes.</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire d'ajout -->
+    <div class="col-12 col-lg-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header border-0 bg-warning bg-opacity-10">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-plus-circle"></i>
+                    Ajouter un artiste
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="performer_name" class="form-label">
+                            Nom de l'artiste <span class="text-danger">*</span>
+                        </label>
+                        {{ form.performer_name(class="form-control" + (" is-invalid" if form.performer_name.errors else ""),
+                           placeholder="Ex: DJ Shadow, Massive Attack...") }}
+                        {% if form.performer_name.errors %}
+                        <div class="invalid-feedback">{{ form.performer_name.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="performer_type" class="form-label">Type</label>
+                        {{ form.performer_type(class="form-select" + (" is-invalid" if form.performer_type.errors else "")) }}
+                        {% if form.performer_type.errors %}
+                        <div class="invalid-feedback">{{ form.performer_type.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label for="start_time" class="form-label">
+                                Debut <span class="text-danger">*</span>
+                            </label>
+                            {{ form.start_time(class="form-control" + (" is-invalid" if form.start_time.errors else "")) }}
+                            {% if form.start_time.errors %}
+                            <div class="invalid-feedback">{{ form.start_time.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-6">
+                            <label for="end_time" class="form-label">Fin</label>
+                            {{ form.end_time(class="form-control" + (" is-invalid" if form.end_time.errors else "")) }}
+                            {% if form.end_time.errors %}
+                            <div class="invalid-feedback">{{ form.end_time.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label for="set_length_minutes" class="form-label">Duree (min)</label>
+                            {{ form.set_length_minutes(class="form-control" + (" is-invalid" if form.set_length_minutes.errors else ""),
+                               placeholder="Ex: 45") }}
+                            {% if form.set_length_minutes.errors %}
+                            <div class="invalid-feedback">{{ form.set_length_minutes.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-6">
+                            <label for="order" class="form-label">
+                                Position <span class="text-danger">*</span>
+                            </label>
+                            {{ form.order(class="form-control" + (" is-invalid" if form.order.errors else "")) }}
+                            {% if form.order.errors %}
+                            <div class="invalid-feedback">{{ form.order.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""),
+                           rows="2", placeholder="Informations complementaires...") }}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback">{{ form.notes.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ form.is_confirmed(class="form-check-input") }}
+                            <label class="form-check-label" for="is_confirmed">
+                                Participation confirmee
+                            </label>
+                        </div>
+                    </div>
+
+                    {{ form.submit(class="btn btn-warning w-100") }}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

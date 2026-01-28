@@ -1,0 +1,193 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Tableau de bord financier - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">
+            <i class="bi bi-graph-up me-2"></i>
+            Tableau de bord financier
+        </h1>
+        <p class="text-muted mb-0">Vue d'ensemble des paiements et de la trésorerie</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('payments.index') }}" class="btn btn-outline-primary">
+            <i class="bi bi-list me-1"></i>Tous les paiements
+        </a>
+        <a href="{{ url_for('payments.approval_queue') }}" class="btn btn-outline-warning">
+            <i class="bi bi-hourglass-split me-1"></i>Approbations ({{ pending_approvals }})
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-2">En attente d'approbation</h6>
+                        <h2 class="mb-0">{{ pending_approvals }}</h2>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-hourglass-split text-warning fs-4"></i>
+                    </div>
+                </div>
+                <a href="{{ url_for('payments.approval_queue') }}" class="btn btn-sm btn-link p-0 mt-3">
+                    Voir la file <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-2">À payer ce mois</h6>
+                        <h2 class="mb-0">{{ "{:,.0f}".format(monthly_total) }} EUR</h2>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-calendar-check text-primary fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-2">Artistique</h6>
+                        <h2 class="mb-0">{{ "{:,.0f}".format(category_totals.get('artistic', 0)) }} EUR</h2>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-music-note-beamed text-success fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-muted mb-2">Technique</h6>
+                        <h2 class="mb-0">{{ "{:,.0f}".format(category_totals.get('technical', 0)) }} EUR</h2>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-tools text-info fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Répartition par catégorie</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for cat, total in category_totals.items() %}
+                    <div class="col-6 col-md-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-{{ 'success' if cat == 'artistic' else 'info' if cat == 'technical' else 'warning' if cat == 'management' else 'secondary' }} bg-opacity-10 p-2 rounded me-3">
+                                <i class="bi bi-{{ 'music-note-beamed' if cat == 'artistic' else 'tools' if cat == 'technical' else 'briefcase' if cat == 'management' else 'person' }} text-{{ 'success' if cat == 'artistic' else 'info' if cat == 'technical' else 'warning' if cat == 'management' else 'secondary' }}"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted text-capitalize">{{ cat }}</small>
+                                <h6 class="mb-0">{{ "{:,.0f}".format(total) }} EUR</h6>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Actions rapides</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('payments.add') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-2"></i>Nouveau paiement
+                    </a>
+                    <a href="{{ url_for('payments.batch_per_diems') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-lightning me-2"></i>Générer per diems
+                    </a>
+                    <a href="{{ url_for('payments.config_list') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-gear me-2"></i>Configurer taux
+                    </a>
+                    <a href="{{ url_for('payments.export_csv') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-download me-2"></i>Exporter CSV
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Payments -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Paiements récents</h5>
+        <a href="{{ url_for('payments.index') }}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Référence</th>
+                    <th>Bénéficiaire</th>
+                    <th>Type</th>
+                    <th class="text-end">Montant</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in recent_payments %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('payments.detail', payment_id=payment.id) }}" class="text-decoration-none">
+                            {{ payment.reference }}
+                        </a>
+                    </td>
+                    <td>{{ payment.user.full_name if payment.user else 'N/A' }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if payment.payment_type.value == 'cachet' else 'info' if payment.payment_type.value == 'per_diem' else 'secondary' }}">
+                            {{ payment.payment_type.value }}
+                        </span>
+                    </td>
+                    <td class="text-end fw-medium">{{ "{:,.2f}".format(payment.amount) }} {{ payment.currency }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'secondary' if payment.status.value == 'draft' else 'warning' if payment.status.value == 'pending' else 'success' if payment.status.value == 'paid' else 'primary' }}">
+                            {{ payment.status.value }}
+                        </span>
+                    </td>
+                    <td><small class="text-muted">{{ payment.created_at.strftime('%d/%m/%Y') if payment.created_at else '-' }}</small></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">Aucun paiement récent</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

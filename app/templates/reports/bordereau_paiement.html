@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bordereau de paiement - {{ tour.name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #333;
+        }
+        .header {
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .subtitle {
+            font-size: 9pt;
+            color: #666;
+        }
+        h1 {
+            font-size: 16pt;
+            color: #1e40af;
+            margin: 20px 0 10px 0;
+        }
+        .tour-info {
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .tour-info strong {
+            color: #1f2937;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th {
+            background: #2563eb;
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 9pt;
+        }
+        td {
+            padding: 6px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 9pt;
+        }
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        .amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        .user-section {
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        .user-header {
+            background: #e5e7eb;
+            padding: 8px 12px;
+            font-weight: bold;
+            border-left: 4px solid #2563eb;
+        }
+        .user-subtotal {
+            background: #dbeafe;
+            font-weight: bold;
+        }
+        .total-section {
+            margin-top: 30px;
+            padding: 15px;
+            background: #1e40af;
+            color: white;
+            border-radius: 4px;
+        }
+        .total-amount {
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 8pt;
+            color: #6b7280;
+        }
+        .iban {
+            font-family: 'Courier New', monospace;
+            font-size: 8pt;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .badge-cachet { background: #dcfce7; color: #166534; }
+        .badge-perdiem { background: #dbeafe; color: #1e40af; }
+        .badge-overtime { background: #fef3c7; color: #92400e; }
+        .badge-bonus { background: #fce7f3; color: #9d174d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">STUDIO PALENQUE TOUR</div>
+        <div class="subtitle">Bordereau de paiement pour transmission à la comptabilité</div>
+    </div>
+
+    <h1>Bordereau de paiement</h1>
+
+    <div class="tour-info">
+        <strong>Tournée:</strong> {{ tour.name }}<br>
+        <strong>Dates:</strong> {{ tour.start_date.strftime('%d/%m/%Y') if tour.start_date else 'N/A' }}
+        - {{ tour.end_date.strftime('%d/%m/%Y') if tour.end_date else 'N/A' }}<br>
+        <strong>Groupe:</strong> {{ tour.band.name if tour.band else 'N/A' }}
+    </div>
+
+    {% for user_id, data in payments_by_user.items() %}
+    <div class="user-section">
+        <div class="user-header">
+            {{ data.user.full_name if data.user else 'Utilisateur inconnu' }}
+            {% if data.config and data.config.iban %}
+            <span class="iban">| IBAN: {{ data.config.iban[:8] }}...{{ data.config.iban[-4:] }}</span>
+            {% endif %}
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%">Référence</th>
+                    <th style="width: 12%">Type</th>
+                    <th style="width: 38%">Description</th>
+                    <th style="width: 15%">Date</th>
+                    <th style="width: 20%" class="amount">Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in data.payments %}
+                <tr>
+                    <td>{{ payment.reference }}</td>
+                    <td>
+                        {% if payment.payment_type.value == 'cachet' %}
+                        <span class="badge badge-cachet">Cachet</span>
+                        {% elif payment.payment_type.value == 'per_diem' %}
+                        <span class="badge badge-perdiem">Per diem</span>
+                        {% elif payment.payment_type.value == 'overtime' %}
+                        <span class="badge badge-overtime">H. sup.</span>
+                        {% elif payment.payment_type.value == 'bonus' %}
+                        <span class="badge badge-bonus">Bonus</span>
+                        {% else %}
+                        {{ payment.payment_type.value }}
+                        {% endif %}
+                    </td>
+                    <td>{{ payment.description or '-' }}</td>
+                    <td>{{ payment.work_date.strftime('%d/%m/%Y') if payment.work_date else '-' }}</td>
+                    <td class="amount">{{ "{:,.2f}".format(payment.amount) }} EUR</td>
+                </tr>
+                {% endfor %}
+                <tr class="user-subtotal">
+                    <td colspan="4"><strong>Sous-total {{ data.user.full_name if data.user else '' }}</strong></td>
+                    <td class="amount"><strong>{{ "{:,.2f}".format(data.total) }} EUR</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        {% if data.config %}
+        <div style="font-size: 8pt; color: #6b7280; margin-top: 5px;">
+            <strong>Coordonnées bancaires:</strong>
+            {% if data.config.iban %}IBAN: {{ data.config.iban }}{% endif %}
+            {% if data.config.bic %} | BIC: {{ data.config.bic }}{% endif %}
+            {% if data.config.bank_name %} | {{ data.config.bank_name }}{% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="total-section">
+        <table style="margin: 0; border: none;">
+            <tr style="background: transparent;">
+                <td style="border: none; padding: 0;">
+                    <strong>TOTAL À PAYER</strong><br>
+                    <span style="font-size: 9pt;">{{ total_beneficiaries }} bénéficiaire(s) | {{ payments|length }} paiement(s)</span>
+                </td>
+                <td style="border: none; padding: 0; text-align: right;">
+                    <span class="total-amount">{{ "{:,.2f}".format(total_amount) }} EUR</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <strong>Document généré le:</strong> {{ generated_at.strftime('%d/%m/%Y à %H:%M') }}<br>
+        <strong>Studio Palenque Tour Manager</strong> - Ce document est destiné à la comptabilité pour traitement des paiements.<br>
+        Les paiements listés sont approuvés et en attente de règlement.
+    </div>
+</body>
+</html>

@@ -1,0 +1,220 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ band.name }} - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('bands.index') }}">Groupes</a></li>
+        <li class="breadcrumb-item active">{{ band.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+    <div class="d-flex align-items-center mb-3 mb-md-0">
+        {% if band.logo_display_url %}
+        <img src="{{ band.logo_display_url }}" alt="{{ band.name }}"
+             class="rounded me-3" style="width: 80px; height: 80px; object-fit: cover;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        {% endif %}
+        <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3"
+             style="width: 80px; height: 80px;{% if band.logo_display_url %} display: none;{% endif %}">
+            <i class="bi bi-music-note-beamed text-primary" style="font-size: 2rem;"></i>
+        </div>
+        <div>
+            <h1 class="h2 mb-1">{{ band.name }}</h1>
+            {% if band.genre %}
+            <p class="text-muted mb-0">{{ band.genre }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% if band.is_manager(current_user) %}
+    <div class="btn-group">
+        <a href="{{ url_for('bands.edit', id=band.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i>Modifier
+        </a>
+        {% if band.tours %}
+        <a href="{{ url_for('tours.create', band_id=band.id) }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Nouvelle tournée
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Info Column -->
+    <div class="col-12 col-lg-4">
+        <!-- Bio Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">À propos</h5>
+            </div>
+            <div class="card-body">
+                {% if band.bio %}
+                <p class="mb-3">{{ band.bio }}</p>
+                {% else %}
+                <p class="text-muted mb-3">Aucune biographie</p>
+                {% endif %}
+
+                {% if band.website %}
+                <p class="mb-2">
+                    <i class="bi bi-globe me-2"></i>
+                    <a href="{{ band.website }}" target="_blank" rel="noopener">{{ band.website }}</a>
+                </p>
+                {% endif %}
+
+                <hr>
+
+                <p class="mb-1">
+                    <strong>Manager:</strong>
+                    {{ band.manager.full_name if band.manager else 'Non défini' }}
+                </p>
+                <p class="mb-0 text-muted small">
+                    Créé le {{ band.created_at.strftime('%d/%m/%Y') }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Members Card -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Membres ({{ band.memberships|length }})</h5>
+                {% if band.is_manager(current_user) %}
+                <a href="{{ url_for('bands.invite_member', id=band.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-person-plus"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="list-group list-group-flush">
+                {% for membership in band.memberships %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ membership.user.full_name }}</strong>
+                        {% if membership.instrument or membership.role_in_band %}
+                        <br>
+                        <small class="text-muted">
+                            {{ membership.role_in_band }}{% if membership.role_in_band and membership.instrument %} - {% endif %}{{ membership.instrument }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    {% if band.is_manager(current_user) %}
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('bands.edit_member', id=band.id, member_id=membership.id) }}">
+                                    <i class="bi bi-pencil me-2"></i>Modifier
+                                </a>
+                            </li>
+                            <li>
+                                <form action="{{ url_for('bands.remove_member', id=band.id, member_id=membership.id) }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="dropdown-item text-danger"
+                                            onclick="return confirm('Retirer ce membre?')">
+                                        <i class="bi bi-person-x me-2"></i>Retirer
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="list-group-item text-center text-muted py-4">
+                    Aucun membre
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tours Column -->
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">Tournées ({{ band.tours|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if band.tours %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nom</th>
+                                <th class="d-none d-md-table-cell">Dates</th>
+                                <th>Dates</th>
+                                <th>Statut</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tour in band.tours|sort(attribute='start_date', reverse=True) %}
+                            <tr>
+                                <td>
+                                    <strong>{{ tour.name }}</strong>
+                                    <br class="d-md-none">
+                                    <small class="d-md-none text-muted">
+                                        {{ tour.start_date.strftime('%d/%m') }} - {{ tour.end_date.strftime('%d/%m/%Y') }}
+                                    </small>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ tour.start_date.strftime('%d/%m/%Y') }} - {{ tour.end_date.strftime('%d/%m/%Y') }}
+                                </td>
+                                <td>{{ tour.stops|length }} dates</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'secondary' }}">
+                                        {{ tour.status.value }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('tours.detail', id=tour.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-3 mb-0">Aucune tournée</p>
+                    {% if band.is_manager(current_user) %}
+                    <a href="{{ url_for('tours.create', band_id=band.id) }}" class="btn btn-primary mt-3">
+                        <i class="bi bi-plus-lg me-1"></i>Créer une tournée
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if band.is_manager(current_user) %}
+<!-- Danger Zone -->
+<div class="card border-danger mt-4">
+    <div class="card-header bg-danger bg-opacity-10 text-danger">
+        <h5 class="mb-0">Zone de danger</h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-3">Supprimer ce groupe supprimera également toutes les tournées associées.</p>
+        <form action="{{ url_for('bands.delete', id=band.id) }}" method="POST"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce groupe? Cette action est irréversible.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash me-1"></i>Supprimer le groupe
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

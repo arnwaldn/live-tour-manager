@@ -1,0 +1,34 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+REPONSE A UNE INVITATION
+
+Bonjour,
+
+{{ user.full_name }} a repondu a l'invitation pour l'evenement suivant:
+
+---
+DETAILS
+---
+Evenement: {{ tour_stop.event_label }}
+Date: {{ tour_stop.date.strftime('%A %d %B %Y') }}
+{% if tour_stop.venue %}Lieu: {{ tour_stop.venue.name }}, {{ tour_stop.venue.city }}{% endif %}
+{% if band %}Groupe: {{ band.name }}{% endif %}
+
+---
+REPONSE
+---
+{% if invitation.is_accepted %}ACCEPTE{% else %}REFUSE{% endif %}
+
+{% if invitation.response_note %}Commentaire: {{ invitation.response_note }}{% endif %}
+
+Repondu le: {{ invitation.responded_at.strftime('%d/%m/%Y a %H:%M') }}
+
+{% if invitation.is_declined %}ATTENTION: Vous devrez peut-etre trouver un remplacement pour cet evenement.{% endif %}
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group

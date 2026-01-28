@@ -1,0 +1,658 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Day Sheet - {{ stop.venue.name if stop.venue else stop.date.strftime('%d/%m/%Y') }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .card { border: 1px solid #dee2e6 !important; box-shadow: none !important; }
+    .page-break { page-break-before: always; }
+    body { font-size: 12pt; }
+    h1 { font-size: 18pt; }
+    h5 { font-size: 14pt; }
+}
+.day-sheet-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+/* Event type badges */
+.event-type-badge-lg {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5em 1em;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    gap: 0.5rem;
+    background: rgba(255,255,255,0.2);
+    margin-bottom: 1rem;
+}
+/* Schedule timeline */
+.schedule-row {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+.schedule-row:last-child {
+    border-bottom: none;
+}
+.schedule-time {
+    font-size: 1.25rem;
+    font-weight: 700;
+    width: 70px;
+    color: #0d6efd;
+}
+.schedule-label {
+    flex: 1;
+    font-weight: 500;
+}
+.schedule-icon {
+    width: 32px;
+    text-align: center;
+    margin-right: 0.75rem;
+    color: #6c757d;
+}
+.schedule-section-title {
+    background: #f8f9fa;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+    border-bottom: 1px solid #dee2e6;
+}
+/* Assignments badges */
+.assigned-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(13, 110, 253, 0.1);
+    border: 1px solid rgba(13, 110, 253, 0.2);
+    border-radius: 1rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    margin: 0.1rem;
+}
+.assigned-badge.room {
+    background: rgba(32, 201, 151, 0.1);
+    border-color: rgba(32, 201, 151, 0.2);
+}
+.assignments-row {
+    background: #f8f9fa;
+    padding: 0.5rem 0.75rem;
+}
+.assignments-row .bi-people-fill {
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="no-print">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=stop.tour.id) }}">{{ stop.tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('logistics.manage', stop_id=stop.id) }}">Logistique</a></li>
+        <li class="breadcrumb-item active">Day Sheet</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 no-print">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">Day Sheet</h1>
+        <p class="text-muted mb-0">
+            {{ stop.venue.name }} · {{ stop.date.strftime('%d/%m/%Y') }}
+        </p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('logistics.travel_itinerary', stop_id=stop.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-signpost-2 me-1"></i>Itineraire
+        </a>
+        <a href="{{ url_for('logistics.mobile_daysheet', stop_id=stop.id) }}" class="btn btn-outline-info">
+            <i class="bi bi-phone me-1"></i>Mobile
+        </a>
+        <a href="{{ url_for('logistics.export_stop_pdf', stop_id=stop.id) }}" class="btn btn-outline-success">
+            <i class="bi bi-file-pdf me-1"></i>PDF
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-secondary">
+            <i class="bi bi-printer me-1"></i>Imprimer
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+{% set event_type = stop.event_type.value if stop.event_type else 'show' %}
+{% set event_icons = {
+    'show': 'bi-music-note-beamed',
+    'day_off': 'bi-moon',
+    'travel': 'bi-airplane',
+    'studio': 'bi-soundwave',
+    'promo': 'bi-megaphone',
+    'rehearsal': 'bi-arrow-repeat',
+    'press': 'bi-newspaper',
+    'meet_greet': 'bi-people',
+    'photo_video': 'bi-camera',
+    'other': 'bi-calendar-event'
+} %}
+{% set event_labels = {
+    'show': 'Concert',
+    'day_off': 'Jour off',
+    'travel': 'Voyage',
+    'studio': 'Studio',
+    'promo': 'Promo',
+    'rehearsal': 'Répétition',
+    'press': 'Presse',
+    'meet_greet': 'Meet & Greet',
+    'photo_video': 'Photo/Vidéo',
+    'other': 'Autre'
+} %}
+<div class="day-sheet-header text-center">
+    <span class="event-type-badge-lg">
+        <i class="bi {{ event_icons.get(event_type, 'bi-calendar-event') }}"></i>
+        {{ event_labels.get(event_type, 'Concert') }}
+    </span>
+    <h1 class="display-6 mb-2">{{ stop.tour.band.name }}</h1>
+    <h2 class="h4 mb-3">{{ stop.tour.name }}</h2>
+    <div class="row justify-content-center">
+        <div class="col-auto">
+            <i class="bi bi-calendar3 me-2"></i>
+            {{ stop.date.strftime('%A %d %B %Y') }}
+        </div>
+        {% if stop.venue %}
+        <div class="col-auto">
+            <i class="bi bi-geo-alt me-2"></i>
+            {{ stop.venue.city }}, {{ stop.venue.country }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column -->
+    <div class="col-12 col-lg-6">
+        <!-- Venue Info (conditional) -->
+        {% if stop.venue %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-building me-2"></i>Salle</h5>
+            </div>
+            <div class="card-body">
+                <h4>{{ stop.venue.name }}</h4>
+                <p class="mb-2">
+                    {{ stop.venue.address }}<br>
+                    {{ stop.venue.postal_code }} {{ stop.venue.city }}<br>
+                    {{ stop.venue.country }}
+                </p>
+                {% if stop.venue.phone %}
+                <p class="mb-1">
+                    <i class="bi bi-telephone me-2"></i>
+                    <a href="tel:{{ stop.venue.phone }}">{{ stop.venue.phone }}</a>
+                </p>
+                {% endif %}
+                {% if stop.venue.capacity %}
+                <p class="mb-1">
+                    <i class="bi bi-people me-2"></i>
+                    Capacité: {{ stop.venue.capacity }} places
+                </p>
+                {% endif %}
+                {% if stop.venue.has_coordinates %}
+                <div class="mt-2 btn-group no-print">
+                    <a href="{{ url_for('tours.tour_map', id=stop.tour.id) }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-map me-1"></i>Carte
+                    </a>
+                    <a href="{{ stop.venue.google_maps_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-google me-1"></i>Google Maps
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Schedule - Professional Day Sheet Format -->
+        {% if event_type in ['show', 'studio', 'rehearsal', 'promo', 'press', 'meet_greet'] %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Horaires / Schedule</h5>
+            </div>
+            <div class="card-body p-0">
+                <!-- Préparation Section -->
+                {% if stop.load_in_time or stop.crew_call_time or stop.artist_call_time or stop.catering_time %}
+                <div class="schedule-section-title">
+                    <i class="bi bi-tools me-2"></i>Préparation
+                </div>
+                {% if stop.load_in_time %}
+                <div class="schedule-row">
+                    <span class="schedule-time">{{ stop.load_in_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-truck"></i></span>
+                    <span class="schedule-label">Load-In</span>
+                </div>
+                {% endif %}
+                {% if stop.crew_call_time %}
+                <div class="schedule-row">
+                    <span class="schedule-time">{{ stop.crew_call_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-tools"></i></span>
+                    <span class="schedule-label">Appel Équipe (Crew Call)</span>
+                </div>
+                {% endif %}
+                {% if stop.artist_call_time %}
+                <div class="schedule-row">
+                    <span class="schedule-time">{{ stop.artist_call_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-person-badge"></i></span>
+                    <span class="schedule-label">Appel Artistes</span>
+                </div>
+                {% endif %}
+                {% if stop.catering_time %}
+                <div class="schedule-row">
+                    <span class="schedule-time">{{ stop.catering_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-cup-hot"></i></span>
+                    <span class="schedule-label">Repas / Catering</span>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                <!-- Soundcheck & Pre-Show Section -->
+                {% if stop.soundcheck_time or stop.press_time or stop.meet_greet_time %}
+                <div class="schedule-section-title">
+                    <i class="bi bi-soundwave me-2"></i>Pré-Show
+                </div>
+                {% if stop.soundcheck_time %}
+                <div class="schedule-row">
+                    <span class="schedule-time">{{ stop.soundcheck_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-soundwave"></i></span>
+                    <span class="schedule-label">Soundcheck</span>
+                </div>
+                {% endif %}
+                {% if stop.press_time %}
+                <div class="schedule-row">
+                    <span class="schedule-time">{{ stop.press_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-newspaper"></i></span>
+                    <span class="schedule-label">Presse / Interviews</span>
+                </div>
+                {% endif %}
+                {% if stop.meet_greet_time %}
+                <div class="schedule-row">
+                    <span class="schedule-time">{{ stop.meet_greet_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-people"></i></span>
+                    <span class="schedule-label">Meet & Greet</span>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                <!-- Show Section -->
+                {% if stop.doors_time or stop.set_time or stop.curfew_time %}
+                <div class="schedule-section-title">
+                    <i class="bi bi-music-note-beamed me-2"></i>Show
+                </div>
+                {% if stop.doors_time %}
+                <div class="schedule-row">
+                    <span class="schedule-time">{{ stop.doors_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-door-open"></i></span>
+                    <span class="schedule-label">Ouverture des portes (Doors)</span>
+                </div>
+                {% endif %}
+                {% if stop.set_time %}
+                <div class="schedule-row" style="background-color: #f0f9ff;">
+                    <span class="schedule-time" style="color: #198754; font-size: 1.5rem;">{{ stop.set_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-music-note-beamed text-success"></i></span>
+                    <span class="schedule-label"><strong>SET TIME</strong>{% if stop.set_length_minutes %} <span class="text-muted">({{ stop.set_length_minutes }} min)</span>{% endif %}</span>
+                </div>
+                {% endif %}
+                {% if stop.curfew_time %}
+                <div class="schedule-row">
+                    <span class="schedule-time">{{ stop.curfew_time.strftime('%H:%M') }}</span>
+                    <span class="schedule-icon"><i class="bi bi-moon"></i></span>
+                    <span class="schedule-label">Couvre-feu (Curfew)</span>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                <!-- Empty state -->
+                {% if not (stop.load_in_time or stop.crew_call_time or stop.artist_call_time or stop.catering_time or stop.soundcheck_time or stop.press_time or stop.meet_greet_time or stop.doors_time or stop.set_time or stop.curfew_time) %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-clock display-4"></i>
+                    <p class="mb-0 mt-2">Aucun horaire défini</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Contacts -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>Contacts</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                        <!-- Venue contacts -->
+                        {% if stop.venue and stop.venue.contacts %}
+                        {% for contact in stop.venue.contacts %}
+                        <tr>
+                            <td>
+                                <strong>{{ contact.name }}</strong>
+                                {% if contact.role %}<br><small class="text-muted">{{ contact.role }}</small>{% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if contact.phone %}
+                                <a href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                        <!-- Local contacts -->
+                        {% for contact in local_contacts %}
+                        <tr>
+                            <td>
+                                <strong>{{ contact.name }}</strong>
+                                {% if contact.role %}<br><small class="text-muted">{{ contact.role }}</small>{% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if contact.phone %}
+                                <a href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not local_contacts and not (stop.venue and stop.venue.contacts) %}
+                        <tr>
+                            <td colspan="2" class="text-center text-muted py-3">
+                                <i class="bi bi-person-x me-1"></i>Aucun contact
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Crew Requirements (Phase 1 - Preferences voyage) -->
+        {% if crew_members %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-purple text-white" style="background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%);">
+                <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Besoins Equipe ({{ crew_members|length }})</h5>
+            </div>
+            <div class="card-body">
+                <!-- Catering Summary -->
+                <div class="mb-3">
+                    <small class="text-muted text-uppercase fw-bold">Resume Catering</small>
+                    <div class="mt-2">
+                        {% set meal_labels = {'standard': 'Standard', 'vegetarian': 'Vegetarien', 'vegan': 'Vegan', 'halal': 'Halal', 'kosher': 'Casher', 'gluten_free': 'Sans gluten'} %}
+                        {% set meal_colors = {'standard': 'secondary', 'vegetarian': 'success', 'vegan': 'info', 'halal': 'warning', 'kosher': 'primary', 'gluten_free': 'danger'} %}
+                        {% for meal, count in meal_counts.items() %}
+                        <span class="badge bg-{{ meal_colors.get(meal, 'secondary') }} me-1 mb-1">
+                            {{ count }}x {{ meal_labels.get(meal, meal|capitalize) }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Allergies Alert -->
+                {% if allergy_notes %}
+                <div class="alert alert-danger py-2 mb-3" role="alert">
+                    <strong><i class="bi bi-exclamation-triangle me-1"></i>Allergies:</strong>
+                    <ul class="mb-0 small">
+                        {% for note in allergy_notes %}
+                        <li>{{ note }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Dietary Restrictions -->
+                {% if dietary_notes %}
+                <div class="alert alert-warning py-2 mb-3" role="alert">
+                    <strong><i class="bi bi-info-circle me-1"></i>Restrictions:</strong>
+                    <ul class="mb-0 small">
+                        {% for note in dietary_notes %}
+                        <li>{{ note }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Crew Details Table -->
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Membre</th>
+                                <th>Repas</th>
+                                <th>Siege</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in crew_members %}
+                            <tr>
+                                <td>
+                                    <strong>{{ member.full_name }}</strong>
+                                    {% if member.phone %}
+                                    <br><small class="text-muted"><a href="tel:{{ member.phone }}">{{ member.phone }}</a></small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set meal = member.meal_preference or 'standard' %}
+                                    <span class="badge bg-{{ meal_colors.get(meal, 'secondary') }}">
+                                        {{ meal_labels.get(meal, meal|capitalize) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if member.seat_preference %}
+                                    {% set seat_labels = {'window': 'Fenetre', 'aisle': 'Couloir', 'no_preference': '-'} %}
+                                    {{ seat_labels.get(member.seat_preference, member.seat_preference) }}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Seat Summary -->
+                {% if seat_counts %}
+                <div class="mt-3 pt-2 border-top">
+                    <small class="text-muted">
+                        <i class="bi bi-airplane-engines me-1"></i>Sieges:
+                        {% set seat_labels = {'window': 'Fenetre', 'aisle': 'Couloir', 'no_preference': 'Indifferent'} %}
+                        {% for seat, count in seat_counts.items() %}
+                        {{ count }}x {{ seat_labels.get(seat, seat) }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-12 col-lg-6">
+        <!-- Transport -->
+        {% set transport_entries = logistics_entries|selectattr('logistics_type.value', 'in', ['flight', 'ground_transport'])|list %}
+        {% if transport_entries %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-truck me-2"></i>Transport</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                        {% for entry in transport_entries %}
+                        <tr>
+                            <td>
+                                {% if entry.logistics_type.value == 'flight' %}
+                                <i class="bi bi-airplane me-2"></i>
+                                {% else %}
+                                <i class="bi bi-car-front me-2"></i>
+                                {% endif %}
+                                <strong>{{ entry.provider }}</strong>
+                                {% if entry.confirmation_number %}
+                                <br><small class="text-muted">Réf: {{ entry.confirmation_number }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if entry.start_datetime %}
+                                {{ entry.start_datetime.strftime('%H:%M') }}
+                                {% if entry.end_datetime %} → {{ entry.end_datetime.strftime('%H:%M') }}{% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if entry.details %}
+                        <tr>
+                            <td colspan="2" class="small text-muted bg-light">{{ entry.details }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if entry.assignments %}
+                        <tr>
+                            <td colspan="2" class="assignments-row">
+                                <i class="bi bi-people-fill me-1"></i>
+                                {% for assignment in entry.assignments %}
+                                <span class="assigned-badge">
+                                    <i class="bi bi-person-fill"></i>
+                                    {{ assignment.user.first_name }} {{ assignment.user.last_name }}
+                                    {% if assignment.seat_number %}<small class="text-muted">({{ assignment.seat_number }})</small>{% endif %}
+                                </span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Hotel -->
+        {% set hotel_entries = logistics_entries|selectattr('logistics_type.value', 'equalto', 'hotel')|list %}
+        {% if hotel_entries %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="bi bi-building me-2"></i>Hébergement</h5>
+            </div>
+            <div class="card-body">
+                {% for entry in hotel_entries %}
+                <div class="{% if not loop.last %}mb-3 pb-3 border-bottom{% endif %}">
+                    <h6 class="mb-1">{{ entry.provider }}</h6>
+                    {% if entry.confirmation_number %}
+                    <p class="small text-muted mb-1">Réservation: {{ entry.confirmation_number }}</p>
+                    {% endif %}
+                    {% if entry.details %}
+                    <p class="small mb-1">{{ entry.details }}</p>
+                    {% endif %}
+                    {% if entry.assignments %}
+                    <div class="mt-2">
+                        <small class="text-muted"><i class="bi bi-people-fill me-1"></i>Répartition:</small>
+                        <div class="mt-1">
+                        {% for assignment in entry.assignments %}
+                            <span class="assigned-badge room">
+                                <i class="bi bi-door-open"></i>
+                                {% if assignment.room_number %}Ch. {{ assignment.room_number }}: {% endif %}
+                                {{ assignment.user.first_name }} {{ assignment.user.last_name }}
+                                {% if assignment.room_sharing_with %}<small class="text-muted">(+ {{ assignment.room_sharing_with }})</small>{% endif %}
+                            </span>
+                        {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Meals / Catering -->
+        {% set meal_entries = logistics_entries|selectattr('logistics_type.value', 'equalto', 'meal')|list %}
+        {% if meal_entries %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-cup-hot me-2"></i>Repas / Catering</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <tbody>
+                        {% for entry in meal_entries %}
+                        <tr>
+                            <td>
+                                <strong>{{ entry.provider }}</strong>
+                                {% if entry.details %}
+                                <br><small class="text-muted">{{ entry.details }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if entry.start_datetime %}
+                                {{ entry.start_datetime.strftime('%H:%M') }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Notes -->
+        {% if stop.notes %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-sticky me-2"></i>Notes</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ stop.notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Technical Specs -->
+        {% if stop.venue.technical_specs %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Technique</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0 small">{{ stop.venue.technical_specs }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Guestlist Summary (for print) -->
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Guestlist ({{ guestlist_count }} invités)</h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-0">
+            <strong>{{ guestlist_approved }}</strong> approuvés ·
+            <strong>{{ guestlist_pending }}</strong> en attente ·
+            <strong>{{ guestlist_checked_in }}</strong> déjà entrés
+        </p>
+        <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-sm btn-outline-primary mt-2 no-print">
+            Voir la guestlist complète
+        </a>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="text-center text-muted mt-4 small">
+    <p class="mb-0">
+        Day Sheet généré le {{ now.strftime('%d/%m/%Y à %H:%M') }} · Tour Manager
+    </p>
+</div>
+{% endblock %}

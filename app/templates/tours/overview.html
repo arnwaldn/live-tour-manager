@@ -1,0 +1,653 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Overview - {{ tour.name }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+/* Overview Dashboard Styles */
+.tour-overview {
+    --ov-bg: #1a1a2e;
+    --ov-card-bg: #16213e;
+    --ov-border: #0f3460;
+    --ov-gold: #d4a574;
+    --ov-text: #e4e4e4;
+    --ov-text-muted: #8b8b8b;
+}
+
+.overview-header {
+    background: linear-gradient(135deg, var(--ov-card-bg) 0%, var(--ov-border) 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.overview-header h1 {
+    color: var(--ov-gold);
+    margin: 0;
+    font-size: 2rem;
+}
+
+.overview-header .tour-dates {
+    color: var(--ov-text);
+    font-size: 1.1rem;
+}
+
+/* Stats Cards */
+.stat-card {
+    background: var(--ov-card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px solid var(--ov-border);
+    height: 100%;
+}
+
+.stat-card .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--ov-gold);
+}
+
+.stat-card .stat-label {
+    color: var(--ov-text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Timeline */
+.timeline-section {
+    background: var(--ov-card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--ov-border);
+}
+
+.timeline-section h5 {
+    color: var(--ov-gold);
+    margin-bottom: 1rem;
+}
+
+.horizontal-timeline {
+    overflow-x: auto;
+    padding: 1rem 0;
+}
+
+.timeline-track {
+    display: flex;
+    gap: 0;
+    min-width: max-content;
+    padding: 0.5rem 0;
+    position: relative;
+}
+
+.timeline-track::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--ov-border);
+    transform: translateY(-50%);
+    z-index: 0;
+}
+
+.timeline-stop {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+    padding: 0 0.5rem;
+}
+
+.timeline-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--ov-gold);
+    border: 3px solid var(--ov-card-bg);
+    margin-bottom: 0.5rem;
+}
+
+.timeline-stop.past .timeline-dot {
+    background: #6c757d;
+}
+
+.timeline-stop.today .timeline-dot {
+    background: #28a745;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+}
+
+.timeline-stop.confirmed .timeline-dot {
+    background: #0d6efd;
+}
+
+.timeline-date {
+    font-size: 0.7rem;
+    color: var(--ov-text-muted);
+    text-align: center;
+}
+
+.timeline-city {
+    font-size: 0.85rem;
+    color: var(--ov-text);
+    font-weight: 500;
+    text-align: center;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.timeline-venue {
+    font-size: 0.7rem;
+    color: var(--ov-text-muted);
+    text-align: center;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Map Section */
+.map-section {
+    background: var(--ov-card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--ov-border);
+    margin-bottom: 1.5rem;
+}
+
+.map-section h5 {
+    color: var(--ov-gold);
+    padding: 1rem 1.5rem;
+    margin: 0;
+    border-bottom: 1px solid var(--ov-border);
+}
+
+#tour-map {
+    height: 400px;
+    width: 100%;
+}
+
+/* Logistics Summary */
+.logistics-section {
+    background: var(--ov-card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--ov-border);
+    margin-bottom: 1.5rem;
+}
+
+.logistics-section h5 {
+    color: var(--ov-gold);
+    margin-bottom: 1rem;
+}
+
+.logistics-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--ov-bg);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.logistics-item:last-child {
+    margin-bottom: 0;
+}
+
+.logistics-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.2rem;
+}
+
+.logistics-icon.transport {
+    background: rgba(13, 110, 253, 0.2);
+    color: #0d6efd;
+}
+
+.logistics-icon.hotel {
+    background: rgba(111, 66, 193, 0.2);
+    color: #6f42c1;
+}
+
+.logistics-info {
+    flex: 1;
+}
+
+.logistics-info .title {
+    color: var(--ov-text);
+    font-weight: 500;
+}
+
+.logistics-info .details {
+    color: var(--ov-text-muted);
+    font-size: 0.85rem;
+}
+
+.logistics-cost {
+    color: var(--ov-gold);
+    font-weight: 600;
+}
+
+/* Budget Section */
+.budget-section {
+    background: var(--ov-card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--ov-border);
+}
+
+.budget-section h5 {
+    color: var(--ov-gold);
+    margin-bottom: 1rem;
+}
+
+.budget-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--ov-border);
+}
+
+.budget-row:last-child {
+    border-bottom: none;
+}
+
+.budget-row.total {
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+    border-top: 2px solid var(--ov-gold);
+}
+
+.budget-label {
+    color: var(--ov-text-muted);
+}
+
+.budget-value {
+    color: var(--ov-text);
+}
+
+.budget-value.positive {
+    color: #28a745;
+}
+
+.budget-value.negative {
+    color: #dc3545;
+}
+
+/* Print Styles */
+@media print {
+    .tour-overview {
+        --ov-bg: white;
+        --ov-card-bg: #f8f9fa;
+        --ov-border: #dee2e6;
+        --ov-gold: #333;
+        --ov-text: #333;
+        --ov-text-muted: #666;
+    }
+    .no-print { display: none !important; }
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+        <li class="breadcrumb-item active">Overview</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 no-print">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">
+            <i class="bi bi-graph-up me-2"></i>Tour Overview
+        </h1>
+        <p class="text-muted mb-0">Vue consolidée de la tournée</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('tours.detail', id=tour.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-primary">
+            <i class="bi bi-printer me-1"></i>Imprimer
+        </button>
+        <a href="{{ url_for('tours.calendar', id=tour.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-calendar3 me-1"></i>Calendrier
+        </a>
+        <a href="{{ url_for('tours.tour_map', id=tour.id) }}" class="btn btn-primary">
+            <i class="bi bi-map me-1"></i>Carte complète
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="tour-overview">
+    <!-- Header -->
+    <div class="overview-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1>{{ tour.band.name }} - {{ tour.name }}</h1>
+                <div class="tour-dates">
+                    <i class="bi bi-calendar-range me-2"></i>
+                    {{ tour.start_date.strftime('%d %B %Y') }} → {{ tour.end_date.strftime('%d %B %Y') }}
+                    <span class="ms-3 badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'secondary' }}">
+                        {{ tour.status.value }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                {% if tour.budget %}
+                <div class="text-muted small">Budget total</div>
+                <div class="h3 mb-0" style="color: var(--ov-gold);">{{ "{:,.0f}".format(tour.budget) }} {{ tour.currency }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    {% set shows = tour.stops|selectattr('event_type.value', 'equalto', 'show')|list %}
+    {% set confirmed_shows = shows|selectattr('status.value', 'equalto', 'confirmed')|list %}
+    {% set total_capacity = namespace(value=0) %}
+    {% set total_sold = namespace(value=0) %}
+    {% set total_guarantee = namespace(value=0) %}
+    {% for stop in shows %}
+        {% if stop.venue and stop.venue.capacity %}
+            {% set total_capacity.value = total_capacity.value + stop.venue.capacity %}
+        {% endif %}
+        {% set total_sold.value = total_sold.value + (stop.sold_tickets or 0) %}
+        {% set total_guarantee.value = total_guarantee.value + (stop.guarantee|float or 0) %}
+    {% endfor %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-value">{{ tour.duration_days }}</div>
+                <div class="stat-label">Jours</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-value">{{ shows|length }}</div>
+                <div class="stat-label">Shows</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_sold.value }}</div>
+                <div class="stat-label">Billets vendus</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-value">{{ "{:,.0f}".format(total_guarantee.value) }}€</div>
+                <div class="stat-label">Garanties</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Horizontal Timeline -->
+    <div class="timeline-section">
+        <h5><i class="bi bi-timeline me-2"></i>Timeline</h5>
+        <div class="horizontal-timeline">
+            <div class="timeline-track">
+                {% for stop in tour.stops|sort(attribute='date') %}
+                {% set is_past = stop.date < today %}
+                {% set is_today = stop.date == today %}
+                <div class="timeline-stop {{ 'past' if is_past else 'today' if is_today else 'confirmed' if stop.status.value == 'confirmed' else '' }}">
+                    <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="text-decoration-none">
+                        <div class="timeline-dot" title="{{ stop.event_label }}"></div>
+                        <div class="timeline-date">{{ stop.date.strftime('%d/%m') }}</div>
+                        <div class="timeline-city">{{ stop.venue.city if stop.venue else stop.event_label }}</div>
+                        <div class="timeline-venue">{{ stop.venue.name if stop.venue else '' }}</div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Map Column -->
+        <div class="col-12 col-lg-8">
+            <!-- Map Section -->
+            <div class="map-section">
+                <h5><i class="bi bi-geo-alt me-2"></i>Itinéraire</h5>
+                <div id="tour-map"></div>
+            </div>
+
+            <!-- Budget Section -->
+            <div class="budget-section">
+                <h5><i class="bi bi-cash-stack me-2"></i>Aperçu Financier</h5>
+                {% set total_logistics_cost = namespace(value=0) %}
+                {% for stop in tour.stops %}
+                    {% for log in stop.logistics %}
+                        {% set total_logistics_cost.value = total_logistics_cost.value + (log.cost|float or 0) %}
+                    {% endfor %}
+                {% endfor %}
+
+                <div class="budget-row">
+                    <span class="budget-label">Garanties totales</span>
+                    <span class="budget-value positive">+{{ "{:,.0f}".format(total_guarantee.value) }} €</span>
+                </div>
+                <div class="budget-row">
+                    <span class="budget-label">Frais logistique</span>
+                    <span class="budget-value negative">-{{ "{:,.0f}".format(total_logistics_cost.value) }} €</span>
+                </div>
+                {% if tour.budget %}
+                <div class="budget-row">
+                    <span class="budget-label">Budget alloué</span>
+                    <span class="budget-value">{{ "{:,.0f}".format(tour.budget) }} €</span>
+                </div>
+                {% endif %}
+                <div class="budget-row total">
+                    <span class="budget-label">Balance estimée</span>
+                    {% set balance = total_guarantee.value - total_logistics_cost.value %}
+                    <span class="budget-value {{ 'positive' if balance >= 0 else 'negative' }}">
+                        {{ "{:+,.0f}".format(balance) }} €
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logistics Column -->
+        <div class="col-12 col-lg-4">
+            <!-- Transports -->
+            <div class="logistics-section">
+                <h5><i class="bi bi-truck me-2"></i>Transports</h5>
+                {% set transports = [] %}
+                {% for stop in tour.stops %}
+                    {% for log in stop.logistics %}
+                        {% if log.is_transport %}
+                            {% set _ = transports.append({'log': log, 'stop': stop}) %}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+
+                {% if transports %}
+                    {% for item in transports[:5] %}
+                    <div class="logistics-item">
+                        <div class="logistics-icon transport">
+                            <i class="bi bi-{{ 'airplane' if item.log.logistics_type.value == 'flight' else 'train-front' if item.log.logistics_type.value == 'train' else 'bus-front' if item.log.logistics_type.value == 'bus' else 'car-front' }}"></i>
+                        </div>
+                        <div class="logistics-info">
+                            <div class="title">{{ item.log.provider or item.log.logistics_type.value|replace('_', ' ')|title }}</div>
+                            <div class="details">{{ item.stop.date.strftime('%d/%m') }} - {{ item.stop.venue.city if item.stop.venue else 'N/A' }}</div>
+                        </div>
+                        {% if item.log.cost %}
+                        <div class="logistics-cost">{{ "{:.0f}".format(item.log.cost) }}€</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% if transports|length > 5 %}
+                    <div class="text-center mt-2">
+                        <small class="text-muted">+{{ transports|length - 5 }} autres transports</small>
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="text-center py-3 text-muted">
+                    <i class="bi bi-truck d-block fs-3 mb-2" style="opacity: 0.5;"></i>
+                    <small>Aucun transport enregistré</small>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Hébergements -->
+            <div class="logistics-section">
+                <h5><i class="bi bi-building me-2"></i>Hébergements</h5>
+                {% set hotels = [] %}
+                {% for stop in tour.stops %}
+                    {% for log in stop.logistics %}
+                        {% if log.is_accommodation %}
+                            {% set _ = hotels.append({'log': log, 'stop': stop}) %}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+
+                {% if hotels %}
+                    {% for item in hotels[:5] %}
+                    <div class="logistics-item">
+                        <div class="logistics-icon hotel">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div class="logistics-info">
+                            <div class="title">{{ item.log.provider or 'Hôtel' }}</div>
+                            <div class="details">
+                                {{ item.stop.date.strftime('%d/%m') }} - {{ item.log.city or (item.stop.venue.city if item.stop.venue else 'N/A') }}
+                                {% if item.log.number_of_rooms %}· {{ item.log.number_of_rooms }} ch.{% endif %}
+                            </div>
+                        </div>
+                        {% if item.log.cost %}
+                        <div class="logistics-cost">{{ "{:.0f}".format(item.log.cost) }}€</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% if hotels|length > 5 %}
+                    <div class="text-center mt-2">
+                        <small class="text-muted">+{{ hotels|length - 5 }} autres hébergements</small>
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="text-center py-3 text-muted">
+                    <i class="bi bi-building d-block fs-3 mb-2" style="opacity: 0.5;"></i>
+                    <small>Aucun hébergement enregistré</small>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="logistics-section">
+                <h5><i class="bi bi-bar-chart me-2"></i>Remplissage</h5>
+                {% if total_capacity.value > 0 %}
+                {% set fill_rate = (total_sold.value / total_capacity.value * 100)|round(1) %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small style="color: var(--ov-text-muted);">Taux global</small>
+                        <small style="color: var(--ov-text);">{{ fill_rate }}%</small>
+                    </div>
+                    <div class="progress" style="height: 10px; background: var(--ov-border);">
+                        <div class="progress-bar {{ 'bg-success' if fill_rate >= 75 else 'bg-warning' if fill_rate >= 50 else 'bg-danger' }}"
+                             style="width: {{ fill_rate }}%"></div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between" style="color: var(--ov-text-muted); font-size: 0.85rem;">
+                    <span>{{ total_sold.value }} vendus</span>
+                    <span>{{ total_capacity.value }} capacité</span>
+                </div>
+                {% else %}
+                <div class="text-center py-3 text-muted">
+                    <small>Données de capacité non disponibles</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map
+    const map = L.map('tour-map').setView([48.8566, 2.3522], 5);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        crossOrigin: true
+    }).addTo(map);
+
+    // Force map resize
+    setTimeout(function() {
+        map.invalidateSize();
+    }, 100);
+
+    // Tour stops data
+    const stops = [
+        {% for stop in tour.stops|sort(attribute='date') %}
+        {% if stop.venue and stop.venue.latitude and stop.venue.longitude %}
+        {
+            lat: {{ stop.venue.latitude }},
+            lng: {{ stop.venue.longitude }},
+            name: "{{ stop.venue.name|e }}",
+            city: "{{ stop.venue.city|e }}",
+            date: "{{ stop.date.strftime('%d/%m/%Y') }}",
+            url: "{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}",
+            status: "{{ stop.status.value }}"
+        },
+        {% endif %}
+        {% endfor %}
+    ];
+
+    if (stops.length > 0) {
+        const bounds = [];
+        const polylinePoints = [];
+
+        stops.forEach((stop, index) => {
+            const marker = L.marker([stop.lat, stop.lng])
+                .addTo(map)
+                .bindPopup(`
+                    <strong>${stop.name}</strong><br>
+                    ${stop.city}<br>
+                    <small>${stop.date}</small><br>
+                    <a href="${stop.url}">Voir détails</a>
+                `);
+
+            bounds.push([stop.lat, stop.lng]);
+            polylinePoints.push([stop.lat, stop.lng]);
+        });
+
+        // Draw route line
+        if (polylinePoints.length > 1) {
+            L.polyline(polylinePoints, {
+                color: '#d4a574',
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '10, 10'
+            }).addTo(map);
+        }
+
+        map.fitBounds(bounds, { padding: [50, 50] });
+    }
+});
+</script>
+{% endblock %}

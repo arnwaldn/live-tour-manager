@@ -1,0 +1,119 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Connexion - Studio Palenque Tour{% endblock %}
+
+{% block body %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center auth-page py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+                <div class="card auth-card">
+                    <div class="card-body p-4 p-md-5">
+                        <!-- Logo -->
+                        <div class="text-center mb-4">
+                            <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Studio Palenque" height="80" class="mb-3">
+                            <h1 class="h3 mt-2 text-gold font-display">Studio Palenque Tour</h1>
+                            <p class="text-gray">Connectez-vous à votre compte</p>
+                        </div>
+
+                        <!-- Flash Messages -->
+                        {% include "components/_flash_messages.html" %}
+
+                        <!-- Login Form -->
+                        <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+                            {{ form.hidden_tag() }}
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-envelope"></i>
+                                    </span>
+                                    {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""),
+                                       placeholder="nom@exemple.com", autofocus=true) }}
+                                    {% if form.email.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.email.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <label for="password" class="form-label">Mot de passe</label>
+                                    <a href="{{ url_for('auth.forgot_password') }}" class="small text-decoration-none">
+                                        Mot de passe oublié?
+                                    </a>
+                                </div>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-lock"></i>
+                                    </span>
+                                    {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""),
+                                       placeholder="••••••••") }}
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    {% if form.password.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.password.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    {{ form.remember_me(class="form-check-input") }}
+                                    <label class="form-check-label" for="remember_me">
+                                        Se souvenir de moi
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="d-grid">
+                                {{ form.submit(class="btn btn-primary btn-lg") }}
+                            </div>
+                        </form>
+
+                        <!-- Register Link -->
+                        <div class="text-center mt-4">
+                            <p class="text-muted mb-0">
+                                Pas encore de compte?
+                                <a href="{{ url_for('auth.register') }}" class="text-decoration-none">
+                                    Créer un compte
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <p class="text-center text-gray small mt-4">
+                    &copy; {{ now().year }} Studio Palenque Tour. Tous droits réservés.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Toggle password visibility
+document.getElementById('togglePassword').addEventListener('click', function() {
+    const passwordField = document.getElementById('password');
+    const icon = this.querySelector('i');
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+});
+</script>
+{% endblock %}

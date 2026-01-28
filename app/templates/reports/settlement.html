@@ -1,0 +1,550 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Settlement - {{ settlement.venue_name }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Settlement Page - Dark Theme (Studio Palenque) */
+    .settlement-header {
+        background: var(--sp-bg-card, #1A1A1A);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        border: 1px solid rgba(201, 169, 98, 0.3);
+    }
+    .settlement-section {
+        background: var(--sp-bg-card, #1A1A1A);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(201, 169, 98, 0.15);
+    }
+    .settlement-section-header {
+        background: rgba(201, 169, 98, 0.1);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+        border-radius: 12px 12px 0 0;
+        font-weight: 600;
+        color: var(--sp-white, #FFFFFF);
+    }
+    .settlement-section-header i {
+        color: var(--sp-gold, #C9A962) !important;
+    }
+    .settlement-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 1.5rem;
+        border-bottom: 1px solid rgba(201, 169, 98, 0.1);
+    }
+    .settlement-row:last-child {
+        border-bottom: none;
+    }
+    .settlement-row.highlight {
+        background-color: rgba(201, 169, 98, 0.05);
+    }
+    .settlement-row.total {
+        background-color: rgba(201, 169, 98, 0.15);
+        font-weight: 600;
+    }
+    .settlement-row.artist-payment {
+        background: linear-gradient(90deg, rgba(25, 135, 84, 0.3) 0%, rgba(25, 135, 84, 0.2) 100%);
+        font-weight: 700;
+        font-size: 1.1rem;
+        border: 1px solid rgba(25, 135, 84, 0.4);
+        border-radius: 0 0 12px 12px;
+    }
+    .settlement-label {
+        color: var(--sp-gray-light, #B0B0B0);
+    }
+    .settlement-value {
+        font-weight: 500;
+        color: var(--sp-white, #FFFFFF);
+    }
+    .settlement-value.positive {
+        color: #28a745;
+    }
+    .settlement-value.negative {
+        color: #dc3545;
+    }
+    .info-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        background: rgba(201, 169, 98, 0.2) !important;
+        color: var(--sp-gold, #C9A962) !important;
+    }
+    .signature-area {
+        border: 1px dashed rgba(201, 169, 98, 0.4);
+        border-radius: 8px;
+        padding: 1.5rem;
+        min-height: 100px;
+        background: var(--sp-bg-card-hover, #252525);
+    }
+    .signature-line {
+        border-bottom: 1px solid var(--sp-gold, #C9A962);
+        margin-bottom: 0.5rem;
+        min-width: 200px;
+    }
+    /* Summary Card Dark Theme */
+    .settlement-summary-card {
+        background: var(--sp-bg-card, #1A1A1A) !important;
+        border: 1px solid rgba(201, 169, 98, 0.2) !important;
+    }
+    .settlement-summary-card .text-muted {
+        color: var(--sp-gray, #8B8B8B) !important;
+    }
+    .settlement-summary-card h4 {
+        color: var(--sp-white, #FFFFFF);
+    }
+    .settlement-summary-card .text-primary {
+        color: var(--sp-gold, #C9A962) !important;
+    }
+    .settlement-summary-card .text-success {
+        color: #28a745 !important;
+    }
+    .settlement-summary-card .text-secondary {
+        color: var(--sp-gray-light, #B0B0B0) !important;
+    }
+    /* Print Styles - Keep light theme for printing */
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white !important; }
+        .settlement-header {
+            background: #C9A962 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .settlement-section {
+            background: white !important;
+            box-shadow: none !important;
+            border: 1px solid #ddd !important;
+        }
+        .settlement-section-header {
+            background: #f5f5f5 !important;
+            color: #333 !important;
+            border-bottom: 1px solid #ddd !important;
+        }
+        .settlement-row {
+            border-bottom: 1px solid #eee !important;
+        }
+        .settlement-row.highlight,
+        .settlement-row.total {
+            background: #f9f9f9 !important;
+        }
+        .settlement-row.artist-payment {
+            background: #d4edda !important;
+        }
+        .settlement-label {
+            color: #333 !important;
+        }
+        .settlement-value {
+            color: #000 !important;
+        }
+        .settlement-value.positive {
+            color: #198754 !important;
+        }
+        .settlement-value.negative {
+            color: #dc3545 !important;
+        }
+        .signature-area {
+            background: white !important;
+            border-color: #999 !important;
+        }
+        .signature-line {
+            border-color: #333 !important;
+        }
+        .settlement-summary-card {
+            background: #f9f9f9 !important;
+        }
+        .settlement-summary-card h4 {
+            color: #333 !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="no-print">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Rapports</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('reports.financial_dashboard') }}">Dashboard Financier</a></li>
+        <li class="breadcrumb-item active">Settlement</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <h1 class="h2 mb-0">
+        <i class="bi bi-file-earmark-text me-2 text-primary"></i>Feuille de Règlement
+    </h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.settlement_pdf', stop_id=settlement.stop_id) }}" class="btn btn-primary">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Télécharger PDF
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-secondary">
+            <i class="bi bi-printer me-1"></i>Imprimer
+        </button>
+        <a href="{{ url_for('reports.financial_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Settlement Header -->
+<div class="settlement-header mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h2 class="h3 mb-2">{{ settlement.band_name }}</h2>
+            <p class="mb-1 opacity-75">
+                <i class="bi bi-building me-2"></i>{{ settlement.venue_name }} - {{ settlement.venue_city }}, {{ settlement.venue_country }}
+            </p>
+            <p class="mb-0 opacity-75">
+                <i class="bi bi-calendar3 me-2"></i>{{ settlement.date.strftime('%A %d %B %Y') }}
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <span class="badge fs-6 mb-2" style="background: rgba(201, 169, 98, 0.2); color: var(--sp-gold, #C9A962);">{{ settlement.tour_name }}</span>
+            <br>
+            <span class="badge {% if settlement.status == 'confirmed' %}bg-success{% elif settlement.status == 'completed' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+                {{ settlement.status|capitalize }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <!-- Box Office Section -->
+        <div class="settlement-section">
+            <div class="settlement-section-header">
+                <i class="bi bi-ticket-perforated me-2 text-primary"></i>BOX OFFICE
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Capacité salle</span>
+                <span class="settlement-value">{{ "{:,}".format(settlement.capacity) }} places</span>
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Billets vendus</span>
+                <span class="settlement-value">{{ "{:,}".format(settlement.sold_tickets) }}</span>
+            </div>
+            <div class="settlement-row highlight">
+                <span class="settlement-label">Taux de remplissage</span>
+                <span class="settlement-value {% if settlement.fill_rate >= 75 %}positive{% elif settlement.fill_rate < 50 %}negative{% endif %}">
+                    {{ settlement.fill_rate }}%
+                    {% if settlement.fill_rate >= 90 %}
+                    <span class="badge bg-success ms-2">Excellent</span>
+                    {% elif settlement.fill_rate >= 75 %}
+                    <span class="badge bg-primary ms-2">Bon</span>
+                    {% elif settlement.fill_rate >= 50 %}
+                    <span class="badge bg-warning text-dark ms-2">Moyen</span>
+                    {% else %}
+                    <span class="badge bg-danger ms-2">Faible</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Prix du billet</span>
+                <span class="settlement-value">{{ format_currency(settlement.ticket_price, settlement.currency) }}</span>
+            </div>
+            <div class="settlement-row total">
+                <span class="settlement-label">RECETTES BRUTES (GBOR)</span>
+                <span class="settlement-value positive">{{ format_currency(settlement.gross_revenue, settlement.currency) }}</span>
+            </div>
+        </div>
+
+        <!-- R2: NBOR Section - Net Box Office Receipts -->
+        <div class="settlement-section">
+            <div class="settlement-section-header">
+                <i class="bi bi-cash-coin me-2 text-warning"></i>RECETTES NETTES (NBOR)
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Recettes brutes (GBOR)</span>
+                <span class="settlement-value">{{ format_currency(settlement.gross_revenue, settlement.currency) }}</span>
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Frais de billetterie ({{ settlement.ticketing_fee_percentage|default(5) }}%)</span>
+                <span class="settlement-value negative">-{{ format_currency(settlement.ticketing_fees|default(0), settlement.currency) }}</span>
+            </div>
+            <div class="settlement-row total">
+                <span class="settlement-label">RECETTES NETTES (NBOR)</span>
+                <span class="settlement-value positive">{{ format_currency(settlement.nbor|default(settlement.gross_revenue), settlement.currency) }}</span>
+            </div>
+        </div>
+
+        <!-- Deal Structure Section -->
+        <div class="settlement-section">
+            <div class="settlement-section-header">
+                <i class="bi bi-briefcase me-2 text-info"></i>STRUCTURE DU DEAL
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Type de deal</span>
+                <span class="settlement-value">
+                    {% if settlement.door_deal_percentage > 0 and settlement.guarantee > 0 %}
+                    Hybrid (Guarantee + Door Deal)
+                    {% elif settlement.door_deal_percentage > 0 %}
+                    Door Deal
+                    {% else %}
+                    Guarantee
+                    {% endif %}
+                </span>
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Cachet garanti</span>
+                <span class="settlement-value">{{ format_currency(settlement.guarantee, settlement.currency) }}</span>
+            </div>
+            {% if settlement.door_deal_percentage > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Pourcentage Door Deal</span>
+                <span class="settlement-value">{{ settlement.door_deal_percentage }}%</span>
+            </div>
+            <div class="settlement-row highlight">
+                <span class="settlement-label">Seuil de rentabilité (Break-even)</span>
+                <span class="settlement-value">
+                    {{ settlement.break_even_tickets }} billets
+                    <span class="info-badge ms-2">
+                        {{ format_currency(settlement.break_even_revenue, settlement.currency) }}
+                    </span>
+                </span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <!-- R4: Promoter Expenses Section (if available) -->
+        {% if settlement.promoter_expenses and settlement.promoter_expenses.total > 0 %}
+        <div class="settlement-section">
+            <div class="settlement-section-header">
+                <i class="bi bi-receipt me-2 text-danger"></i>DÉPENSES PROMOTEUR
+            </div>
+            {% if settlement.promoter_expenses.venue_fee > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Location salle</span>
+                <span class="settlement-value">{{ format_currency(settlement.promoter_expenses.venue_fee, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            {% if settlement.promoter_expenses.production_cost > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Coûts de production</span>
+                <span class="settlement-value">{{ format_currency(settlement.promoter_expenses.production_cost, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            {% if settlement.promoter_expenses.marketing_cost > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Marketing/Promo</span>
+                <span class="settlement-value">{{ format_currency(settlement.promoter_expenses.marketing_cost, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            {% if settlement.promoter_expenses.insurance > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Assurance</span>
+                <span class="settlement-value">{{ format_currency(settlement.promoter_expenses.insurance, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            {% if settlement.promoter_expenses.security > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Sécurité</span>
+                <span class="settlement-value">{{ format_currency(settlement.promoter_expenses.security, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            {% if settlement.promoter_expenses.catering > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Catering</span>
+                <span class="settlement-value">{{ format_currency(settlement.promoter_expenses.catering, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            {% if settlement.promoter_expenses.other > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Autres{% if settlement.promoter_expenses.other_description %} ({{ settlement.promoter_expenses.other_description }}){% endif %}</span>
+                <span class="settlement-value">{{ format_currency(settlement.promoter_expenses.other, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            <div class="settlement-row total">
+                <span class="settlement-label">TOTAL DÉPENSES PROMOTEUR</span>
+                <span class="settlement-value negative">{{ format_currency(settlement.promoter_expenses.total, settlement.currency) }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Payment Calculation Section -->
+        <div class="settlement-section">
+            <div class="settlement-section-header">
+                <i class="bi bi-calculator me-2 text-success"></i>CALCUL DU PAIEMENT ARTISTE
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Recettes nettes (NBOR)</span>
+                <span class="settlement-value">{{ format_currency(settlement.nbor|default(settlement.gross_revenue), settlement.currency) }}</span>
+            </div>
+            <!-- R5: Split Point calculation if promoter expenses exist -->
+            {% if settlement.promoter_expenses and settlement.promoter_expenses.total > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Split Point (Dépenses + Guarantee)</span>
+                <span class="settlement-value">{{ format_currency(settlement.split_point, settlement.currency) }}</span>
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Base pour Backend (NBOR - Split Point)</span>
+                <span class="settlement-value">{{ format_currency(settlement.backend_base|default(0), settlement.currency) }}</span>
+            </div>
+            {% if settlement.door_deal_percentage > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Backend artiste ({{ settlement.door_deal_percentage }}% du surplus)</span>
+                <span class="settlement-value positive">{{ format_currency(settlement.door_deal_amount, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            {% else %}
+            <!-- Legacy versus deal (no promoter expenses) -->
+            {% if settlement.door_deal_percentage > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Part artiste Door Deal ({{ settlement.door_deal_percentage }}%)</span>
+                <span class="settlement-value">{{ format_currency(settlement.door_deal_amount, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            {% endif %}
+            <div class="settlement-row">
+                <span class="settlement-label">Cachet garanti (Guarantee)</span>
+                <span class="settlement-value">{{ format_currency(settlement.guarantee, settlement.currency) }}</span>
+            </div>
+            <div class="settlement-row highlight">
+                <span class="settlement-label">Méthode de paiement retenue</span>
+                <span class="settlement-value">
+                    {% if settlement.payment_type == 'split_point' %}
+                    <span class="badge bg-success">Split Point (standard industrie)</span>
+                    {% elif settlement.payment_type == 'door_deal' %}
+                    <span class="badge bg-info">Door Deal (plus avantageux)</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Guarantee (protégé)</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if settlement.profit_above_guarantee > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Bonus au-dessus du guarantee</span>
+                <span class="settlement-value positive">+{{ format_currency(settlement.profit_above_guarantee, settlement.currency) }}</span>
+            </div>
+            {% endif %}
+            <div class="settlement-row artist-payment">
+                <span class="settlement-label">
+                    <i class="bi bi-star-fill text-warning me-1"></i>PAIEMENT ARTISTE
+                </span>
+                <span class="settlement-value positive">{{ format_currency(settlement.artist_payment, settlement.currency) }}</span>
+            </div>
+        </div>
+
+        <!-- Venue Share Section -->
+        <div class="settlement-section">
+            <div class="settlement-section-header">
+                <i class="bi bi-building me-2 text-secondary"></i>PART PROMOTEUR / SALLE
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">Recettes brutes</span>
+                <span class="settlement-value">{{ format_currency(settlement.gross_revenue, settlement.currency) }}</span>
+            </div>
+            <div class="settlement-row">
+                <span class="settlement-label">- Paiement artiste</span>
+                <span class="settlement-value negative">-{{ format_currency(settlement.artist_payment, settlement.currency) }}</span>
+            </div>
+            <div class="settlement-row total">
+                <span class="settlement-label">PART PROMOTEUR</span>
+                <span class="settlement-value">{{ format_currency(settlement.venue_share, settlement.currency) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Card -->
+<div class="card settlement-summary-card border-0 mb-4">
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-6 col-md-2">
+                <h6 class="text-muted mb-1">GBOR</h6>
+                <h5 class="text-primary mb-0">{{ format_currency(settlement.gross_revenue, settlement.currency) }}</h5>
+            </div>
+            <div class="col-6 col-md-2">
+                <h6 class="text-muted mb-1">NBOR</h6>
+                <h5 class="text-warning mb-0">{{ format_currency(settlement.nbor|default(settlement.gross_revenue), settlement.currency) }}</h5>
+            </div>
+            <div class="col-6 col-md-2">
+                <h6 class="text-muted mb-1">Artiste</h6>
+                <h5 class="text-success mb-0">{{ format_currency(settlement.artist_payment, settlement.currency) }}</h5>
+            </div>
+            <div class="col-6 col-md-2">
+                <h6 class="text-muted mb-1">Promoteur</h6>
+                <h5 class="text-secondary mb-0">{{ format_currency(settlement.venue_share, settlement.currency) }}</h5>
+            </div>
+            <div class="col-6 col-md-2">
+                <h6 class="text-muted mb-1">Remplissage</h6>
+                <h5 class="{% if settlement.fill_rate >= 75 %}text-success{% elif settlement.fill_rate >= 50 %}text-warning{% else %}text-danger{% endif %} mb-0">{{ settlement.fill_rate }}%</h5>
+            </div>
+            <div class="col-6 col-md-2">
+                <h6 class="text-muted mb-1">Type</h6>
+                <h5 class="mb-0">
+                    {% if settlement.payment_type == 'split_point' %}
+                    <span class="badge bg-success">Split</span>
+                    {% elif settlement.payment_type == 'door_deal' %}
+                    <span class="badge bg-info">Door</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Guar.</span>
+                    {% endif %}
+                </h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signatures Section -->
+<div class="settlement-section">
+    <div class="settlement-section-header">
+        <i class="bi bi-pen me-2 text-dark"></i>SIGNATURES
+    </div>
+    <div class="p-4">
+        <div class="row">
+            <div class="col-md-6 mb-4 mb-md-0">
+                <div class="signature-area">
+                    <p class="text-muted mb-3">Représentant de l'artiste / Tour Manager</p>
+                    <div class="signature-line mt-5"></div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">Nom: _______________________</small>
+                        <small class="text-muted">Date: _______________________</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="signature-area">
+                    <p class="text-muted mb-3">Promoteur / Responsable salle</p>
+                    <div class="signature-line mt-5"></div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">Nom: _______________________</small>
+                        <small class="text-muted">Date: _______________________</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer Info -->
+<div class="text-center text-muted small mt-4">
+    <p class="mb-1">
+        <i class="bi bi-info-circle me-1"></i>
+        Ce document est une feuille de règlement générée par Tour Manager.
+    </p>
+    <p class="mb-0">
+        Généré le {{ now().strftime('%d/%m/%Y à %H:%M') if now is defined else 'N/A' }} - Référence: SETTLEMENT-{{ settlement.stop_id }}-{{ settlement.date.strftime('%Y%m%d') }}
+    </p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-print if URL contains ?print=true
+if (window.location.search.includes('print=true')) {
+    window.onload = function() {
+        window.print();
+    };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,294 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Configuration {{ user.full_name }} - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('payments.config_list') }}">Configurations</a></li>
+                <li class="breadcrumb-item active">{{ user.full_name }}</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0">
+            <i class="bi bi-person-gear me-2"></i>
+            Configuration de {{ user.full_name }}
+        </h1>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" class="needs-validation" novalidate>
+            {{ form.hidden_tag() }}
+
+            <!-- Classification -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-tags me-2"></i>Classification</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="staff_category" class="form-label">Catégorie *</label>
+                            {{ form.staff_category(class="form-select" + (" is-invalid" if form.staff_category.errors else ""), id="staff_category") }}
+                            {% for error in form.staff_category.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="staff_role" class="form-label">Role principal</label>
+                            {{ form.staff_role(class="form-select", id="staff_role") }}
+                            <div class="form-text">Utilisez pour appliquer les taux par défaut</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contract_type" class="form-label">Type de contrat</label>
+                            {{ form.contract_type(class="form-select", id="contract_type") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="payment_frequency" class="form-label">Fréquence de paiement</label>
+                            {{ form.payment_frequency(class="form-select", id="payment_frequency") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Taux par défaut -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-currency-euro me-2"></i>Taux par défaut</h5>
+                    <form action="{{ url_for('payments.config_apply_defaults', user_id=user.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-magic me-1"></i>Appliquer taux standards
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="show_rate" class="form-label">Taux par concert</label>
+                            <div class="input-group">
+                                {{ form.show_rate(class="form-control", id="show_rate", step="0.01", min="0") }}
+                                <span class="input-group-text">EUR</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="daily_rate" class="form-label">Taux journalier</label>
+                            <div class="input-group">
+                                {{ form.daily_rate(class="form-control", id="daily_rate", step="0.01", min="0") }}
+                                <span class="input-group-text">EUR</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="half_day_rate" class="form-label">Taux demi-journée</label>
+                            <div class="input-group">
+                                {{ form.half_day_rate(class="form-control", id="half_day_rate", step="0.01", min="0") }}
+                                <span class="input-group-text">EUR</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="weekly_rate" class="form-label">Taux hebdomadaire</label>
+                            <div class="input-group">
+                                {{ form.weekly_rate(class="form-control", id="weekly_rate", step="0.01", min="0") }}
+                                <span class="input-group-text">EUR</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="hourly_rate" class="form-label">Taux horaire</label>
+                            <div class="input-group">
+                                {{ form.hourly_rate(class="form-control", id="hourly_rate", step="0.01", min="0") }}
+                                <span class="input-group-text">EUR</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="per_diem" class="form-label">Per diem</label>
+                            <div class="input-group">
+                                {{ form.per_diem(class="form-control", id="per_diem", step="0.01", min="0") }}
+                                <span class="input-group-text">EUR</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="mb-3">Majorations</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="overtime_rate_25" class="form-label">HS +25%</label>
+                            <div class="input-group">
+                                {{ form.overtime_rate_25(class="form-control", id="overtime_rate_25", step="0.01") }}
+                                <span class="input-group-text">x</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="overtime_rate_50" class="form-label">HS +50%</label>
+                            <div class="input-group">
+                                {{ form.overtime_rate_50(class="form-control", id="overtime_rate_50", step="0.01") }}
+                                <span class="input-group-text">x</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="weekend_rate" class="form-label">Weekend</label>
+                            <div class="input-group">
+                                {{ form.weekend_rate(class="form-control", id="weekend_rate", step="0.01") }}
+                                <span class="input-group-text">x</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="holiday_rate" class="form-label">Jours fériés</label>
+                            <div class="input-group">
+                                {{ form.holiday_rate(class="form-control", id="holiday_rate", step="0.01") }}
+                                <span class="input-group-text">x</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations bancaires -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-bank me-2"></i>Informations bancaires (SEPA)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="iban" class="form-label">IBAN</label>
+                            {{ form.iban(class="form-control", id="iban", placeholder="FR76 1234 5678 9012 3456 7890 123") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label for="bic" class="form-label">BIC/SWIFT</label>
+                            {{ form.bic(class="form-control", id="bic", placeholder="BNPAFRPP") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label for="bank_name" class="form-label">Banque</label>
+                            {{ form.bank_name(class="form-control", id="bank_name", placeholder="BNP Paribas") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations fiscales/sociales (France) -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Informations fiscales et sociales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="siret" class="form-label">SIRET (si auto-entrepreneur)</label>
+                            {{ form.siret(class="form-control", id="siret", placeholder="12345678901234") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="vat_number" class="form-label">Numéro TVA intracommunautaire</label>
+                            {{ form.vat_number(class="form-control", id="vat_number", placeholder="FR12345678901") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="social_security_number" class="form-label">Numéro sécurité sociale</label>
+                            {{ form.social_security_number(class="form-control", id="social_security_number") }}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                {{ form.is_intermittent(class="form-check-input", id="is_intermittent") }}
+                                <label class="form-check-label" for="is_intermittent">
+                                    <strong>Statut intermittent du spectacle</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="intermittent-fields mt-3" id="intermittentFields" style="display: none;">
+                        <hr>
+                        <h6 class="mb-3">Informations intermittent</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="conges_spectacle_id" class="form-label">N° Conges Spectacles</label>
+                                {{ form.conges_spectacle_id(class="form-control", id="conges_spectacle_id") }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="audiens_id" class="form-label">N° Audiens</label>
+                                {{ form.audiens_id(class="form-control", id="audiens_id") }}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="intermittent_id" class="form-label">N° Pole Emploi Spectacle</label>
+                                {{ form.intermittent_id(class="form-control", id="intermittent_id") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-chat-text me-2"></i>Notes</h5>
+                </div>
+                <div class="card-body">
+                    {{ form.notes(class="form-control", rows="3", placeholder="Notes internes sur ce membre...") }}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('payments.config_list') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Annuler
+                </a>
+                <div>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-person me-2"></i>{{ user.full_name }}</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><i class="bi bi-envelope me-2 text-muted"></i>{{ user.email }}</p>
+                {% if user.phone %}
+                <p class="mb-2"><i class="bi bi-phone me-2 text-muted"></i>{{ user.phone }}</p>
+                {% endif %}
+                <p class="mb-0"><i class="bi bi-calendar me-2 text-muted"></i>Membre depuis {{ user.created_at.strftime('%d/%m/%Y') if user.created_at else '-' }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Aide</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">
+                    <strong>Taux par défaut:</strong> Ces taux sont utilisés automatiquement lors de la création de nouveaux paiements.
+                </p>
+                <p class="small text-muted mb-2">
+                    <strong>IBAN:</strong> Nécessaire pour les virements SEPA automatisés.
+                </p>
+                <p class="small text-muted mb-0">
+                    <strong>Intermittent:</strong> Si ce membre est intermittent du spectacle, activez l'option pour afficher les champs spécifiques.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const intermittentCheckbox = document.getElementById('is_intermittent');
+    const intermittentFields = document.getElementById('intermittentFields');
+
+    function toggleIntermittentFields() {
+        intermittentFields.style.display = intermittentCheckbox.checked ? 'block' : 'none';
+    }
+
+    intermittentCheckbox.addEventListener('change', toggleIntermittentFields);
+    toggleIntermittentFields();
+});
+</script>
+{% endblock %}

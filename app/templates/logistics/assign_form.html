@@ -1,0 +1,191 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Logistique - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+.assigned-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(13, 110, 253, 0.1);
+    border: 1px solid rgba(13, 110, 253, 0.2);
+    border-radius: 1rem;
+    padding: 0.375rem 0.75rem;
+    margin: 0.25rem;
+}
+.logistics-summary {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournees</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=stop.tour.id) }}">{{ stop.tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('logistics.manage', stop_id=stop.id) }}">Logistique</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">
+    <i class="bi bi-person-plus me-2"></i>{{ title }}
+</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <!-- Logistics Item Summary -->
+        <div class="logistics-summary mb-4">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="{{ logistics.type_icon }} fs-2" style="color: {{ logistics.type_color }};"></i>
+                </div>
+                <div>
+                    <h5 class="mb-1">{{ logistics.display_name }}</h5>
+                    <p class="mb-0 text-muted">
+                        {% if logistics.start_datetime %}
+                        <i class="bi bi-calendar3 me-1"></i>{{ logistics.start_datetime.strftime('%d/%m/%Y %H:%M') }}
+                        {% endif %}
+                        {% if logistics.confirmation_number %}
+                        <span class="ms-3"><i class="bi bi-ticket-perforated me-1"></i>{{ logistics.confirmation_number }}</span>
+                        {% endif %}
+                    </p>
+                    {% if logistics.is_transport %}
+                    <small class="text-muted">
+                        {% if logistics.pickup_location %}{{ logistics.pickup_location }}{% endif %}
+                        {% if logistics.pickup_location and logistics.dropoff_location %} → {% endif %}
+                        {% if logistics.dropoff_location %}{{ logistics.dropoff_location }}{% endif %}
+                        {% if logistics.flight_number %}Vol {{ logistics.flight_number }}: {{ logistics.departure_airport }} → {{ logistics.arrival_airport }}{% endif %}
+                    </small>
+                    {% elif logistics.is_accommodation %}
+                    <small class="text-muted">
+                        {% if logistics.address %}{{ logistics.address }}{% endif %}
+                        {% if logistics.city %}, {{ logistics.city }}{% endif %}
+                        {% if logistics.number_of_rooms %} · {{ logistics.number_of_rooms }} chambre{% if logistics.number_of_rooms > 1 %}s{% endif %}{% endif %}
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Already Assigned Users -->
+        {% if assigned_users %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-people me-2"></i>Personnes deja assignees ({{ assigned_users|length }})</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap">
+                    {% for user in assigned_users %}
+                    <div class="assigned-user">
+                        <i class="bi bi-person-fill"></i>
+                        <span>{{ user.first_name }} {{ user.last_name }}</span>
+                        <form action="{{ url_for('logistics.unassign_user', id=logistics.id, user_id=user.id) }}" method="POST" class="d-inline ms-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Desassigner" onclick="return confirm('Desassigner {{ user.first_name }}?')">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Assignment Form -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-person-plus me-2"></i>Assigner une nouvelle personne</h6>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="user_id" class="form-label">
+                            Personne a assigner <span class="text-danger">*</span>
+                        </label>
+                        {{ form.user_id(class="form-select" + (" is-invalid" if form.user_id.errors else "")) }}
+                        {% if form.user_id.errors %}
+                        <div class="invalid-feedback">{{ form.user_id.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    {% if logistics.is_transport %}
+                    <!-- Transport specific fields -->
+                    <div class="mb-3">
+                        <label for="seat_number" class="form-label">
+                            <i class="bi bi-ticket-detailed me-1"></i>Numero de siege / place
+                        </label>
+                        {{ form.seat_number(class="form-control" + (" is-invalid" if form.seat_number.errors else ""),
+                           placeholder="Ex: 12A, Voiture 6 Place 45, Siege 23") }}
+                        {% if form.seat_number.errors %}
+                        <div class="invalid-feedback">{{ form.seat_number.errors[0] }}</div>
+                        {% endif %}
+                        <div class="form-text">Optionnel - numero de siege pour les vols, trains, etc.</div>
+                    </div>
+                    {% endif %}
+
+                    {% if logistics.is_accommodation %}
+                    <!-- Accommodation specific fields -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="room_number" class="form-label">
+                                <i class="bi bi-door-open me-1"></i>Numero de chambre
+                            </label>
+                            {{ form.room_number(class="form-control" + (" is-invalid" if form.room_number.errors else ""),
+                               placeholder="Ex: 101, Suite 5") }}
+                            {% if form.room_number.errors %}
+                            <div class="invalid-feedback">{{ form.room_number.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="room_sharing_with" class="form-label">
+                                <i class="bi bi-people me-1"></i>Partage avec
+                            </label>
+                            {{ form.room_sharing_with(class="form-control" + (" is-invalid" if form.room_sharing_with.errors else ""),
+                               placeholder="Nom du/des colocataire(s)") }}
+                            {% if form.room_sharing_with.errors %}
+                            <div class="invalid-feedback">{{ form.room_sharing_with.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label for="special_requests" class="form-label">
+                            <i class="bi bi-chat-left-text me-1"></i>Demandes speciales
+                        </label>
+                        {{ form.special_requests(class="form-control" + (" is-invalid" if form.special_requests.errors else ""),
+                           rows="2", placeholder="Besoins particuliers, preferences, notes...") }}
+                        {% if form.special_requests.errors %}
+                        <div class="invalid-feedback">{{ form.special_requests.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        <div>
+                            <button type="submit" name="save_add" value="1" class="btn btn-outline-primary me-2">
+                                <i class="bi bi-plus-lg me-1"></i>Assigner et continuer
+                            </button>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

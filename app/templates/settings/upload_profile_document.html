@@ -1,0 +1,146 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Ajouter un document - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('settings.profile') }}">Mon profil</a></li>
+        <li class="breadcrumb-item active">Ajouter un document</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">Ajouter un document</h1>
+        <p class="text-muted mb-0">Ajoutez un document personnel à votre profil</p>
+    </div>
+    <a href="{{ url_for('settings.profile') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Retour au profil
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" enctype="multipart/form-data" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="row g-3">
+                        <!-- Document Type -->
+                        <div class="col-12 col-md-6">
+                            <label for="document_type" class="form-label">
+                                Type de document <span class="text-danger">*</span>
+                            </label>
+                            {{ form.document_type(class="form-select" + (" is-invalid" if form.document_type.errors else "")) }}
+                            {% if form.document_type.errors %}
+                            <div class="invalid-feedback">{{ form.document_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Expiry Date -->
+                        <div class="col-12 col-md-6">
+                            <label for="expiry_date" class="form-label">
+                                Date d'expiration
+                            </label>
+                            {{ form.expiry_date(class="form-control" + (" is-invalid" if form.expiry_date.errors else ""), type="date") }}
+                            {% if form.expiry_date.errors %}
+                            <div class="invalid-feedback">{{ form.expiry_date.errors[0] }}</div>
+                            {% else %}
+                            <div class="form-text">Optionnel - pour passeports, visas, etc.</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Title -->
+                        <div class="col-12">
+                            <label for="title" class="form-label">
+                                Titre <span class="text-danger">*</span>
+                            </label>
+                            {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""),
+                               placeholder="Ex: Passeport français, Visa Schengen 2025...") }}
+                            {% if form.title.errors %}
+                            <div class="invalid-feedback">{{ form.title.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-12">
+                            <label for="description" class="form-label">
+                                Description
+                            </label>
+                            {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""),
+                               rows="2", placeholder="Notes supplémentaires (optionnel)...") }}
+                            {% if form.description.errors %}
+                            <div class="invalid-feedback">{{ form.description.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- File Upload -->
+                        <div class="col-12">
+                            <label for="file" class="form-label">
+                                Fichier <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                {{ form.file(class="form-control" + (" is-invalid" if form.file.errors else ""),
+                                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx") }}
+                                <span class="input-group-text"><i class="bi bi-file-earmark-arrow-up"></i></span>
+                            </div>
+                            {% if form.file.errors %}
+                            <div class="invalid-feedback d-block">{{ form.file.errors[0] }}</div>
+                            {% else %}
+                            <div class="form-text">
+                                Formats acceptés: PDF, JPG, PNG, DOC, DOCX (max. 10 Mo)
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('settings.profile') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body">
+                <h6 class="text-muted mb-3">
+                    <i class="bi bi-info-circle me-2"></i>À propos des documents personnels
+                </h6>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <h6 class="small fw-bold">Types de documents</h6>
+                        <ul class="list-unstyled small text-muted mb-0">
+                            <li><i class="bi bi-passport me-2"></i>Passeport</li>
+                            <li><i class="bi bi-card-text me-2"></i>Visa</li>
+                            <li><i class="bi bi-file-earmark-check me-2"></i>Permis de travail</li>
+                            <li><i class="bi bi-shield-check me-2"></i>Assurance</li>
+                            <li><i class="bi bi-file-earmark me-2"></i>Autre</li>
+                        </ul>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <h6 class="small fw-bold">Conseils</h6>
+                        <ul class="list-unstyled small text-muted mb-0">
+                            <li><i class="bi bi-check-circle text-success me-2"></i>Scannez vos documents en haute qualité</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>Renseignez la date d'expiration</li>
+                            <li><i class="bi bi-check-circle text-success me-2"></i>Utilisez un titre descriptif</li>
+                            <li><i class="bi bi-lock text-primary me-2"></i>Vos documents sont sécurisés</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

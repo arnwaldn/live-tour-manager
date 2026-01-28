@@ -1,0 +1,29 @@
+{% extends "layouts/base.html" %}
+
+{% block body %}
+<!-- Navbar -->
+{% include "components/_navbar.html" %}
+
+<!-- Sidebar - Offcanvas on mobile, fixed on desktop -->
+{% include "components/_sidebar.html" %}
+
+<!-- Main content area -->
+<main class="main-content">
+    <div class="main-content-inner">
+        <!-- Flash Messages -->
+        {% include "components/_flash_messages.html" %}
+
+        <!-- Breadcrumb (optional) -->
+        {% block breadcrumb %}{% endblock %}
+
+        <!-- Page Header -->
+        {% block page_header %}{% endblock %}
+
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </div>
+</main>
+
+<!-- Mobile Bottom Nav (optional) -->
+{% block mobile_nav %}{% endblock %}
+{% endblock %}

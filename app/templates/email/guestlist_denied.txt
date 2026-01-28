@@ -1,0 +1,32 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+VOTRE DEMANDE GUESTLIST A ETE REFUSEE
+
+Bonjour,
+
+Nous regrettons de vous informer que votre demande d'acces guestlist a ete REFUSEE.
+
+---
+DETAILS DE L'EVENEMENT
+---
+Artiste: {{ band.name }}
+{% if tour %}Tournee: {{ tour.name }}{% endif %}
+Lieu: {{ venue.name }}
+Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
+
+---
+VOTRE DEMANDE
+---
+Nom: {{ entry.guest_name }}
+Type d'acces demande: {{ entry.entry_type.value|replace('_', ' ')|title }}
+
+Si vous avez des questions, veuillez contacter le management de l'artiste.
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group
+Cet email a ete envoye automatiquement.

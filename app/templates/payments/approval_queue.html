@@ -1,0 +1,163 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}File d'approbation - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">
+            <i class="bi bi-check2-square me-2"></i>
+            File d'approbation
+        </h1>
+        <p class="text-muted mb-0">{{ payments|length }} paiement(s) en attente - Total: {{ "{:,.2f}".format(total_pending) }} EUR</p>
+    </div>
+    <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if payments %}
+<form action="{{ url_for('payments.batch_approve') }}" method="POST" id="batchApproveForm">
+    <!-- Batch Actions -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="selectAll">
+                <label class="form-check-label" for="selectAll">Tout sélectionner</label>
+            </div>
+            <button type="submit" class="btn btn-success" id="batchApproveBtn" disabled>
+                <i class="bi bi-check-all me-1"></i>Approuver la sélection
+            </button>
+        </div>
+    </div>
+
+    <!-- Payments List -->
+    <div class="row g-4">
+        {% for payment in payments %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input payment-checkbox" name="payment_ids" value="{{ payment.id }}" id="payment_{{ payment.id }}">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="mb-1">
+                                        <a href="{{ url_for('payments.detail', payment_id=payment.id) }}" class="text-decoration-none">
+                                            {{ payment.reference }}
+                                        </a>
+                                        <span class="badge bg-{{ 'success' if payment.payment_type.value == 'cachet' else 'info' if payment.payment_type.value == 'per_diem' else 'warning' if payment.payment_type.value == 'overtime' else 'secondary' }} ms-2">
+                                            {{ payment.payment_type.value }}
+                                        </span>
+                                    </h5>
+                                    <p class="mb-0 text-muted">
+                                        <i class="bi bi-person me-1"></i>{{ payment.user.full_name if payment.user else 'N/A' }}
+                                        {% if payment.staff_role %}<small class="ms-2">({{ payment.staff_role.value }})</small>{% endif %}
+                                    </p>
+                                </div>
+                                <div class="text-end">
+                                    <h4 class="mb-0 text-primary">{{ "{:,.2f}".format(payment.amount) }} {{ payment.currency }}</h4>
+                                    <small class="text-muted">
+                                        {% if payment.work_date %}{{ payment.work_date.strftime('%d/%m/%Y') }}{% endif %}
+                                        {% if payment.tour %} - {{ payment.tour.name }}{% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            {% if payment.description %}
+                            <p class="mb-0 mt-2 small text-muted">{{ payment.description }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-auto">
+                            <div class="btn-group">
+                                <form action="{{ url_for('payments.approve', payment_id=payment.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal_{{ payment.id }}">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reject Modal for this payment -->
+        <div class="modal fade" id="rejectModal_{{ payment.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="{{ url_for('payments.reject', payment_id=payment.id) }}" method="POST">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Rejeter {{ payment.reference }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="reason_{{ payment.id }}" class="form-label">Motif du rejet</label>
+                                <textarea name="reason" id="reason_{{ payment.id }}" class="form-control" rows="3" placeholder="Expliquez pourquoi ce paiement est rejeté..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger">Rejeter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</form>
+
+{% else %}
+<!-- Empty State -->
+<div class="text-center py-5">
+    <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+    <h3 class="mt-3">Aucun paiement en attente</h3>
+    <p class="text-muted">Tous les paiements ont été traités.</p>
+    <a href="{{ url_for('payments.index') }}" class="btn btn-primary mt-2">
+        <i class="bi bi-arrow-left me-1"></i>Retour aux paiements
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const paymentCheckboxes = document.querySelectorAll('.payment-checkbox');
+    const batchApproveBtn = document.getElementById('batchApproveBtn');
+
+    function updateBatchButton() {
+        const checkedCount = document.querySelectorAll('.payment-checkbox:checked').length;
+        batchApproveBtn.disabled = checkedCount === 0;
+        if (checkedCount > 0) {
+            batchApproveBtn.innerHTML = `<i class="bi bi-check-all me-1"></i>Approuver (${checkedCount})`;
+        } else {
+            batchApproveBtn.innerHTML = '<i class="bi bi-check-all me-1"></i>Approuver la sélection';
+        }
+    }
+
+    selectAllCheckbox.addEventListener('change', function() {
+        paymentCheckboxes.forEach(cb => cb.checked = this.checked);
+        updateBatchButton();
+    });
+
+    paymentCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            updateBatchButton();
+            selectAllCheckbox.checked = document.querySelectorAll('.payment-checkbox:checked').length === paymentCheckboxes.length;
+        });
+    });
+});
+</script>
+{% endblock %}

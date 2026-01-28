@@ -1,0 +1,935 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - {{ tour.name }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+.event-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35em 0.65em;
+    font-size: 0.875em;
+    font-weight: 600;
+    border-radius: 0.375rem;
+}
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 1rem;
+}
+.section-header i {
+    font-size: 1.25rem;
+}
+.call-times-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+}
+/* Team assignment styles */
+.member-card { cursor: pointer; }
+.member-card .card { transition: all 0.15s ease; }
+.member-card .card:hover { border-color: var(--bs-primary) !important; background-color: rgba(var(--bs-primary-rgb), 0.02); }
+.member-card .card.selected { border-color: var(--bs-primary) !important; background-color: rgba(var(--bs-primary-rgb), 0.08); }
+.min-width-0 { min-width: 0; }
+.nav-pills .nav-link { border-radius: 50rem; padding: 0.5rem 1rem; }
+.profession-group { margin-bottom: 1.5rem; }
+.profession-group:last-child { margin-bottom: 0; }
+#selected-avatars img, #selected-avatars .avatar-initials {
+    border: 2px solid white;
+    margin-left: -8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+#selected-avatars img:first-child, #selected-avatars .avatar-initials:first-child { margin-left: 0; }
+
+/* Overview Cards - Vue d'ensemble */
+.overview-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.overview-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.progress-dots {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 6px;
+}
+.progress-dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #dee2e6;
+}
+.progress-dots .dot.filled {
+    opacity: 0.8;
+}
+/* Animation pulsante pour catégories critiques */
+.critical-warning {
+    animation: pulse-danger 2s infinite;
+}
+@keyframes pulse-danger {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+        {% if stop %}
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">{{ title }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <!-- Section 1: Type et Date -->
+                    <div class="section-header">
+                        <i class="bi bi-calendar-event text-primary"></i>
+                        <h5 class="mb-0">Type et Date</h5>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-4">
+                            <label for="event_type" class="form-label">Type d'événement <span class="text-danger">*</span></label>
+                            {{ form.event_type(class="form-select" + (" is-invalid" if form.event_type.errors else ""), id="event_type") }}
+                            {% if form.event_type.errors %}
+                            <div class="invalid-feedback">{{ form.event_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+                            {{ form.date(class="form-control" + (" is-invalid" if form.date.errors else ""),
+                               type="date", min=tour.start_date.strftime('%Y-%m-%d'), max=tour.end_date.strftime('%Y-%m-%d')) }}
+                            {% if form.date.errors %}
+                            <div class="invalid-feedback">{{ form.date.errors[0] }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                Entre le {{ tour.start_date.strftime('%d/%m/%Y') }} et le {{ tour.end_date.strftime('%d/%m/%Y') }}
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label for="status" class="form-label">Statut</label>
+                            {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}
+                            {% if form.status.errors %}
+                            <div class="invalid-feedback">{{ form.status.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Salle (conditionnelle) -->
+                    <div id="venue-section">
+                        <div class="section-header">
+                            <i class="bi bi-building text-primary"></i>
+                            <h5 class="mb-0">Salle</h5>
+                            <span class="badge bg-light text-muted ms-auto" id="venue-required-badge">Requis pour les concerts</span>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-6">
+                                <label for="venue_id" class="form-label">Salle</label>
+                                {{ form.venue_id(class="form-select" + (" is-invalid" if form.venue_id.errors else "")) }}
+                                {% if form.venue_id.errors %}
+                                <div class="invalid-feedback">{{ form.venue_id.errors[0] }}</div>
+                                {% endif %}
+                                <div class="form-text">
+                                    <a href="{{ url_for('venues.create') }}" target="_blank">
+                                        <i class="bi bi-plus-circle me-1"></i>Créer une nouvelle salle
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6" id="show-type-field">
+                                <label for="show_type" class="form-label">Type de concert</label>
+                                {{ form.show_type(class="form-select" + (" is-invalid" if form.show_type.errors else "")) }}
+                                {% if form.show_type.errors %}
+                                <div class="invalid-feedback">{{ form.show_type.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Lieu externe -->
+                    <div id="location-section">
+                        <div class="section-header">
+                            <i class="bi bi-geo-alt text-primary"></i>
+                            <h5 class="mb-0">Lieu externe / Adresse</h5>
+                            <span class="badge bg-secondary text-white ms-auto" id="location-badge">Optionnel</span>
+                        </div>
+                        <p class="text-muted small mb-3" id="location-help">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Utilisez cette section si l'événement a lieu à une adresse différente de la salle (ex: interview radio, repas, conférence de presse...).
+                        </p>
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-6">
+                                <label for="location_address" class="form-label">Adresse</label>
+                                {{ form.location_address(class="form-control", placeholder="123 rue Example...") }}
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label for="location_city" class="form-label">Ville</label>
+                                {{ form.location_city(class="form-control", placeholder="Paris") }}
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label for="location_country" class="form-label">Pays</label>
+                                {{ form.location_country(class="form-control", placeholder="France, USA, Japon...") }}
+                            </div>
+                            <div class="col-12">
+                                <label for="location_notes" class="form-label">Notes sur le lieu</label>
+                                {{ form.location_notes(class="form-control", rows="2", placeholder="Indications, parking, code d'accès...") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Horaires d'appel (Call Times) -->
+                    <div id="call-times-section">
+                        <div class="section-header">
+                            <i class="bi bi-clock-history text-primary"></i>
+                            <h5 class="mb-0">Horaires d'appel</h5>
+                        </div>
+                        <div class="call-times-grid mb-4">
+                            <div>
+                                <label for="load_in_time" class="form-label">
+                                    <i class="bi bi-truck text-muted me-1"></i>Load-In
+                                </label>
+                                {{ form.load_in_time(class="form-control", type="time") }}
+                            </div>
+                            <div>
+                                <label for="crew_call_time" class="form-label">
+                                    <i class="bi bi-tools text-muted me-1"></i>Équipe
+                                </label>
+                                {{ form.crew_call_time(class="form-control", type="time") }}
+                            </div>
+                            <div>
+                                <label for="artist_call_time" class="form-label">
+                                    <i class="bi bi-person-badge text-muted me-1"></i>Artistes
+                                </label>
+                                {{ form.artist_call_time(class="form-control", type="time") }}
+                            </div>
+                            <div>
+                                <label for="catering_time" class="form-label">
+                                    <i class="bi bi-cup-hot text-muted me-1"></i>Catering
+                                </label>
+                                {{ form.catering_time(class="form-control", type="time") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Horaires du show -->
+                    <div id="show-times-section">
+                        <div class="section-header">
+                            <i class="bi bi-music-note-beamed text-primary"></i>
+                            <h5 class="mb-0">Horaires du show</h5>
+                        </div>
+                        <div class="call-times-grid mb-4">
+                            <div>
+                                <label for="soundcheck_time" class="form-label">
+                                    <i class="bi bi-soundwave text-muted me-1"></i>Soundcheck
+                                </label>
+                                {{ form.soundcheck_time(class="form-control", type="time") }}
+                            </div>
+                            <div>
+                                <label for="press_time" class="form-label">
+                                    <i class="bi bi-newspaper text-muted me-1"></i>Presse
+                                </label>
+                                {{ form.press_time(class="form-control", type="time") }}
+                            </div>
+                            <div>
+                                <label for="meet_greet_time" class="form-label">
+                                    <i class="bi bi-people text-muted me-1"></i>Meet & Greet
+                                </label>
+                                {{ form.meet_greet_time(class="form-control", type="time") }}
+                            </div>
+                            <div>
+                                <label for="doors_time" class="form-label">
+                                    <i class="bi bi-door-open text-muted me-1"></i>Portes
+                                </label>
+                                {{ form.doors_time(class="form-control", type="time") }}
+                            </div>
+                            <div>
+                                <label for="set_time" class="form-label">
+                                    <i class="bi bi-music-note-beamed text-primary me-1"></i>Set
+                                </label>
+                                {{ form.set_time(class="form-control", type="time") }}
+                            </div>
+                            <div>
+                                <label for="curfew_time" class="form-label">
+                                    <i class="bi bi-moon text-muted me-1"></i>Couvre-feu
+                                </label>
+                                {{ form.curfew_time(class="form-control", type="time") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Billetterie et financier -->
+                    <div id="financial-section">
+                        <div class="section-header">
+                            <i class="bi bi-ticket-perforated text-primary"></i>
+                            <h5 class="mb-0">Billetterie et financier</h5>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-4">
+                                <label for="guarantee" class="form-label">Cachet garanti</label>
+                                <div class="input-group">
+                                    {{ form.guarantee(class="form-control", placeholder="0.00") }}
+                                    <span class="input-group-text">€</span>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="ticket_price" class="form-label">Prix du billet</label>
+                                <div class="input-group">
+                                    {{ form.ticket_price(class="form-control", placeholder="0.00") }}
+                                    <span class="input-group-text">€</span>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="sold_tickets" class="form-label">
+                                    <i class="bi bi-ticket-perforated-fill text-success me-1"></i>Billets vendus
+                                </label>
+                                {{ form.sold_tickets(class="form-control" + (" is-invalid" if form.sold_tickets.errors else ""), placeholder="0") }}
+                                {% if form.sold_tickets.errors %}
+                                <div class="invalid-feedback">{{ form.sold_tickets.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="door_deal_percentage" class="form-label">
+                                    <i class="bi bi-percent text-info me-1"></i>% Door Deal
+                                </label>
+                                <div class="input-group">
+                                    {{ form.door_deal_percentage(class="form-control" + (" is-invalid" if form.door_deal_percentage.errors else ""), placeholder="70") }}
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                {% if form.door_deal_percentage.errors %}
+                                <div class="invalid-feedback">{{ form.door_deal_percentage.errors[0] }}</div>
+                                {% endif %}
+                                <div class="form-text">% des recettes pour l'artiste</div>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="ticketing_fee_percentage" class="form-label">
+                                    <i class="bi bi-receipt text-warning me-1"></i>% Frais billetterie
+                                </label>
+                                <div class="input-group">
+                                    {{ form.ticketing_fee_percentage(class="form-control" + (" is-invalid" if form.ticketing_fee_percentage.errors else ""), placeholder="5.0") }}
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                {% if form.ticketing_fee_percentage.errors %}
+                                <div class="invalid-feedback">{{ form.ticketing_fee_percentage.errors[0] }}</div>
+                                {% endif %}
+                                <div class="form-text">Standard industrie: 2-10%</div>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="set_length_minutes" class="form-label">Durée du set</label>
+                                <div class="input-group">
+                                    {{ form.set_length_minutes(class="form-control", placeholder="60") }}
+                                    <span class="input-group-text">min</span>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="ticket_url" class="form-label">Lien billetterie</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                                    {{ form.ticket_url(class="form-control" + (" is-invalid" if form.ticket_url.errors else ""),
+                                       placeholder="https://...") }}
+                                    {% if form.ticket_url.errors %}
+                                    <div class="invalid-feedback">{{ form.ticket_url.errors[0] }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="age_restriction" class="form-label">Restriction d'âge</label>
+                                {{ form.age_restriction(class="form-select") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 6: Équipe assignée (interface professionnelle) -->
+                    <div id="members-section" class="mb-4">
+                        <div class="section-header">
+                            <i class="bi bi-people text-primary"></i>
+                            <h5 class="mb-0">Équipe du concert</h5>
+                            <span class="badge bg-primary ms-auto" id="member-count">
+                                <span id="selected-count">{{ assigned_ids|length }}</span> sélectionné(s)
+                            </span>
+                        </div>
+
+                        {% if categories_data %}
+                        <!-- Vue d'ensemble par catégorie -->
+                        <div class="row g-2 mt-3 mb-4" id="crew-overview">
+                            {% for cat in categories_data %}
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="card h-100 overview-card
+                                    {% if cat.assigned == cat.required and cat.required > 0 %}border-success bg-success bg-opacity-10{% endif %}
+                                    {% if cat.is_critical and cat.assigned < cat.required %}border-danger critical-warning{% endif %}"
+                                     data-category="{{ cat.key }}">
+                                    <div class="card-body p-2 text-center">
+                                        <i class="bi bi-{{ cat.icon }} fs-4 text-{{ cat.color }}"></i>
+                                        <div class="small text-muted text-truncate">{{ cat.label }}</div>
+                                        <div class="fw-bold overview-count" data-category="{{ cat.key }}">
+                                            <span class="assigned-count">{{ cat.assigned }}</span>/<span class="total-count">{{ cat.required }}</span>
+                                        </div>
+                                        <!-- Progress dots -->
+                                        <div class="progress-dots">
+                                            {% for i in range(cat.required) %}
+                                            <span class="dot {% if i < cat.assigned %}filled bg-{{ cat.color }}{% endif %}"></span>
+                                            {% endfor %}
+                                        </div>
+                                        {% if cat.is_critical and cat.assigned == 0 and cat.required > 0 %}
+                                        <small class="text-danger"><i class="bi bi-exclamation-triangle"></i> Critique</small>
+                                        {% elif cat.assigned == cat.required and cat.required > 0 %}
+                                        <small class="text-success"><i class="bi bi-check-circle"></i> Complet</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% if users_without_profession %}
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="card h-100 overview-card" data-category="other">
+                                    <div class="card-body p-2 text-center">
+                                        <i class="bi bi-people fs-4 text-secondary"></i>
+                                        <div class="small text-muted text-truncate">Autres</div>
+                                        <div class="fw-bold overview-count" data-category="other">
+                                            <span class="assigned-count">0</span>/<span class="total-count">{{ users_without_profession|length }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Barre de recherche -->
+                        <div class="input-group mb-3 mt-3">
+                            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" id="member-search"
+                                   placeholder="Rechercher par nom, email ou profession...">
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearMemberSearch()" title="Effacer">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+
+                        <!-- Actions rapides -->
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAllVisible()">
+                                <i class="bi bi-check-all me-1"></i>Tout sélectionner
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllMembers()">
+                                <i class="bi bi-x-lg me-1"></i>Tout désélectionner
+                            </button>
+                            {% if stop %}
+                            <!-- Bouton copier équipe précédente (seulement en mode édition) -->
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="copyPreviousCrew()">
+                                <i class="bi bi-clipboard-check me-1"></i>Copier équipe précédente
+                            </button>
+                            {% endif %}
+                        </div>
+
+                        {% if categories_data or users_without_profession %}
+                        <!-- Navigation par catégorie (Pills) -->
+                        <ul class="nav nav-pills nav-fill flex-nowrap overflow-auto mb-3 pb-2" id="category-tabs" role="tablist">
+                            {% for cat in categories_data %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link {% if loop.first %}active{% endif %} d-flex align-items-center justify-content-center gap-2 text-nowrap"
+                                        id="tab-{{ cat.key }}"
+                                        data-bs-toggle="pill"
+                                        data-bs-target="#cat-{{ cat.key }}"
+                                        type="button"
+                                        role="tab"
+                                        aria-controls="cat-{{ cat.key }}"
+                                        aria-selected="{{ 'true' if loop.first else 'false' }}">
+                                    <i class="bi bi-{{ cat.icon }}"></i>
+                                    <span class="d-none d-md-inline">{{ cat.label }}</span>
+                                    <span class="badge bg-{{ cat.color }} bg-opacity-75">{{ cat.total_users }}</span>
+                                </button>
+                            </li>
+                            {% endfor %}
+                            {% if users_without_profession %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link {% if not categories_data %}active{% endif %} d-flex align-items-center justify-content-center gap-2 text-nowrap"
+                                        id="tab-other"
+                                        data-bs-toggle="pill"
+                                        data-bs-target="#cat-other"
+                                        type="button"
+                                        role="tab"
+                                        aria-controls="cat-other"
+                                        aria-selected="{{ 'true' if not categories_data else 'false' }}">
+                                    <i class="bi bi-people"></i>
+                                    <span class="d-none d-md-inline">Membres du groupe</span>
+                                    <span class="badge bg-secondary">{{ users_without_profession|length }}</span>
+                                </button>
+                            </li>
+                            {% endif %}
+                        </ul>
+
+                        <!-- Contenu des catégories -->
+                        <div class="tab-content border rounded p-3 bg-white" id="category-content" style="max-height: 400px; overflow-y: auto;">
+                            {% for cat in categories_data %}
+                            <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                                 id="cat-{{ cat.key }}"
+                                 role="tabpanel"
+                                 aria-labelledby="tab-{{ cat.key }}">
+                                {% for prof in cat.professions %}
+                                <div class="profession-group">
+                                    <h6 class="text-{{ cat.color }} mb-2 d-flex align-items-center">
+                                        <i class="bi bi-{{ cat.icon }} me-2"></i>
+                                        {{ prof.name }}
+                                        <span class="badge bg-light text-dark ms-2">{{ prof.users|length }}</span>
+                                    </h6>
+                                    <div class="row g-2">
+                                        {% for user in prof.users %}
+                                        <div class="col-12 col-md-6 member-card"
+                                             data-name="{{ user.full_name|lower }}"
+                                             data-fullname="{{ user.full_name }}"
+                                             data-email="{{ user.email|lower }}"
+                                             data-profession="{{ prof.name|lower }}"
+                                             data-profession-name="{{ prof.name }}"
+                                             data-category="{{ cat.key }}"
+                                             data-category-label="{{ cat.label }}"
+                                             data-category-color="{{ cat.color }}"
+                                             onclick="toggleMemberCard(this)">
+                                            <div class="card border h-100 {% if user.id in assigned_ids %}selected{% endif %}">
+                                                <div class="card-body p-2 d-flex align-items-center">
+                                                    <input type="checkbox" name="member_ids" value="{{ user.id }}"
+                                                           class="form-check-input me-3 member-checkbox flex-shrink-0"
+                                                           {% if user.id in assigned_ids %}checked{% endif %}
+                                                           onclick="event.stopPropagation()">
+                                                    {% if user.profile_picture_data %}
+                                                    <img src="{{ url_for('settings.serve_profile_picture', user_id=user.id) }}"
+                                                         class="rounded-circle me-2 flex-shrink-0" style="width: 40px; height: 40px; object-fit: cover;"
+                                                         alt="{{ user.full_name }}">
+                                                    {% else %}
+                                                    <div class="rounded-circle bg-{{ cat.color }} bg-opacity-10 text-{{ cat.color }} d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                                         style="width: 40px; height: 40px;">
+                                                        <i class="bi bi-person"></i>
+                                                    </div>
+                                                    {% endif %}
+                                                    <div class="flex-grow-1 min-width-0">
+                                                        <div class="fw-semibold text-truncate">{{ user.full_name }}</div>
+                                                        <small class="text-muted text-truncate d-block">{{ user.email }}</small>
+                                                    </div>
+                                                    <!-- Badge de statut invitation -->
+                                                    {% if user.id in confirmed_ids %}
+                                                    <span class="badge bg-success ms-2 flex-shrink-0" title="A confirmé sa présence">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </span>
+                                                    {% elif user.id in pending_ids %}
+                                                    <span class="badge bg-warning text-dark ms-2 flex-shrink-0" title="En attente de réponse">
+                                                        <i class="bi bi-clock"></i>
+                                                    </span>
+                                                    {% elif user.id in declined_ids %}
+                                                    <span class="badge bg-danger ms-2 flex-shrink-0" title="A décliné">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </span>
+                                                    {% elif user.id in assigned_ids %}
+                                                    <span class="badge bg-secondary ms-2 flex-shrink-0" title="Assigné, invitation non envoyée">
+                                                        <i class="bi bi-envelope"></i>
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endfor %}
+
+                            {% if users_without_profession %}
+                            <div class="tab-pane fade {% if not categories_data %}show active{% endif %}" id="cat-other" role="tabpanel" aria-labelledby="tab-other">
+                                <h6 class="text-muted mb-2 d-flex align-items-center">
+                                    <i class="bi bi-people me-2"></i>
+                                    Membres du groupe
+                                    <span class="badge bg-light text-dark ms-2">{{ users_without_profession|length }}</span>
+                                </h6>
+                                <div class="row g-2">
+                                    {% for user in users_without_profession %}
+                                    <div class="col-12 col-md-6 member-card"
+                                         data-name="{{ user.full_name|lower }}"
+                                         data-fullname="{{ user.full_name }}"
+                                         data-email="{{ user.email|lower }}"
+                                         data-profession=""
+                                         data-profession-name=""
+                                         data-category="autres"
+                                         data-category-label="Autres"
+                                         data-category-color="secondary"
+                                         onclick="toggleMemberCard(this)">
+                                        <div class="card border h-100 {% if user.id in assigned_ids %}selected{% endif %}">
+                                            <div class="card-body p-2 d-flex align-items-center">
+                                                <input type="checkbox" name="member_ids" value="{{ user.id }}"
+                                                       class="form-check-input me-3 member-checkbox flex-shrink-0"
+                                                       {% if user.id in assigned_ids %}checked{% endif %}
+                                                       onclick="event.stopPropagation()">
+                                                {% if user.profile_picture_data %}
+                                                <img src="{{ url_for('settings.serve_profile_picture', user_id=user.id) }}"
+                                                     class="rounded-circle me-2 flex-shrink-0" style="width: 40px; height: 40px; object-fit: cover;"
+                                                     alt="{{ user.full_name }}">
+                                                {% else %}
+                                                <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                                     style="width: 40px; height: 40px;">
+                                                    <i class="bi bi-person"></i>
+                                                </div>
+                                                {% endif %}
+                                                <div class="flex-grow-1 min-width-0">
+                                                    <div class="fw-semibold text-truncate">{{ user.full_name }}</div>
+                                                    <small class="text-muted text-truncate d-block">{{ user.email }}</small>
+                                                </div>
+                                                <!-- Badge de statut invitation -->
+                                                {% if user.id in confirmed_ids %}
+                                                <span class="badge bg-success ms-2 flex-shrink-0" title="A confirmé sa présence">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </span>
+                                                {% elif user.id in pending_ids %}
+                                                <span class="badge bg-warning text-dark ms-2 flex-shrink-0" title="En attente de réponse">
+                                                    <i class="bi bi-clock"></i>
+                                                </span>
+                                                {% elif user.id in declined_ids %}
+                                                <span class="badge bg-danger ms-2 flex-shrink-0" title="A décliné">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </span>
+                                                {% elif user.id in assigned_ids %}
+                                                <span class="badge bg-secondary ms-2 flex-shrink-0" title="Assigné, invitation non envoyée">
+                                                    <i class="bi bi-envelope"></i>
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Récapitulatif équipe sélectionnée -->
+                        <div class="mt-3 p-3 bg-light rounded" id="team-summary">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <strong><i class="bi bi-people-fill me-2"></i>Équipe sélectionnée</strong>
+                                <span class="badge bg-primary" id="summary-count">0 membre(s)</span>
+                            </div>
+                            <div class="d-flex flex-wrap" id="selected-avatars" style="padding-left: 8px;">
+                                <span class="text-muted small">Aucun membre sélectionné</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-4 border rounded">
+                            <i class="bi bi-people fs-1 d-block mb-2"></i>
+                            Aucun utilisateur disponible
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Section 7: Notes -->
+                    <div class="section-header">
+                        <i class="bi bi-sticky text-primary"></i>
+                        <h5 class="mb-0">Notes</h5>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-6">
+                            <label for="notes" class="form-label">Notes publiques</label>
+                            {{ form.notes(class="form-control", rows="3", placeholder="Notes visibles par tous...") }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="internal_notes" class="form-label">Notes internes</label>
+                            {{ form.internal_notes(class="form-control", rows="3", placeholder="Notes privées pour le management...") }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) if stop else url_for('tours.detail', id=tour.id) }}"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const eventTypeSelect = document.getElementById('event_type');
+    const venueSelect = document.getElementById('venue_id');
+    const venueSection = document.getElementById('venue-section');
+    const locationSection = document.getElementById('location-section');
+    const showTypeField = document.getElementById('show-type-field');
+    const callTimesSection = document.getElementById('call-times-section');
+    const showTimesSection = document.getElementById('show-times-section');
+    const financialSection = document.getElementById('financial-section');
+    const venueRequiredBadge = document.getElementById('venue-required-badge');
+
+    // Event types that require a venue
+    const venueRequiredTypes = ['show', 'studio', 'rehearsal'];
+    // Event types that can have an external location (outside the venue)
+    const externalLocationTypes = ['day_off', 'travel', 'promo', 'press', 'meet_greet', 'photo_video', 'other'];
+    // Event types with full show schedule
+    const showTypes = ['show', 'promo', 'press', 'meet_greet'];
+    // Event types with financial info
+    const financialTypes = ['show'];
+
+    const locationBadge = document.getElementById('location-badge');
+    const locationHelp = document.getElementById('location-help');
+
+    function updateFormVisibility() {
+        const eventType = eventTypeSelect.value;
+        const venueSelected = venueSelect.value !== '0' && venueSelect.value !== '';
+
+        // Show/hide venue section based on event type
+        const needsVenue = venueRequiredTypes.includes(eventType);
+        venueSection.style.display = 'block'; // Always show but change required badge
+
+        if (needsVenue) {
+            venueRequiredBadge.textContent = 'Requis';
+            venueRequiredBadge.className = 'badge bg-warning text-dark ms-auto';
+        } else {
+            venueRequiredBadge.textContent = 'Optionnel';
+            venueRequiredBadge.className = 'badge bg-light text-muted ms-auto';
+        }
+
+        // Location section: TOUJOURS VISIBLE avec libellé adapté
+        const canHaveExternalLocation = externalLocationTypes.includes(eventType);
+        locationSection.style.display = 'block';
+
+        if (canHaveExternalLocation) {
+            // Event types that primarily happen at external locations
+            locationBadge.textContent = 'Lieu de l\'événement';
+            locationBadge.className = 'badge bg-primary text-white ms-auto';
+            locationHelp.innerHTML = '<i class="bi bi-info-circle me-1"></i>Indiquez où a lieu cet événement (adresse, ville).';
+        } else if (venueSelected) {
+            // Concert/Studio/Rehearsal with venue - location is optional for side events
+            locationBadge.textContent = 'Optionnel';
+            locationBadge.className = 'badge bg-secondary text-white ms-auto';
+            locationHelp.innerHTML = '<i class="bi bi-info-circle me-1"></i>Si des activités ont lieu à une autre adresse (interview, repas...), indiquez-la ici.';
+        } else {
+            // No venue selected - location replaces venue
+            locationBadge.textContent = 'Lieu alternatif';
+            locationBadge.className = 'badge bg-info text-white ms-auto';
+            locationHelp.innerHTML = '<i class="bi bi-info-circle me-1"></i>Sélectionnez une salle ci-dessus ou indiquez un lieu ci-dessous.';
+        }
+
+        // Show type field only for concerts
+        showTypeField.style.display = eventType === 'show' ? 'block' : 'none';
+
+        // Call times only for events with a venue
+        callTimesSection.style.display = needsVenue ? 'block' : 'none';
+
+        // Show times for show-related events
+        showTimesSection.style.display = showTypes.includes(eventType) ? 'block' : 'none';
+
+        // Financial info only for shows
+        financialSection.style.display = financialTypes.includes(eventType) ? 'block' : 'none';
+    }
+
+    eventTypeSelect.addEventListener('change', updateFormVisibility);
+    venueSelect.addEventListener('change', updateFormVisibility);
+
+    // Initialize on page load
+    updateFormVisibility();
+
+    // ===== Gestion des membres assignés (interface professionnelle) =====
+
+    // Recherche instantanée
+    const searchInput = document.getElementById('member-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            document.querySelectorAll('.member-card').forEach(function(card) {
+                const name = card.dataset.name || '';
+                const email = card.dataset.email || '';
+                const profession = card.dataset.profession || '';
+                const matches = name.includes(query) || email.includes(query) || profession.includes(query);
+                card.style.display = (matches || !query) ? '' : 'none';
+            });
+        });
+    }
+
+    // Mise à jour du récapitulatif équipe - Affiche noms + professions par catégorie
+    function updateTeamSummary() {
+        const checked = document.querySelectorAll('.member-checkbox:checked');
+        const count = checked.length;
+
+        // Compteurs
+        document.getElementById('selected-count').textContent = count;
+        document.getElementById('summary-count').textContent = count + ' membre' + (count > 1 ? 's' : '');
+
+        // Mise à jour des cartes sélectionnées
+        document.querySelectorAll('.member-card .card').forEach(function(card) {
+            const checkbox = card.querySelector('.member-checkbox');
+            if (checkbox && checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+
+        // Section équipe sélectionnée - groupée par catégorie
+        const summaryDiv = document.getElementById('selected-avatars');
+        if (!summaryDiv) return;
+
+        if (count === 0) {
+            summaryDiv.innerHTML = '<span class="text-muted small">Aucun membre sélectionné</span>';
+            return;
+        }
+
+        // Grouper par catégorie
+        const byCategory = {};
+        const categoryOrder = ['musicien', 'technicien', 'production', 'style', 'securite', 'management', 'autres'];
+
+        checked.forEach(function(cb) {
+            const card = cb.closest('.member-card');
+            if (card) {
+                const catLabel = card.dataset.categoryLabel || 'Autres';
+                const catKey = card.dataset.category || 'autres';
+                const catColor = card.dataset.categoryColor || 'secondary';
+                const name = card.dataset.fullname || '';
+                const profession = card.dataset.professionName || '';
+
+                if (!byCategory[catKey]) {
+                    byCategory[catKey] = { label: catLabel, color: catColor, members: [] };
+                }
+                byCategory[catKey].members.push({ name: name, profession: profession });
+            }
+        });
+
+        // Générer HTML par catégorie (dans l'ordre défini)
+        let html = '';
+        categoryOrder.forEach(function(catKey) {
+            if (byCategory[catKey] && byCategory[catKey].members.length > 0) {
+                const data = byCategory[catKey];
+                html += '<div class="mb-2">';
+                html += '<small class="text-' + data.color + ' fw-bold"><i class="bi bi-tag-fill me-1"></i>' + data.label + ' (' + data.members.length + ')</small>';
+                html += '<div class="ms-3">';
+                data.members.forEach(function(m) {
+                    html += '<div class="small text-body">';
+                    html += '<i class="bi bi-person me-1 text-muted"></i>' + m.name;
+                    if (m.profession) {
+                        html += ' <span class="text-muted fst-italic">(' + m.profession + ')</span>';
+                    }
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            }
+        });
+
+        summaryDiv.innerHTML = html;
+    }
+
+    // Ajouter les listeners aux checkboxes
+    document.querySelectorAll('.member-checkbox').forEach(function(cb) {
+        cb.addEventListener('change', updateTeamSummary);
+    });
+
+    // Initialiser le récapitulatif au chargement
+    updateTeamSummary();
+});
+
+// Toggle membre via clic sur la carte
+function toggleMemberCard(cardElement) {
+    const checkbox = cardElement.querySelector('.member-checkbox');
+    if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+        // Déclencher l'événement change pour mettre à jour le récapitulatif
+        checkbox.dispatchEvent(new Event('change'));
+    }
+}
+
+// Effacer la recherche
+function clearMemberSearch() {
+    const searchInput = document.getElementById('member-search');
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input'));
+    }
+}
+
+// Sélectionner tous les membres visibles
+function selectAllVisible() {
+    document.querySelectorAll('.member-card').forEach(function(card) {
+        if (card.style.display !== 'none') {
+            const cb = card.querySelector('.member-checkbox');
+            if (cb && !cb.checked) {
+                cb.checked = true;
+            }
+        }
+    });
+    // Mettre à jour le récapitulatif
+    if (typeof updateTeamSummary === 'function') {
+        // La fonction est dans le scope DOMContentLoaded, on doit la redéfinir ici
+    }
+    const checked = document.querySelectorAll('.member-checkbox:checked');
+    document.getElementById('selected-count').textContent = checked.length;
+    // Déclencher la mise à jour complète
+    document.querySelectorAll('.member-checkbox')[0]?.dispatchEvent(new Event('change'));
+}
+
+// Désélectionner tous les membres
+function deselectAllMembers() {
+    document.querySelectorAll('.member-checkbox').forEach(function(cb) {
+        cb.checked = false;
+    });
+    document.querySelectorAll('.member-card .card').forEach(function(card) {
+        card.classList.remove('selected');
+    });
+    document.getElementById('selected-count').textContent = '0';
+    document.getElementById('summary-count').textContent = '0 membre';
+    document.getElementById('selected-avatars').innerHTML = '<span class="text-muted small">Aucun membre sélectionné</span>';
+}
+
+{% if stop %}
+// Copier l'équipe du concert précédent (seulement disponible en mode édition)
+function copyPreviousCrew() {
+    if (!confirm('Copier l\'équipe du concert précédent ? Les membres déjà assignés seront conservés.')) {
+        return;
+    }
+
+    // Créer un formulaire et le soumettre
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ url_for("tours.copy_previous_crew", id=tour.id, stop_id=stop.id) }}';
+
+    // Ajouter le token CSRF
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrf_token';
+    csrfInput.value = '{{ csrf_token() }}';
+    form.appendChild(csrfInput);
+
+    document.body.appendChild(form);
+    form.submit();
+}
+{% endif %}
+</script>
+{% endblock %}

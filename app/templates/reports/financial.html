@@ -1,0 +1,187 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Rapports Financiers - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-currency-euro me-2"></i>Rapports Financiers
+    </h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.financial_dashboard') }}" class="btn btn-primary">
+            <i class="bi bi-graph-up-arrow me-1"></i>Dashboard Avancé
+        </a>
+        <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+    </div>
+</div>
+
+<!-- Dashboard Promo Banner -->
+<div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-stars display-6 me-3 text-primary"></i>
+        <div>
+            <strong>Nouveau Dashboard Financier!</strong><br>
+            <span class="text-muted">Découvrez les KPIs avancés, graphiques interactifs et settlements en temps réel.</span>
+        </div>
+        <a href="{{ url_for('reports.financial_dashboard') }}" class="btn btn-primary btn-sm ms-auto">
+            <i class="bi bi-arrow-right me-1"></i>Accéder au Dashboard
+        </a>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+<!-- Summary Cards -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-cash-stack display-4 text-success mb-2"></i>
+                <h2 class="card-title h4">{{ "{:,.2f}".format(summary.grand_total_revenue) }} EUR</h2>
+                <p class="card-text text-muted">Revenus totaux estimés</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-calendar-event display-4 text-primary mb-2"></i>
+                <h2 class="card-title h4">{{ summary.num_tours }}</h2>
+                <p class="card-text text-muted">Tournées</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-geo-alt display-4 text-info mb-2"></i>
+                <h2 class="card-title h4">{{ summary.total_stops }}</h2>
+                <p class="card-text text-muted">Dates de concert</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-percent display-4 text-warning mb-2"></i>
+                <h2 class="card-title h4">{{ summary.overall_fill_rate }}%</h2>
+                <p class="card-text text-muted">Taux de remplissage moyen</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tickets Stats -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Billets Vendus</h5>
+                <h2 class="display-5 text-primary">{{ "{:,}".format(summary.grand_total_tickets) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Capacité Totale</h5>
+                <h2 class="display-5 text-secondary">{{ "{:,}".format(summary.grand_total_capacity) }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tours Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Détail par tournée</h5>
+    </div>
+    <div class="card-body">
+        {% if summary.tours %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Tournée</th>
+                        <th>Groupe</th>
+                        <th class="text-center">Dates</th>
+                        <th class="text-end">Cachet Total</th>
+                        <th class="text-end">Revenus Estimés</th>
+                        <th class="text-center">Remplissage</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tour in summary.tours %}
+                    <tr>
+                        <td>
+                            <strong>{{ tour.tour_name }}</strong>
+                        </td>
+                        <td>{{ tour.band_name }}</td>
+                        <td class="text-center">
+                            <small class="text-muted">{{ tour.num_stops }} dates</small>
+                        </td>
+                        <td class="text-end">
+                            <span class="text-success">{{ "{:,.2f}".format(tour.total_guarantee) }}</span>
+                            <small class="text-muted">{{ tour.currency }}</small>
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-primary">{{ "{:,.2f}".format(tour.total_estimated_revenue) }}</strong>
+                            <small class="text-muted">{{ tour.currency }}</small>
+                        </td>
+                        <td class="text-center">
+                            {% set fill_class = 'success' if tour.avg_fill_rate >= 80 else ('warning' if tour.avg_fill_rate >= 50 else 'danger') %}
+                            <span class="badge bg-{{ fill_class }}">{{ tour.avg_fill_rate }}%</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('reports.financial_tour', tour_id=tour.tour_id) }}"
+                                   class="btn btn-outline-primary" title="Voir détail">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('reports.export_financial_csv', tour_id=tour.tour_id) }}"
+                                   class="btn btn-outline-success" title="Exporter CSV">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-secondary">
+                    <tr class="fw-bold">
+                        <td colspan="3">TOTAL</td>
+                        <td class="text-end text-success">
+                            {{ "{:,.2f}".format(summary.tours|sum(attribute='total_guarantee')) }} EUR
+                        </td>
+                        <td class="text-end text-primary">
+                            {{ "{:,.2f}".format(summary.grand_total_revenue) }} EUR
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-info">{{ summary.overall_fill_rate }}%</span>
+                        </td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <p class="text-muted mt-3">Aucune tournée à afficher.</p>
+            <a href="{{ url_for('tours.index') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle me-1"></i>Créer une tournée
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Info Alert -->
+<div class="alert alert-info mt-4">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Note:</strong> Les revenus estimés incluent les cachets garantis plus la part de porte (door deal).
+    Les chiffres réels peuvent varier selon les accords spécifiques avec chaque salle.
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+{% if reminder_type == 'j7' %}RAPPEL J-7{% else %}RAPPEL: C'EST DEMAIN!{% endif %}
+
+Bonjour {{ user.first_name }},
+
+{% if reminder_type == 'j7' %}Ceci est un rappel pour votre evenement dans 7 jours.{% else %}Ceci est un rappel pour votre evenement de demain.{% endif %}
+
+---
+DETAILS
+---
+Evenement: {{ tour_stop.event_label }}
+Date: {{ tour_stop.date.strftime('%A %d %B %Y') }}
+{% if venue %}Lieu: {{ venue.name }}, {{ venue.city }}{% elif tour_stop.location_city %}Lieu: {{ tour_stop.location_city }}{% if tour_stop.location_country %}, {{ tour_stop.location_country }}{% endif %}{% endif %}
+{% if tour %}Tournee: {{ tour.name }}{% endif %}
+{% if band %}Groupe: {{ band.name }}{% endif %}
+
+{% if reminder_type == 'j1' and (tour_stop.load_in_time or tour_stop.soundcheck_time or tour_stop.set_time) %}---
+HORAIRES DE DEMAIN
+---
+{% if tour_stop.load_in_time %}Load-in: {{ tour_stop.load_in_time.strftime('%H:%M') }}{% endif %}
+{% if tour_stop.soundcheck_time %}Soundcheck: {{ tour_stop.soundcheck_time.strftime('%H:%M') }}{% endif %}
+{% if tour_stop.set_time %}Concert: {{ tour_stop.set_time.strftime('%H:%M') }}{% endif %}
+{% if tour_stop.doors_time %}Portes: {{ tour_stop.doors_time.strftime('%H:%M') }}{% endif %}
+{% endif %}
+
+{% if venue and venue.address %}---
+ADRESSE
+---
+{{ venue.name }}
+{{ venue.address }}
+{% if venue.postal_code or venue.city %}{{ venue.postal_code }} {{ venue.city }}{% endif %}
+{% if venue.country %}{{ venue.country }}{% endif %}
+{% endif %}
+
+{% if tour_stop.notes %}---
+NOTES
+---
+{{ tour_stop.notes }}{% endif %}
+
+Bon concert!
+L'equipe Studio Palenque
+
+---
+Vous recevez cet email car vous etes inscrit a cet evenement.
+
+(c) 2026 Studio Palenque Group

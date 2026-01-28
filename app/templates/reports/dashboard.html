@@ -1,0 +1,612 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Dashboard Financier - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    .kpi-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .kpi-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .kpi-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+    .chart-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .chart-title {
+        font-weight: 600;
+        color: #333;
+    }
+    .settlement-row {
+        transition: background-color 0.15s;
+    }
+    .settlement-row:hover {
+        background-color: #f8f9fa;
+    }
+    .badge-fill-high { background-color: #198754; }
+    .badge-fill-medium { background-color: #ffc107; color: #000; }
+    .badge-fill-low { background-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Rapports</a></li>
+        <li class="breadcrumb-item active">Dashboard Financier</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">
+        <i class="bi bi-graph-up-arrow me-2 text-primary"></i>Dashboard Financier
+    </h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.financial') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-table me-1"></i>Vue Tableau
+        </a>
+        <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Cards Row -->
+<div class="row g-4 mb-4">
+    <!-- Revenue Total -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card kpi-card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between">
+                    <div>
+                        <p class="kpi-label mb-1">Revenus Totaux</p>
+                        <h3 class="kpi-value text-success mb-0">{{ format_currency(kpis.total_revenue, 'EUR') }}</h3>
+                    </div>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-currency-euro"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>Cachets + Door Deals
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Billets Vendus -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card kpi-card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between">
+                    <div>
+                        <p class="kpi-label mb-1">Billets Vendus</p>
+                        <h3 class="kpi-value text-primary mb-0">{{ "{:,}".format(kpis.total_tickets) }}</h3>
+                    </div>
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-ticket-perforated"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                    {% if kpis.stops_without_capacity > 0 %}
+                    <small class="text-warning">
+                        <i class="bi bi-exclamation-triangle me-1"></i>{{ kpis.stops_without_capacity }} venue(s) sans capacité
+                    </small>
+                    {% else %}
+                    <small class="text-muted">
+                        sur {{ "{:,}".format(kpis.total_capacity) }} places
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fill Rate - Bug #4: Gestion None pour venues sans capacité -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card kpi-card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between">
+                    <div>
+                        <p class="kpi-label mb-1">Taux de Remplissage</p>
+                        {% if kpis.avg_fill_rate is none %}
+                        <h3 class="kpi-value mb-0 text-muted">N/A</h3>
+                        {% else %}
+                        <h3 class="kpi-value mb-0 {% if kpis.avg_fill_rate >= 75 %}text-success{% elif kpis.avg_fill_rate >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ kpis.avg_fill_rate }}%
+                        </h3>
+                        {% endif %}
+                    </div>
+                    <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-pie-chart"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                    {% if kpis.avg_fill_rate is none %}
+                    <small class="text-warning">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Capacité inconnue
+                    </small>
+                    {% else %}
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar {% if kpis.avg_fill_rate >= 75 %}bg-success{% elif kpis.avg_fill_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                             style="width: {{ kpis.avg_fill_rate }}%"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nombre de Shows -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card kpi-card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between">
+                    <div>
+                        <p class="kpi-label mb-1">Concerts</p>
+                        <h3 class="kpi-value text-dark mb-0">{{ kpis.num_shows }}</h3>
+                    </div>
+                    <div class="kpi-icon bg-secondary bg-opacity-10 text-secondary">
+                        <i class="bi bi-calendar-event"></i>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-top">
+                    <small class="text-muted">
+                        {{ tours|length }} tournée(s)
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Revenue Trend Chart -->
+    <div class="col-12 col-lg-8">
+        <div class="card chart-card h-100">
+            <div class="card-header bg-transparent border-0 pt-4">
+                <h5 class="chart-title mb-0">
+                    <i class="bi bi-graph-up text-primary me-2"></i>Revenus par Mois
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="revenueChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Breakdown Donut -->
+    <div class="col-12 col-lg-4">
+        <div class="card chart-card h-100">
+            <div class="card-header bg-transparent border-0 pt-4">
+                <h5 class="chart-title mb-0">
+                    <i class="bi bi-pie-chart text-info me-2"></i>Répartition Revenus
+                </h5>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center">
+                <div id="breakdownChart" style="height: 280px;"></div>
+                <div class="text-center mt-3">
+                    <span class="badge bg-success me-2">Cachets: {{ kpis.guarantee_percentage }}%</span>
+                    <span class="badge bg-info">Door Deals: {{ kpis.door_deal_percentage }}%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Second Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Revenue by Tour -->
+    <div class="col-12 col-lg-6">
+        <div class="card chart-card h-100">
+            <div class="card-header bg-transparent border-0 pt-4">
+                <h5 class="chart-title mb-0">
+                    <i class="bi bi-bar-chart text-success me-2"></i>Revenus par Tournée
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="tourRevenueChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Performing Venues -->
+    <div class="col-12 col-lg-6">
+        <div class="card chart-card h-100">
+            <div class="card-header bg-transparent border-0 pt-4">
+                <h5 class="chart-title mb-0">
+                    <i class="bi bi-trophy text-warning me-2"></i>Top 10 Dates
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="topVenuesChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upcoming Settlements -->
+<div class="card chart-card mb-4">
+    <div class="card-header bg-transparent border-0 pt-4 d-flex justify-content-between align-items-center">
+        <h5 class="chart-title mb-0">
+            <i class="bi bi-file-earmark-text text-primary me-2"></i>Prochains Settlements
+        </h5>
+        <small class="text-muted">Concerts avec billets vendus</small>
+    </div>
+    <div class="card-body">
+        {% if upcoming_settlements %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr class="text-muted small">
+                        <th>Date</th>
+                        <th>Salle</th>
+                        <th>Tournée</th>
+                        <th class="text-center">Billets</th>
+                        <th class="text-center">Remplissage</th>
+                        <th class="text-end">Recettes</th>
+                        <th class="text-end">Paiement Artiste</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in upcoming_settlements %}
+                    <tr class="settlement-row">
+                        <td>
+                            <strong>{{ s.date.strftime('%d/%m/%Y') }}</strong>
+                        </td>
+                        <td>
+                            {{ s.venue_name }}<br>
+                            <small class="text-muted">{{ s.venue_city }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark">{{ s.tour_name }}</span>
+                        </td>
+                        <td class="text-center">
+                            {{ s.sold_tickets }} / {{ s.capacity }}
+                        </td>
+                        <td class="text-center">
+                            {% set fill_class = 'badge-fill-high' if s.fill_rate >= 75 else ('badge-fill-medium' if s.fill_rate >= 50 else 'badge-fill-low') %}
+                            <span class="badge {{ fill_class }}">{{ s.fill_rate }}%</span>
+                        </td>
+                        <td class="text-end">
+                            <strong>{{ format_currency(s.gross_revenue, s.currency) }}</strong>
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-success">{{ format_currency(s.artist_payment, s.currency) }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {% if s.payment_type == 'door_deal' %}
+                                <i class="bi bi-arrow-up text-success"></i> Door Deal
+                                {% else %}
+                                <i class="bi bi-shield-check"></i> Garantie
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('reports.settlement', stop_id=s.stop_id) }}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-file-earmark-text"></i> Settlement
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-calendar-x display-4 text-muted"></i>
+            <p class="text-muted mt-3">Aucun concert à venir avec des billets vendus.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Logistics Costs Section (Informatif) -->
+{% if kpis.logistics_costs and kpis.logistics_costs.total > 0 %}
+<div class="card chart-card mb-4" style="border: 2px solid var(--sp-gold, #C9A962);">
+    <div class="card-header bg-transparent border-0 pt-4" style="border-bottom: 1px solid var(--sp-gold, #C9A962) !important;">
+        <h5 class="chart-title mb-0" style="color: var(--sp-gold, #C9A962);">
+            <i class="bi bi-truck me-2"></i>Frais Logistiques Totaux
+            <small class="text-muted fw-normal ms-2">(Informatif - non déduit des revenus)</small>
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <!-- Total -->
+            <div class="col-6 col-md-2">
+                <div class="text-center p-3 rounded" style="background-color: rgba(201, 169, 98, 0.15);">
+                    <i class="bi bi-calculator display-6" style="color: var(--sp-gold, #C9A962);"></i>
+                    <h4 class="mb-0 mt-2" style="color: var(--sp-gold, #C9A962);">{{ kpis.formatted_logistics_total }}</h4>
+                    <small class="text-muted">Total</small>
+                </div>
+            </div>
+            <!-- Transport -->
+            <div class="col-6 col-md-2">
+                <div class="text-center p-3 rounded bg-light">
+                    <i class="bi bi-airplane display-6 text-info"></i>
+                    <h5 class="mb-0 mt-2">{{ kpis.formatted_logistics_transport }}</h5>
+                    <small class="text-muted">Transport</small>
+                </div>
+            </div>
+            <!-- Hébergement -->
+            <div class="col-6 col-md-2">
+                <div class="text-center p-3 rounded bg-light">
+                    <i class="bi bi-building display-6 text-primary"></i>
+                    <h5 class="mb-0 mt-2">{{ kpis.formatted_logistics_accommodation }}</h5>
+                    <small class="text-muted">Hébergement</small>
+                </div>
+            </div>
+            <!-- Équipement -->
+            <div class="col-6 col-md-2">
+                <div class="text-center p-3 rounded bg-light">
+                    <i class="bi bi-gear display-6 text-secondary"></i>
+                    <h5 class="mb-0 mt-2">{{ kpis.formatted_logistics_equipment }}</h5>
+                    <small class="text-muted">Équipement</small>
+                </div>
+            </div>
+            <!-- Services -->
+            <div class="col-6 col-md-2">
+                <div class="text-center p-3 rounded bg-light">
+                    <i class="bi bi-cup-hot display-6 text-warning"></i>
+                    <h5 class="mb-0 mt-2">{{ kpis.formatted_logistics_services }}</h5>
+                    <small class="text-muted">Services</small>
+                </div>
+            </div>
+            <!-- Payé par -->
+            <div class="col-12 col-md-2">
+                <div class="text-center p-3 rounded bg-light h-100 d-flex flex-column justify-content-center">
+                    {% if kpis.logistics_unpaid > 0 %}
+                    <span class="badge bg-warning text-dark mb-1">
+                        {{ format_currency(kpis.logistics_unpaid, 'EUR') }} non payé
+                    </span>
+                    {% endif %}
+                    <small class="text-muted">
+                        {% for paid_by, amount in kpis.logistics_by_paid_by.items() %}
+                        {{ paid_by|capitalize }}: {{ "{:.0f}".format(amount) }}€{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Stats Summary -->
+<div class="row g-4">
+    <!-- Bug #5: GBOR (Revenus Billetterie) distinct des revenus artiste -->
+    <div class="col-12 col-md-3">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">
+                    <i class="bi bi-cash-stack text-warning me-1"></i>Revenus Billetterie
+                </h6>
+                <h3 class="text-warning mb-0">{{ kpis.formatted_ticket_revenue }}</h3>
+                <small class="text-muted">GBOR (Brut)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Total Cachets Garantis</h6>
+                <h3 class="text-success mb-0">{{ kpis.formatted_guarantees }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Total Door Deals</h6>
+                <h3 class="text-info mb-0">{{ kpis.formatted_door_deals }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-3">
+        <div class="card border-primary">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Prix Moyen Billet</h6>
+                <h3 class="text-primary mb-0">{{ format_currency(kpis.avg_ticket_price, 'EUR') }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart color palette
+    const colors = {
+        primary: '#0d6efd',
+        success: '#198754',
+        info: '#0dcaf0',
+        warning: '#ffc107',
+        danger: '#dc3545',
+        secondary: '#6c757d'
+    };
+
+    // Monthly Revenue Data from backend
+    const monthlyData = {{ kpis.monthly_revenue | tojson }};
+    const revenueByTour = {{ kpis.revenue_by_tour | tojson }};
+    const topStops = {{ kpis.top_stops | tojson }};
+
+    // 1. Revenue Trend Line Chart
+    if (monthlyData.length > 0) {
+        const revenueChart = new ApexCharts(document.querySelector("#revenueChart"), {
+            series: [{
+                name: 'Revenus',
+                data: monthlyData.map(d => d.revenue)
+            }],
+            chart: {
+                type: 'area',
+                height: 350,
+                toolbar: { show: false },
+                animations: { enabled: true, easing: 'easeinout', speed: 800 }
+            },
+            colors: [colors.primary],
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.4,
+                    opacityTo: 0.1,
+                    stops: [0, 90, 100]
+                }
+            },
+            stroke: { curve: 'smooth', width: 3 },
+            xaxis: {
+                categories: monthlyData.map(d => {
+                    const [year, month] = d.month.split('-');
+                    const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+                    return monthNames[parseInt(month) - 1] + ' ' + year;
+                })
+            },
+            yaxis: {
+                labels: {
+                    formatter: val => '€' + val.toLocaleString('fr-FR')
+                }
+            },
+            tooltip: {
+                y: { formatter: val => '€' + val.toLocaleString('fr-FR', {minimumFractionDigits: 2}) }
+            },
+            dataLabels: { enabled: false }
+        });
+        revenueChart.render();
+    }
+
+    // 2. Revenue Breakdown Donut
+    const breakdownChart = new ApexCharts(document.querySelector("#breakdownChart"), {
+        series: [{{ kpis.total_guarantees }}, {{ kpis.total_door_deals }}],
+        chart: {
+            type: 'donut',
+            height: 280
+        },
+        labels: ['Cachets Garantis', 'Door Deals'],
+        colors: [colors.success, colors.info],
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '65%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true,
+                            label: 'Total',
+                            formatter: () => '{{ kpis.formatted_revenue }}'
+                        }
+                    }
+                }
+            }
+        },
+        legend: { position: 'bottom' },
+        dataLabels: { enabled: false }
+    });
+    breakdownChart.render();
+
+    // 3. Revenue by Tour Bar Chart
+    const tourNames = Object.keys(revenueByTour);
+    const tourValues = Object.values(revenueByTour);
+
+    if (tourNames.length > 0) {
+        const tourChart = new ApexCharts(document.querySelector("#tourRevenueChart"), {
+            series: [{
+                name: 'Revenus',
+                data: tourValues
+            }],
+            chart: {
+                type: 'bar',
+                height: 300,
+                toolbar: { show: false }
+            },
+            colors: [colors.success],
+            plotOptions: {
+                bar: {
+                    borderRadius: 6,
+                    horizontal: false,
+                    columnWidth: '60%'
+                }
+            },
+            xaxis: { categories: tourNames },
+            yaxis: {
+                labels: { formatter: val => '€' + val.toLocaleString('fr-FR') }
+            },
+            tooltip: {
+                y: { formatter: val => '€' + val.toLocaleString('fr-FR', {minimumFractionDigits: 2}) }
+            },
+            dataLabels: { enabled: false }
+        });
+        tourChart.render();
+    }
+
+    // 4. Top Venues Horizontal Bar
+    if (topStops.length > 0) {
+        const topVenuesChart = new ApexCharts(document.querySelector("#topVenuesChart"), {
+            series: [{
+                name: 'Revenus',
+                data: topStops.map(s => s.total_estimated_revenue)
+            }],
+            chart: {
+                type: 'bar',
+                height: 300,
+                toolbar: { show: false }
+            },
+            colors: [colors.warning],
+            plotOptions: {
+                bar: {
+                    borderRadius: 4,
+                    horizontal: true,
+                    barHeight: '70%'
+                }
+            },
+            xaxis: {
+                labels: { formatter: val => '€' + val.toLocaleString('fr-FR') }
+            },
+            yaxis: {
+                categories: topStops.map(s => s.venue_name + ' (' + s.venue_city + ')')
+            },
+            tooltip: {
+                y: { formatter: val => '€' + val.toLocaleString('fr-FR', {minimumFractionDigits: 2}) }
+            },
+            dataLabels: { enabled: false }
+        });
+        topVenuesChart.render();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "email/base.html" %}
+
+{% block title %}Invitation Mission - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<h2>Invitation Mission</h2>
+
+<p>Bonjour {{ user.first_name }},</p>
+
+<p>Vous êtes invité(e) à participer à l'événement suivant :</p>
+
+<div class="info-box">
+    <h3>{{ tour_stop.event_label }}</h3>
+    <p>
+        <span class="label">Date :</span>
+        <span class="value">{{ tour_stop.date.strftime('%A %d %B %Y') }}</span>
+    </p>
+    {% if venue %}
+    <p>
+        <span class="label">Lieu :</span>
+        <span class="value">{{ venue.name }}, {{ venue.city }}</span>
+    </p>
+    {% elif tour_stop.location_city %}
+    <p>
+        <span class="label">Lieu :</span>
+        <span class="value">{{ tour_stop.location_city }}{% if tour_stop.location_country %}, {{ tour_stop.location_country }}{% endif %}</span>
+    </p>
+    {% endif %}
+    {% if tour %}
+    <p>
+        <span class="label">Tournée :</span>
+        <span class="value">{{ tour.name }}</span>
+    </p>
+    {% endif %}
+    {% if band %}
+    <p>
+        <span class="label">Groupe :</span>
+        <span class="value">{{ band.name }}</span>
+    </p>
+    {% endif %}
+</div>
+
+{% if tour_stop.load_in_time or tour_stop.soundcheck_time or tour_stop.set_time %}
+<div class="info-box">
+    <h3>Horaires prévus</h3>
+    {% if tour_stop.load_in_time %}
+    <p>
+        <span class="label">Load-in :</span>
+        <span class="value">{{ tour_stop.load_in_time.strftime('%H:%M') }}</span>
+    </p>
+    {% endif %}
+    {% if tour_stop.soundcheck_time %}
+    <p>
+        <span class="label">Soundcheck :</span>
+        <span class="value">{{ tour_stop.soundcheck_time.strftime('%H:%M') }}</span>
+    </p>
+    {% endif %}
+    {% if tour_stop.set_time %}
+    <p>
+        <span class="label">Concert :</span>
+        <span class="value">{{ tour_stop.set_time.strftime('%H:%M') }}</span>
+    </p>
+    {% endif %}
+    {% if tour_stop.doors_time %}
+    <p>
+        <span class="label">Ouverture portes :</span>
+        <span class="value">{{ tour_stop.doors_time.strftime('%H:%M') }}</span>
+    </p>
+    {% endif %}
+</div>
+{% endif %}
+
+<p style="margin-top: 30px;">Veuillez confirmer votre disponibilité :</p>
+
+<table cellpadding="0" cellspacing="0" border="0" style="margin: 25px 0;">
+    <tr>
+        <td style="padding-right: 15px;">
+            <a href="{{ accept_url }}" class="btn" style="background-color: #198754; color: #ffffff;">
+                &#10003; J'ACCEPTE
+            </a>
+        </td>
+        <td>
+            <a href="{{ decline_url }}" class="btn btn-secondary" style="background-color: #dc3545; color: #ffffff;">
+                &#10007; JE REFUSE
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="color: #666666; font-size: 14px; margin-top: 25px;">
+    Si vous ne pouvez pas participer, merci de nous le signaler le plus tôt possible
+    afin que nous puissions organiser un remplacement si nécessaire.
+</p>
+
+{% if tour_stop.notes %}
+<div class="info-box" style="background-color: #f8f9fa; border-left-color: #6c757d;">
+    <h3 style="color: #333333;">Notes</h3>
+    <p style="color: #666666;">{{ tour_stop.notes }}</p>
+</div>
+{% endif %}
+
+<p style="margin-top: 30px;">
+    À bientôt,<br>
+    <strong>L'équipe Studio Palenque</strong>
+</p>
+
+<p style="color: #999999; font-size: 12px; margin-top: 20px; border-top: 1px solid #eeeeee; padding-top: 15px;">
+    Vous recevez cet email car vous avez été assigné(e) à cet événement par le manager.
+    Si vous pensez avoir reçu cet email par erreur, veuillez contacter votre manager.
+</p>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Recherche - Tour Manager{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">
+    <i class="bi bi-search me-2"></i>
+    Recherche
+</h1>
+{% endblock %}
+
+{% block content %}
+<!-- Search Form -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form action="{{ url_for('main.search') }}" method="GET">
+            <div class="input-group input-group-lg">
+                <input type="search" class="form-control" name="q" value="{{ query }}"
+                       placeholder="Rechercher des tournées, salles, invités..." autofocus>
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-search me-2"></i>Rechercher
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if results %}
+<!-- Results Summary -->
+<p class="text-muted mb-4">
+    {{ total_results }} résultat(s) pour "<strong>{{ query }}</strong>"
+</p>
+
+<div class="row g-4">
+    <!-- Tours -->
+    {% if results.tours %}
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-event me-2 text-primary"></i>
+                    Tournées ({{ results.tours|length }})
+                </h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for tour in results.tours %}
+                <a href="{{ url_for('tours.detail', id=tour.id) }}"
+                   class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ tour.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ tour.band.name }}</small>
+                        </div>
+                        <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'secondary' }}">
+                            {{ tour.status.value }}
+                        </span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Venues -->
+    {% if results.venues %}
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">
+                    <i class="bi bi-building me-2 text-success"></i>
+                    Salles ({{ results.venues|length }})
+                </h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for venue in results.venues %}
+                <a href="{{ url_for('venues.detail', id=venue.id) }}"
+                   class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ venue.name }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                <i class="bi bi-geo-alt me-1"></i>{{ venue.city }}, {{ venue.country }}
+                            </small>
+                        </div>
+                        {% if venue.capacity %}
+                        <span class="badge bg-light text-dark">{{ venue.capacity }} places</span>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bands -->
+    {% if results.bands %}
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-2 text-info"></i>
+                    Groupes ({{ results.bands|length }})
+                </h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for band in results.bands %}
+                <a href="{{ url_for('bands.detail', id=band.id) }}"
+                   class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ band.name }}</strong>
+                            {% if band.genre %}
+                            <br>
+                            <small class="text-muted">{{ band.genre }}</small>
+                            {% endif %}
+                        </div>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Guests -->
+    {% if results.guests %}
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-check me-2 text-warning"></i>
+                    Invités ({{ results.guests|length }})
+                </h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for guest in results.guests %}
+                <a href="{{ url_for('guestlist.entry_detail', id=guest.id) }}"
+                   class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ guest.guest_name }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {{ guest.tour_stop.venue.name }} - {{ guest.tour_stop.date.strftime('%d/%m/%Y') }}
+                            </small>
+                        </div>
+                        <span class="badge bg-{{ 'success' if guest.status.value == 'approved' else 'warning' if guest.status.value == 'pending' else 'secondary' }}">
+                            {{ guest.status.value }}
+                        </span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% elif query %}
+<!-- No Results -->
+<div class="text-center py-5">
+    <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+    <h3 class="mt-3">Aucun résultat</h3>
+    <p class="text-muted">
+        Aucun résultat trouvé pour "<strong>{{ query }}</strong>"
+    </p>
+    <p class="text-muted small">
+        Essayez avec d'autres termes de recherche
+    </p>
+</div>
+{% else %}
+<!-- Initial State -->
+<div class="text-center py-5">
+    <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+    <h3 class="mt-3">Recherchez</h3>
+    <p class="text-muted">
+        Entrez au moins 2 caractères pour rechercher des tournées, salles ou invités
+    </p>
+</div>
+{% endif %}
+{% endblock %}

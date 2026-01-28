@@ -1,0 +1,228 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Télécharger un document - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-upload me-2"></i>Télécharger un document
+    </h1>
+    <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">{{ form.file.label.text }} <span class="text-danger">*</span></label>
+                        <input type="file" name="file" id="file"
+                               class="form-control {% if form.file.errors %}is-invalid{% endif %}"
+                               accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
+                               required>
+                        {% for error in form.file.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">
+                            Types autorisés: PDF, images (JPG, PNG, GIF), Word, Excel. Taille max: 16 MB.
+                        </div>
+                    </div>
+
+                    <!-- Document Name -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ form.name.label.text }} <span class="text-danger">*</span></label>
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Ex: Passeport John Doe") }}
+                        {% for error in form.name.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Document Type -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ form.document_type.label.text }} <span class="text-danger">*</span></label>
+                        {{ form.document_type(class="form-select" + (" is-invalid" if form.document_type.errors else "")) }}
+                        {% for error in form.document_type.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.description.label.text }}</label>
+                        {{ form.description(class="form-control", rows=3, placeholder="Notes additionnelles...") }}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Owner Selection -->
+                    <h5 class="mb-3"><i class="bi bi-person-check me-2"></i>Attribution</h5>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Type de propriétaire</label>
+                            <select name="owner_type" id="owner_type" class="form-select">
+                                <option value="">-- Non attribué --</option>
+                                <option value="user">Membre de l'équipe</option>
+                                <option value="band">Groupe</option>
+                                <option value="tour">Tournée</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Propriétaire</label>
+
+                            <!-- User Select (hidden by default) -->
+                            <select name="owner_id" id="owner_user" class="form-select owner-select d-none">
+                                <option value="">-- Sélectionner un membre --</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}">{{ user.full_name }} ({{ user.email }})</option>
+                                {% endfor %}
+                            </select>
+
+                            <!-- Band Select (hidden by default) -->
+                            <select name="owner_id" id="owner_band" class="form-select owner-select d-none">
+                                <option value="">-- Sélectionner un groupe --</option>
+                                {% for band in bands %}
+                                <option value="{{ band.id }}">{{ band.name }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <!-- Tour Select (hidden by default) -->
+                            <select name="owner_id" id="owner_tour" class="form-select owner-select d-none">
+                                <option value="">-- Sélectionner une tournée --</option>
+                                {% for tour in tours %}
+                                <option value="{{ tour.id }}">{{ tour.name }} ({{ tour.band.name if tour.band else 'N/A' }})</option>
+                                {% endfor %}
+                            </select>
+
+                            <!-- Placeholder -->
+                            <input type="text" id="owner_placeholder" class="form-control" placeholder="Sélectionner d'abord un type" disabled>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Expiry Information (for passports/visas) -->
+                    <div id="expirySection">
+                        <h5 class="mb-3"><i class="bi bi-calendar-check me-2"></i>Informations d'expiration</h5>
+                        <p class="text-muted small mb-3">Pour les passeports, visas et permis de travail.</p>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.document_number.label.text }}</label>
+                                {{ form.document_number(class="form-control", placeholder="Ex: 12AB34567") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.issuing_country.label.text }}</label>
+                                {{ form.issuing_country(class="form-control", placeholder="Ex: France") }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.issue_date.label.text }}</label>
+                                {{ form.issue_date(class="form-control", type="date") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.expiry_date.label.text }}</label>
+                                {{ form.expiry_date(class="form-control", type="date") }}
+                                <div class="form-text">Important pour les alertes d'expiration.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i>Télécharger
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card bg-dark text-white">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>Aide</h5>
+                <ul class="mb-0">
+                    <li class="mb-2">Les <strong>passeports</strong> et <strong>visas</strong> doivent inclure la date d'expiration pour les alertes.</li>
+                    <li class="mb-2">Attribuez le document à un <strong>membre</strong>, <strong>groupe</strong> ou <strong>tournée</strong> pour une meilleure organisation.</li>
+                    <li class="mb-2">Les documents sont stockés de manière sécurisée et accessibles uniquement aux utilisateurs autorisés.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-file-earmark-check me-2"></i>Formats acceptés</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-danger">PDF</span>
+                    <span class="badge bg-success">JPG</span>
+                    <span class="badge bg-success">PNG</span>
+                    <span class="badge bg-success">GIF</span>
+                    <span class="badge bg-primary">DOC</span>
+                    <span class="badge bg-primary">DOCX</span>
+                    <span class="badge bg-info">XLS</span>
+                    <span class="badge bg-info">XLSX</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ownerType = document.getElementById('owner_type');
+    const ownerUser = document.getElementById('owner_user');
+    const ownerBand = document.getElementById('owner_band');
+    const ownerTour = document.getElementById('owner_tour');
+    const ownerPlaceholder = document.getElementById('owner_placeholder');
+
+    function updateOwnerSelect() {
+        // Hide all
+        ownerUser.classList.add('d-none');
+        ownerBand.classList.add('d-none');
+        ownerTour.classList.add('d-none');
+        ownerPlaceholder.classList.add('d-none');
+
+        // Disable all
+        ownerUser.disabled = true;
+        ownerBand.disabled = true;
+        ownerTour.disabled = true;
+
+        // Show appropriate one
+        switch(ownerType.value) {
+            case 'user':
+                ownerUser.classList.remove('d-none');
+                ownerUser.disabled = false;
+                break;
+            case 'band':
+                ownerBand.classList.remove('d-none');
+                ownerBand.disabled = false;
+                break;
+            case 'tour':
+                ownerTour.classList.remove('d-none');
+                ownerTour.disabled = false;
+                break;
+            default:
+                ownerPlaceholder.classList.remove('d-none');
+        }
+    }
+
+    ownerType.addEventListener('change', updateOwnerSelect);
+    updateOwnerSelect();
+});
+</script>
+{% endblock %}

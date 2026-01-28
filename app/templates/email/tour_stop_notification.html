@@ -1,0 +1,57 @@
+{% extends "email/base.html" %}
+
+{% block title %}Mise à jour tournée - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+{% if notification_type == 'created' %}
+<h2>📅 Nouvelle date ajoutée</h2>
+<p>Une nouvelle date vient d'être ajoutée à la tournée <strong>{{ tour.name }}</strong>.</p>
+{% elif notification_type == 'updated' %}
+<h2>✏️ Date modifiée</h2>
+<p>Une date de la tournée <strong>{{ tour.name }}</strong> a été mise à jour.</p>
+{% elif notification_type == 'cancelled' %}
+<h2>❌ Date annulée</h2>
+<p>Une date de la tournée <strong>{{ tour.name }}</strong> a été annulée.</p>
+{% else %}
+<h2>📢 Mise à jour tournée</h2>
+<p>Des modifications ont été apportées à la tournée <strong>{{ tour.name }}</strong>.</p>
+{% endif %}
+
+<div class="info-box">
+    <h3>Détails de l'événement</h3>
+    <p><span class="label">Artiste:</span> <span class="value">{{ band.name }}</span></p>
+    <p><span class="label">Tournée:</span> <span class="value">{{ tour.name }}</span></p>
+    <p><span class="label">Lieu:</span> <span class="value">{{ venue.name }}</span></p>
+    <p><span class="label">Ville:</span> <span class="value">{{ venue.city }}, {{ venue.country }}</span></p>
+    <p><span class="label">Date:</span> <span class="value">{{ tour_stop.date.strftime('%d/%m/%Y') }}</span></p>
+    {% if tour_stop.doors_time %}
+    <p><span class="label">Portes:</span> <span class="value">{{ tour_stop.doors_time.strftime('%H:%M') }}</span></p>
+    {% endif %}
+    {% if tour_stop.soundcheck_time %}
+    <p><span class="label">Soundcheck:</span> <span class="value">{{ tour_stop.soundcheck_time.strftime('%H:%M') }}</span></p>
+    {% endif %}
+    {% if tour_stop.set_time %}
+    <p><span class="label">Set:</span> <span class="value">{{ tour_stop.set_time.strftime('%H:%M') }}</span></p>
+    {% endif %}
+</div>
+
+{% if venue.address %}
+<div class="info-box">
+    <h3>Adresse</h3>
+    <p><span class="value">{{ venue.address }}</span></p>
+    <p><span class="value">{{ venue.postal_code }} {{ venue.city }}</span></p>
+    <p><span class="value">{{ venue.country }}</span></p>
+</div>
+{% endif %}
+
+<p style="text-align: center;">
+    <a href="#" class="btn">Voir dans l'application</a>
+</p>
+
+<p>Connectez-vous à Studio Palenque Tour pour plus de détails.</p>
+
+<p style="margin-top: 30px;">
+    Cordialement,<br>
+    <strong>L'équipe Studio Palenque</strong>
+</p>
+{% endblock %}

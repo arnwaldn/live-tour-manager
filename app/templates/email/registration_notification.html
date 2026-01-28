@@ -1,0 +1,41 @@
+{% extends "email/base.html" %}
+
+{% block title %}Nouvelle inscription - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<h2>Nouvelle demande d'inscription</h2>
+
+<p>Bonjour,</p>
+
+<p>Un nouvel utilisateur vient de s'inscrire sur <strong>Studio Palenque Tour</strong> et attend votre approbation.</p>
+
+<div class="info-box">
+    <h3>Informations du candidat</h3>
+    <p><span class="label">Nom complet:</span> <span class="value">{{ user.full_name }}</span></p>
+    <p><span class="label">Email:</span> <span class="value">{{ user.email }}</span></p>
+    {% if user.phone %}
+    <p><span class="label">Téléphone:</span> <span class="value">{{ user.phone }}</span></p>
+    {% endif %}
+    <p><span class="label">Date d'inscription:</span> <span class="value">{{ user.created_at.strftime('%d/%m/%Y à %H:%M') if user.created_at else 'N/A' }}</span></p>
+</div>
+
+<p>En tant que manager, vous pouvez:</p>
+
+<ul style="color: #333333; margin: 20px 0; padding-left: 20px;">
+    <li style="margin-bottom: 10px;">✅ <strong>Approuver</strong> l'inscription pour activer le compte</li>
+    <li style="margin-bottom: 10px;">❌ <strong>Refuser</strong> l'inscription si le candidat n'est pas reconnu</li>
+</ul>
+
+<p style="text-align: center;">
+    <a href="{{ approval_url }}" class="btn">Gérer les inscriptions</a>
+</p>
+
+<p style="color: #666666; font-size: 14px;">
+    <em>Note: L'utilisateur ne pourra pas accéder à l'application tant que vous n'aurez pas approuvé son inscription.</em>
+</p>
+
+<p style="margin-top: 30px;">
+    Cordialement,<br>
+    <strong>Studio Palenque Tour</strong>
+</p>
+{% endblock %}

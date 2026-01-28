@@ -1,0 +1,144 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Salles - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <h1 class="h2 mb-3 mb-md-0">
+        <i class="bi bi-building me-2"></i>
+        Salles
+    </h1>
+    {% if venues %}
+    <a href="{{ url_for('venues.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>
+        Nouvelle salle
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form action="{{ url_for('venues.index') }}" method="GET" class="row g-3">
+            <div class="col-12 col-md-4">
+                <label for="search" class="form-label">Recherche</label>
+                <input type="text" name="search" id="search" class="form-control"
+                       placeholder="Nom de la salle..." value="{{ request.args.get('search', '') }}">
+            </div>
+            <div class="col-12 col-md-3">
+                <label for="city" class="form-label">Ville</label>
+                <select name="city" id="city" class="form-select">
+                    <option value="">Toutes les villes</option>
+                    {% for city in cities %}
+                    <option value="{{ city }}" {{ 'selected' if request.args.get('city') == city }}>
+                        {{ city }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label for="venue_type" class="form-label">Type</label>
+                <select name="venue_type" id="venue_type" class="form-select">
+                    <option value="">Tous les types</option>
+                    <option value="Club" {{ 'selected' if request.args.get('venue_type') == 'Club' }}>Club</option>
+                    <option value="Theater" {{ 'selected' if request.args.get('venue_type') == 'Theater' }}>Théâtre</option>
+                    <option value="Concert Hall" {{ 'selected' if request.args.get('venue_type') == 'Concert Hall' }}>Salle de concert</option>
+                    <option value="Arena" {{ 'selected' if request.args.get('venue_type') == 'Arena' }}>Arena</option>
+                    <option value="Festival" {{ 'selected' if request.args.get('venue_type') == 'Festival' }}>Festival</option>
+                    <option value="Bar" {{ 'selected' if request.args.get('venue_type') == 'Bar' }}>Bar</option>
+                    <option value="Outdoor" {{ 'selected' if request.args.get('venue_type') == 'Outdoor' }}>Plein air</option>
+                    <option value="Other" {{ 'selected' if request.args.get('venue_type') == 'Other' }}>Autre</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-search"></i>
+                </button>
+                <a href="{{ url_for('venues.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Venues Grid -->
+{% if venues %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+    {% for venue in venues %}
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="card-title mb-1">{{ venue.name }}</h5>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-geo-alt me-1"></i>
+                            {{ venue.city }}, {{ venue.country }}
+                        </p>
+                    </div>
+                    {% if venue.venue_type %}
+                    <span class="badge bg-secondary">{{ venue.venue_type.value }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {% if venue.capacity %}
+                    <p class="mb-1">
+                        <i class="bi bi-people me-2 text-muted"></i>
+                        {{ venue.capacity }} places
+                    </p>
+                    {% endif %}
+                    {% if venue.phone %}
+                    <p class="mb-1">
+                        <i class="bi bi-telephone me-2 text-muted"></i>
+                        <a href="tel:{{ venue.phone }}">{{ venue.phone }}</a>
+                    </p>
+                    {% endif %}
+                    {% if venue.email %}
+                    <p class="mb-0">
+                        <i class="bi bi-envelope me-2 text-muted"></i>
+                        <a href="mailto:{{ venue.email }}">{{ venue.email }}</a>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 d-flex justify-content-between">
+                <small class="text-muted">
+                    {{ venue.contacts|length }} contact(s)
+                </small>
+                <div class="btn-group btn-group-sm">
+                    <a href="{{ url_for('venues.detail', id=venue.id) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-eye me-1"></i>Voir
+                    </a>
+                    <a href="{{ url_for('venues.edit', id=venue.id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- Empty State -->
+<div class="text-center py-5">
+    <i class="bi bi-building text-muted" style="font-size: 4rem;"></i>
+    <h3 class="mt-3">Aucune salle</h3>
+    <p class="text-muted">
+        {% if request.args.get('search') or request.args.get('city') or request.args.get('venue_type') %}
+        Aucune salle ne correspond aux filtres sélectionnés.
+        {% else %}
+        Aucune salle n'a été ajoutée pour le moment.
+        {% endif %}
+    </p>
+    <a href="{{ url_for('venues.create') }}" class="btn btn-primary mt-2">
+        <i class="bi bi-plus-lg me-1"></i>
+        Ajouter une salle
+    </a>
+</div>
+{% endif %}
+{% endblock %}

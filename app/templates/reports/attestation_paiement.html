@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Attestation de paiement - {{ payment.reference }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 20pt;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .document-title {
+            font-size: 16pt;
+            color: #1e40af;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .reference {
+            font-size: 10pt;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        .section {
+            margin: 25px 0;
+        }
+        .section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        .info-grid {
+            display: table;
+            width: 100%;
+        }
+        .info-row {
+            display: table-row;
+        }
+        .info-label {
+            display: table-cell;
+            width: 180px;
+            padding: 8px 15px 8px 0;
+            font-weight: bold;
+            color: #6b7280;
+            vertical-align: top;
+        }
+        .info-value {
+            display: table-cell;
+            padding: 8px 0;
+            vertical-align: top;
+        }
+        .amount-box {
+            background: #1e40af;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .amount-label {
+            font-size: 10pt;
+            color: #bfdbfe;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .amount-value {
+            font-size: 28pt;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .amount-words {
+            font-size: 10pt;
+            color: #bfdbfe;
+            font-style: italic;
+            margin-top: 10px;
+        }
+        .bank-details {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 10pt;
+        }
+        .certification {
+            margin-top: 40px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 4px;
+        }
+        .certification p {
+            margin: 10px 0;
+        }
+        .signature-area {
+            margin-top: 50px;
+            display: table;
+            width: 100%;
+        }
+        .signature-box {
+            display: table-cell;
+            width: 45%;
+            padding: 15px;
+            text-align: center;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 60px;
+            padding-top: 5px;
+            font-size: 9pt;
+            color: #6b7280;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 8pt;
+            color: #6b7280;
+            text-align: center;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+        .status-paid {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-approved {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">STUDIO PALENQUE TOUR</div>
+        <div class="document-title">Attestation de Paiement</div>
+        <div class="reference">Référence: {{ payment.reference }}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Bénéficiaire</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">Nom complet:</div>
+                <div class="info-value"><strong>{{ user.full_name if user else 'N/A' }}</strong></div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Email:</div>
+                <div class="info-value">{{ user.email if user else 'N/A' }}</div>
+            </div>
+            {% if config %}
+            <div class="info-row">
+                <div class="info-label">Catégorie:</div>
+                <div class="info-value">{{ config.staff_category.value.title() if config.staff_category else '-' }} - {{ config.staff_role.value.replace('_', ' ').title() if config.staff_role else '-' }}</div>
+            </div>
+            {% if config.siret %}
+            <div class="info-row">
+                <div class="info-label">SIRET:</div>
+                <div class="info-value">{{ config.siret }}</div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Détails du paiement</div>
+        <div class="info-grid">
+            <div class="info-row">
+                <div class="info-label">Type:</div>
+                <div class="info-value">{{ payment.payment_type.value.title() if payment.payment_type else '-' }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Description:</div>
+                <div class="info-value">{{ payment.description or '-' }}</div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Date de travail:</div>
+                <div class="info-value">{{ payment.work_date.strftime('%d/%m/%Y') if payment.work_date else '-' }}</div>
+            </div>
+            {% if payment.tour %}
+            <div class="info-row">
+                <div class="info-label">Tournée:</div>
+                <div class="info-value">{{ payment.tour.name }}</div>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <div class="info-label">Statut:</div>
+                <div class="info-value">
+                    {% if payment.status.value == 'paid' %}
+                    <span class="status-badge status-paid">PAYÉ</span>
+                    {% elif payment.status.value == 'approved' %}
+                    <span class="status-badge status-approved">APPROUVÉ</span>
+                    {% else %}
+                    {{ payment.status.value }}
+                    {% endif %}
+                </div>
+            </div>
+            {% if payment.paid_date %}
+            <div class="info-row">
+                <div class="info-label">Date de paiement:</div>
+                <div class="info-value"><strong>{{ payment.paid_date.strftime('%d/%m/%Y') }}</strong></div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="amount-box">
+        <div class="amount-label">Montant du paiement</div>
+        <div class="amount-value">{{ "{:,.2f}".format(payment.amount) }} {{ payment.currency }}</div>
+        <div class="amount-words">({{ payment.amount|int }} euros et {{ ((payment.amount % 1) * 100)|int }} centimes)</div>
+    </div>
+
+    {% if config and config.iban %}
+    <div class="section">
+        <div class="section-title">Coordonnées bancaires du bénéficiaire</div>
+        <div class="bank-details">
+            <strong>IBAN:</strong> {{ config.iban }}<br>
+            {% if config.bic %}<strong>BIC:</strong> {{ config.bic }}<br>{% endif %}
+            {% if config.bank_name %}<strong>Banque:</strong> {{ config.bank_name }}{% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="certification">
+        <p>Je soussigné(e), représentant de <strong>Studio Palenque Tour</strong>, certifie que le paiement
+        référencé <strong>{{ payment.reference }}</strong> d'un montant de <strong>{{ "{:,.2f}".format(payment.amount) }} {{ payment.currency }}</strong>
+        {% if payment.status.value == 'paid' %}
+        a été effectué le <strong>{{ payment.paid_date.strftime('%d/%m/%Y') if payment.paid_date else 'N/A' }}</strong>
+        {% else %}
+        est approuvé et en cours de traitement
+        {% endif %}
+        au profit de <strong>{{ user.full_name if user else 'N/A' }}</strong>.</p>
+
+        <p>Cette attestation est délivrée pour servir et valoir ce que de droit.</p>
+    </div>
+
+    <div class="signature-area">
+        <div class="signature-box">
+            <div class="signature-line">
+                Date et signature<br>
+                (Emetteur)
+            </div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line">
+                Date et signature<br>
+                (Bénéficiaire)
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <strong>Document généré le:</strong> {{ generated_at.strftime('%d/%m/%Y à %H:%M') }}<br>
+        <strong>Studio Palenque Tour Manager</strong><br>
+        Ce document fait foi de paiement. Conservez-le pour vos archives.
+    </div>
+</body>
+</html>

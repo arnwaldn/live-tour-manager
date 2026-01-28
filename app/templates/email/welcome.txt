@@ -1,0 +1,29 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+BIENVENUE SUR STUDIO PALENQUE TOUR
+
+Bonjour {{ user.first_name }},
+
+Votre compte a ete cree avec succes. Bienvenue dans l'equipe Studio Palenque!
+
+---
+VOS INFORMATIONS
+---
+Nom: {{ user.full_name }}
+Email: {{ user.email }}
+
+---
+CONNEXION
+---
+{{ login_url }}
+
+Vous pouvez maintenant vous connecter et acceder a toutes les fonctionnalites de gestion de tournee.
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group
+Cet email a ete envoye automatiquement.

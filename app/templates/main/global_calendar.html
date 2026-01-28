@@ -1,0 +1,506 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Calendrier Global - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Calendrier Global</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">
+        <i class="bi bi-calendar3 me-2"></i>Calendrier Global
+    </h1>
+    <div class="d-flex gap-2">
+        <!-- Tour filter -->
+        <select id="tour-filter" class="form-select" style="width: auto;">
+            <option value="">Toutes les tournées</option>
+            {% for tour in tours %}
+            <option value="{{ tour.id }}">{{ tour.name }} ({{ tour.band.name }})</option>
+            {% endfor %}
+        </select>
+        <!-- Add event button -->
+        <a href="{{ url_for('main.add_standalone_event') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Ajouter un événement
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <!-- Legend -->
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <span class="badge bg-success">
+                <i class="bi bi-circle-fill me-1"></i>Confirme
+            </span>
+            <span class="badge bg-warning text-dark">
+                <i class="bi bi-circle-fill me-1"></i>En attente
+            </span>
+            <span class="badge bg-danger">
+                <i class="bi bi-circle-fill me-1"></i>Annule
+            </span>
+            <span class="badge bg-secondary">
+                <i class="bi bi-circle-fill me-1"></i>Termine
+            </span>
+            <span class="badge" style="background-color: #fd7e14; color: white;">
+                <i class="bi bi-arrow-repeat me-1"></i>Reporte
+            </span>
+        </div>
+
+        <!-- Calendar container -->
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- Event Detail Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalTitle">Détails de l'événement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong><i class="bi bi-music-note-beamed me-2"></i>Groupe:</strong>
+                    <span id="eventBand"></span>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-geo-alt me-2"></i>Salle:</strong>
+                    <span id="eventVenue"></span>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-pin-map me-2"></i>Ville:</strong>
+                    <span id="eventCity"></span>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-calendar-event me-2"></i>Date:</strong>
+                    <span id="eventDate"></span>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-signpost me-2"></i>Tournée:</strong>
+                    <span id="eventTour"></span>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-check-circle me-2"></i>Statut:</strong>
+                    <span id="eventStatus" class="badge"></span>
+                </div>
+                <!-- Section Report (si concert reporte) -->
+                <div id="eventRescheduleSection" class="alert alert-warning py-2 mb-3" style="display: none;">
+                    <h6 class="alert-heading mb-2">
+                        <i class="bi bi-arrow-repeat me-1"></i>Concert Reporte
+                    </h6>
+                    <div id="eventRescheduleInfo"></div>
+                </div>
+                <!-- Horaires -->
+                <div id="eventScheduleSection" class="mb-3" style="display: none;">
+                    <strong><i class="bi bi-clock me-2"></i>Horaires:</strong>
+                    <ul id="eventScheduleList" class="list-unstyled ms-4 mt-2 small mb-0"></ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <a href="#" id="eventEditLink" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil me-1"></i>Modifier
+                </a>
+                <a href="#" id="eventLink" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Voir la tournée
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+<style>
+    #calendar {
+        max-width: 100%;
+    }
+    .fc-event {
+        cursor: pointer;
+    }
+    .fc-event-title {
+        font-weight: 500;
+    }
+    .fc-toolbar-title {
+        font-size: 1.25rem !important;
+    }
+    /* Style pour les concerts reportes */
+    .fc-event.rescheduled-event {
+        border-left: 3px solid #fd7e14 !important;
+    }
+    .fc-event .reschedule-badge {
+        font-size: 0.75rem;
+        margin-left: 4px;
+        color: #fd7e14;
+    }
+    /* Ghost events (dates originales des concerts reportes) */
+    .fc-event.ghost-event {
+        opacity: 0.6;
+        background-color: #6c757d !important;
+        border-color: #495057 !important;
+        border-style: dashed !important;
+    }
+    .fc-event.ghost-event .fc-event-title {
+        text-decoration: line-through;
+    }
+    .fc-event.ghost-event .fc-event-main {
+        text-decoration: line-through;
+    }
+    @media (max-width: 768px) {
+        .fc-toolbar {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .fc-toolbar-chunk {
+            display: flex;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/fr.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    const tourFilter = document.getElementById('tour-filter');
+    const eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+
+    // Status labels and colors
+    const statusLabels = {
+        'confirmed': 'Confirmé',
+        'pending': 'En attente',
+        'cancelled': 'Annulé',
+        'completed': 'Terminé'
+    };
+
+    const statusClasses = {
+        'confirmed': 'bg-success',
+        'pending': 'bg-warning text-dark',
+        'cancelled': 'bg-danger',
+        'completed': 'bg-secondary'
+    };
+
+    // Track current view type for API calls
+    let currentViewType = 'dayGridMonth';
+
+    // Initialize FullCalendar
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth',
+        locale: 'fr',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listMonth'
+        },
+        buttonText: {
+            today: "Aujourd'hui",
+            month: 'Mois',
+            week: 'Semaine',
+            list: 'Liste'
+        },
+        // BUG #6 FIX: Explicit time format with zero-padding
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        },
+        slotLabelFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        },
+        events: function(fetchInfo, successCallback, failureCallback) {
+            const tourId = tourFilter.value;
+            // Determine view type for API (week view gets detailed schedule events)
+            let viewParam = 'month';
+            if (currentViewType === 'timeGridWeek') viewParam = 'week';
+            else if (currentViewType === 'listMonth') viewParam = 'list';
+
+            let url = '{{ url_for("main.global_calendar_events") }}';
+            url += `?start=${fetchInfo.startStr}&end=${fetchInfo.endStr}&view=${viewParam}`;
+            if (tourId) {
+                url += `&tour_id=${tourId}`;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => successCallback(data))
+                .catch(error => {
+                    console.error('Error loading events:', error);
+                    failureCallback(error);
+                });
+        },
+        // Update view type and refetch when view changes
+        datesSet: function(dateInfo) {
+            if (currentViewType !== dateInfo.view.type) {
+                currentViewType = dateInfo.view.type;
+                calendar.refetchEvents();
+            }
+        },
+        // Responsive: Switch to list view on mobile
+        windowResize: function(view) {
+            if (window.innerWidth < 768 && view.view.type !== 'listMonth') {
+                calendar.changeView('listMonth');
+            } else if (window.innerWidth >= 768 && view.view.type === 'listMonth') {
+                calendar.changeView('dayGridMonth');
+            }
+        },
+        eventClick: function(info) {
+            info.jsEvent.preventDefault();
+
+            const props = info.event.extendedProps;
+            const eventDate = new Date(info.event.start);
+
+            // Ghost event (date originale d'un concert reporte)
+            if (props.isGhost) {
+                const reasonLabels = {
+                    'weather': 'Conditions meteo',
+                    'artist_health': 'Sante artiste',
+                    'venue_issue': 'Probleme venue',
+                    'production': 'Production',
+                    'logistics': 'Logistique',
+                    'force_majeure': 'Force majeure',
+                    'low_sales': 'Ventes insuffisantes',
+                    'scheduling_conflict': 'Conflit de planning',
+                    'other': 'Autre'
+                };
+
+                document.getElementById('eventModalTitle').innerHTML = '<i class="bi bi-arrow-repeat text-warning me-2"></i>Concert Reporte';
+                document.getElementById('eventBand').textContent = props.band_name;
+                document.getElementById('eventVenue').textContent = props.venue_name || 'Non definie';
+                document.getElementById('eventCity').textContent = props.city ? `${props.city}, ${props.country}` : 'Non definie';
+                document.getElementById('eventDate').innerHTML = `<span style="text-decoration: line-through; color: #6c757d;">${eventDate.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>`;
+                document.getElementById('eventTour').innerHTML = props.is_standalone ? '<span class="text-muted fst-italic">Evenement independant</span>' : (props.tour_name || '-');
+
+                // Statut "Reporte"
+                const statusBadge = document.getElementById('eventStatus');
+                statusBadge.textContent = 'Reporte';
+                statusBadge.className = 'badge';
+                statusBadge.style.backgroundColor = '#fd7e14';
+                statusBadge.style.color = '#ffffff';
+
+                // Section report avec nouvelle date
+                const rescheduleSection = document.getElementById('eventRescheduleSection');
+                const rescheduleInfo = document.getElementById('eventRescheduleInfo');
+                rescheduleSection.style.display = 'block';
+                let infoHtml = `<div class="mb-1">
+                    <span style="text-decoration: line-through; color: #6c757d;">
+                        Date initiale: ${props.originalDate}
+                    </span>
+                </div>
+                <div class="text-success fw-bold">
+                    <i class="bi bi-arrow-right"></i> Nouvelle date: ${props.newDate}
+                </div>`;
+                if (props.rescheduleReason) {
+                    infoHtml += `<small class="text-muted d-block mt-1">Raison: ${reasonLabels[props.rescheduleReason] || props.rescheduleReason}</small>`;
+                }
+                rescheduleInfo.innerHTML = infoHtml;
+
+                // Masquer la section horaires
+                document.getElementById('eventScheduleSection').style.display = 'none';
+
+                // Liens
+                const editLink = document.getElementById('eventEditLink');
+                const tourLink = document.getElementById('eventLink');
+                if (props.is_standalone) {
+                    editLink.href = `/calendar/event/${props.stop_id}/edit`;
+                    tourLink.style.display = 'none';
+                } else {
+                    editLink.href = `/tours/${props.tour_id}/stops/${props.stop_id}/edit`;
+                    tourLink.style.display = 'inline-block';
+                    tourLink.href = `/tours/${props.tour_id}#stop-${props.stop_id}`;
+                }
+
+                eventModal.show();
+                return;
+            }
+
+            const isStandalone = props.is_standalone;
+
+            // Update modal content
+            document.getElementById('eventModalTitle').textContent = info.event.title;
+            document.getElementById('eventBand').textContent = props.band_name;
+            document.getElementById('eventVenue').textContent = props.venue_name || 'Non définie';
+            document.getElementById('eventCity').textContent = props.city ? `${props.city}, ${props.country}` : 'Non définie';
+            document.getElementById('eventDate').textContent = eventDate.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Tour name or standalone indicator
+            if (isStandalone) {
+                document.getElementById('eventTour').innerHTML = '<span class="text-muted fst-italic">Événement indépendant</span>';
+            } else {
+                document.getElementById('eventTour').textContent = props.tour_name;
+            }
+
+            // Status badge
+            const statusBadge = document.getElementById('eventStatus');
+            statusBadge.textContent = statusLabels[props.status] || props.status;
+            statusBadge.className = 'badge ' + (statusClasses[props.status] || 'bg-primary');
+
+            // Reschedule info (si concert reporte)
+            const rescheduleSection = document.getElementById('eventRescheduleSection');
+            const rescheduleInfo = document.getElementById('eventRescheduleInfo');
+            if (props.isRescheduled && props.originalDate) {
+                rescheduleSection.style.display = 'block';
+                let infoHtml = `<div class="mb-1">
+                    <span style="text-decoration: line-through; color: #6c757d;">
+                        Date initiale: ${props.originalDate}
+                    </span>
+                </div>
+                <div class="text-success">
+                    <i class="bi bi-arrow-right"></i> Nouvelle date: ${eventDate.toLocaleDateString('fr-FR')}
+                </div>`;
+                if (props.rescheduleReason) {
+                    const reasonLabels = {
+                        'weather': 'Conditions meteo',
+                        'artist_health': 'Sante artiste',
+                        'venue_issue': 'Probleme venue',
+                        'production': 'Production',
+                        'logistics': 'Logistique',
+                        'force_majeure': 'Force majeure',
+                        'low_sales': 'Ventes insuffisantes',
+                        'scheduling_conflict': 'Conflit de planning',
+                        'other': 'Autre'
+                    };
+                    infoHtml += `<small class="text-muted d-block mt-1">Raison: ${reasonLabels[props.rescheduleReason] || props.rescheduleReason}</small>`;
+                }
+                if (props.rescheduleCount > 1) {
+                    infoHtml += `<small class="text-muted d-block">Reporte ${props.rescheduleCount} fois</small>`;
+                }
+                rescheduleInfo.innerHTML = infoHtml;
+            } else {
+                rescheduleSection.style.display = 'none';
+            }
+
+            // Schedule times (Horaires)
+            const scheduleSection = document.getElementById('eventScheduleSection');
+            const scheduleList = document.getElementById('eventScheduleList');
+            scheduleList.innerHTML = '';
+            let hasSchedule = false;
+
+            if (props.loadInTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-truck me-2" style="color:#6c757d"></i>Load-In: ' + props.loadInTime + '</li>';
+                hasSchedule = true;
+            }
+            if (props.crewCallTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-people me-2" style="color:#17a2b8"></i>Équipe: ' + props.crewCallTime + '</li>';
+                hasSchedule = true;
+            }
+            if (props.artistCallTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-person-badge me-2" style="color:#ffc107"></i>Artistes: ' + props.artistCallTime + '</li>';
+                hasSchedule = true;
+            }
+            if (props.cateringTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-cup-hot me-2" style="color:#fd7e14"></i>Catering: ' + props.cateringTime + '</li>';
+                hasSchedule = true;
+            }
+            if (props.soundcheckTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-mic me-2" style="color:#6f42c1"></i>Soundcheck: ' + props.soundcheckTime + '</li>';
+                hasSchedule = true;
+            }
+            if (props.pressTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-newspaper me-2" style="color:#20c997"></i>Presse: ' + props.pressTime + '</li>';
+                hasSchedule = true;
+            }
+            if (props.meetGreetTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-heart me-2" style="color:#e83e8c"></i>Meet & Greet: ' + props.meetGreetTime + '</li>';
+                hasSchedule = true;
+            }
+            if (props.doorsTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-door-open me-2" style="color:#28a745"></i>Portes: ' + props.doorsTime + '</li>';
+                hasSchedule = true;
+            }
+            if (props.setTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-music-note-beamed me-2" style="color:#007bff"></i>Set: ' + props.setTime + '</li>';
+                hasSchedule = true;
+            }
+            if (props.curfewTime) {
+                scheduleList.innerHTML += '<li><i class="bi bi-moon me-2" style="color:#dc3545"></i>Couvre-feu: ' + props.curfewTime + '</li>';
+                hasSchedule = true;
+            }
+
+            scheduleSection.style.display = hasSchedule ? 'block' : 'none';
+
+            // Edit link - different URL for standalone vs tour stops
+            const editLink = document.getElementById('eventEditLink');
+            if (isStandalone) {
+                editLink.href = `/calendar/event/${props.stop_id}/edit`;
+            } else {
+                editLink.href = `/tours/${props.tour_id}/stops/${props.stop_id}/edit`;
+            }
+
+            // Tour link - hide for standalone events
+            const tourLink = document.getElementById('eventLink');
+            if (isStandalone) {
+                tourLink.style.display = 'none';
+            } else {
+                tourLink.style.display = 'inline-block';
+                tourLink.href = `/tours/${props.tour_id}#stop-${props.stop_id}`;
+            }
+
+            // Show modal
+            eventModal.show();
+        },
+        eventDidMount: function(info) {
+            const props = info.event.extendedProps;
+
+            // Ghost events (date originale des concerts reportes)
+            if (props.isGhost) {
+                info.el.classList.add('ghost-event');
+                info.el.setAttribute('title', `Concert reporte vers le ${props.newDate}`);
+                return;  // Ne pas ajouter d'autres styles
+            }
+
+            // Add tooltip
+            let tooltip = info.event.title;
+            if (props.isRescheduled && props.originalDate) {
+                tooltip += ` (reporte depuis le ${props.originalDate})`;
+            }
+            info.el.setAttribute('title', tooltip);
+
+            // Style pour les concerts reportes
+            if (props.isRescheduled) {
+                info.el.classList.add('rescheduled-event');
+                // Ajouter badge de report
+                const titleEl = info.el.querySelector('.fc-event-title');
+                if (titleEl) {
+                    const badge = document.createElement('span');
+                    badge.className = 'reschedule-badge';
+                    badge.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+                    badge.title = `Reporte depuis le ${props.originalDate}`;
+                    titleEl.appendChild(badge);
+                }
+            }
+        },
+        height: 'auto',
+        navLinks: true,
+        nowIndicator: true,
+        dayMaxEvents: 3
+    });
+
+    calendar.render();
+
+    // Tour filter change handler
+    tourFilter.addEventListener('change', function() {
+        calendar.refetchEvents();
+    });
+});
+</script>
+{% endblock %}

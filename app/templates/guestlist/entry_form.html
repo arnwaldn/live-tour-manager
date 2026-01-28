@@ -1,0 +1,166 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Guestlist - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=stop.tour.id) }}">{{ stop.tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}">{{ stop.venue.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}">Guestlist</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">{{ title }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <p class="text-muted mb-4">
+                    Ajouter un invité pour <strong>{{ stop.venue.name }}</strong>
+                    le <strong>{{ stop.date.strftime('%d/%m/%Y') }}</strong>.
+                </p>
+
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="guest_name" class="form-label">
+                            Nom de l'invité <span class="text-danger">*</span>
+                        </label>
+                        {{ form.guest_name(class="form-control" + (" is-invalid" if form.guest_name.errors else ""),
+                           placeholder="Jean Dupont") }}
+                        {% if form.guest_name.errors %}
+                        <div class="invalid-feedback">{{ form.guest_name.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="guest_email" class="form-label">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            {{ form.guest_email(class="form-control" + (" is-invalid" if form.guest_email.errors else ""),
+                               placeholder="jean.dupont@email.com") }}
+                            {% if form.guest_email.errors %}
+                            <div class="invalid-feedback">{{ form.guest_email.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-text">Pour envoyer la confirmation par email</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6">
+                            <label for="entry_type" class="form-label">
+                                Type d'entrée <span class="text-danger">*</span>
+                            </label>
+                            {{ form.entry_type(class="form-select", id="entry_type", onchange="toggleArtistSelect()") }}
+                            {% if form.entry_type.errors %}
+                            <div class="invalid-feedback d-block">{{ form.entry_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="plus_ones" class="form-label">Accompagnants (+)</label>
+                            {{ form.plus_ones(class="form-control" + (" is-invalid" if form.plus_ones.errors else ""),
+                               min="0", max="10") }}
+                            {% if form.plus_ones.errors %}
+                            <div class="invalid-feedback">{{ form.plus_ones.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Section Artiste (membre du groupe) - affichée si entry_type='artist' -->
+                    <div class="mb-3" id="artist-section" style="display: none;">
+                        <label for="artist_id" class="form-label">
+                            <i class="bi bi-person-badge me-1"></i>Sélectionner l'artiste
+                        </label>
+                        {{ form.artist_id(class="form-select", id="artist_id") }}
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Les informations (nom, email) seront auto-remplies depuis le profil.
+                        </div>
+                    </div>
+
+                    {% if current_user.has_permission('manage_guestlist') or stop.tour.band.is_manager(current_user) %}
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Statut</label>
+                        {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}
+                        {% if form.status.errors %}
+                        <div class="invalid-feedback">{{ form.status.errors[0] }}</div>
+                        {% endif %}
+                        <div class="form-text">Les managers peuvent approuver directement</div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">Notes</label>
+                        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""),
+                           rows="2", placeholder="Notes sur cet invité (relation, contexte...)") }}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback">{{ form.notes.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Add Another -->
+        {% if entry %}
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body text-center">
+                <a href="{{ url_for('guestlist.add_entry', stop_id=stop.id) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-plus-lg me-1"></i>Ajouter un autre invité
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/**
+ * Toggle artist selection dropdown visibility based on entry type.
+ * Shows the artist dropdown when entry_type='artist', hides it otherwise.
+ */
+function toggleArtistSelect() {
+    const entryType = document.getElementById('entry_type').value;
+    const artistSection = document.getElementById('artist-section');
+    const guestNameInput = document.getElementById('guest_name');
+
+    if (entryType === 'artist') {
+        artistSection.style.display = 'block';
+        // Rendre le nom optionnel quand artiste sélectionné
+        if (guestNameInput) {
+            guestNameInput.removeAttribute('required');
+        }
+    } else {
+        artistSection.style.display = 'none';
+        // Rendre le nom requis pour les autres types
+        if (guestNameInput) {
+            guestNameInput.setAttribute('required', 'required');
+        }
+    }
+}
+
+// Appel initial pour gérer le mode édition (pré-remplissage)
+document.addEventListener('DOMContentLoaded', function() {
+    toggleArtistSelect();
+});
+</script>
+{% endblock %}

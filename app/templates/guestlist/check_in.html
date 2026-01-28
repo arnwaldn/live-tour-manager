@@ -1,0 +1,376 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Check-in - {{ stop.venue.name }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Touch-optimized styles for check-in interface */
+.check-in-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+.check-in-card:hover {
+    transform: translateX(4px);
+}
+.check-in-card.status-approved {
+    border-left-color: #198754;
+}
+.check-in-card.status-checked {
+    border-left-color: #0d6efd;
+    opacity: 0.7;
+}
+.check-in-btn {
+    min-height: 60px;
+    font-size: 1.1rem;
+}
+.search-input-large {
+    font-size: 1.25rem;
+    padding: 1rem;
+}
+@media (max-width: 768px) {
+    .check-in-card {
+        margin-bottom: 0.75rem;
+    }
+    .check-in-btn {
+        min-height: 70px;
+        font-size: 1.2rem;
+    }
+    .guest-name {
+        font-size: 1.2rem;
+    }
+}
+/* Swipe hint animation */
+@keyframes swipeHint {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+}
+.swipe-hint {
+    animation: swipeHint 2s ease-in-out infinite;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}">Guestlist</a></li>
+        <li class="breadcrumb-item active">Check-in</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">
+            <i class="bi bi-check2-circle text-success me-2"></i>Check-in
+        </h1>
+        <p class="text-muted mb-0">
+            {{ stop.venue.name }} · {{ stop.date.strftime('%d/%m/%Y') }}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-list me-1"></i>
+            <span class="d-none d-lg-inline">Liste complète</span>
+            <span class="d-lg-none">Liste</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm bg-success bg-opacity-10">
+            <div class="card-body text-center py-3">
+                <div class="display-6 fw-bold text-success" id="countApproved">{{ stats.approved }}</div>
+                <small class="text-muted">À venir</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm bg-primary bg-opacity-10">
+            <div class="card-body text-center py-3">
+                <div class="display-6 fw-bold text-primary" id="countCheckedIn">{{ stats.checked_in }}</div>
+                <small class="text-muted">Entrés</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-3">
+                <div class="display-6 fw-bold" id="countTotal">{{ stats.total_approved }}</div>
+                <small class="text-muted">Total</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="input-group input-group-lg">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input type="text" id="searchInput" class="form-control search-input-large"
+                   placeholder="Rechercher un invité..." autofocus>
+            <button type="button" class="btn btn-outline-secondary" id="clearSearch" style="display: none;">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="hideCheckedIn" checked>
+            <label class="form-check-label" for="hideCheckedIn">
+                Masquer les invités déjà entrés
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Guest List -->
+<div id="guestList">
+    {% for entry in entries %}
+    <div class="card border-0 shadow-sm mb-3 check-in-card status-{{ 'checked' if entry.status.value == 'checked_in' else 'approved' }}"
+         data-id="{{ entry.id }}"
+         data-name="{{ entry.guest_name|lower }}"
+         data-status="{{ entry.status.value }}">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div class="flex-grow-1">
+                <h5 class="mb-1 guest-name">{{ entry.guest_name }}</h5>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="badge bg-secondary">{{ entry.entry_type.value }}</span>
+                    {% if entry.plus_ones > 0 %}
+                    <span class="badge bg-info">+{{ entry.plus_ones }}</span>
+                    {% endif %}
+                    {% if entry.status.value == 'checked_in' %}
+                    <span class="badge bg-primary">
+                        <i class="bi bi-check2 me-1"></i>Entré
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if entry.status.value == 'approved' %}
+            <form action="{{ url_for('guestlist.do_check_in', id=entry.id) }}" method="POST" class="check-in-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-success check-in-btn px-4">
+                    <i class="bi bi-check2-circle me-1"></i>
+                    <span class="d-none d-md-inline">Check-in</span>
+                </button>
+            </form>
+            {% else %}
+            <span class="text-primary">
+                <i class="bi bi-check-circle-fill fs-3"></i>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Empty State -->
+<div id="emptyState" class="text-center py-5" style="display: none;">
+    <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+    <h5 class="mt-3">Aucun résultat</h5>
+    <p class="text-muted">Aucun invité ne correspond à votre recherche.</p>
+</div>
+
+<!-- All Checked In State -->
+<div id="allCheckedState" class="text-center py-5" style="display: none;">
+    <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+    <h4 class="mt-3 text-success">Tous les invités sont entrés!</h4>
+    <p class="text-muted">Il n'y a plus d'invités en attente de check-in.</p>
+</div>
+
+<!-- Quick Add Modal -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+    <a href="{{ url_for('guestlist.add_entry', stop_id=stop.id) }}"
+       class="btn btn-primary btn-lg rounded-circle shadow-lg"
+       title="Ajouter un invité">
+        <i class="bi bi-plus-lg"></i>
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+    const hideCheckedIn = document.getElementById('hideCheckedIn');
+    const guestList = document.getElementById('guestList');
+    const emptyState = document.getElementById('emptyState');
+    const allCheckedState = document.getElementById('allCheckedState');
+    const cards = document.querySelectorAll('.check-in-card');
+
+    // Search functionality
+    searchInput.addEventListener('input', filterGuests);
+    clearSearch.addEventListener('click', function() {
+        searchInput.value = '';
+        filterGuests();
+        searchInput.focus();
+    });
+    hideCheckedIn.addEventListener('change', filterGuests);
+
+    function filterGuests() {
+        const query = searchInput.value.toLowerCase().trim();
+        const hideChecked = hideCheckedIn.checked;
+        let visibleCount = 0;
+        let approvedCount = 0;
+
+        // Show/hide clear button
+        clearSearch.style.display = query ? 'block' : 'none';
+
+        cards.forEach(function(card) {
+            const name = card.dataset.name;
+            const status = card.dataset.status;
+            const matchesSearch = name.includes(query);
+            const isCheckedIn = status === 'checked_in';
+
+            if (matchesSearch && (!hideChecked || !isCheckedIn)) {
+                card.style.display = 'block';
+                visibleCount++;
+                if (!isCheckedIn) approvedCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Show appropriate empty state
+        if (visibleCount === 0) {
+            guestList.style.display = 'none';
+            if (approvedCount === 0 && !query) {
+                emptyState.style.display = 'none';
+                allCheckedState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'block';
+                allCheckedState.style.display = 'none';
+            }
+        } else {
+            guestList.style.display = 'block';
+            emptyState.style.display = 'none';
+            allCheckedState.style.display = 'none';
+        }
+    }
+
+    // Handle check-in form submissions with AJAX
+    document.querySelectorAll('.check-in-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const card = form.closest('.check-in-card');
+            const button = form.querySelector('button');
+            const originalContent = button.innerHTML;
+
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': form.querySelector('[name=csrf_token]').value,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update card appearance
+                    card.classList.remove('status-approved');
+                    card.classList.add('status-checked');
+                    card.dataset.status = 'checked_in';
+
+                    // Replace button with checked indicator
+                    form.outerHTML = '<span class="text-primary"><i class="bi bi-check-circle-fill fs-3"></i></span>';
+
+                    // Add badge
+                    const badges = card.querySelector('.d-flex.flex-wrap');
+                    const checkedBadge = document.createElement('span');
+                    checkedBadge.className = 'badge bg-primary';
+                    checkedBadge.innerHTML = '<i class="bi bi-check2 me-1"></i>Entré';
+                    badges.appendChild(checkedBadge);
+
+                    // Update counters
+                    const countApproved = document.getElementById('countApproved');
+                    const countCheckedIn = document.getElementById('countCheckedIn');
+                    countApproved.textContent = parseInt(countApproved.textContent) - 1;
+                    countCheckedIn.textContent = parseInt(countCheckedIn.textContent) + 1;
+
+                    // Re-filter to hide if needed
+                    filterGuests();
+
+                    // Show success feedback
+                    showToast('Check-in effectué!', 'success');
+                } else {
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                    showToast(data.message || 'Erreur lors du check-in', 'danger');
+                }
+            })
+            .catch(error => {
+                button.disabled = false;
+                button.innerHTML = originalContent;
+                showToast('Erreur de connexion', 'danger');
+            });
+        });
+    });
+
+    // Toast notification function
+    function showToast(message, type) {
+        const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        toastContainer.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast, { delay: 2000 });
+        bsToast.show();
+        toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    }
+
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.className = 'toast-container position-fixed bottom-0 start-50 translate-middle-x p-3';
+        document.body.appendChild(container);
+        return container;
+    }
+
+    // Initial filter
+    filterGuests();
+
+    // Touch swipe for check-in (mobile)
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    cards.forEach(function(card) {
+        card.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        card.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe(card);
+        }, { passive: true });
+    });
+
+    function handleSwipe(card) {
+        const swipeDistance = touchEndX - touchStartX;
+        if (swipeDistance > 100 && card.dataset.status === 'approved') {
+            // Swipe right = check-in
+            const form = card.querySelector('.check-in-form');
+            if (form) {
+                form.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

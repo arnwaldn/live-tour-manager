@@ -1,0 +1,41 @@
+{% extends "email/base.html" %}
+
+{% block title %}Guestlist Approuvée - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<h2>Votre demande guestlist a été approuvée ✓</h2>
+
+<p>Bonjour,</p>
+
+<p>Nous avons le plaisir de vous confirmer que votre demande d'accès guestlist a été <span class="status-approved">Approuvée</span>.</p>
+
+<div class="info-box">
+    <h3>Détails de l'événement</h3>
+    <p><span class="label">Artiste:</span> <span class="value">{{ band.name }}</span></p>
+    <p><span class="label">Tournée:</span> <span class="value">{{ tour.name }}</span></p>
+    <p><span class="label">Lieu:</span> <span class="value">{{ venue.name }}</span></p>
+    <p><span class="label">Adresse:</span> <span class="value">{{ venue.address }}, {{ venue.city }}</span></p>
+    <p><span class="label">Date:</span> <span class="value">{{ tour_stop.date.strftime('%d/%m/%Y') }}</span></p>
+    {% if tour_stop.doors_time %}
+    <p><span class="label">Ouverture des portes:</span> <span class="value">{{ tour_stop.doors_time.strftime('%H:%M') }}</span></p>
+    {% endif %}
+</div>
+
+<div class="info-box">
+    <h3>Votre invitation</h3>
+    <p><span class="label">Nom:</span> <span class="value">{{ entry.guest_name }}</span></p>
+    <p><span class="label">Type d'accès:</span> <span class="value">{{ entry.entry_type.value|replace('_', ' ')|title }}</span></p>
+    {% if entry.plus_ones > 0 %}
+    <p><span class="label">Accompagnants:</span> <span class="value">+{{ entry.plus_ones }}</span></p>
+    {% endif %}
+</div>
+
+<p><strong>Important:</strong> Présentez-vous à l'entrée guestlist avec une pièce d'identité. Mentionnez votre nom à l'accueil.</p>
+
+<p>Nous vous souhaitons un excellent concert!</p>
+
+<p style="margin-top: 30px;">
+    Cordialement,<br>
+    <strong>L'équipe Studio Palenque</strong>
+</p>
+{% endblock %}

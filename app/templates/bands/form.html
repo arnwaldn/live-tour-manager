@@ -1,0 +1,103 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('bands.index') }}">Groupes</a></li>
+        {% if band %}
+        <li class="breadcrumb-item"><a href="{{ url_for('bands.detail', id=band.id) }}">{{ band.name }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">{{ title }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" enctype="multipart/form-data" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nom du groupe <span class="text-danger">*</span></label>
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""),
+                           placeholder="Ex: The Rolling Stones") }}
+                        {% if form.name.errors %}
+                        <div class="invalid-feedback">{{ form.name.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="genre" class="form-label">Genre musical</label>
+                        {{ form.genre(class="form-control" + (" is-invalid" if form.genre.errors else ""),
+                           placeholder="Ex: Rock, Jazz, Électro...") }}
+                        {% if form.genre.errors %}
+                        <div class="invalid-feedback">{{ form.genre.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">Biographie</label>
+                        {{ form.bio(class="form-control" + (" is-invalid" if form.bio.errors else ""),
+                           rows="4", placeholder="Décrivez votre groupe...") }}
+                        {% if form.bio.errors %}
+                        <div class="invalid-feedback">{{ form.bio.errors[0] }}</div>
+                        {% endif %}
+                        <div class="form-text">Maximum 2000 caractères</div>
+                    </div>
+
+                    <!-- Logo Upload -->
+                    <div class="mb-3">
+                        <label for="logo_file" class="form-label">Logo du groupe</label>
+
+                        {% if band and band.logo_display_url %}
+                        <div class="mb-2 p-2 bg-light rounded d-inline-block">
+                            <img src="{{ band.logo_display_url }}"
+                                 alt="Logo actuel"
+                                 class="rounded"
+                                 style="max-width: 150px; max-height: 150px; object-fit: cover;">
+                            <div class="form-text mt-1">Logo actuel</div>
+                        </div>
+                        {% endif %}
+
+                        {{ form.logo_file(class="form-control" + (" is-invalid" if form.logo_file.errors else ""),
+                           accept="image/*") }}
+                        {% if form.logo_file.errors %}
+                        <div class="invalid-feedback">{{ form.logo_file.errors[0] }}</div>
+                        {% endif %}
+                        <div class="form-text">Formats acceptés: JPG, PNG, GIF, WebP (max 5MB)</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="website" class="form-label">Site web</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-globe"></i></span>
+                            {{ form.website(class="form-control" + (" is-invalid" if form.website.errors else ""),
+                               placeholder="https://mon-groupe.com") }}
+                            {% if form.website.errors %}
+                            <div class="invalid-feedback">{{ form.website.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('bands.detail', id=band.id) if band else url_for('bands.index') }}"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

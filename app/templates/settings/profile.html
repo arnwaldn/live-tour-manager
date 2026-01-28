@@ -1,0 +1,598 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Mon profil - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('settings.index') }}">Paramètres</a></li>
+        <li class="breadcrumb-item active">Mon profil</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">Mon profil</h1>
+        <p class="text-muted mb-0">Gérez vos informations personnelles et documents</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Profile Form Column -->
+    <div class="col-12 col-lg-5">
+        <!-- Profile Picture Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-camera me-2"></i>Photo de profil</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if current_user.profile_picture_data %}
+                <img src="{{ url_for('settings.serve_profile_picture', user_id=current_user.id) }}"
+                     alt="Photo de profil"
+                     class="rounded-circle mb-3"
+                     style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #dee2e6;">
+                {% else %}
+                <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width: 150px; height: 150px; font-size: 3rem; color: white;">
+                    {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
+                </div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('settings.upload_profile_picture') }}" enctype="multipart/form-data" class="mb-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="input-group input-group-sm">
+                        <input type="file" name="picture" accept="image/jpeg,image/png,image/gif" class="form-control" id="pictureInput">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i>Envoyer
+                        </button>
+                    </div>
+                    <small class="text-muted">JPG, PNG ou GIF (max 5 MB)</small>
+                </form>
+
+                {% if current_user.profile_picture_data %}
+                <form method="POST" action="{{ url_for('settings.delete_profile_picture') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            onclick="return confirm('Supprimer votre photo de profil ?')">
+                        <i class="bi bi-trash me-1"></i>Supprimer la photo
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-person me-2"></i>Informations personnelles</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="first_name" class="form-label">Prénom <span class="text-danger">*</span></label>
+                            {{ form.first_name(class="form-control" + (" is-invalid" if form.first_name.errors else "")) }}
+                            {% if form.first_name.errors %}
+                            <div class="invalid-feedback">{{ form.first_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="last_name" class="form-label">Nom <span class="text-danger">*</span></label>
+                            {{ form.last_name(class="form-control" + (" is-invalid" if form.last_name.errors else "")) }}
+                            {% if form.last_name.errors %}
+                            <div class="invalid-feedback">{{ form.last_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                        {% if form.email.errors %}
+                        <div class="invalid-feedback">{{ form.email.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Téléphone</label>
+                        {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else "")) }}
+                        {% if form.phone.errors %}
+                        <div class="invalid-feedback">{{ form.phone.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="date_of_birth" class="form-label">Date de naissance</label>
+                            {{ form.date_of_birth(class="form-control", type="date") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="nationality" class="form-label">Nationalité</label>
+                            {{ form.nationality(class="form-control", placeholder="Ex: Française") }}
+                        </div>
+                    </div>
+
+                    <!-- Accordion for additional sections -->
+                    <div class="accordion mb-4" id="profileAccordion">
+                        <!-- Travel Preferences -->
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#travelPrefs">
+                                    <i class="bi bi-airplane me-2"></i>Préférences de voyage
+                                </button>
+                            </h2>
+                            <div id="travelPrefs" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    <div class="mb-3">
+                                        <label for="preferred_airline" class="form-label">Compagnie aérienne préférée</label>
+                                        {{ form.preferred_airline(class="form-control", placeholder="Ex: Air France") }}
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="seat_preference" class="form-label">Préférence siège</label>
+                                            {{ form.seat_preference(class="form-select") }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="meal_preference" class="form-label">Repas en vol</label>
+                                            {{ form.meal_preference(class="form-select") }}
+                                        </div>
+                                    </div>
+                                    <div class="mb-0">
+                                        <label for="hotel_preferences" class="form-label">Préférences hôtel</label>
+                                        {{ form.hotel_preferences(class="form-control", rows="3", placeholder="Chambre non-fumeur, étage élevé, près de l'ascenseur...") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Travel Cards -->
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#travelCards">
+                                    <i class="bi bi-credit-card-2-front me-2"></i>Cartes Voyageur
+                                    {% if current_user.travel_cards %}
+                                    <span class="badge bg-primary ms-2">{{ current_user.travel_cards|length }}</span>
+                                    {% endif %}
+                                </button>
+                            </h2>
+                            <div id="travelCards" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    <!-- Liste des cartes existantes -->
+                                    {% if current_user.travel_cards %}
+                                    <div class="mb-3">
+                                        {% for card in current_user.travel_cards %}
+                                        <div class="card bg-light mb-2">
+                                            <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>{{ card.card_name or card.card_number }}</strong>
+                                                    <span class="badge bg-{% if card.card_type == 'loyalty_airline' %}info{% elif card.card_type == 'rail_subscription' %}success{% elif card.card_type == 'car_rental' %}warning{% elif card.card_type == 'hotel_loyalty' %}primary{% else %}secondary{% endif %} ms-2">
+                                                        {{ card.type_label }}
+                                                    </span>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        N° {{ card.card_number }}
+                                                        {% if card.expiry_date %}
+                                                        • Expire: {{ card.expiry_date.strftime('%d/%m/%Y') }}
+                                                        {% if card.is_expired %}
+                                                        <span class="badge bg-danger ms-1">Expirée</span>
+                                                        {% elif card.expires_soon %}
+                                                        <span class="badge bg-warning text-dark ms-1">Expire bientôt</span>
+                                                        {% endif %}
+                                                        {% endif %}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted mb-3"><i class="bi bi-info-circle me-2"></i>Aucune carte voyageur enregistrée.</p>
+                                    {% endif %}
+
+                                    <!-- Formulaire d'ajout -->
+                                    <div class="card border-secondary">
+                                        <div class="card-header bg-transparent py-2">
+                                            <small class="text-muted"><i class="bi bi-plus-circle me-1"></i>Ajouter une carte</small>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <form action="{{ url_for('settings.add_own_travel_card') }}" method="POST">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <div class="row g-2">
+                                                    <div class="col-md-6">
+                                                        <input type="text" name="card_number" class="form-control form-control-sm" placeholder="Numéro de carte *" required maxlength="50">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <select name="card_type" class="form-select form-select-sm" required>
+                                                            <option value="loyalty_airline">Fidélité aérienne</option>
+                                                            <option value="rail_subscription">Abonnement rail</option>
+                                                            <option value="car_rental">Carte loueur</option>
+                                                            <option value="hotel_loyalty">Fidélité hôtel</option>
+                                                            <option value="other">Autre</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <input type="text" name="card_name" class="form-control form-control-sm" placeholder="Nom de la carte" maxlength="100">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <input type="date" name="expiry_date" class="form-control form-control-sm" placeholder="Date de validité">
+                                                    </div>
+                                                    <div class="col-12 text-end">
+                                                        <button type="submit" class="btn btn-success btn-sm">
+                                                            <i class="bi bi-plus-circle me-1"></i>Ajouter
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    <!-- Liste avec bouton supprimer -->
+                                    {% if current_user.travel_cards %}
+                                    <hr class="my-3">
+                                    <small class="text-muted d-block mb-2">Supprimer une carte:</small>
+                                    {% for card in current_user.travel_cards %}
+                                    <form action="{{ url_for('settings.delete_own_travel_card', card_id=card.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Supprimer cette carte ?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm mb-1" title="Supprimer {{ card.card_name or card.card_number }}">
+                                            <i class="bi bi-trash me-1"></i>{{ card.card_name or card.card_number }}
+                                        </button>
+                                    </form>
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Emergency Contact -->
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#emergencyContact">
+                                    <i class="bi bi-telephone-fill me-2"></i>Contact d'urgence
+                                </button>
+                            </h2>
+                            <div id="emergencyContact" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="emergency_contact_name" class="form-label">Nom complet</label>
+                                            {{ form.emergency_contact_name(class="form-control", placeholder="Nom du contact") }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="emergency_contact_relation" class="form-label">Relation</label>
+                                            {{ form.emergency_contact_relation(class="form-control", placeholder="Ex: Conjoint, Parent...") }}
+                                        </div>
+                                    </div>
+                                    <div class="row mb-0">
+                                        <div class="col-md-6">
+                                            <label for="emergency_contact_phone" class="form-label">Téléphone</label>
+                                            {{ form.emergency_contact_phone(class="form-control", placeholder="+33 6 12 34 56 78") }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="emergency_contact_email" class="form-label">Email</label>
+                                            {{ form.emergency_contact_email(class="form-control", placeholder="email@exemple.com") }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Health / Dietary -->
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#healthInfo">
+                                    <i class="bi bi-heart-pulse me-2"></i>Santé & Alimentation
+                                </button>
+                            </h2>
+                            <div id="healthInfo" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    <div class="mb-3">
+                                        <label for="dietary_restrictions" class="form-label">Restrictions alimentaires</label>
+                                        {{ form.dietary_restrictions(class="form-control", rows="2", placeholder="Végétarien, sans gluten, sans lactose...") }}
+                                    </div>
+                                    <div class="mb-0">
+                                        <label for="allergies" class="form-label">Allergies</label>
+                                        {{ form.allergies(class="form-control", rows="2", placeholder="Fruits de mer, arachides, pollen...") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Billing / Payment -->
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#billingInfo">
+                                    <i class="bi bi-credit-card me-2"></i>Facturation & Paiement
+                                </button>
+                            </h2>
+                            <div id="billingInfo" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <label for="contract_type" class="form-label">Type de contrat</label>
+                                            {{ form.contract_type(class="form-select") }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="payment_frequency" class="form-label">Fréquence paiement</label>
+                                            {{ form.payment_frequency(class="form-select") }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Tarifs -->
+                                    <h6 class="text-muted mb-3"><i class="bi bi-currency-euro me-2"></i>Tarifs</h6>
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label for="show_rate" class="form-label">Tarif concert (€)</label>
+                                            {{ form.show_rate(class="form-control", placeholder="0.00") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="daily_rate" class="form-label">Tarif journalier (€)</label>
+                                            {{ form.daily_rate(class="form-control", placeholder="0.00") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="half_day_rate" class="form-label">Demi-journée (€)</label>
+                                            {{ form.half_day_rate(class="form-control", placeholder="0.00") }}
+                                        </div>
+                                    </div>
+                                    <div class="row mb-4">
+                                        <div class="col-md-4">
+                                            <label for="hourly_rate" class="form-label">Tarif horaire (€)</label>
+                                            {{ form.hourly_rate(class="form-control", placeholder="0.00") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="per_diem" class="form-label">Per diem (€)</label>
+                                            {{ form.per_diem(class="form-control", placeholder="35.00") }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Majorations -->
+                                    <h6 class="text-muted mb-3"><i class="bi bi-percent me-2"></i>Majorations</h6>
+                                    <div class="row mb-4">
+                                        <div class="col-md-4">
+                                            <label for="overtime_rate_25" class="form-label">Heures sup +25%</label>
+                                            {{ form.overtime_rate_25(class="form-control", placeholder="1.25") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="overtime_rate_50" class="form-label">Heures sup +50%</label>
+                                            {{ form.overtime_rate_50(class="form-control", placeholder="1.50") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="weekend_rate" class="form-label">Weekend</label>
+                                            {{ form.weekend_rate(class="form-control", placeholder="1.25") }}
+                                        </div>
+                                    </div>
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <label for="holiday_rate" class="form-label">Jours fériés</label>
+                                            {{ form.holiday_rate(class="form-control", placeholder="2.00") }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="night_rate" class="form-label">Nuit</label>
+                                            {{ form.night_rate(class="form-control", placeholder="1.25") }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Informations bancaires -->
+                                    <h6 class="text-muted mb-3"><i class="bi bi-bank me-2"></i>Informations bancaires (SEPA)</h6>
+                                    <div class="row mb-3">
+                                        <div class="col-md-8">
+                                            <label for="iban" class="form-label">IBAN</label>
+                                            {{ form.iban(class="form-control", placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="bic" class="form-label">BIC</label>
+                                            {{ form.bic(class="form-control", placeholder="XXXXXXXX") }}
+                                        </div>
+                                    </div>
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <label for="bank_name" class="form-label">Nom de la banque</label>
+                                            {{ form.bank_name(class="form-control", placeholder="Ex: Crédit Agricole") }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="account_holder" class="form-label">Titulaire du compte</label>
+                                            {{ form.account_holder(class="form-control", placeholder="Nom complet") }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Informations fiscales -->
+                                    <h6 class="text-muted mb-3"><i class="bi bi-file-earmark-text me-2"></i>Informations fiscales</h6>
+                                    <div class="row mb-0">
+                                        <div class="col-md-4">
+                                            <label for="siret" class="form-label">SIRET</label>
+                                            {{ form.siret(class="form-control", placeholder="14 chiffres") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="siren" class="form-label">SIREN</label>
+                                            {{ form.siren(class="form-control", placeholder="9 chiffres") }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="vat_number" class="form-label">N° TVA</label>
+                                            {{ form.vat_number(class="form-control", placeholder="FR XX XXXXXXXXX") }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-link-45deg me-2"></i>Liens rapides</h5>
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('settings.password') }}" class="btn btn-outline-secondary w-100 mb-2">
+                    <i class="bi bi-key me-2"></i>Changer mon mot de passe
+                </a>
+                <a href="{{ url_for('settings.notifications') }}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-bell me-2"></i>Préférences de notification
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents Column -->
+    <div class="col-12 col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-earmark me-2"></i>Mes documents ({{ documents|length }})</h5>
+                <a href="{{ url_for('settings.upload_profile_document') }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>Ajouter
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if documents %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Document</th>
+                                <th>Type</th>
+                                <th class="d-none d-md-table-cell">Expiration</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documents %}
+                            <tr>
+                                <td>
+                                    {% set ext = doc.name.split('.')[-1].lower() if '.' in doc.name else '' %}
+                                    {% if ext in ['pdf'] %}
+                                    <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                    {% elif ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                    <i class="bi bi-file-earmark-image text-primary me-2"></i>
+                                    {% elif ext in ['doc', 'docx'] %}
+                                    <i class="bi bi-file-earmark-word text-primary me-2"></i>
+                                    {% else %}
+                                    <i class="bi bi-file-earmark text-secondary me-2"></i>
+                                    {% endif %}
+                                    <span class="fw-medium">{{ doc.title }}</span>
+                                    {% if doc.description %}
+                                    <br><small class="text-muted">{{ doc.description[:50] }}{% if doc.description|length > 50 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set type_labels = {
+                                        'passport': 'Passeport',
+                                        'visa': 'Visa',
+                                        'work_permit': 'Permis travail',
+                                        'insurance': 'Assurance',
+                                        'other': 'Autre'
+                                    } %}
+                                    <span class="badge bg-secondary">{{ type_labels.get(doc.document_type.value, doc.document_type.value) }}</span>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if doc.expiry_date %}
+                                        {% set today = now() %}
+                                        {% if doc.expiry_date.date() < today.date() %}
+                                        <span class="text-danger">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>Expiré
+                                        </span>
+                                        {% elif (doc.expiry_date.date() - today.date()).days <= 30 %}
+                                        <span class="text-warning">
+                                            <i class="bi bi-clock me-1"></i>{{ doc.expiry_date.strftime('%d/%m/%Y') }}
+                                        </span>
+                                        {% else %}
+                                        {{ doc.expiry_date.strftime('%d/%m/%Y') }}
+                                        {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('documents.download', id=doc.id) }}"
+                                           class="btn btn-outline-primary" title="Télécharger">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        <form action="{{ url_for('settings.delete_profile_document', doc_id=doc.id) }}"
+                                              method="POST" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-outline-danger"
+                                                    title="Supprimer"
+                                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce document?')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-file-earmark-x display-4 text-muted mb-3"></i>
+                    <p class="text-muted mb-3">Vous n'avez pas encore ajouté de documents</p>
+                    <p class="small text-muted mb-4">
+                        Ajoutez vos documents personnels (passeport, visa, assurance...)
+                        pour les avoir toujours à portée de main.
+                    </p>
+                    <a href="{{ url_for('settings.upload_profile_document') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter mon premier document
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Document Types Info -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body">
+                <h6 class="text-muted mb-3"><i class="bi bi-info-circle me-2"></i>Types de documents acceptés</h6>
+                <div class="row g-2">
+                    <div class="col-auto">
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-passport me-1"></i>Passeport
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-card-text me-1"></i>Visa
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-file-earmark-check me-1"></i>Permis de travail
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-shield-check me-1"></i>Assurance
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-light text-dark border">
+                            <i class="bi bi-file-earmark me-1"></i>Autre
+                        </span>
+                    </div>
+                </div>
+                <p class="small text-muted mt-2 mb-0">
+                    Formats acceptés: PDF, JPG, PNG, DOC, DOCX
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Helper function for date comparison in Jinja2
+// The actual date comparison is handled by Jinja2, this is just for reference
+</script>
+{% endblock %}

@@ -1,0 +1,345 @@
+/**
+ * Day Sheet - Timeline CSS Grid
+ * Inspired by CodyHouse Schedule Template
+ * Pure CSS, no paid libraries required
+ */
+
+:root {
+    --ds-bg: #1a1a2e;
+    --ds-card-bg: #16213e;
+    --ds-border: #0f3460;
+    --ds-gold: #d4a574;
+    --ds-text: #e4e4e4;
+    --ds-text-muted: #8b8b8b;
+    --ds-time-col-width: 80px;
+    --ds-hour-height: 80px;
+}
+
+/* Day Sheet Container */
+.day-sheet {
+    background: var(--ds-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.day-sheet-header {
+    background: linear-gradient(135deg, var(--ds-card-bg) 0%, var(--ds-border) 100%);
+    padding: 1.5rem 2rem;
+    border-bottom: 2px solid var(--ds-gold);
+}
+
+.day-sheet-header h2 {
+    color: var(--ds-gold);
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.day-sheet-header .date {
+    color: var(--ds-text);
+    font-size: 1.1rem;
+    margin-top: 0.25rem;
+}
+
+.day-sheet-header .venue {
+    color: var(--ds-text-muted);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+/* Timeline Grid */
+.timeline-container {
+    display: grid;
+    grid-template-columns: var(--ds-time-col-width) 1fr;
+    position: relative;
+    padding: 1rem 0;
+}
+
+/* Time Column */
+.time-column {
+    border-right: 1px solid var(--ds-border);
+}
+
+.time-slot {
+    height: var(--ds-hour-height);
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding-right: 12px;
+    color: var(--ds-text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    position: relative;
+}
+
+.time-slot::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 10px;
+    height: 1px;
+    background: var(--ds-border);
+}
+
+/* Events Column */
+.events-column {
+    position: relative;
+    min-height: calc(var(--ds-hour-height) * 18); /* 06:00 - 24:00 */
+}
+
+/* Hour Lines */
+.hour-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--ds-border);
+    opacity: 0.3;
+}
+
+/* Event Block */
+.event-block {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    background: var(--ds-card-bg);
+    border-left: 4px solid var(--ds-gold);
+    border-radius: 0 8px 8px 0;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.event-block:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 15px rgba(212, 165, 116, 0.2);
+}
+
+.event-block.active {
+    border-left-color: #28a745;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, var(--ds-card-bg) 100%);
+}
+
+.event-block.past {
+    opacity: 0.6;
+    border-left-color: var(--ds-text-muted);
+}
+
+/* Event Types Colors */
+.event-block.load-in { border-left-color: #17a2b8; }
+.event-block.crew-call { border-left-color: #6c757d; }
+.event-block.artist-call { border-left-color: #9b59b6; }
+.event-block.catering { border-left-color: #e67e22; }
+.event-block.soundcheck { border-left-color: #3498db; }
+.event-block.press { border-left-color: #e91e63; }
+.event-block.meet-greet { border-left-color: #20c997; }
+.event-block.doors { border-left-color: #fd7e14; }
+.event-block.show { border-left-color: #28a745; }
+.event-block.curfew { border-left-color: #dc3545; }
+
+/* Event Content */
+.event-time {
+    font-size: 0.75rem;
+    color: var(--ds-gold);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.event-title {
+    font-size: 0.9rem;
+    color: var(--ds-text);
+    font-weight: 500;
+    margin-bottom: 0.125rem;
+}
+
+.event-description {
+    font-size: 0.75rem;
+    color: var(--ds-text-muted);
+}
+
+/* Event Icons */
+.event-icon {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    font-size: 1rem;
+    opacity: 0.6;
+}
+
+/* Current Time Indicator */
+.current-time-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #dc3545;
+    z-index: 20;
+}
+
+.current-time-indicator::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    background: #dc3545;
+    border-radius: 50%;
+}
+
+/* Quick Info Cards */
+.day-sheet-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    background: var(--ds-card-bg);
+    border-top: 1px solid var(--ds-border);
+}
+
+.info-card {
+    background: var(--ds-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--ds-border);
+}
+
+.info-card-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ds-text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.info-card-value {
+    font-size: 1.1rem;
+    color: var(--ds-text);
+    font-weight: 600;
+}
+
+.info-card-value.gold {
+    color: var(--ds-gold);
+}
+
+/* Print Styles */
+@media print {
+    .day-sheet {
+        background: white;
+        box-shadow: none;
+        color: black;
+    }
+
+    .day-sheet-header {
+        background: #f8f9fa;
+        border-bottom: 2px solid #333;
+    }
+
+    .day-sheet-header h2,
+    .day-sheet-header .date {
+        color: #333;
+    }
+
+    .event-block {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        break-inside: avoid;
+    }
+
+    .event-title,
+    .event-time {
+        color: #333;
+    }
+
+    .time-slot {
+        color: #666;
+    }
+
+    .current-time-indicator {
+        display: none;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    :root {
+        --ds-time-col-width: 60px;
+        --ds-hour-height: 60px;
+    }
+
+    .day-sheet-header {
+        padding: 1rem;
+    }
+
+    .event-block {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .event-title {
+        font-size: 0.8rem;
+    }
+
+    .day-sheet-info {
+        padding: 1rem;
+    }
+}
+
+/* No Events State */
+.no-events {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--ds-text-muted);
+    text-align: center;
+}
+
+.no-events i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Action Buttons */
+.day-sheet-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: var(--ds-card-bg);
+    border-top: 1px solid var(--ds-border);
+}
+
+.day-sheet-actions .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+/* Legend */
+.day-sheet-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    background: var(--ds-card-bg);
+    border-top: 1px solid var(--ds-border);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--ds-text-muted);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}

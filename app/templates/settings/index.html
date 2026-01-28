@@ -1,0 +1,133 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Paramètres - Tour Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-gear me-2"></i>Paramètres
+    </h1>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 g-4">
+    <!-- Profile Settings -->
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-person me-2 text-primary"></i>Profil
+                </h5>
+                <p class="card-text text-muted">
+                    Modifier vos informations personnelles (nom, email, téléphone).
+                </p>
+                <a href="{{ url_for('settings.profile') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil me-2"></i>Modifier le profil
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Settings -->
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-shield-lock me-2 text-success"></i>Sécurité
+                </h5>
+                <p class="card-text text-muted">
+                    Changer votre mot de passe et gérer la sécurité de votre compte.
+                </p>
+                <a href="{{ url_for('settings.password') }}" class="btn btn-outline-success">
+                    <i class="bi bi-key me-2"></i>Changer le mot de passe
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Info -->
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-info-circle me-2 text-info"></i>Informations du compte
+                </h5>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <strong>Email:</strong> {{ current_user.email }}
+                    </li>
+                    <li class="mb-2">
+                        <strong>Rôle(s):</strong>
+                        {% for role in current_user.roles %}
+                        <span class="badge bg-secondary">{{ role.name }}</span>
+                        {% endfor %}
+                    </li>
+                    <li class="mb-2">
+                        <strong>Membre depuis:</strong>
+                        {{ current_user.created_at.strftime('%d/%m/%Y') if current_user.created_at else 'N/A' }}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-bell me-2 text-warning"></i>Notifications
+                </h5>
+                <p class="card-text text-muted">
+                    Gérer vos préférences de notifications par email.
+                </p>
+                <a href="{{ url_for('settings.notifications') }}" class="btn btn-outline-warning">
+                    <i class="bi bi-sliders me-2"></i>Configurer
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Management (Manager only) -->
+    {% if current_user.has_role('MANAGER') %}
+    <div class="col">
+        <div class="card h-100 border-primary">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-people-fill me-2 text-primary"></i>Gestion des utilisateurs
+                </h5>
+                <p class="card-text text-muted">
+                    Créer, modifier et gérer les comptes utilisateurs de la plateforme.
+                </p>
+                <a href="{{ url_for('settings.users_list') }}" class="btn btn-primary">
+                    <i class="bi bi-person-plus me-2"></i>Gérer les utilisateurs
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Registrations (Manager only) -->
+    <div class="col">
+        <div class="card h-100 {% if pending_registrations_count > 0 %}border-warning{% endif %}">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-person-plus me-2 text-warning"></i>Inscriptions en attente
+                    {% if pending_registrations_count > 0 %}
+                    <span class="badge bg-warning text-dark">{{ pending_registrations_count }}</span>
+                    {% endif %}
+                </h5>
+                <p class="card-text text-muted">
+                    {% if pending_registrations_count > 0 %}
+                    {{ pending_registrations_count }} inscription(s) en attente d'approbation.
+                    {% else %}
+                    Aucune inscription en attente.
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('settings.pending_registrations') }}" class="btn {% if pending_registrations_count > 0 %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+                    <i class="bi bi-check2-circle me-2"></i>Gérer les inscriptions
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

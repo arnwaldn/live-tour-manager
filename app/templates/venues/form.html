@@ -1,0 +1,274 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+{# Autocomplete styles now in custom.css for dark theme consistency #}
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('venues.index') }}">Salles</a></li>
+        {% if venue %}
+        <li class="breadcrumb-item"><a href="{{ url_for('venues.detail', id=venue.id) }}">{{ venue.name }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">{{ title }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <!-- Hidden fields for GPS coordinates -->
+                    {{ form.latitude(id="latitude") }}
+                    {{ form.longitude(id="longitude") }}
+
+                    <h5 class="mb-3">Informations générales</h5>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-8">
+                            <label for="name" class="form-label">Nom de la salle <span class="text-danger">*</span></label>
+                            {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""),
+                               placeholder="Ex: Le Zénith") }}
+                            {% if form.name.errors %}
+                            <div class="invalid-feedback">{{ form.name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label for="venue_type" class="form-label">Type</label>
+                            {{ form.venue_type(class="form-select" + (" is-invalid" if form.venue_type.errors else "")) }}
+                            {% if form.venue_type.errors %}
+                            <div class="invalid-feedback">{{ form.venue_type.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12">
+                            <label for="address" class="form-label">
+                                Adresse <span class="text-danger">*</span>
+                                <small class="text-muted fw-normal ms-2">
+                                    <i class="bi bi-magic"></i> Autocompletion active
+                                </small>
+                            </label>
+                            {{ form.address(class="form-control" + (" is-invalid" if form.address.errors else ""),
+                               placeholder="Commencez a taper pour voir les suggestions...",
+                               id="address",
+                               autocomplete="off") }}
+                            {% if form.address.errors %}
+                            <div class="invalid-feedback">{{ form.address.errors[0] }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Tapez une adresse pour voir les suggestions et remplir automatiquement les coordonnees GPS.
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label for="postal_code" class="form-label">Code postal <span class="text-danger">*</span></label>
+                            {{ form.postal_code(class="form-control" + (" is-invalid" if form.postal_code.errors else ""),
+                               placeholder="75001", id="postal_code") }}
+                            {% if form.postal_code.errors %}
+                            <div class="invalid-feedback">{{ form.postal_code.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label for="city" class="form-label">Ville <span class="text-danger">*</span></label>
+                            {{ form.city(class="form-control" + (" is-invalid" if form.city.errors else ""),
+                               placeholder="Paris", id="city") }}
+                            {% if form.city.errors %}
+                            <div class="invalid-feedback">{{ form.city.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label for="country" class="form-label">Pays <span class="text-danger">*</span></label>
+                            {{ form.country(class="form-control" + (" is-invalid" if form.country.errors else ""),
+                               placeholder="France", id="country") }}
+                            {% if form.country.errors %}
+                            <div class="invalid-feedback">{{ form.country.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label for="capacity" class="form-label">Capacité</label>
+                            {{ form.capacity(class="form-control" + (" is-invalid" if form.capacity.errors else ""),
+                               placeholder="5000") }}
+                            {% if form.capacity.errors %}
+                            <div class="invalid-feedback">{{ form.capacity.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h5 class="mb-3">Coordonnées</h5>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label for="phone" class="form-label">Téléphone</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""),
+                                   placeholder="+33 1 23 45 67 89") }}
+                                {% if form.phone.errors %}
+                                <div class="invalid-feedback">{{ form.phone.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""),
+                                   placeholder="contact@salle.com") }}
+                                {% if form.email.errors %}
+                                <div class="invalid-feedback">{{ form.email.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="website" class="form-label">Site web</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-globe"></i></span>
+                                {{ form.website(class="form-control" + (" is-invalid" if form.website.errors else ""),
+                                   placeholder="https://www.salle.com") }}
+                                {% if form.website.errors %}
+                                <div class="invalid-feedback">{{ form.website.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h5 class="mb-3">Informations techniques</h5>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="technical_specs" class="form-label">Spécifications techniques</label>
+                            {{ form.technical_specs(class="form-control" + (" is-invalid" if form.technical_specs.errors else ""),
+                               rows="3", placeholder="Équipement son/lumière, dimensions scène...") }}
+                            {% if form.technical_specs.errors %}
+                            <div class="invalid-feedback">{{ form.technical_specs.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12">
+                            <label for="notes" class="form-label">Notes</label>
+                            {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""),
+                               rows="3", placeholder="Notes internes...") }}
+                            {% if form.notes.errors %}
+                            <div class="invalid-feedback">{{ form.notes.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h5 class="mb-3">
+                        <i class="bi bi-people me-2"></i>Contacts
+                        <small class="text-muted fw-normal">(optionnel)</small>
+                    </h5>
+
+                    <div id="contacts-container">
+                        {% if venue and venue.contacts %}
+                        {% for contact in venue.contacts %}
+                        <div class="contact-row border rounded p-3 mb-3" data-contact-id="{{ contact.id }}">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <input type="text" class="form-control" name="contacts[{{ loop.index0 }}][name]"
+                                           value="{{ contact.name }}" placeholder="Nom *" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <select class="form-select" name="contacts[{{ loop.index0 }}][role]">
+                                        <option value="">Rôle</option>
+                                        <option value="Booker" {{ 'selected' if contact.role == 'Booker' }}>Booker</option>
+                                        <option value="Production" {{ 'selected' if contact.role == 'Production' }}>Production</option>
+                                        <option value="Sound Engineer" {{ 'selected' if contact.role == 'Sound Engineer' }}>Ingénieur son</option>
+                                        <option value="Lighting" {{ 'selected' if contact.role == 'Lighting' }}>Éclairagiste</option>
+                                        <option value="Stage Manager" {{ 'selected' if contact.role == 'Stage Manager' }}>Régisseur</option>
+                                        <option value="Security" {{ 'selected' if contact.role == 'Security' }}>Sécurité</option>
+                                        <option value="Marketing" {{ 'selected' if contact.role == 'Marketing' }}>Marketing</option>
+                                        <option value="Box Office" {{ 'selected' if contact.role == 'Box Office' }}>Billetterie</option>
+                                        <option value="Hospitality" {{ 'selected' if contact.role == 'Hospitality' }}>Hospitalité</option>
+                                        <option value="General Manager" {{ 'selected' if contact.role == 'General Manager' }}>Directeur</option>
+                                        <option value="Other" {{ 'selected' if contact.role == 'Other' }}>Autre</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="email" class="form-control" name="contacts[{{ loop.index0 }}][email]"
+                                           value="{{ contact.email or '' }}" placeholder="Email">
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="tel" class="form-control" name="contacts[{{ loop.index0 }}][phone]"
+                                           value="{{ contact.phone or '' }}" placeholder="Téléphone">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-center">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-contact" title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="hidden" name="contacts[{{ loop.index0 }}][id]" value="{{ contact.id }}">
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <button type="button" class="btn btn-outline-primary btn-sm mb-4" id="add-contact-btn">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter un contact
+                    </button>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('venues.detail', id=venue.id) if venue else url_for('venues.index') }}"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/venue-contacts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize address autocomplete
+    // France: API Adresse (gratuit illimité)
+    // International: Geoapify (3000 req/jour gratuit)
+    if (typeof initAddressAutocomplete === 'function') {
+        initAddressAutocomplete('#address', {
+            latField: '#latitude',
+            lngField: '#longitude',
+            cityField: '#city',
+            countryField: '#country',
+            postalCodeField: '#postal_code',
+            country: 'FR',
+            geoapifyKey: '{{ config.GEOAPIFY_API_KEY or "" }}',
+            onSelect: function(suggestion) {
+                // Coordinates are automatically stored in hidden fields via latField/lngField
+                console.log('Address selected, coordinates:', suggestion.latitude, suggestion.longitude);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

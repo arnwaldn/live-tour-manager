@@ -1,0 +1,53 @@
+{% extends "email/base.html" %}
+
+{% block title %}Document partage - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<h2>Document partage avec vous</h2>
+
+<p>Bonjour {{ shared_to.first_name }},</p>
+
+<p><strong>{{ shared_by.full_name }}</strong> a partage un document avec vous.</p>
+
+<div class="info-box">
+    <h3>{{ document.name }}</h3>
+    {% if document.description %}
+    <p style="color: #666666;">{{ document.description }}</p>
+    {% endif %}
+    <p>
+        <span class="label">Type :</span>
+        <span class="value">
+            {% if document.document_type.value == 'passport' %}Passeport
+            {% elif document.document_type.value == 'visa' %}Visa
+            {% elif document.document_type.value == 'contract' %}Contrat
+            {% elif document.document_type.value == 'rider' %}Rider
+            {% elif document.document_type.value == 'insurance' %}Assurance
+            {% elif document.document_type.value == 'work_permit' %}Permis de travail
+            {% else %}{{ document.document_type.value | title }}
+            {% endif %}
+        </span>
+    </p>
+    <p>
+        <span class="label">Taille :</span>
+        <span class="value">{{ document.file_size_formatted }}</span>
+    </p>
+</div>
+
+<table cellpadding="0" cellspacing="0" border="0" style="margin: 25px 0;">
+    <tr>
+        <td>
+            <a href="{{ view_url }}" class="btn">Voir le document</a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin-top: 30px;">
+    Cordialement,<br>
+    <strong>L'equipe Studio Palenque</strong>
+</p>
+
+<p style="color: #999999; font-size: 12px; margin-top: 20px; border-top: 1px solid #eeeeee; padding-top: 15px;">
+    Vous recevez cet email car un document a ete partage avec vous.
+    Vous pouvez gerer vos preferences de notification dans vos parametres.
+</p>
+{% endblock %}

@@ -1,0 +1,28 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+NOUVELLE INSCRIPTION EN ATTENTE
+
+Une nouvelle demande d'inscription a ete soumise et attend votre approbation.
+
+---
+INFORMATIONS DU DEMANDEUR
+---
+Nom: {{ user.full_name }}
+Email: {{ user.email }}
+{% if user.phone %}Telephone: {{ user.phone }}{% endif %}
+
+---
+ACTION REQUISE
+---
+{{ approval_url }}
+
+Connectez-vous pour approuver ou refuser cette demande.
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group
+Cet email a ete envoye automatiquement.

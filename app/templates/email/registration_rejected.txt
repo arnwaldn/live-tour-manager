@@ -1,0 +1,18 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+INSCRIPTION REFUSEE
+
+Bonjour {{ name }},
+
+Nous regrettons de vous informer que votre demande d'inscription a Studio Palenque Tour n'a pas ete approuvee.
+
+Si vous pensez qu'il s'agit d'une erreur ou si vous souhaitez plus d'informations, veuillez contacter l'administrateur de la plateforme.
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+(c) 2026 Studio Palenque Group
+Cet email a ete envoye automatiquement.

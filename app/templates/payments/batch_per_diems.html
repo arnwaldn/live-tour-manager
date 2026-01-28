@@ -1,0 +1,146 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Générer per diems - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('payments.index') }}">Paiements</a></li>
+                <li class="breadcrumb-item active">Générer per diems</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0">
+            <i class="bi bi-lightning me-2"></i>
+            Générer des per diems
+        </h1>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" class="needs-validation" novalidate>
+            {{ form.hidden_tag() }}
+
+            <!-- Selection tournee -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Sélection de la tournée</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="tour_id" class="form-label">Tournée *</label>
+                        {{ form.tour_id(class="form-select" + (" is-invalid" if form.tour_id.errors else ""), id="tour_id") }}
+                        {% for error in form.tour_id.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text">Sélectionnez la tournée pour laquelle générer les per diems</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="per_diem_amount" class="form-label">Montant per diem *</label>
+                            <div class="input-group">
+                                {{ form.per_diem_amount(class="form-control" + (" is-invalid" if form.per_diem_amount.errors else ""), id="per_diem_amount", step="0.01", min="0", max="200") }}
+                                <span class="input-group-text">EUR</span>
+                            </div>
+                            {% for error in form.per_diem_amount.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">Montant standard: 35 EUR (plafond URSSAF)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Jours à inclure</label>
+                            <div class="form-check">
+                                {{ form.include_travel_days(class="form-check-input", id="include_travel_days") }}
+                                <label class="form-check-label" for="include_travel_days">
+                                    Inclure les jours de voyage
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.include_day_offs(class="form-check-input", id="include_day_offs") }}
+                                <label class="form-check-label" for="include_day_offs">
+                                    Inclure les jours off
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="notes" class="form-label">Notes</label>
+                            {{ form.notes(class="form-control", rows="2", placeholder="Notes optionnelles pour ces per diems...") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info -->
+            <div class="alert alert-info d-flex align-items-start mb-4">
+                <i class="bi bi-info-circle fs-5 me-3"></i>
+                <div>
+                    <strong>Comment ça marche?</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Les per diems seront créés pour chaque date de la tournée</li>
+                        <li>Seuls les membres ayant une configuration de paiement avec per diem > 0 seront inclus</li>
+                        <li>Les per diems déjà existants ne seront pas dupliqués</li>
+                        <li>Les paiements seront créés en statut "Brouillon" pour vérification</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Annuler
+                </a>
+                <div>
+                    {{ form.submit(class="btn btn-primary btn-lg") }}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Per diem en France</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">
+                    <strong>Plafond URSSAF 2024:</strong> 20,70 EUR pour repas seul, jusqu'à 66,50 EUR pour hébergement inclus.
+                </p>
+                <p class="small text-muted mb-2">
+                    <strong>Standard industrie:</strong> 35 EUR est le montant couramment utilisé dans le spectacle vivant.
+                </p>
+                <p class="small text-muted mb-0">
+                    <strong>Attention:</strong> Au-delà des plafonds URSSAF, les per diems sont soumis à cotisations sociales.
+                </p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-gear me-2"></i>Configuration requise</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">
+                    Pour générer des per diems, les membres doivent avoir une configuration de paiement avec un montant de per diem défini.
+                </p>
+                <a href="{{ url_for('payments.config_list') }}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-gear me-1"></i>Voir les configurations
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,178 @@
+<!-- Sidebar - Offcanvas on mobile, fixed on desktop -->
+<nav class="sidebar offcanvas-lg offcanvas-start" tabindex="-1"
+     id="sidebarOffcanvas" aria-labelledby="sidebarLabel">
+    <div class="sidebar-header offcanvas-header">
+        <div class="d-flex align-items-center w-100">
+            <a href="{{ url_for('main.dashboard') }}" class="sidebar-brand text-decoration-none">
+                <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Studio Palenque" height="40" class="brand-icon">
+                <span class="brand-text">Studio Palenque Tour</span>
+                <span class="brand-credit">Cree par Arnaud Porcel</span>
+            </a>
+            <button type="button" class="btn-close btn-close-white d-lg-none ms-auto" data-bs-dismiss="offcanvas"
+                    data-bs-target="#sidebarOffcanvas" aria-label="Close"></button>
+        </div>
+    </div>
+    <div class="sidebar-body offcanvas-body d-lg-flex flex-column p-0 overflow-y-auto">
+        <ul class="nav nav-pills flex-column mb-auto sidebar-nav">
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' else '' }}"
+                   href="{{ url_for('main.dashboard') }}">
+                    <i class="bi bi-speedometer2 me-2"></i>
+                    Dashboard
+                </a>
+            </li>
+
+            <li class="nav-item mt-3">
+                <span class="nav-link text-muted small text-uppercase">Gestion</span>
+            </li>
+
+            <!-- Bands -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'bands' in request.endpoint else '' }}"
+                   href="{{ url_for('bands.index') }}">
+                    <i class="bi bi-people me-2"></i>
+                    Groupes
+                </a>
+            </li>
+
+            <!-- Tours -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'tours' in request.endpoint else '' }}"
+                   href="{{ url_for('tours.index') }}">
+                    <i class="bi bi-calendar-event me-2"></i>
+                    Tournées
+                </a>
+            </li>
+
+            <!-- Venues -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'venues' in request.endpoint else '' }}"
+                   href="{{ url_for('venues.index') }}">
+                    <i class="bi bi-building me-2"></i>
+                    Salles
+                </a>
+            </li>
+
+            <!-- Global Calendar -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.endpoint == 'main.global_calendar' else '' }}"
+                   href="{{ url_for('main.global_calendar') }}">
+                    <i class="bi bi-calendar3 me-2"></i>
+                    Calendrier
+                </a>
+            </li>
+
+            <li class="nav-item mt-3">
+                <span class="nav-link text-muted small text-uppercase">Événements</span>
+            </li>
+
+            <!-- Guestlist (if permission) -->
+            {% if current_user.has_permission('manage_guestlist') or current_user.has_permission('request_guestlist') %}
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'guestlist' in request.endpoint and 'check_in' not in request.endpoint else '' }}"
+                   href="{{ url_for('guestlist.index') }}">
+                    <i class="bi bi-person-check me-2"></i>
+                    Guestlists
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- Check-in (if permission) -->
+            {% if current_user.has_permission('check_in_guests') %}
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'check_in' in request.endpoint else '' }}"
+                   href="{{ url_for('guestlist.check_in_select') }}">
+                    <i class="bi bi-qr-code-scan me-2"></i>
+                    Check-in
+                </a>
+            </li>
+            {% endif %}
+
+            {% if current_user.has_role('MANAGER') %}
+            <li class="nav-item mt-3">
+                <span class="nav-link text-muted small text-uppercase">Finances</span>
+            </li>
+
+            <!-- Payments -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'payments' in request.endpoint and 'approval' not in request.endpoint else '' }}"
+                   href="{{ url_for('payments.index') }}">
+                    <i class="bi bi-wallet2 me-2"></i>
+                    Paiements
+                </a>
+            </li>
+
+            <!-- Approval Queue -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'approval' in request.endpoint else '' }}"
+                   href="{{ url_for('payments.approval_queue') }}">
+                    <i class="bi bi-check2-square me-2"></i>
+                    Approbations
+                </a>
+            </li>
+
+            <li class="nav-item mt-3">
+                <span class="nav-link text-muted small text-uppercase">Administration</span>
+            </li>
+
+            <!-- Documents -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'documents' in request.endpoint else '' }}"
+                   href="{{ url_for('documents.index') }}">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Documents
+                </a>
+            </li>
+
+            <!-- Reports -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'reports' in request.endpoint else '' }}"
+                   href="{{ url_for('reports.index') }}">
+                    <i class="bi bi-graph-up me-2"></i>
+                    Rapports
+                </a>
+            </li>
+
+            <!-- Settings -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.endpoint == 'settings.index' or request.endpoint == 'settings.profile' or request.endpoint == 'settings.password' or request.endpoint == 'settings.notifications' else '' }}"
+                   href="{{ url_for('settings.index') }}">
+                    <i class="bi bi-gear me-2"></i>
+                    Paramètres
+                </a>
+            </li>
+
+            <!-- Email Configuration -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.endpoint == 'settings.email_config' else '' }}"
+                   href="{{ url_for('settings.email_config') }}">
+                    <i class="bi bi-envelope-gear me-2"></i>
+                    Config. Email
+                </a>
+            </li>
+
+            <!-- Users Management -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'users' in request.endpoint else '' }}"
+                   href="{{ url_for('settings.users_list') }}">
+                    <i class="bi bi-people-fill me-2"></i>
+                    Utilisateurs
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+
+        <!-- User info at bottom (Mobile) -->
+        <div class="border-top p-3 d-lg-none">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-person-circle fs-4 me-2"></i>
+                <div>
+                    <strong>{{ current_user.full_name }}</strong>
+                    <br>
+                    <small class="text-muted">{{ current_user.roles[0].name if current_user.roles else 'Utilisateur' }}</small>
+                </div>
+                        </div>
+        </div>
+    </div>
+</nav>

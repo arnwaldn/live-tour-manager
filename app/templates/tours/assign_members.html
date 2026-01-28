@@ -1,0 +1,588 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Assigner des membres - {{ stop.date.strftime('%d/%m/%Y') }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Team assignment styles */
+.member-card { cursor: pointer; }
+.member-card .card { transition: all 0.15s ease; }
+.member-card .card:hover { border-color: var(--bs-primary) !important; background-color: rgba(var(--bs-primary-rgb), 0.02); }
+.member-card .card.selected { border-color: var(--bs-primary) !important; background-color: rgba(var(--bs-primary-rgb), 0.08); }
+.min-width-0 { min-width: 0; }
+.nav-pills .nav-link { border-radius: 50rem; padding: 0.5rem 1rem; }
+.profession-group { margin-bottom: 1.5rem; }
+.profession-group:last-child { margin-bottom: 0; }
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 1rem;
+}
+.section-header i { font-size: 1.25rem; }
+
+/* Overview Cards */
+.overview-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.overview-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.progress-dots {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 6px;
+}
+.progress-dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #dee2e6;
+}
+.progress-dots .dot.filled {
+    opacity: 0.8;
+}
+.critical-warning {
+    animation: pulse-danger 2s infinite;
+}
+@keyframes pulse-danger {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
+        <li class="breadcrumb-item active">Assigner des membres</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Assigner des membres</h1>
+        <p class="text-muted mb-0">
+            <i class="bi bi-calendar-event me-1"></i>{{ stop.date.strftime('%A %d %B %Y') }}
+            {% if stop.venue %}
+             · <i class="bi bi-geo-alt me-1"></i>{{ stop.venue.name }}, {{ stop.venue.city }}
+            {% endif %}
+        </p>
+    </div>
+    <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+        <!-- Info Card -->
+        <div class="alert alert-info d-flex align-items-start mb-4">
+            <i class="bi bi-info-circle-fill me-3 fs-5"></i>
+            <div>
+                <strong>Les membres assignés</strong> peuvent voir cet événement dans leur calendrier global.
+                <br>
+                <small class="text-muted">Une invitation de mission est envoyée automatiquement aux nouveaux membres assignés.</small>
+            </div>
+        </div>
+
+        <!-- Invitation Status Summary -->
+        {% if invitations %}
+        {% set accepted = invitations.values()|selectattr('is_accepted')|list|length %}
+        {% set declined = invitations.values()|selectattr('is_declined')|list|length %}
+        {% set pending = invitations.values()|selectattr('is_pending')|list|length %}
+        <div class="alert alert-secondary mb-4">
+            <div class="d-flex justify-content-around text-center">
+                <div>
+                    <span class="badge bg-success fs-6">{{ accepted }}</span>
+                    <br><small>Accepté(s)</small>
+                </div>
+                <div>
+                    <span class="badge bg-warning text-dark fs-6">{{ pending }}</span>
+                    <br><small>En attente</small>
+                </div>
+                <div>
+                    <span class="badge bg-danger fs-6">{{ declined }}</span>
+                    <br><small>Refusé(s)</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body d-flex flex-wrap gap-2 justify-content-center">
+                <form action="{{ url_for('tours.assign_all_members', id=tour.id, stop_id=stop.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-all me-1"></i>Assigner tout le groupe
+                    </button>
+                </form>
+                <form action="{{ url_for('tours.unassign_all_members', id=tour.id, stop_id=stop.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Retirer tous les membres?')">
+                        <i class="bi bi-x-lg me-1"></i>Retirer tous
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Member Selection Form -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <div class="section-header border-0 mb-0 pb-0">
+                    <i class="bi bi-people text-primary"></i>
+                    <h5 class="mb-0">Équipe du concert</h5>
+                    <span class="badge bg-primary ms-auto" id="member-count">
+                        <span id="selected-count">{{ assigned_ids|length }}</span> sélectionné(s)
+                    </span>
+                </div>
+            </div>
+
+            <form action="{{ url_for('tours.assign_members', id=tour.id, stop_id=stop.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="card-body pt-0">
+                    {% if categories_data %}
+                    <!-- Vue d'ensemble par catégorie -->
+                    <div class="row g-2 mt-3 mb-4" id="crew-overview">
+                        {% for cat in categories_data %}
+                        <div class="col-6 col-md-4 col-lg-2">
+                            <div class="card h-100 overview-card
+                                {% if cat.assigned == cat.required and cat.required > 0 %}border-success bg-success bg-opacity-10{% endif %}
+                                {% if cat.is_critical and cat.assigned < cat.required %}border-danger critical-warning{% endif %}"
+                                 data-category="{{ cat.key }}">
+                                <div class="card-body p-2 text-center">
+                                    <i class="bi bi-{{ cat.icon }} fs-4 text-{{ cat.color }}"></i>
+                                    <div class="small text-muted text-truncate">{{ cat.label }}</div>
+                                    <div class="fw-bold overview-count" data-category="{{ cat.key }}">
+                                        <span class="assigned-count">{{ cat.assigned }}</span>/<span class="total-count">{{ cat.required }}</span>
+                                    </div>
+                                    <!-- Progress dots -->
+                                    <div class="progress-dots">
+                                        {% for i in range(cat.required) %}
+                                        <span class="dot {% if i < cat.assigned %}filled bg-{{ cat.color }}{% endif %}"></span>
+                                        {% endfor %}
+                                    </div>
+                                    {% if cat.assigned == cat.required and cat.required > 0 %}
+                                    <small class="text-success"><i class="bi bi-check-circle"></i> Complet</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if users_without_profession %}
+                        <div class="col-6 col-md-4 col-lg-2">
+                            <div class="card h-100 overview-card" data-category="other">
+                                <div class="card-body p-2 text-center">
+                                    <i class="bi bi-people fs-4 text-secondary"></i>
+                                    <div class="small text-muted text-truncate">Autres</div>
+                                    <div class="fw-bold overview-count" data-category="other">
+                                        <span class="assigned-count">0</span>/<span class="total-count">{{ users_without_profession|length }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Barre de recherche -->
+                    <div class="input-group mb-3 mt-3">
+                        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0" id="member-search"
+                               placeholder="Rechercher par nom, email ou profession...">
+                        <button type="button" class="btn btn-outline-secondary" onclick="clearMemberSearch()" title="Effacer">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- Actions rapides -->
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAllVisible()">
+                            <i class="bi bi-check-all me-1"></i>Tout sélectionner
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllMembers()">
+                            <i class="bi bi-x-lg me-1"></i>Tout désélectionner
+                        </button>
+                    </div>
+
+                    {% if categories_data or users_without_profession %}
+                    <!-- Navigation par catégorie (Pills) -->
+                    <ul class="nav nav-pills nav-fill flex-nowrap overflow-auto mb-3 pb-2" id="category-tabs" role="tablist">
+                        {% for cat in categories_data %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if loop.first %}active{% endif %} d-flex align-items-center justify-content-center gap-2 text-nowrap"
+                                    id="tab-{{ cat.key }}"
+                                    data-bs-toggle="pill"
+                                    data-bs-target="#cat-{{ cat.key }}"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="cat-{{ cat.key }}"
+                                    aria-selected="{{ 'true' if loop.first else 'false' }}">
+                                <i class="bi bi-{{ cat.icon }}"></i>
+                                <span class="d-none d-md-inline">{{ cat.label }}</span>
+                                <span class="badge bg-{{ cat.color }} bg-opacity-75">{{ cat.total_users }}</span>
+                            </button>
+                        </li>
+                        {% endfor %}
+                        {% if users_without_profession %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if not categories_data %}active{% endif %} d-flex align-items-center justify-content-center gap-2 text-nowrap"
+                                    id="tab-other"
+                                    data-bs-toggle="pill"
+                                    data-bs-target="#cat-other"
+                                    type="button"
+                                    role="tab"
+                                    aria-controls="cat-other"
+                                    aria-selected="{{ 'true' if not categories_data else 'false' }}">
+                                <i class="bi bi-people"></i>
+                                <span class="d-none d-md-inline">Autres</span>
+                                <span class="badge bg-secondary">{{ users_without_profession|length }}</span>
+                            </button>
+                        </li>
+                        {% endif %}
+                    </ul>
+
+                    <!-- Contenu des catégories -->
+                    <div class="tab-content border rounded p-3 bg-white" id="category-content" style="max-height: 500px; overflow-y: auto;">
+                        {% for cat in categories_data %}
+                        <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                             id="cat-{{ cat.key }}"
+                             role="tabpanel"
+                             aria-labelledby="tab-{{ cat.key }}">
+                            {% for prof in cat.professions %}
+                            <div class="profession-group">
+                                <h6 class="text-{{ cat.color }} mb-2 d-flex align-items-center">
+                                    <i class="bi bi-{{ cat.icon }} me-2"></i>
+                                    {{ prof.name }}
+                                    <span class="badge bg-light text-dark ms-2">{{ prof.users|length }}</span>
+                                </h6>
+                                <div class="row g-2">
+                                    {% for user in prof.users %}
+                                    <div class="col-12 col-md-6 member-card"
+                                         data-name="{{ user.full_name|lower }}"
+                                         data-fullname="{{ user.full_name }}"
+                                         data-email="{{ user.email|lower }}"
+                                         data-profession="{{ prof.name|lower }}"
+                                         data-profession-name="{{ prof.name }}"
+                                         data-category="{{ cat.key }}"
+                                         data-category-label="{{ cat.label }}"
+                                         data-category-color="{{ cat.color }}"
+                                         onclick="toggleMemberCard(this)">
+                                        <div class="card border h-100 {% if user.id in assigned_ids %}selected{% endif %}">
+                                            <div class="card-body p-2 d-flex align-items-center">
+                                                <input type="checkbox" name="member_ids" value="{{ user.id }}"
+                                                       class="form-check-input me-3 member-checkbox flex-shrink-0"
+                                                       {% if user.id in assigned_ids %}checked{% endif %}
+                                                       onclick="event.stopPropagation()">
+                                                {% if user.profile_picture_data %}
+                                                <img src="{{ url_for('settings.serve_profile_picture', user_id=user.id) }}"
+                                                     class="rounded-circle me-2 flex-shrink-0" style="width: 40px; height: 40px; object-fit: cover;"
+                                                     alt="{{ user.full_name }}">
+                                                {% else %}
+                                                <div class="rounded-circle bg-{{ cat.color }} bg-opacity-10 text-{{ cat.color }} d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                                     style="width: 40px; height: 40px;">
+                                                    <i class="bi bi-person"></i>
+                                                </div>
+                                                {% endif %}
+                                                <div class="flex-grow-1 min-width-0">
+                                                    <div class="fw-semibold text-truncate">{{ user.full_name }}</div>
+                                                    <small class="text-muted text-truncate d-block">{{ user.email }}</small>
+                                                </div>
+                                                <!-- Badge de statut invitation avec bouton renvoyer -->
+                                                {% if user.id in assigned_ids %}
+                                                    {% if user.id in invitations %}
+                                                        {% set inv = invitations[user.id] %}
+                                                        <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                                            <span class="badge bg-{{ inv.status_color }}" title="{{ inv.status_label }}">
+                                                                <i class="{{ inv.status_icon }}"></i>
+                                                            </span>
+                                                            {% if inv.is_pending %}
+                                                            <form action="{{ url_for('tours.resend_invitation', id=tour.id, stop_id=stop.id, inv_id=inv.id) }}"
+                                                                  method="POST" class="d-inline" onclick="event.stopPropagation();">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <button type="submit" class="btn btn-sm btn-link p-0 text-muted" title="Renvoyer l'invitation">
+                                                                    <i class="bi bi-envelope-arrow-up"></i>
+                                                                </button>
+                                                            </form>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% else %}
+                                                        <span class="badge bg-success ms-2 flex-shrink-0" title="Assigné">
+                                                            <i class="bi bi-check"></i>
+                                                        </span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+
+                        {% if users_without_profession %}
+                        <div class="tab-pane fade {% if not categories_data %}show active{% endif %}" id="cat-other" role="tabpanel" aria-labelledby="tab-other">
+                            <h6 class="text-muted mb-2 d-flex align-items-center">
+                                <i class="bi bi-people me-2"></i>
+                                Membres sans profession
+                                <span class="badge bg-light text-dark ms-2">{{ users_without_profession|length }}</span>
+                            </h6>
+                            <div class="row g-2">
+                                {% for user in users_without_profession %}
+                                <div class="col-12 col-md-6 member-card"
+                                     data-name="{{ user.full_name|lower }}"
+                                     data-fullname="{{ user.full_name }}"
+                                     data-email="{{ user.email|lower }}"
+                                     data-profession=""
+                                     data-profession-name=""
+                                     data-category="autres"
+                                     data-category-label="Autres"
+                                     data-category-color="secondary"
+                                     onclick="toggleMemberCard(this)">
+                                    <div class="card border h-100 {% if user.id in assigned_ids %}selected{% endif %}">
+                                        <div class="card-body p-2 d-flex align-items-center">
+                                            <input type="checkbox" name="member_ids" value="{{ user.id }}"
+                                                   class="form-check-input me-3 member-checkbox flex-shrink-0"
+                                                   {% if user.id in assigned_ids %}checked{% endif %}
+                                                   onclick="event.stopPropagation()">
+                                            {% if user.profile_picture_data %}
+                                            <img src="{{ url_for('settings.serve_profile_picture', user_id=user.id) }}"
+                                                 class="rounded-circle me-2 flex-shrink-0" style="width: 40px; height: 40px; object-fit: cover;"
+                                                 alt="{{ user.full_name }}">
+                                            {% else %}
+                                            <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                                 style="width: 40px; height: 40px;">
+                                                <i class="bi bi-person"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="flex-grow-1 min-width-0">
+                                                <div class="fw-semibold text-truncate">{{ user.full_name }}</div>
+                                                <small class="text-muted text-truncate d-block">{{ user.email }}</small>
+                                            </div>
+                                            <!-- Badge de statut invitation -->
+                                            {% if user.id in assigned_ids %}
+                                                {% if user.id in invitations %}
+                                                    {% set inv = invitations[user.id] %}
+                                                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                                        <span class="badge bg-{{ inv.status_color }}" title="{{ inv.status_label }}">
+                                                            <i class="{{ inv.status_icon }}"></i>
+                                                        </span>
+                                                        {% if inv.is_pending %}
+                                                        <form action="{{ url_for('tours.resend_invitation', id=tour.id, stop_id=stop.id, inv_id=inv.id) }}"
+                                                              method="POST" class="d-inline" onclick="event.stopPropagation();">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <button type="submit" class="btn btn-sm btn-link p-0 text-muted" title="Renvoyer l'invitation">
+                                                                <i class="bi bi-envelope-arrow-up"></i>
+                                                            </button>
+                                                        </form>
+                                                        {% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <span class="badge bg-success ms-2 flex-shrink-0" title="Assigné">
+                                                        <i class="bi bi-check"></i>
+                                                    </span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Récapitulatif équipe sélectionnée -->
+                    <div class="mt-3 p-3 bg-light rounded" id="team-summary">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <strong><i class="bi bi-people-fill me-2"></i>Équipe sélectionnée</strong>
+                            <span class="badge bg-primary" id="summary-count">{{ assigned_ids|length }} membre(s)</span>
+                        </div>
+                        <div class="d-flex flex-wrap" id="selected-avatars" style="padding-left: 8px;">
+                            <span class="text-muted small">Chargement...</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4 border rounded">
+                        <i class="bi bi-people fs-1 d-block mb-2"></i>
+                        Aucun membre dans ce groupe
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if categories_data or users_without_profession %}
+                <div class="card-footer bg-transparent border-0">
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Enregistrer
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Recherche instantanée
+    const searchInput = document.getElementById('member-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            document.querySelectorAll('.member-card').forEach(function(card) {
+                const name = card.dataset.name || '';
+                const email = card.dataset.email || '';
+                const profession = card.dataset.profession || '';
+                const matches = name.includes(query) || email.includes(query) || profession.includes(query);
+                card.style.display = (matches || !query) ? '' : 'none';
+            });
+        });
+    }
+
+    // Mise à jour du récapitulatif équipe
+    function updateTeamSummary() {
+        const checked = document.querySelectorAll('.member-checkbox:checked');
+        const count = checked.length;
+
+        // Compteurs
+        document.getElementById('selected-count').textContent = count;
+        document.getElementById('summary-count').textContent = count + ' membre' + (count > 1 ? 's' : '');
+
+        // Mise à jour des cartes sélectionnées
+        document.querySelectorAll('.member-card .card').forEach(function(card) {
+            const checkbox = card.querySelector('.member-checkbox');
+            if (checkbox && checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+
+        // Section équipe sélectionnée - groupée par catégorie
+        const summaryDiv = document.getElementById('selected-avatars');
+        if (!summaryDiv) return;
+
+        if (count === 0) {
+            summaryDiv.innerHTML = '<span class="text-muted small">Aucun membre sélectionné</span>';
+            return;
+        }
+
+        // Grouper par catégorie
+        const byCategory = {};
+        const categoryOrder = ['musicien', 'technicien', 'production', 'style', 'securite', 'management', 'autres'];
+
+        checked.forEach(function(cb) {
+            const card = cb.closest('.member-card');
+            if (card) {
+                const catLabel = card.dataset.categoryLabel || 'Autres';
+                const catKey = card.dataset.category || 'autres';
+                const catColor = card.dataset.categoryColor || 'secondary';
+                const name = card.dataset.fullname || '';
+                const profession = card.dataset.professionName || '';
+
+                if (!byCategory[catKey]) {
+                    byCategory[catKey] = { label: catLabel, color: catColor, members: [] };
+                }
+                byCategory[catKey].members.push({ name: name, profession: profession });
+            }
+        });
+
+        // Générer HTML par catégorie
+        let html = '';
+        categoryOrder.forEach(function(catKey) {
+            if (byCategory[catKey] && byCategory[catKey].members.length > 0) {
+                const data = byCategory[catKey];
+                html += '<div class="mb-2">';
+                html += '<small class="text-' + data.color + ' fw-bold"><i class="bi bi-tag-fill me-1"></i>' + data.label + ' (' + data.members.length + ')</small>';
+                html += '<div class="ms-3">';
+                data.members.forEach(function(m) {
+                    html += '<div class="small text-dark">';
+                    html += '<i class="bi bi-person me-1 text-muted"></i>' + m.name;
+                    if (m.profession) {
+                        html += ' <span class="text-muted fst-italic">(' + m.profession + ')</span>';
+                    }
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            }
+        });
+
+        summaryDiv.innerHTML = html;
+    }
+
+    // Listeners checkboxes
+    document.querySelectorAll('.member-checkbox').forEach(function(cb) {
+        cb.addEventListener('change', updateTeamSummary);
+    });
+
+    // Initialiser au chargement
+    updateTeamSummary();
+});
+
+// Toggle membre via clic sur la carte
+function toggleMemberCard(cardElement) {
+    const checkbox = cardElement.querySelector('.member-checkbox');
+    if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change'));
+    }
+}
+
+// Effacer la recherche
+function clearMemberSearch() {
+    const searchInput = document.getElementById('member-search');
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input'));
+    }
+}
+
+// Sélectionner tous les membres visibles
+function selectAllVisible() {
+    document.querySelectorAll('.member-card').forEach(function(card) {
+        if (card.style.display !== 'none') {
+            const cb = card.querySelector('.member-checkbox');
+            if (cb && !cb.checked) {
+                cb.checked = true;
+            }
+        }
+    });
+    // Déclencher mise à jour
+    const firstCb = document.querySelector('.member-checkbox');
+    if (firstCb) firstCb.dispatchEvent(new Event('change'));
+}
+
+// Désélectionner tous les membres
+function deselectAllMembers() {
+    document.querySelectorAll('.member-checkbox').forEach(function(cb) {
+        cb.checked = false;
+    });
+    document.querySelectorAll('.member-card .card').forEach(function(card) {
+        card.classList.remove('selected');
+    });
+    document.getElementById('selected-count').textContent = '0';
+    document.getElementById('summary-count').textContent = '0 membre';
+    document.getElementById('selected-avatars').innerHTML = '<span class="text-muted small">Aucun membre sélectionné</span>';
+}
+</script>
+{% endblock %}

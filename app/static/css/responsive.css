@@ -1,0 +1,916 @@
+/**
+ * Tour Manager - Responsive Styles
+ * Mobile-first responsive design with Bootstrap 5.3 breakpoints
+ * Updated: 26 Jan 2026 - Portrait mode optimization
+ */
+
+/* ==========================================================================
+   Extra Extra Small Devices (< 375px - iPhone SE, etc.)
+   ========================================================================== */
+
+@media (max-width: 374.98px) {
+    :root {
+        --tm-spacing-xs: 0.5rem;
+    }
+
+    .main-content-inner {
+        padding: 0.5rem !important;
+    }
+
+    h1, .h1 { font-size: 1.5rem; }
+    h2, .h2 { font-size: 1.25rem; }
+    h3, .h3 { font-size: 1.1rem; }
+
+    .card-body {
+        padding: 0.75rem;
+    }
+
+    .btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    /* Smaller badges */
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.25em 0.5em;
+    }
+}
+
+/* ==========================================================================
+   Portrait Mode Optimization (< 576px + portrait orientation)
+   ========================================================================== */
+
+@media (max-width: 575.98px) and (orientation: portrait) {
+    /* Stats cards - force 1 column in portrait */
+    .row-cols-2 > *,
+    .col-6:not(.col-md-6):not(.col-lg-6) {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Button groups - stack vertically */
+    .btn-group:not(.btn-group-vertical):not(.btn-group-sm) {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group:not(.btn-group-vertical):not(.btn-group-sm) > .btn {
+        width: 100%;
+        border-radius: 0.375rem !important;
+        margin-bottom: 0.25rem;
+        margin-left: 0 !important;
+    }
+
+    .btn-group:not(.btn-group-vertical):not(.btn-group-sm) > .btn:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Cards with side-by-side elements */
+    .card-body .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    /* Tour cards - full width buttons */
+    .tour-card .card-footer .btn {
+        flex: 1 1 100%;
+    }
+}
+
+/* ==========================================================================
+   Extra Small Devices (Portrait phones, < 576px)
+   ========================================================================== */
+
+@media (max-width: 767.98px) {
+    /* Mobile: Sidebar as offcanvas overlay */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: var(--tm-sidebar-width);
+        height: 100vh;
+        z-index: 1045;
+        transform: translateX(-100%);
+        transition: transform var(--tm-transition-normal);
+    }
+
+    .sidebar.show,
+    .sidebar.offcanvas.show {
+        transform: translateX(0);
+    }
+
+    /* Main content takes full width on mobile */
+    .main-content {
+        margin-left: 0;
+        padding-top: var(--tm-navbar-height);
+    }
+
+    /* Sidebar header visible on mobile */
+    .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    /* Extra small adjustments */
+    .sidebar {
+        width: 85vw;
+        max-width: 300px;
+    }
+
+    /* Padding adjustments */
+    .main-content-inner {
+        padding: 1rem;
+    }
+
+    /* Stack page header elements */
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 1rem;
+    }
+
+    .page-header .btn-group {
+        width: 100%;
+    }
+
+    .page-header .btn {
+        flex: 1;
+    }
+
+    /* Cards */
+    .card-body {
+        padding: 1rem;
+    }
+
+    /* Tables - horizontal scroll */
+    .table-responsive-stack {
+        display: block;
+    }
+
+    .table-responsive-stack thead {
+        display: none;
+    }
+
+    .table-responsive-stack tbody tr {
+        display: block;
+        border: 1px solid var(--sp-border, #dee2e6);
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        padding: 0.75rem;
+        background: var(--sp-bg-card, #1A1A1A);
+    }
+
+    .table-responsive-stack tbody td {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border: none;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .table-responsive-stack tbody td:last-child {
+        border-bottom: none;
+    }
+
+    .table-responsive-stack tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--tm-secondary);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+    }
+
+    /* Stats cards - 2 columns */
+    .stats-row .col-4 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.5rem;
+    }
+
+    /* Forms - full width */
+    .form-row > [class*="col-"] {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Buttons - larger touch targets (48px minimum) */
+    .btn {
+        padding: 0.75rem 1rem;
+        min-height: 48px;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 0.75rem;
+        min-height: 44px;
+    }
+
+    /* Text truncation with ellipsis indicator */
+    .card-title,
+    .table td,
+    .list-group-item {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Nav links - improved touch targets */
+    .nav-link,
+    .dropdown-item,
+    .list-group-item-action {
+        min-height: 48px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    /* Check-in interface */
+    .check-in-card .card-body {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .check-in-btn {
+        width: 100%;
+        min-height: 56px;
+        font-size: 1.1rem;
+    }
+
+    /* Calendar */
+    .fc .fc-toolbar {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1rem;
+    }
+
+    .fc .fc-button {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    /* Modal - full screen */
+    .modal-dialog {
+        margin: 0;
+        max-width: 100%;
+        min-height: 100vh;
+    }
+
+    .modal-content {
+        border-radius: 0;
+        min-height: 100vh;
+    }
+
+    /* Dropdown - full width */
+    .dropdown-menu {
+        width: calc(100vw - 2rem);
+        max-width: none;
+    }
+
+    /* Breadcrumb - scrollable */
+    .breadcrumb {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+    }
+
+    .breadcrumb-item {
+        white-space: nowrap;
+    }
+
+    /* Hide less important columns */
+    .hide-mobile {
+        display: none !important;
+    }
+
+    /* Day sheet adjustments */
+    .day-sheet-header {
+        padding: 1.25rem;
+    }
+
+    .day-sheet-header h1 {
+        font-size: 1.5rem;
+    }
+
+    /* Pagination */
+    .pagination {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .pagination .page-link {
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* Float action button */
+    .fab {
+        bottom: 1rem;
+        right: 1rem;
+    }
+}
+
+/* ==========================================================================
+   Small Devices (Landscape phones, 576px - 767.98px)
+   ========================================================================== */
+
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    /* Stats cards - 3 columns */
+    .stats-row .col-4 {
+        flex: 0 0 33.333%;
+        max-width: 33.333%;
+    }
+
+    /* Check-in button */
+    .check-in-btn {
+        min-height: 50px;
+    }
+
+    .hide-sm {
+        display: none !important;
+    }
+}
+
+/* ==========================================================================
+   Medium Devices (Tablets, 768px - 991.98px)
+   ========================================================================== */
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    /* Tablet: Sidebar collapsed icons only */
+    .sidebar {
+        position: fixed;
+        top: var(--tm-navbar-height);
+        left: 0;
+        width: var(--tm-sidebar-collapsed-width);
+        height: calc(100vh - var(--tm-navbar-height));
+        z-index: 1030;
+        transform: none;
+    }
+
+    .sidebar .sidebar-nav .nav-link span,
+    .sidebar .nav-link.text-muted,
+    .sidebar-brand .brand-text,
+    .sidebar-brand .brand-credit {
+        display: none;
+    }
+
+    .sidebar .sidebar-nav .nav-link {
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .sidebar .sidebar-nav .nav-link i {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    .sidebar-header {
+        justify-content: center;
+        padding: 0.75rem;
+    }
+
+    .sidebar-brand .brand-icon {
+        margin: 0;
+    }
+
+    .main-content {
+        margin-left: var(--tm-sidebar-collapsed-width);
+        padding-top: var(--tm-navbar-height);
+    }
+
+    /* Expand sidebar on hover */
+    .sidebar:hover {
+        width: var(--tm-sidebar-width);
+    }
+
+    .sidebar:hover .sidebar-nav .nav-link span,
+    .sidebar:hover .nav-link.text-muted,
+    .sidebar:hover .sidebar-brand .brand-text,
+    .sidebar:hover .sidebar-brand .brand-credit {
+        display: inline;
+    }
+
+    .sidebar:hover .sidebar-nav .nav-link {
+        justify-content: flex-start;
+        padding: 0.75rem 1rem;
+    }
+
+    .sidebar:hover .sidebar-header {
+        justify-content: flex-start;
+        padding: 1rem;
+    }
+
+    .hide-md {
+        display: none !important;
+    }
+
+    /* Boutons - police plus petite pour tablette */
+    .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .btn-sm {
+        font-size: 0.8rem;
+        padding: 0.375rem 0.5rem;
+    }
+
+    /* Badges - compact */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.5em;
+    }
+
+    /* Calendrier - titres evenements */
+    .fc-event-title {
+        font-size: 0.75rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .fc-daygrid-event {
+        font-size: 0.75rem;
+    }
+}
+
+/* ==========================================================================
+   Large Devices (Desktops, 992px - 1199.98px)
+   ========================================================================== */
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    /* Desktop: Full sidebar visible */
+    .sidebar {
+        position: fixed;
+        top: var(--tm-navbar-height);
+        left: 0;
+        width: var(--tm-sidebar-width);
+        height: calc(100vh - var(--tm-navbar-height));
+        z-index: 1030;
+        transform: none;
+    }
+
+    .main-content {
+        margin-left: var(--tm-sidebar-width);
+        padding-top: var(--tm-navbar-height);
+    }
+
+    .hide-lg {
+        display: none !important;
+    }
+}
+
+/* ==========================================================================
+   Extra Large Devices (Large desktops, >= 1200px)
+   ========================================================================== */
+
+@media (min-width: 1200px) {
+    /* Extra large: Enhanced layout */
+    .sidebar {
+        position: fixed;
+        top: var(--tm-navbar-height);
+        left: 0;
+        width: var(--tm-sidebar-width);
+        height: calc(100vh - var(--tm-navbar-height));
+        z-index: 1030;
+        transform: none;
+    }
+
+    .main-content {
+        margin-left: var(--tm-sidebar-width);
+        padding-top: var(--tm-navbar-height);
+    }
+
+    /* Enhanced spacing on large screens */
+    .main-content-inner {
+        padding: 2rem;
+        max-width: 1400px;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+}
+
+/* ==========================================================================
+   Touch-specific styles
+   ========================================================================== */
+
+@media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets (48px minimum for accessibility) */
+    .btn {
+        min-height: 48px;
+    }
+
+    .nav-link {
+        padding: 0.875rem 1rem;
+        min-height: 48px;
+    }
+
+    .dropdown-item {
+        padding: 0.75rem 1rem;
+        min-height: 48px;
+    }
+
+    .list-group-item-action {
+        min-height: 48px;
+    }
+
+    /* Remove hover effects that don't work on touch */
+    .hover-lift:hover {
+        transform: none;
+    }
+
+    .card:hover {
+        box-shadow: var(--tm-shadow-sm);
+    }
+
+    /* Swipe indicators */
+    .swipe-indicator {
+        position: absolute;
+        top: 50%;
+        right: 1rem;
+        transform: translateY(-50%);
+        color: var(--tm-secondary);
+        opacity: 0.5;
+        font-size: 1.5rem;
+    }
+
+    /* Active state for touch */
+    .btn:active {
+        transform: scale(0.98);
+    }
+
+    .check-in-card:active {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+}
+
+/* ==========================================================================
+   Landscape Orientation
+   ========================================================================== */
+
+@media (max-height: 500px) and (orientation: landscape) {
+    /* Reduce vertical spacing */
+    .main-content-inner {
+        padding: 0.75rem;
+    }
+
+    .card-body {
+        padding: 0.75rem;
+    }
+
+    .modal-body {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    /* Smaller stat cards */
+    .stat-card {
+        padding: 0.75rem;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.5rem;
+    }
+}
+
+/* ==========================================================================
+   High DPI / Retina Displays
+   ========================================================================== */
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Thinner borders on retina */
+    .card,
+    .form-control,
+    .table {
+        border-width: 0.5px;
+    }
+}
+
+/* ==========================================================================
+   Reduced Motion (Accessibility)
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .sidebar {
+        transition: none;
+    }
+
+    .hover-lift:hover {
+        transform: none;
+    }
+}
+
+/* ==========================================================================
+   Dark Mode (System Preference)
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+    /* Optional: Add dark mode support */
+    /*
+    :root {
+        --tm-bg-light: #1a1a2e;
+        --tm-bg-dark: #16213e;
+        --tm-sidebar-bg: #0f3460;
+    }
+
+    body {
+        background-color: var(--tm-bg-dark);
+        color: #e4e4e4;
+    }
+
+    .card {
+        background-color: var(--tm-bg-light);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    */
+}
+
+/* ==========================================================================
+   Sidebar Toggle Animation
+   ========================================================================== */
+
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1039;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--tm-transition-normal), visibility var(--tm-transition-normal);
+}
+
+.sidebar-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ==========================================================================
+   Navbar Mobile Adjustments
+   ========================================================================== */
+
+@media (max-width: 991.98px) {
+    .navbar {
+        padding: 0.5rem 1rem;
+    }
+
+    .navbar-brand {
+        font-size: 1rem;
+    }
+
+    .navbar-toggler {
+        padding: 0.5rem;
+        border: none;
+    }
+
+    .navbar-nav {
+        padding: 1rem 0;
+    }
+
+    .navbar-nav .nav-link {
+        padding: 0.75rem 0;
+    }
+
+    .navbar .dropdown-menu {
+        position: static;
+        float: none;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+        background-color: transparent;
+    }
+}
+
+/* ==========================================================================
+   Floating Action Button (FAB)
+   ========================================================================== */
+
+.fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--tm-shadow);
+    z-index: 1030;
+    transition: transform var(--tm-transition-fast), box-shadow var(--tm-transition-fast);
+}
+
+.fab:hover {
+    transform: scale(1.1);
+    box-shadow: var(--tm-shadow-lg);
+}
+
+.fab i {
+    font-size: 1.5rem;
+}
+
+@media (min-width: 992px) {
+    /* Hide FAB on desktop if there's a visible add button */
+    .fab-desktop-hide {
+        display: none;
+    }
+}
+
+/* ==========================================================================
+   Form Layout Responsive
+   ========================================================================== */
+
+@media (max-width: 767.98px) {
+    /* Stack form buttons */
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+    }
+
+    /* Full width inputs */
+    .input-group {
+        flex-wrap: nowrap;
+    }
+
+    /* Collapsible filters on mobile */
+    .filter-collapse {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+
+    .filter-collapse.show {
+        max-height: 800px;
+    }
+
+    .filter-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+    }
+
+    .filter-toggle i.bi-chevron-down,
+    .filter-toggle i.bi-chevron-up {
+        transition: transform 0.2s ease;
+    }
+
+    .filter-toggle.collapsed i.bi-chevron-down {
+        transform: rotate(-90deg);
+    }
+}
+
+@media (min-width: 768px) {
+    /* Filters always visible on tablet+ */
+    .filter-toggle {
+        display: none !important;
+    }
+
+    .filter-collapse {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+}
+
+/* ==========================================================================
+   Tabs Responsive (Horizontal scroll on mobile)
+   ========================================================================== */
+
+@media (max-width: 575.98px) {
+    .nav-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .nav-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-tabs .nav-item {
+        flex-shrink: 0;
+    }
+
+    .nav-tabs .nav-link {
+        white-space: nowrap;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Pills tabs */
+    .nav-pills {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .nav-pills .nav-item {
+        flex-shrink: 0;
+    }
+}
+
+/* ==========================================================================
+   Sticky Form Actions (Mobile)
+   ========================================================================== */
+
+@media (max-width: 575.98px) {
+    .form-actions-sticky {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--tm-card-bg, #1a1a1a);
+        padding: 1rem;
+        border-top: 1px solid var(--tm-border-color, #333);
+        z-index: 1020;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+    }
+
+    .form-actions-sticky .btn {
+        width: 100%;
+    }
+
+    /* Add padding to form to prevent content being hidden by sticky footer */
+    .has-sticky-actions {
+        padding-bottom: 120px;
+    }
+}
+
+/* ==========================================================================
+   PWA Install Banner
+   ========================================================================== */
+
+.pwa-install-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--tm-primary, #C9A962);
+    color: #000;
+    padding: 1rem;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1050;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.pwa-install-banner.show {
+    display: flex;
+}
+
+.pwa-install-banner .btn-install {
+    background: #000;
+    color: var(--tm-primary, #C9A962);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+}
+
+.pwa-install-banner .btn-dismiss {
+    background: transparent;
+    border: none;
+    color: #000;
+    font-size: 1.25rem;
+    padding: 0.25rem;
+}

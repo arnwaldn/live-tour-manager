@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="pyramidGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4B87A"/>
+      <stop offset="50%" style="stop-color:#C9A962"/>
+      <stop offset="100%" style="stop-color:#A68B4B"/>
+    </linearGradient>
+    <linearGradient id="pyramidShadow" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#A68B4B"/>
+      <stop offset="100%" style="stop-color:#8B7340"/>
+    </linearGradient>
+  </defs>
+
+  <!-- PYRAMID - Stepped Maya Pyramid -->
+  <g transform="translate(200, 20)">
+    <!-- Top temple -->
+    <rect x="-20" y="0" width="40" height="15" fill="url(#pyramidGold)"/>
+    <rect x="-15" y="2" width="30" height="4" fill="#1A1A1A"/>
+    <rect x="-25" y="15" width="50" height="8" fill="url(#pyramidGold)"/>
+
+    <!-- Pyramid levels with maya pattern -->
+    <polygon points="-30,23 30,23 35,35 -35,35" fill="url(#pyramidGold)"/>
+    <rect x="-30" y="28" width="60" height="3" fill="#1A1A1A"/>
+
+    <polygon points="-38,35 38,35 45,47 -45,47" fill="url(#pyramidGold)"/>
+    <rect x="-38" y="40" width="76" height="3" fill="#1A1A1A"/>
+
+    <polygon points="-48,47 48,47 55,59 -55,59" fill="url(#pyramidGold)"/>
+    <rect x="-48" y="52" width="96" height="3" fill="#1A1A1A"/>
+
+    <polygon points="-58,59 58,59 65,71 -65,71" fill="url(#pyramidGold)"/>
+    <rect x="-58" y="64" width="116" height="3" fill="#1A1A1A"/>
+
+    <polygon points="-68,71 68,71 75,83 -75,83" fill="url(#pyramidGold)"/>
+    <rect x="-68" y="76" width="136" height="3" fill="#1A1A1A"/>
+
+    <polygon points="-78,83 78,83 85,95 -85,95" fill="url(#pyramidGold)"/>
+    <rect x="-78" y="88" width="156" height="3" fill="#1A1A1A"/>
+
+    <polygon points="-88,95 88,95 95,107 -95,107" fill="url(#pyramidGold)"/>
+    <rect x="-88" y="100" width="176" height="3" fill="#1A1A1A"/>
+
+    <!-- Central stairway -->
+    <rect x="-12" y="23" width="24" height="84" fill="url(#pyramidShadow)"/>
+    <line x1="-12" y1="35" x2="12" y2="35" stroke="#C9A962" stroke-width="1"/>
+    <line x1="-12" y1="47" x2="12" y2="47" stroke="#C9A962" stroke-width="1"/>
+    <line x1="-12" y1="59" x2="12" y2="59" stroke="#C9A962" stroke-width="1"/>
+    <line x1="-12" y1="71" x2="12" y2="71" stroke="#C9A962" stroke-width="1"/>
+    <line x1="-12" y1="83" x2="12" y2="83" stroke="#C9A962" stroke-width="1"/>
+    <line x1="-12" y1="95" x2="12" y2="95" stroke="#C9A962" stroke-width="1"/>
+  </g>
+
+  <!-- STUDIO text -->
+  <text x="200" y="160" font-family="'Playfair Display', Georgia, serif" font-size="28" font-weight="400" fill="#FFFFFF" text-anchor="middle" letter-spacing="8">STUDIO</text>
+  <circle cx="120" cy="155" r="2" fill="#C9A962"/>
+  <circle cx="280" cy="155" r="2" fill="#C9A962"/>
+
+  <!-- PALENQUE text -->
+  <text x="200" y="205" font-family="'Playfair Display', Georgia, serif" font-size="48" font-weight="400" fill="#FFFFFF" text-anchor="middle" letter-spacing="4">PALENQUE</text>
+
+  <!-- Decorative lines -->
+  <line x1="30" y1="230" x2="140" y2="230" stroke="#C9A962" stroke-width="1"/>
+  <polygon points="25,230 32,227 32,233" fill="#C9A962"/>
+  <line x1="260" y1="230" x2="370" y2="230" stroke="#C9A962" stroke-width="1"/>
+  <polygon points="375,230 368,227 368,233" fill="#C9A962"/>
+
+  <!-- GROUP text -->
+  <text x="200" y="248" font-family="'Playfair Display', Georgia, serif" font-size="22" font-weight="400" fill="#C9A962" text-anchor="middle" letter-spacing="12">GROUP</text>
+
+  <!-- Decorative diamonds -->
+  <polygon points="145,230 150,225 155,230 150,235" fill="#C9A962"/>
+  <polygon points="245,230 250,225 255,230 250,235" fill="#C9A962"/>
+</svg>

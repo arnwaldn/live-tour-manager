@@ -1,0 +1,401 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ user.full_name }} - Utilisateur - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('settings.index') }}">Paramètres</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('settings.users_list') }}">Utilisateurs</a></li>
+        <li class="breadcrumb-item active">{{ user.full_name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">{{ user.full_name }}</h1>
+        <p class="text-muted mb-0">
+            <i class="bi bi-envelope me-1"></i>{{ user.email }}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('settings.users_edit', id=user.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i>Modifier
+        </a>
+        <a href="{{ url_for('settings.users_list') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Info Column -->
+    <div class="col-12 col-lg-4">
+        <!-- User Info Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body text-center">
+                {% if user.profile_picture_data %}
+                <img src="{{ url_for('settings.serve_profile_picture', user_id=user.id) }}"
+                     alt="{{ user.full_name }}"
+                     class="rounded-circle mx-auto mb-3"
+                     style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #dee2e6;">
+                {% else %}
+                <div class="avatar bg-primary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
+                     style="width: 100px; height: 100px; font-size: 2.5rem;">
+                    {{ user.first_name[0] if user.first_name else '?' }}{{ user.last_name[0] if user.last_name else '?' }}
+                </div>
+                {% endif %}
+                <h4 class="mb-1">{{ user.full_name }}</h4>
+                <p class="text-muted mb-2">{{ user.email }}</p>
+
+                <!-- Roles Badges -->
+                <div class="mb-3">
+                    {% for role in user.roles %}
+                    <span class="badge bg-{{ 'success' if role.name == 'MANAGER' else 'primary' if role.name == 'PROMOTER' else 'info' }}">
+                        {{ role.name }}
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">Aucun rôle</span>
+                    {% endfor %}
+                </div>
+
+                <!-- Status -->
+                {% if user.is_active %}
+                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Actif</span>
+                {% else %}
+                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Inactif</span>
+                {% endif %}
+
+                {% if user.email_verified %}
+                <span class="badge bg-info"><i class="bi bi-envelope-check me-1"></i>Email vérifié</span>
+                {% else %}
+                <span class="badge bg-warning text-dark"><i class="bi bi-envelope-exclamation me-1"></i>En attente</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Contact Info Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informations</h5>
+            </div>
+            <div class="card-body">
+                {% if user.phone %}
+                <p class="mb-2">
+                    <i class="bi bi-telephone me-2 text-muted"></i>
+                    <a href="tel:{{ user.phone }}">{{ user.phone }}</a>
+                </p>
+                {% endif %}
+
+                <p class="mb-2">
+                    <i class="bi bi-calendar me-2 text-muted"></i>
+                    Inscrit le {{ user.created_at.strftime('%d/%m/%Y') }}
+                </p>
+
+                {% if user.last_login %}
+                <p class="mb-2">
+                    <i class="bi bi-clock-history me-2 text-muted"></i>
+                    Dernière connexion: {{ user.last_login.strftime('%d/%m/%Y à %H:%M') }}
+                </p>
+                {% endif %}
+
+                {% if user.invited_by %}
+                <p class="mb-0">
+                    <i class="bi bi-person-plus me-2 text-muted"></i>
+                    Invité par {{ user.invited_by.full_name }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Personal Information Card -->
+        {% if user.date_of_birth or user.nationality %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Informations personnelles</h5>
+            </div>
+            <div class="card-body">
+                {% if user.date_of_birth %}
+                <p class="mb-2">
+                    <i class="bi bi-calendar-date me-2 text-muted"></i>
+                    <strong>Né(e) le:</strong> {{ user.date_of_birth.strftime('%d/%m/%Y') }}
+                </p>
+                {% endif %}
+                {% if user.nationality %}
+                <p class="mb-0">
+                    <i class="bi bi-globe me-2 text-muted"></i>
+                    <strong>Nationalité:</strong> {{ user.nationality }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Travel Preferences Card -->
+        {% if user.preferred_airline or user.seat_preference or user.meal_preference or user.hotel_preferences %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-airplane me-2"></i>Préférences de voyage</h5>
+            </div>
+            <div class="card-body">
+                {% if user.preferred_airline %}
+                <p class="mb-2">
+                    <i class="bi bi-airplane-engines me-2 text-muted"></i>
+                    <strong>Compagnie:</strong> {{ user.preferred_airline }}
+                </p>
+                {% endif %}
+                {% if user.seat_preference %}
+                <p class="mb-2">
+                    <i class="bi bi-person-workspace me-2 text-muted"></i>
+                    <strong>Siège:</strong>
+                    {% if user.seat_preference == 'window' %}Hublot
+                    {% elif user.seat_preference == 'aisle' %}Couloir
+                    {% elif user.seat_preference == 'middle' %}Milieu
+                    {% else %}{{ user.seat_preference }}{% endif %}
+                </p>
+                {% endif %}
+                {% if user.meal_preference %}
+                <p class="mb-2">
+                    <i class="bi bi-cup-hot me-2 text-muted"></i>
+                    <strong>Repas:</strong>
+                    {% if user.meal_preference == 'vegetarian' %}Végétarien
+                    {% elif user.meal_preference == 'vegan' %}Végan
+                    {% elif user.meal_preference == 'halal' %}Halal
+                    {% elif user.meal_preference == 'kosher' %}Casher
+                    {% elif user.meal_preference == 'gluten_free' %}Sans gluten
+                    {% elif user.meal_preference == 'lactose_free' %}Sans lactose
+                    {% else %}Standard{% endif %}
+                </p>
+                {% endif %}
+                {% if user.hotel_preferences %}
+                <p class="mb-0">
+                    <i class="bi bi-building me-2 text-muted"></i>
+                    <strong>Hôtel:</strong><br>
+                    <small class="text-muted ms-4">{{ user.hotel_preferences }}</small>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Travel Cards -->
+        {% if user.travel_cards %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-credit-card-2-front me-2"></i>Cartes Voyageur ({{ user.travel_cards|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% for card in user.travel_cards %}
+                <div class="d-flex justify-content-between align-items-start mb-2 pb-2 {% if not loop.last %}border-bottom{% endif %}">
+                    <div>
+                        <strong>{{ card.card_name or card.card_number }}</strong>
+                        <span class="badge bg-{% if card.card_type == 'loyalty_airline' %}info{% elif card.card_type == 'rail_subscription' %}success{% elif card.card_type == 'car_rental' %}warning{% elif card.card_type == 'hotel_loyalty' %}primary{% else %}secondary{% endif %} ms-1">
+                            {{ card.type_label }}
+                        </span>
+                        <br>
+                        <small class="text-muted">
+                            N° {{ card.card_number }}
+                            {% if card.expiry_date %}
+                            • Expire: {{ card.expiry_date.strftime('%d/%m/%Y') }}
+                            {% if card.is_expired %}
+                            <span class="badge bg-danger ms-1">Expirée</span>
+                            {% elif card.expires_soon %}
+                            <span class="badge bg-warning text-dark ms-1">Expire bientôt</span>
+                            {% endif %}
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Emergency Contact Card -->
+        {% if user.emergency_contact_name or user.emergency_contact_phone %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-telephone-fill me-2 text-danger"></i>Contact d'urgence</h5>
+            </div>
+            <div class="card-body">
+                {% if user.emergency_contact_name %}
+                <p class="mb-2">
+                    <i class="bi bi-person me-2 text-muted"></i>
+                    <strong>{{ user.emergency_contact_name }}</strong>
+                    {% if user.emergency_contact_relation %}
+                    <span class="text-muted">({{ user.emergency_contact_relation }})</span>
+                    {% endif %}
+                </p>
+                {% endif %}
+                {% if user.emergency_contact_phone %}
+                <p class="mb-2">
+                    <i class="bi bi-telephone me-2 text-muted"></i>
+                    <a href="tel:{{ user.emergency_contact_phone }}">{{ user.emergency_contact_phone }}</a>
+                </p>
+                {% endif %}
+                {% if user.emergency_contact_email %}
+                <p class="mb-0">
+                    <i class="bi bi-envelope me-2 text-muted"></i>
+                    <a href="mailto:{{ user.emergency_contact_email }}">{{ user.emergency_contact_email }}</a>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Health & Dietary Card -->
+        {% if user.dietary_restrictions or user.allergies %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-heart-pulse me-2"></i>Santé & Alimentation</h5>
+            </div>
+            <div class="card-body">
+                {% if user.dietary_restrictions %}
+                <div class="mb-3">
+                    <p class="mb-1"><i class="bi bi-egg-fried me-2 text-muted"></i><strong>Restrictions alimentaires:</strong></p>
+                    <p class="text-muted small ms-4 mb-0">{{ user.dietary_restrictions }}</p>
+                </div>
+                {% endif %}
+                {% if user.allergies %}
+                <div class="mb-0">
+                    <p class="mb-1"><i class="bi bi-exclamation-diamond me-2 text-warning"></i><strong>Allergies:</strong></p>
+                    <p class="text-muted small ms-4 mb-0">{{ user.allergies }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not user.is_active %}
+        <!-- Hard Delete Section for Inactive Users -->
+        <div class="alert alert-warning border-0 shadow-sm">
+            <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Utilisateur désactivé</h6>
+            <p class="mb-2 small">Cet utilisateur est désactivé et n'a plus accès à l'application.</p>
+            <hr class="my-2">
+            <form action="{{ url_for('settings.users_hard_delete', id=user.id) }}"
+                  method="POST" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm"
+                        onclick="return confirm('⚠️ ATTENTION: Cette action est IRRÉVERSIBLE!\n\nSupprimer définitivement cet utilisateur?\nToutes ses données seront perdues.');">
+                    <i class="bi bi-trash3-fill me-1"></i>Supprimer définitivement
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Documents Column -->
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-file-earmark me-2"></i>Documents ({{ documents|length }})</h5>
+                {% if documents %}
+                <a href="{{ url_for('documents.upload') }}?owner_type=user&owner_id={{ user.id }}"
+                   class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>Ajouter
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if documents %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Document</th>
+                                <th>Type</th>
+                                <th class="d-none d-md-table-cell">Date d'expiration</th>
+                                <th class="d-none d-md-table-cell">Ajouté le</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documents %}
+                            <tr>
+                                <td>
+                                    {% set ext = doc.name.split('.')[-1].lower() if '.' in doc.name else '' %}
+                                    {% if ext in ['pdf'] %}
+                                    <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                    {% elif ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                    <i class="bi bi-file-earmark-image text-primary me-2"></i>
+                                    {% elif ext in ['doc', 'docx'] %}
+                                    <i class="bi bi-file-earmark-word text-primary me-2"></i>
+                                    {% else %}
+                                    <i class="bi bi-file-earmark text-secondary me-2"></i>
+                                    {% endif %}
+                                    <a href="{{ url_for('documents.detail', id=doc.id) }}">{{ doc.title }}</a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ doc.document_type.value }}</span>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if doc.expiry_date %}
+                                    {% if doc.expiry_date < now() %}
+                                    <span class="text-danger">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                        {{ doc.expiry_date.strftime('%d/%m/%Y') }}
+                                    </span>
+                                    {% else %}
+                                    {{ doc.expiry_date.strftime('%d/%m/%Y') }}
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <small class="text-muted">{{ doc.created_at.strftime('%d/%m/%Y') }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('documents.download', id=doc.id) }}"
+                                           class="btn btn-outline-primary" title="Télécharger">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        <a href="{{ url_for('documents.detail', id=doc.id) }}"
+                                           class="btn btn-outline-secondary" title="Voir">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <form action="{{ url_for('documents.delete', id=doc.id) }}"
+                                              method="POST" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-outline-danger"
+                                                    title="Supprimer"
+                                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce document ?')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-file-earmark-x display-4 text-muted mb-3"></i>
+                    <p class="text-muted mb-3">Aucun document pour cet utilisateur</p>
+                    <a href="{{ url_for('documents.upload') }}?owner_type=user&owner_id={{ user.id }}"
+                       class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter un document
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Helper function for template
+function now() {
+    return new Date();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,308 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ document.name }} - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        {% if document.mime_type and 'pdf' in document.mime_type %}
+        <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+        {% elif document.mime_type and 'image' in document.mime_type %}
+        <i class="bi bi-file-earmark-image text-success me-2"></i>
+        {% elif document.mime_type and 'word' in document.mime_type %}
+        <i class="bi bi-file-earmark-word text-primary me-2"></i>
+        {% elif document.mime_type and 'excel' in document.mime_type or document.mime_type and 'spreadsheet' in document.mime_type %}
+        <i class="bi bi-file-earmark-excel text-success me-2"></i>
+        {% else %}
+        <i class="bi bi-file-earmark me-2"></i>
+        {% endif %}
+        {{ document.name }}
+    </h1>
+    <div>
+        <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Document Info Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Informations</h5>
+                <div class="btn-group btn-group-sm">
+                    <a href="{{ url_for('documents.download', id=document.id) }}" class="btn btn-success">
+                        <i class="bi bi-download me-1"></i>Télécharger
+                    </a>
+                    <a href="{{ url_for('documents.edit', id=document.id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-pencil me-1"></i>Modifier
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Type de document</label>
+                        <p class="mb-0">
+                            {% if document.document_type.value == 'passport' %}
+                            <span class="badge bg-primary">Passeport</span>
+                            {% elif document.document_type.value == 'visa' %}
+                            <span class="badge bg-info">Visa</span>
+                            {% elif document.document_type.value == 'contract' %}
+                            <span class="badge bg-success">Contrat</span>
+                            {% elif document.document_type.value == 'rider' %}
+                            <span class="badge bg-warning text-dark">Rider</span>
+                            {% elif document.document_type.value == 'insurance' %}
+                            <span class="badge bg-secondary">Assurance</span>
+                            {% elif document.document_type.value == 'work_permit' %}
+                            <span class="badge bg-dark">Permis de travail</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark">Autre</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Propriétaire</label>
+                        <p class="mb-0">
+                            {% if document.owner_type == 'user' %}
+                            <i class="bi bi-person me-1"></i>
+                            <a href="{{ url_for('documents.by_user', user_id=document.user_id) }}">{{ document.owner_name }}</a>
+                            {% elif document.owner_type == 'band' %}
+                            <i class="bi bi-music-note me-1"></i>
+                            <a href="{{ url_for('documents.by_band', band_id=document.band_id) }}">{{ document.owner_name }}</a>
+                            {% elif document.owner_type == 'tour' %}
+                            <i class="bi bi-calendar-event me-1"></i>
+                            <a href="{{ url_for('documents.by_tour', tour_id=document.tour_id) }}">{{ document.owner_name }}</a>
+                            {% else %}
+                            <span class="text-muted">Non attribué</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                {% if document.description %}
+                <div class="mb-3">
+                    <label class="text-muted small">Description</label>
+                    <p class="mb-0">{{ document.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- File Info Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-earmark me-2"></i>Fichier</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Nom original</label>
+                        <p class="mb-0">{{ document.original_filename }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Type MIME</label>
+                        <p class="mb-0"><code>{{ document.mime_type or 'Inconnu' }}</code></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Taille</label>
+                        <p class="mb-0">{{ document.file_size_formatted }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Téléchargé le</label>
+                        <p class="mb-0">{{ document.created_at.strftime('%d/%m/%Y à %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expiry Info (if applicable) -->
+        {% if document.expiry_date or document.document_number or document.issue_date %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Informations d'expiration</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if document.document_number %}
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Numéro de document</label>
+                        <p class="mb-0"><strong>{{ document.document_number }}</strong></p>
+                    </div>
+                    {% endif %}
+                    {% if document.issuing_country %}
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Pays d'émission</label>
+                        <p class="mb-0">{{ document.issuing_country }}</p>
+                    </div>
+                    {% endif %}
+                    {% if document.issue_date %}
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Date d'émission</label>
+                        <p class="mb-0">{{ document.issue_date.strftime('%d/%m/%Y') }}</p>
+                    </div>
+                    {% endif %}
+                    {% if document.expiry_date %}
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Date d'expiration</label>
+                        <p class="mb-0">
+                            {{ document.expiry_date.strftime('%d/%m/%Y') }}
+                            {% if document.expiry_status == 'expired' %}
+                            <span class="badge bg-danger ms-2">Expiré</span>
+                            {% elif document.expiry_status == 'expiring_soon' %}
+                            <span class="badge bg-warning text-dark ms-2">{{ document.days_until_expiry }} jours restants</span>
+                            {% else %}
+                            <span class="badge bg-success ms-2">Valide</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Status Card -->
+        {% if document.expiry_date %}
+        <div class="card mb-3 {% if document.expiry_status == 'expired' %}border-danger{% elif document.expiry_status == 'expiring_soon' %}border-warning{% else %}border-success{% endif %}">
+            <div class="card-body text-center">
+                {% if document.expiry_status == 'expired' %}
+                <i class="bi bi-x-circle-fill display-3 text-danger"></i>
+                <h4 class="mt-3 text-danger">Document expiré</h4>
+                <p class="text-muted mb-0">Expire depuis {{ -document.days_until_expiry }} jours</p>
+                {% elif document.expiry_status == 'expiring_soon' %}
+                <i class="bi bi-exclamation-triangle-fill display-3 text-warning"></i>
+                <h4 class="mt-3 text-warning">Expire bientôt</h4>
+                <p class="text-muted mb-0">{{ document.days_until_expiry }} jours restants</p>
+                {% else %}
+                <i class="bi bi-check-circle-fill display-3 text-success"></i>
+                <h4 class="mt-3 text-success">Document valide</h4>
+                <p class="text-muted mb-0">{{ document.days_until_expiry }} jours restants</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                {% if document.mime_type and ('image' in document.mime_type or 'pdf' in document.mime_type) %}
+                <a href="{{ url_for('documents.view', id=document.id) }}"
+                   class="btn btn-primary"
+                   {% if 'image' in document.mime_type %}data-bs-toggle="modal" data-bs-target="#previewModal" onclick="event.preventDefault();"{% else %}target="_blank"{% endif %}>
+                    <i class="bi bi-eye me-2"></i>Visualiser
+                </a>
+                {% endif %}
+                <a href="{{ url_for('documents.download', id=document.id) }}" class="btn btn-success">
+                    <i class="bi bi-download me-2"></i>Télécharger
+                </a>
+                <a href="{{ url_for('documents.edit', id=document.id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-pencil me-2"></i>Modifier
+                </a>
+                <a href="{{ url_for('documents.share_document', id=document.id) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-share me-2"></i>Partager
+                </a>
+                <button type="button" class="btn btn-outline-danger"
+                        data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="bi bi-trash me-2"></i>Supprimer
+                </button>
+            </div>
+        </div>
+
+        <!-- Partages actifs -->
+        {% if document.shares.count() > 0 %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-people me-2"></i>Partagé avec</h6>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for share in document.shares %}
+                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <div>
+                        <i class="bi bi-person me-1"></i>{{ share.shared_to.full_name }}
+                        <span class="badge bg-secondary ms-1">{{ 'Lecture' if share.share_type.value == 'view' else 'Modification' }}</span>
+                    </div>
+                    <small class="text-muted">{{ share.shared_at.strftime('%d/%m') }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Upload Info -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <small class="text-muted">
+                    <i class="bi bi-upload me-1"></i>
+                    Téléchargé par {{ document.uploaded_by.full_name if document.uploaded_by else 'Inconnu' }}
+                    <br>
+                    <i class="bi bi-clock me-1"></i>
+                    {{ document.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                    {% if document.updated_at and document.updated_at != document.created_at %}
+                    <br>
+                    <i class="bi bi-pencil-square me-1"></i>
+                    Modifié le {{ document.updated_at.strftime('%d/%m/%Y à %H:%M') }}
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Voulez-vous vraiment supprimer le document <strong>{{ document.name }}</strong>?</p>
+                <p class="text-danger"><small>Cette action est irréversible. Le fichier sera définitivement supprimé.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ url_for('documents.delete', id=document.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal (Images only) -->
+{% if document.mime_type and 'image' in document.mime_type %}
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-image me-2"></i>{{ document.name }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-0 bg-dark">
+                <img src="{{ url_for('documents.view', id=document.id) }}"
+                     alt="{{ document.name }}"
+                     class="img-fluid"
+                     style="max-height: 80vh; object-fit: contain;">
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('documents.download', id=document.id) }}" class="btn btn-success">
+                    <i class="bi bi-download me-2"></i>Télécharger
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

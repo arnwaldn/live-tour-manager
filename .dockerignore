@@ -1,0 +1,91 @@
+# =============================================================================
+# Tour Manager - Docker Ignore File
+# =============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+.env/
+ENV/
+.eggs/
+*.egg-info/
+*.egg
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.docker/
+
+# Documentation
+README.md
+docs/
+*.md
+LICENSE
+
+# Testing
+tests/
+pytest.ini
+setup.cfg
+conftest.py
+
+# Local development
+.env
+.env.*
+*.local
+instance/
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Build artifacts
+build/
+dist/
+*.manifest
+
+# OS files
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Secrets (never include in image)
+secrets/
+*.pem
+*.key
+credentials.json

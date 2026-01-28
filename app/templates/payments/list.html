@@ -1,0 +1,220 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Paiements - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">
+            <i class="bi bi-wallet2 me-2"></i>
+            Paiements
+        </h1>
+        <p class="text-muted mb-0">Gestion des cachets, per diems et remboursements</p>
+    </div>
+    <div class="btn-group mt-3 mt-md-0">
+        <a href="{{ url_for('payments.add') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>
+            Nouveau paiement
+        </a>
+        <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+            <span class="visually-hidden">Toggle Dropdown</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{{ url_for('payments.batch_per_diems') }}">
+                <i class="bi bi-lightning me-2"></i>Générer per diems
+            </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{{ url_for('payments.export_csv') }}">
+                <i class="bi bi-filetype-csv me-2"></i>Export CSV
+            </a></li>
+            <li><a class="dropdown-item" href="{{ url_for('payments.export_sepa') }}">
+                <i class="bi bi-bank me-2"></i>Export SEPA
+            </a></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-1">Total</h6>
+                        <h3 class="mb-0">{{ "{:,.2f}".format(total_amount) }} EUR</h3>
+                    </div>
+                    <i class="bi bi-cash-stack fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-dark-50 mb-1">En attente</h6>
+                        <h3 class="mb-0">{{ "{:,.2f}".format(pending_amount) }} EUR</h3>
+                    </div>
+                    <i class="bi bi-hourglass-split fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-1">Payés</h6>
+                        <h3 class="mb-0">{{ "{:,.2f}".format(paid_amount) }} EUR</h3>
+                    </div>
+                    <i class="bi bi-check-circle fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters (BUG #8 FIX: Use col-lg for better spacing) -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form action="{{ url_for('payments.index') }}" method="GET" class="row g-3">
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.tour_id(class="form-select form-select-sm", id="tour_id") }}
+                <label class="form-label small text-muted">Tournée</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.user_id(class="form-select form-select-sm", id="user_id") }}
+                <label class="form-label small text-muted">Membre</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.status(class="form-select form-select-sm", id="status") }}
+                <label class="form-label small text-muted">Statut</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.payment_type(class="form-select form-select-sm", id="payment_type") }}
+                <label class="form-label small text-muted">Type</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.staff_category(class="form-select form-select-sm", id="staff_category") }}
+                <label class="form-label small text-muted">Catégorie</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary btn-sm me-2">
+                    <i class="bi bi-funnel me-1"></i>Filtrer
+                </button>
+                <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Payments Table -->
+{% if payments %}
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Référence</th>
+                    <th>Bénéficiaire</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th class="text-end">Montant</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('payments.detail', payment_id=payment.id) }}" class="text-decoration-none fw-medium">
+                            {{ payment.reference }}
+                        </a>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm me-2 bg-{{ 'primary' if payment.staff_category and payment.staff_category.value == 'artistic' else 'info' if payment.staff_category and payment.staff_category.value == 'technical' else 'warning' if payment.staff_category and payment.staff_category.value == 'management' else 'secondary' }} text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                {{ payment.user.first_name[0] if payment.user else '?' }}
+                            </div>
+                            <div>
+                                <div class="fw-medium">{{ payment.user.full_name if payment.user else 'N/A' }}</div>
+                                <small class="text-muted">{{ payment.staff_role.value if payment.staff_role else '' }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if payment.payment_type.value == 'cachet' else 'info' if payment.payment_type.value == 'per_diem' else 'warning' if payment.payment_type.value == 'overtime' else 'secondary' }}">
+                            {{ payment.payment_type.value }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ payment.description }}">
+                            {{ payment.description or '-' }}
+                        </span>
+                    </td>
+                    <td class="text-end fw-medium">
+                        {{ "{:,.2f}".format(payment.amount) }} {{ payment.currency }}
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ 'secondary' if payment.status.value == 'draft' else 'warning' if payment.status.value == 'pending' else 'info' if payment.status.value == 'approved' else 'primary' if payment.status.value == 'scheduled' else 'success' if payment.status.value == 'paid' else 'danger' }}">
+                            {{ payment.status.value }}
+                        </span>
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            {{ payment.work_date.strftime('%d/%m/%Y') if payment.work_date else '-' }}
+                        </small>
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('payments.detail', payment_id=payment.id) }}" class="btn btn-outline-primary" title="Voir">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if payment.status.value == 'draft' %}
+                            <a href="{{ url_for('payments.edit', payment_id=payment.id) }}" class="btn btn-outline-secondary" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<!-- Empty State -->
+<div class="text-center py-5">
+    <i class="bi bi-wallet text-muted" style="font-size: 4rem;"></i>
+    <h3 class="mt-3">Aucun paiement</h3>
+    <p class="text-muted">
+        {% if request.args %}
+        Aucun paiement ne correspond aux filtres sélectionnés.
+        {% else %}
+        Commencez par créer un paiement ou générer des per diems.
+        {% endif %}
+    </p>
+    <div class="btn-group mt-2">
+        <a href="{{ url_for('payments.add') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>
+            Nouveau paiement
+        </a>
+        <a href="{{ url_for('payments.batch_per_diems') }}" class="btn btn-outline-primary">
+            <i class="bi bi-lightning me-1"></i>
+            Générer per diems
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

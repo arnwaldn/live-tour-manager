@@ -1,0 +1,182 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        {% if tour %}
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">{{ title }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+{% if not band %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+<style>
+.ts-wrapper { background: var(--bs-body-bg); }
+.ts-wrapper .ts-control { background: var(--bs-body-bg); border-color: var(--bs-border-color); color: var(--bs-body-color); }
+.ts-wrapper .ts-control input { color: var(--bs-body-color); }
+.ts-dropdown { background: var(--bs-body-bg); border-color: var(--bs-border-color); }
+.ts-dropdown .option { color: var(--bs-body-color); }
+.ts-dropdown .active { background-color: var(--bs-primary); color: white; }
+</style>
+{% endif %}
+{% endblock %}
+
+{% block page_header %}
+<h1 class="h2 mb-4">{{ title }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="row g-3">
+                        {% if not band %}
+                        <div class="col-12">
+                            <label for="band_id" class="form-label">Groupe <span class="text-danger">*</span></label>
+                            {{ form.band_id(class="form-select" + (" is-invalid" if form.band_id.errors else "")) }}
+                            {% if form.band_id.errors %}
+                            <div class="invalid-feedback">{{ form.band_id.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="col-12">
+                            <label class="form-label">Groupe</label>
+                            <input type="text" class="form-control" value="{{ band.name }}" disabled>
+                            <input type="hidden" name="band_id" value="{{ band.id }}">
+                        </div>
+                        {% endif %}
+
+                        <div class="col-12">
+                            <label for="name" class="form-label">Nom de la tournée <span class="text-danger">*</span></label>
+                            {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""),
+                               placeholder="Ex: European Summer Tour 2025") }}
+                            {% if form.name.errors %}
+                            <div class="invalid-feedback">{{ form.name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="start_date" class="form-label">Date de début <span class="text-danger">*</span></label>
+                            {{ form.start_date(class="form-control" + (" is-invalid" if form.start_date.errors else ""),
+                               type="date") }}
+                            {% if form.start_date.errors %}
+                            <div class="invalid-feedback">{{ form.start_date.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="end_date" class="form-label">Date de fin <span class="text-danger">*</span></label>
+                            {{ form.end_date(class="form-control" + (" is-invalid" if form.end_date.errors else ""),
+                               type="date") }}
+                            {% if form.end_date.errors %}
+                            <div class="invalid-feedback">{{ form.end_date.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        {% if form.status %}
+                        <div class="col-12 col-md-6">
+                            <label for="status" class="form-label">Statut</label>
+                            {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}
+                            {% if form.status.errors %}
+                            <div class="invalid-feedback">{{ form.status.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="col-12 col-md-6">
+                            <label for="budget" class="form-label">Budget</label>
+                            <div class="input-group">
+                                {{ form.budget(class="form-control" + (" is-invalid" if form.budget.errors else ""),
+                                   placeholder="0.00") }}
+                                <span class="input-group-text">€</span>
+                                {% if form.budget.errors %}
+                                <div class="invalid-feedback">{{ form.budget.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="description" class="form-label">Description</label>
+                            {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""),
+                               rows="4", placeholder="Décrivez cette tournée...") }}
+                            {% if form.description.errors %}
+                            <div class="invalid-feedback">{{ form.description.errors[0] }}</div>
+                            {% endif %}
+                            <div class="form-text">Maximum 2000 caractères</div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('tours.detail', id=tour.id) if tour else url_for('tours.index') }}"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if not band %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Tom Select for band selection
+    const bandSelect = document.getElementById('band_id');
+    if (bandSelect && typeof TomSelect !== 'undefined') {
+        new TomSelect('#band_id', {
+            placeholder: 'Rechercher un groupe...',
+            searchField: ['text'],
+            maxOptions: 20,
+            allowEmptyOption: false,
+            render: {
+                option: function(data, escape) {
+                    return '<div class="py-2 px-3">' + escape(data.text) + '</div>';
+                },
+                item: function(data, escape) {
+                    return '<div>' + escape(data.text) + '</div>';
+                }
+            }
+        });
+    }
+
+    // Auto-update end date minimum based on start date
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
+
+    if (startDate && endDate) {
+        startDate.addEventListener('change', function() {
+            if (this.value) {
+                endDate.setAttribute('min', this.value);
+                if (endDate.value && endDate.value < this.value) {
+                    endDate.value = this.value;
+                }
+            }
+        });
+
+        // Set initial min if start date already has a value
+        if (startDate.value) {
+            endDate.setAttribute('min', startDate.value);
+        }
+    }
+});
+</script>
+{% endblock %}

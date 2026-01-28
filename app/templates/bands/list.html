@@ -1,0 +1,136 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Mes Groupes - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <h1 class="h2 mb-3 mb-md-0">
+        <i class="bi bi-people me-2"></i>
+        Mes Groupes
+    </h1>
+    {% if current_user.has_role('MANAGER') and (managed_bands or member_bands) %}
+    <a href="{{ url_for('bands.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>
+        Nouveau groupe
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Managed Bands -->
+{% if managed_bands %}
+<div class="mb-5">
+    <h5 class="text-muted mb-3">
+        <i class="bi bi-star-fill me-2 text-warning"></i>
+        Groupes que je manage ({{ managed_bands|length }})
+    </h5>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for band in managed_bands %}
+        <div class="col">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        {% if band.logo_url %}
+                        <img src="{{ band.logo_url }}" alt="{{ band.name }}"
+                             class="rounded me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                        {% else %}
+                        <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3"
+                             style="width: 60px; height: 60px;">
+                            <i class="bi bi-music-note-beamed text-primary fs-4"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">{{ band.name }}</h5>
+                            {% if band.genre %}
+                            <p class="text-muted small mb-2">{{ band.genre }}</p>
+                            {% endif %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-star-fill me-1"></i>Manager
+                            </span>
+                        </div>
+                    </div>
+                    {% if band.bio %}
+                    <p class="card-text mt-3 text-muted small">
+                        {{ band.bio|truncate(100, True, '...') }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent border-0 d-flex justify-content-between">
+                    <small class="text-muted">
+                        {{ band.memberships|length }} membre(s) · {{ band.tours|length }} tournée(s)
+                    </small>
+                    <a href="{{ url_for('bands.detail', id=band.id) }}" class="btn btn-sm btn-outline-primary">
+                        Voir
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Member Bands -->
+{% if member_bands %}
+<div class="mb-4">
+    <h5 class="text-muted mb-3">
+        <i class="bi bi-people me-2"></i>
+        Groupes dont je suis membre ({{ member_bands|length }})
+    </h5>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for band in member_bands %}
+        <div class="col">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        {% if band.logo_url %}
+                        <img src="{{ band.logo_url }}" alt="{{ band.name }}"
+                             class="rounded me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                        {% else %}
+                        <div class="bg-info bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3"
+                             style="width: 60px; height: 60px;">
+                            <i class="bi bi-music-note-beamed text-info fs-4"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">{{ band.name }}</h5>
+                            {% if band.genre %}
+                            <p class="text-muted small mb-2">{{ band.genre }}</p>
+                            {% endif %}
+                            <span class="badge bg-info text-white">Membre</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 d-flex justify-content-between">
+                    <small class="text-muted">
+                        {{ band.memberships|length }} membre(s)
+                    </small>
+                    <a href="{{ url_for('bands.detail', id=band.id) }}" class="btn btn-sm btn-outline-primary">
+                        Voir
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Empty State -->
+{% if not managed_bands and not member_bands %}
+<div class="text-center py-5">
+    <i class="bi bi-people text-muted" style="font-size: 4rem;"></i>
+    <h3 class="mt-3">Aucun groupe</h3>
+    <p class="text-muted">
+        Vous n'êtes membre d'aucun groupe pour le moment.
+    </p>
+    {% if current_user.has_role('MANAGER') %}
+    <a href="{{ url_for('bands.create') }}" class="btn btn-primary mt-2">
+        <i class="bi bi-plus-lg me-1"></i>
+        Créer un groupe
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

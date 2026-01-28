@@ -1,0 +1,68 @@
+{% extends "email/base.html" %}
+
+{% block title %}Réponse Mission - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<h2>Réponse à une invitation</h2>
+
+<p>Bonjour,</p>
+
+<p>
+    <strong>{{ user.full_name }}</strong> a répondu à l'invitation pour l'événement suivant :
+</p>
+
+<div class="info-box">
+    <h3>{{ tour_stop.event_label }}</h3>
+    <p>
+        <span class="label">Date :</span>
+        <span class="value">{{ tour_stop.date.strftime('%A %d %B %Y') }}</span>
+    </p>
+    {% if tour_stop.venue %}
+    <p>
+        <span class="label">Lieu :</span>
+        <span class="value">{{ tour_stop.venue.name }}, {{ tour_stop.venue.city }}</span>
+    </p>
+    {% endif %}
+    {% if band %}
+    <p>
+        <span class="label">Groupe :</span>
+        <span class="value">{{ band.name }}</span>
+    </p>
+    {% endif %}
+</div>
+
+<table cellpadding="0" cellspacing="0" border="0" style="margin: 25px 0;">
+    <tr>
+        <td>
+            {% if invitation.is_accepted %}
+            <span class="status-approved">&#10003; ACCEPTÉ</span>
+            {% else %}
+            <span class="status-denied">&#10007; REFUSÉ</span>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+{% if invitation.response_note %}
+<div class="info-box" style="background-color: #f8f9fa; border-left-color: #6c757d;">
+    <h3 style="color: #333333;">Commentaire</h3>
+    <p style="color: #666666;">{{ invitation.response_note }}</p>
+</div>
+{% endif %}
+
+<p style="margin-top: 25px;">
+    <span class="label">Répondu le :</span>
+    <span class="value">{{ invitation.responded_at.strftime('%d/%m/%Y à %H:%M') }}</span>
+</p>
+
+{% if invitation.is_declined %}
+<p style="color: #dc3545; margin-top: 20px;">
+    <strong>Action requise :</strong> Vous devrez peut-être trouver un remplacement pour cet événement.
+</p>
+{% endif %}
+
+<p style="margin-top: 30px;">
+    Cordialement,<br>
+    <strong>L'équipe Studio Palenque</strong>
+</p>
+{% endblock %}

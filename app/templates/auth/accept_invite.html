@@ -1,0 +1,131 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Activer votre compte - Studio Palenque Tour{% endblock %}
+
+{% block body %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center auth-page py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+                <div class="card auth-card">
+                    <div class="card-body p-4 p-md-5">
+                        <!-- Logo -->
+                        <div class="text-center mb-4">
+                            <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Studio Palenque" height="80" class="mb-3">
+                            <h1 class="h3 mt-2 text-gold font-display">Bienvenue !</h1>
+                            <p class="text-gray">Créez votre mot de passe pour activer votre compte</p>
+                        </div>
+
+                        <!-- User Info -->
+                        <div class="bg-dark rounded p-3 mb-4">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle bg-primary me-3">
+                                    {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                </div>
+                                <div>
+                                    <strong class="text-white">{{ user.full_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ user.email }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Flash Messages -->
+                        {% include "components/_flash_messages.html" %}
+
+                        <!-- Set Password Form -->
+                        <form method="POST" novalidate>
+                            {{ form.hidden_tag() }}
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Mot de passe</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-lock"></i>
+                                    </span>
+                                    {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""),
+                                       placeholder="••••••••", id="password", autofocus=true) }}
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    {% if form.password.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.password.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="form-text">Minimum 8 caractères</div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="confirm_password" class="form-label">Confirmer le mot de passe</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-lock-fill"></i>
+                                    </span>
+                                    {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""),
+                                       placeholder="••••••••", id="confirm_password") }}
+                                    {% if form.confirm_password.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.confirm_password.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="d-grid">
+                                {{ form.submit(class="btn btn-primary btn-lg") }}
+                            </div>
+                        </form>
+
+                        <!-- Help Text -->
+                        <div class="text-center mt-4">
+                            <p class="text-muted small mb-0">
+                                <i class="bi bi-shield-check me-1"></i>
+                                Votre mot de passe est chiffré de manière sécurisée
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <p class="text-center text-gray small mt-4">
+                    &copy; {{ now().year }} Studio Palenque Tour. Tous droits réservés.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 16px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('togglePassword').addEventListener('click', function() {
+    const passwordField = document.getElementById('password');
+    const icon = this.querySelector('i');
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+});
+</script>
+{% endblock %}

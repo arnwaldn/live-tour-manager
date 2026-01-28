@@ -1,0 +1,125 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Inscriptions en attente - Tour Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-person-plus me-2"></i>Inscriptions en attente
+        {% if users %}
+        <span class="badge bg-warning text-dark ms-2">{{ users|length }}</span>
+        {% endif %}
+    </h1>
+    <a href="{{ url_for('settings.users_list') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Retour aux utilisateurs
+    </a>
+</div>
+
+<!-- Flash Messages -->
+{% include "components/_flash_messages.html" %}
+
+{% if users %}
+<!-- Info Alert -->
+<div class="alert alert-info d-flex align-items-center mb-4">
+    <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+    <div>
+        <strong>{{ users|length }} inscription(s) en attente d'approbation.</strong><br>
+        <small>Ces utilisateurs se sont inscrits eux-mêmes et ne peuvent pas accéder à l'application tant que vous n'avez pas approuvé leur demande.</small>
+    </div>
+</div>
+
+<!-- Pending Users Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Candidat</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Date d'inscription</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-2 bg-warning text-dark">
+                                    {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                </div>
+                                <div>
+                                    <strong>{{ user.full_name }}</strong>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                        </td>
+                        <td>
+                            {% if user.phone %}
+                            <a href="tel:{{ user.phone }}">{{ user.phone }}</a>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ user.created_at.strftime('%d/%m/%Y à %H:%M') if user.created_at else 'N/A' }}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group">
+                                <form action="{{ url_for('settings.approve_user', id=user.id) }}"
+                                      method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-success"
+                                            onclick="return confirm('Approuver l\'inscription de {{ user.full_name }} ?');">
+                                        <i class="bi bi-check-lg me-1"></i>Approuver
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('settings.reject_user', id=user.id) }}"
+                                      method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger"
+                                            onclick="return confirm('⚠️ Refuser l\'inscription de {{ user.full_name }} ?\n\nCette action supprimera définitivement sa demande.');">
+                                        <i class="bi bi-x-lg me-1"></i>Refuser
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Empty State -->
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-check-circle text-success display-1 mb-3"></i>
+        <h4>Aucune inscription en attente</h4>
+        <p class="text-muted">Toutes les demandes d'inscription ont été traitées.</p>
+        <a href="{{ url_for('settings.users_list') }}" class="btn btn-primary mt-2">
+            <i class="bi bi-people me-2"></i>Voir tous les utilisateurs
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+</style>
+{% endblock %}

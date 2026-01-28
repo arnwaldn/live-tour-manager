@@ -1,0 +1,221 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Rapports - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-graph-up me-2"></i>Rapports
+    </h1>
+</div>
+
+<!-- Stats Overview -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
+    <div class="col">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-calendar-event display-4 text-primary mb-2"></i>
+                <h2 class="card-title">{{ stats.total_tours }}</h2>
+                <p class="card-text text-muted">Tournées</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-geo-alt display-4 text-success mb-2"></i>
+                <h2 class="card-title">{{ stats.total_stops }}</h2>
+                <p class="card-text text-muted">Dates de concert</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-person-check display-4 text-info mb-2"></i>
+                <h2 class="card-title">{{ stats.total_guestlist }}</h2>
+                <p class="card-text text-muted">Invités total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-check-circle display-4 text-warning mb-2"></i>
+                <h2 class="card-title">{{ stats.total_checked_in }}</h2>
+                <p class="card-text text-muted">Check-ins effectués</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Featured: Dashboard Financier -->
+<div class="card bg-primary bg-gradient text-white mb-4 shadow">
+    <div class="card-body p-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-graph-up-arrow display-5 me-3"></i>
+                    <div>
+                        <h4 class="mb-1">Dashboard Financier Avancé</h4>
+                        <p class="mb-0 opacity-75">KPIs, graphiques interactifs, settlements en temps réel</p>
+                    </div>
+                </div>
+                <p class="mb-0 mt-3 opacity-75">
+                    <i class="bi bi-check-circle me-1"></i>ApexCharts interactifs
+                    <i class="bi bi-check-circle me-1 ms-3"></i>Feuilles de règlement
+                    <i class="bi bi-check-circle me-1 ms-3"></i>Export PDF
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a href="{{ url_for('reports.financial_dashboard') }}" class="btn btn-light btn-lg">
+                    <i class="bi bi-arrow-right me-1"></i>Accéder au Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Types -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
+    <div class="col">
+        <div class="card h-100 border-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                        <i class="bi bi-currency-euro text-success fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Rapports Financiers</h5>
+                        <small class="text-muted">Vue tableau</small>
+                    </div>
+                </div>
+                <p class="card-text">Analysez les revenus de vos tournées: cachets garantis, part de porte, taux de remplissage, et exportez en CSV.</p>
+                <a href="{{ url_for('reports.financial') }}" class="btn btn-success">
+                    <i class="bi bi-arrow-right me-1"></i>Voir les rapports
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 border-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                        <i class="bi bi-people text-primary fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Analytique Guestlist</h5>
+                        <small class="text-muted">Invités, check-ins</small>
+                    </div>
+                </div>
+                <p class="card-text">Analysez les tendances de votre guestlist: taux de présence, répartition par type, demandes en attente.</p>
+                <a href="{{ url_for('reports.guestlist_analytics') }}" class="btn btn-primary">
+                    <i class="bi bi-arrow-right me-1"></i>Voir l'analytique
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 border-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                        <i class="bi bi-file-earmark-text text-warning fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Settlements</h5>
+                        <small class="text-muted">Feuilles de règlement</small>
+                    </div>
+                </div>
+                <p class="card-text">Générez des feuilles de règlement professionnelles pour chaque concert avec export PDF.</p>
+                <a href="{{ url_for('reports.settlements_list') }}" class="btn btn-warning">
+                    <i class="bi bi-arrow-right me-1"></i>Voir les settlements
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 border-secondary">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rounded-circle bg-secondary bg-opacity-10 p-3 me-3">
+                        <i class="bi bi-file-earmark-spreadsheet text-secondary fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Exports Comptabilité</h5>
+                        <small class="text-muted">PDF & CSV</small>
+                    </div>
+                </div>
+                <p class="card-text">Documents pour la comptabilité: bordereaux de paiement, masse salariale, fiches membres.</p>
+                <a href="{{ url_for('reports.accounting_index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-right me-1"></i>Exporter documents
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tours Summary -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Résumé par tournée</h5>
+    </div>
+    <div class="card-body">
+        {% if tours %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Tournée</th>
+                        <th>Groupe</th>
+                        <th>Dates</th>
+                        <th class="text-center">Concerts</th>
+                        <th class="text-center">Invités</th>
+                        <th class="text-center">Check-ins</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tour in tours %}
+                    {# Fix Jinja2 scoping: use namespace to persist variables across loops #}
+                    {% set ns = namespace(tour_guests=0, tour_checkins=0) %}
+                    {% for stop in tour.stops %}
+                        {% set ns.tour_guests = ns.tour_guests + stop.guestlist_entries|length %}
+                        {% set ns.tour_checkins = ns.tour_checkins + stop.guestlist_entries|selectattr('status.value', 'equalto', 'checked_in')|list|length %}
+                    {% endfor %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('tours.detail', id=tour.id) }}">
+                                {{ tour.name }}
+                            </a>
+                        </td>
+                        <td>{{ tour.band.name }}</td>
+                        <td class="small text-muted">
+                            {{ tour.start_date.strftime('%d/%m/%Y') }} -
+                            {{ tour.end_date.strftime('%d/%m/%Y') if tour.end_date else 'En cours' }}
+                        </td>
+                        <td class="text-center">{{ tour.stops|length }}</td>
+                        <td class="text-center">{{ ns.tour_guests }}</td>
+                        <td class="text-center">{{ ns.tour_checkins }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'secondary' }}">
+                                {{ tour.status.value }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-4">Aucune tournée à afficher.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="alert alert-success mt-4">
+    <i class="bi bi-check-circle me-2"></i>
+    <strong>Fonctionnalités disponibles:</strong> Rapports financiers avec export CSV, analytique guestlist avec taux de présence et répartition par type.
+</div>
+{% endblock %}

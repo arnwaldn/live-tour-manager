@@ -1,0 +1,1564 @@
+/**
+ * Studio Palenque Tour - Custom Styles
+ * Elegant dark theme with gold accents
+ * Bootstrap 5.3 enhancements
+ */
+
+/* ==========================================================================
+   CSS Variables / Theme - Studio Palenque
+   ========================================================================== */
+
+:root {
+    /* Studio Palenque Brand Colors */
+    --sp-black: #000000;
+    --sp-gold: #C9A962;
+    --sp-gold-light: #D4B87A;
+    --sp-gold-dark: #A68B4B;
+    --sp-white: #FFFFFF;
+    --sp-gray: #8B8B8B;
+    --sp-gray-light: #AAAAAA;
+    --sp-bg-dark: #0A0A0A;
+    --sp-bg-card: #1A1A1A;
+    --sp-bg-card-hover: #252525;
+    --sp-border: rgba(201, 169, 98, 0.2);
+    --sp-border-light: rgba(201, 169, 98, 0.1);
+
+    /* Mapping to existing system (backward compatibility) */
+    --tm-primary: var(--sp-gold);
+    --tm-primary-dark: var(--sp-gold-dark);
+    --tm-secondary: var(--sp-gray);
+
+    /* Status colors (kept for functionality) */
+    --tm-success: #198754;
+    --tm-warning: #ffc107;
+    --tm-danger: #dc3545;
+    --tm-info: #0dcaf0;
+
+    /* Background tones */
+    --tm-bg-light: var(--sp-bg-dark);
+    --tm-bg-dark: var(--sp-black);
+
+    /* Navbar */
+    --tm-navbar-height: 60px;
+
+    /* Sidebar */
+    --tm-sidebar-width: 280px;
+    --tm-sidebar-collapsed-width: 70px;
+    --tm-sidebar-bg: var(--sp-black);
+    --tm-sidebar-text: var(--sp-white);
+    --tm-sidebar-color: var(--sp-gray-light);
+    --tm-sidebar-hover-bg: rgba(201, 169, 98, 0.1);
+
+    /* Transitions */
+    --tm-transition-fast: 0.15s ease;
+    --tm-transition-normal: 0.3s ease;
+
+    /* Shadows (subtle for dark theme) */
+    --tm-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+    --tm-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+    --tm-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.5);
+    --tm-shadow-gold: 0 0 20px rgba(201, 169, 98, 0.15);
+}
+
+/* ==========================================================================
+   Base / Typography
+   ========================================================================== */
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--sp-bg-dark);
+    color: var(--sp-white);
+    min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 600;
+    color: var(--sp-white);
+}
+
+h1 {
+    color: var(--sp-gold);
+}
+
+a {
+    color: var(--sp-gold);
+    text-decoration: none;
+    transition: color var(--tm-transition-fast);
+}
+
+a:hover {
+    color: var(--sp-gold-light);
+    text-decoration: none;
+}
+
+/* Text utilities for dark theme */
+.text-muted {
+    color: var(--sp-gray) !important;
+}
+
+.text-body {
+    color: var(--sp-white) !important;
+}
+
+/* ==========================================================================
+   Navbar - Studio Palenque Style
+   ========================================================================== */
+
+.navbar {
+    background-color: var(--sp-black) !important;
+    border-bottom: 1px solid var(--sp-gold);
+    box-shadow: var(--tm-shadow-gold);
+}
+
+.navbar-brand {
+    color: var(--sp-gold) !important;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 700;
+}
+
+.navbar-brand:hover {
+    color: var(--sp-gold-light) !important;
+}
+
+.navbar-brand img {
+    height: 48px;
+    width: auto;
+}
+
+.navbar-brand .brand-text {
+    font-size: 1.25rem;
+    line-height: 1.2;
+}
+
+.navbar-credit {
+    font-size: 0.65rem;
+    color: rgba(201, 169, 98, 0.6);
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.navbar .nav-link {
+    color: var(--sp-white) !important;
+}
+
+.navbar .nav-link:hover {
+    color: var(--sp-gold) !important;
+}
+
+.navbar .form-control {
+    background-color: var(--sp-bg-card);
+    border: 1px solid var(--sp-border);
+    color: var(--sp-white);
+}
+
+.navbar .form-control::placeholder {
+    color: var(--sp-gray);
+}
+
+.navbar .form-control:focus {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-gold);
+    color: var(--sp-white);
+    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+}
+
+.navbar .btn-light {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+.navbar .btn-light:hover {
+    background-color: var(--sp-gold-light);
+    border-color: var(--sp-gold-light);
+}
+
+/* ==========================================================================
+   Sidebar Navigation - Studio Palenque Style
+   ========================================================================== */
+
+.sidebar {
+    position: fixed;
+    top: var(--tm-navbar-height);
+    left: 0;
+    width: var(--tm-sidebar-width);
+    height: calc(100vh - var(--tm-navbar-height));
+    background-color: var(--sp-black);
+    color: var(--tm-sidebar-text);
+    z-index: 1030;
+    transition: transform var(--tm-transition-normal);
+    overflow-y: auto;
+    border-right: 1px solid var(--sp-border);
+}
+
+/* Sidebar header */
+.sidebar-header {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--sp-border);
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--sp-gold);
+    font-weight: 700;
+    font-size: 1.1rem;
+    font-family: 'Playfair Display', Georgia, serif;
+}
+
+.sidebar-brand:hover {
+    color: var(--sp-gold-light);
+    text-decoration: none;
+}
+
+.sidebar-brand img {
+    height: 45px;
+    width: auto;
+}
+
+.sidebar-brand .brand-icon {
+    font-size: 1.5rem;
+    color: var(--sp-gold);
+}
+
+.sidebar-brand .brand-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.sidebar-brand .brand-credit {
+    display: block;
+    font-size: 0.6rem;
+    color: rgba(201, 169, 98, 0.6);
+    margin-left: 52px;
+    margin-top: -2px;
+}
+
+/* Sidebar body */
+.sidebar-body {
+    padding: 0;
+}
+
+.sidebar-nav {
+    padding: 1rem 0;
+}
+
+.sidebar-nav .nav-link {
+    color: var(--tm-sidebar-color);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-left: 3px solid transparent;
+    transition: all var(--tm-transition-fast);
+}
+
+.sidebar-nav .nav-link:hover {
+    color: var(--sp-gold);
+    background-color: var(--tm-sidebar-hover-bg);
+    text-decoration: none;
+}
+
+.sidebar-nav .nav-link.active {
+    color: var(--sp-gold);
+    background-color: var(--tm-sidebar-hover-bg);
+    border-left-color: var(--sp-gold);
+}
+
+.sidebar-nav .nav-link i {
+    font-size: 1.1rem;
+    width: 1.5rem;
+    text-align: center;
+    color: inherit;
+}
+
+.sidebar-section {
+    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--sp-gold);
+    margin-top: 0.5rem;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Main Content Area
+   ========================================================================== */
+
+.main-content {
+    margin-left: var(--tm-sidebar-width);
+    width: calc(100% - var(--tm-sidebar-width));
+    padding-top: var(--tm-navbar-height);
+    min-height: 100vh;
+    background-color: var(--sp-bg-dark);
+    transition: margin-left var(--tm-transition-normal), width var(--tm-transition-normal);
+    overflow-x: hidden;
+}
+
+.main-content-inner {
+    padding: 1.5rem;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Page headers */
+.page-header h1,
+.page-header h2 {
+    color: var(--sp-gold);
+}
+
+/* ==========================================================================
+   Cards - Dark Theme with Gold Accents
+   ========================================================================== */
+
+.card {
+    background-color: var(--sp-bg-card);
+    border: 1px solid var(--sp-border);
+    border-radius: 0.5rem;
+    box-shadow: var(--tm-shadow-sm);
+    transition: box-shadow var(--tm-transition-fast), border-color var(--tm-transition-fast);
+    color: var(--sp-white);
+}
+
+.card:hover {
+    box-shadow: var(--tm-shadow);
+    border-color: var(--sp-gold);
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: 1px solid var(--sp-border);
+    padding: 1rem 1.25rem;
+    color: var(--sp-gold);
+    font-family: 'Playfair Display', Georgia, serif;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.card-title {
+    color: var(--sp-gold);
+}
+
+/* Stat cards */
+.stat-card {
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(145deg, var(--sp-bg-card) 0%, var(--sp-black) 100%);
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--sp-gold);
+    font-family: 'Playfair Display', Georgia, serif;
+}
+
+.stat-card .stat-label {
+    font-size: 0.875rem;
+    color: var(--sp-gray);
+    margin-top: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   Tables - Dark Theme
+   ========================================================================== */
+
+.table {
+    margin-bottom: 0;
+    color: var(--sp-white);
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--sp-white);
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: var(--sp-gold);
+    border-bottom: 2px solid var(--sp-border);
+    background-color: rgba(201, 169, 98, 0.05);
+}
+
+.table td {
+    vertical-align: middle;
+    border-color: var(--sp-border-light);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(201, 169, 98, 0.05);
+    --bs-table-hover-bg: rgba(201, 169, 98, 0.05);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+}
+
+/* ==========================================================================
+   Forms - Dark Theme
+   ========================================================================== */
+
+.form-label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    margin-bottom: 0.375rem;
+    color: var(--sp-gray-light);
+}
+
+.form-control,
+.form-select {
+    background-color: var(--sp-bg-card);
+    border: 1px solid var(--sp-border);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    color: var(--sp-white);
+    transition: border-color var(--tm-transition-fast), box-shadow var(--tm-transition-fast);
+}
+
+.form-control::placeholder {
+    color: var(--sp-gray);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-gold);
+    color: var(--sp-white);
+    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+}
+
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-text {
+    font-size: 0.8125rem;
+    color: var(--sp-gray);
+}
+
+.form-check-input {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+}
+
+.form-check-input:checked {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+    border-color: var(--sp-gold);
+}
+
+.input-group-text {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+    color: var(--sp-gray);
+}
+
+/* ==========================================================================
+   Buttons - Gold Theme
+   ========================================================================== */
+
+.btn {
+    font-weight: 500;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    transition: all var(--tm-transition-fast);
+}
+
+.btn-primary {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+.btn-primary:hover {
+    background-color: var(--sp-gold-light);
+    border-color: var(--sp-gold-light);
+    color: var(--sp-black);
+}
+
+.btn-primary:active,
+.btn-primary:focus {
+    background-color: var(--sp-gold-dark);
+    border-color: var(--sp-gold-dark);
+    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.5);
+}
+
+.btn-outline-primary {
+    color: var(--sp-gold);
+    border-color: var(--sp-gold);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+.btn-secondary {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+    color: var(--sp-white);
+}
+
+.btn-secondary:hover {
+    background-color: var(--sp-bg-card-hover);
+    border-color: var(--sp-gold);
+    color: var(--sp-gold);
+}
+
+.btn-outline-secondary {
+    color: var(--sp-gray-light);
+    border-color: var(--sp-border);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-gold);
+    color: var(--sp-gold);
+}
+
+.btn-link {
+    color: var(--sp-gold);
+}
+
+.btn-link:hover {
+    color: var(--sp-gold-light);
+}
+
+/* Action button group */
+.btn-group-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.btn-group-actions .btn {
+    padding: 0.375rem 0.5rem;
+}
+
+/* ==========================================================================
+   Badges / Status
+   ========================================================================== */
+
+.badge {
+    font-weight: 500;
+    padding: 0.375em 0.65em;
+    font-size: 0.75rem;
+}
+
+.badge.bg-primary {
+    background-color: var(--sp-gold) !important;
+    color: var(--sp-black);
+}
+
+/* Status badges for guestlist */
+.badge-status-pending {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-status-approved {
+    background-color: #198754;
+    color: #fff;
+}
+
+.badge-status-denied {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.badge-status-checked_in {
+    background-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+/* Tour status badges */
+.badge-tour-planning {
+    background-color: var(--sp-gray);
+    color: #fff;
+}
+
+.badge-tour-confirmed {
+    background-color: #0dcaf0;
+    color: #212529;
+}
+
+.badge-tour-active {
+    background-color: #198754;
+    color: #fff;
+}
+
+.badge-tour-completed {
+    background-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+.badge-tour-cancelled {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+/* ==========================================================================
+   Alerts / Flash Messages
+   ========================================================================== */
+
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+    border-left: 4px solid;
+    background-color: var(--sp-bg-card);
+}
+
+.alert-success {
+    border-left-color: var(--tm-success);
+    color: #75b798;
+}
+
+.alert-danger {
+    border-left-color: var(--tm-danger);
+    color: #ea868f;
+}
+
+.alert-warning {
+    border-left-color: var(--tm-warning);
+    color: #ffda6a;
+}
+
+.alert-info {
+    border-left-color: var(--sp-gold);
+    color: var(--sp-gold);
+}
+
+/* ==========================================================================
+   Breadcrumbs
+   ========================================================================== */
+
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.breadcrumb-item a {
+    color: var(--sp-gray);
+}
+
+.breadcrumb-item a:hover {
+    color: var(--sp-gold);
+}
+
+.breadcrumb-item.active {
+    color: var(--sp-gold);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--sp-gray);
+}
+
+/* ==========================================================================
+   Dropdowns
+   ========================================================================== */
+
+.dropdown-menu {
+    background-color: var(--sp-bg-card);
+    border: 1px solid var(--sp-border);
+    box-shadow: var(--tm-shadow);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+}
+
+.dropdown-item {
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--sp-white);
+}
+
+.dropdown-item:hover {
+    background-color: var(--tm-sidebar-hover-bg);
+    color: var(--sp-gold);
+}
+
+.dropdown-item.text-danger {
+    color: var(--tm-danger) !important;
+}
+
+.dropdown-item.text-danger:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.dropdown-header {
+    color: var(--sp-gold);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.dropdown-divider {
+    border-color: var(--sp-border);
+}
+
+.dropdown-item-text {
+    color: var(--sp-gray);
+}
+
+/* ==========================================================================
+   Autocomplete Dark Theme
+   ========================================================================== */
+
+.autocomplete-wrapper {
+    position: relative;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1050;
+    display: none;
+    max-height: 300px;
+    overflow-y: auto;
+    width: 100%;
+    background-color: var(--sp-bg-card);
+    border: 1px solid var(--sp-border);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+}
+
+.autocomplete-dropdown.show {
+    display: block;
+}
+
+.autocomplete-item {
+    color: var(--sp-white);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+    background-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+.autocomplete-item .badge {
+    font-size: 0.7rem;
+}
+
+.autocomplete-item small {
+    color: var(--sp-gray);
+}
+
+.autocomplete-item:hover small,
+.autocomplete-item.active small {
+    color: var(--sp-black);
+    opacity: 0.7;
+}
+
+.gps-section {
+    background: var(--sp-bg-card);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid var(--sp-border-light);
+}
+
+/* ==========================================================================
+   Modals
+   ========================================================================== */
+
+.modal-content {
+    background-color: var(--sp-bg-card);
+    border: 1px solid var(--sp-border);
+    border-radius: 0.75rem;
+    box-shadow: var(--tm-shadow-lg);
+    color: var(--sp-white);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--sp-border);
+    padding: 1rem 1.25rem;
+}
+
+.modal-title {
+    color: var(--sp-gold);
+    font-family: 'Playfair Display', Georgia, serif;
+}
+
+.modal-body {
+    padding: 1.25rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--sp-border);
+    padding: 1rem 1.25rem;
+}
+
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* ==========================================================================
+   Calendar (FullCalendar)
+   ========================================================================== */
+
+.fc {
+    font-family: inherit;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--sp-gold);
+    font-family: 'Playfair Display', Georgia, serif;
+}
+
+.fc .fc-button-primary {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+.fc .fc-button-primary:hover {
+    background-color: var(--sp-gold-light);
+    border-color: var(--sp-gold-light);
+}
+
+.fc .fc-button-primary:disabled {
+    background-color: var(--sp-gold-dark);
+    border-color: var(--sp-gold-dark);
+}
+
+.fc .fc-daygrid-day-number {
+    color: var(--sp-white);
+}
+
+.fc .fc-event {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+    color: var(--sp-black);
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.8125rem;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+    border-color: var(--sp-border);
+}
+
+.fc-theme-standard .fc-scrollgrid {
+    border-color: var(--sp-border);
+}
+
+/* ==========================================================================
+   Timeline (Logistics)
+   ========================================================================== */
+
+.timeline {
+    position: relative;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 30px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--sp-border);
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 60px;
+    margin-bottom: 1.5rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 0.5rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--sp-gold);
+    border: 2px solid var(--sp-black);
+    box-shadow: 0 0 0 2px var(--sp-gold);
+}
+
+/* ==========================================================================
+   Empty States
+   ========================================================================== */
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    color: var(--sp-gray);
+    margin-bottom: 1rem;
+}
+
+.empty-state-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--sp-white);
+    font-family: 'Playfair Display', Georgia, serif;
+}
+
+.empty-state-text {
+    color: var(--sp-gray);
+    margin-bottom: 1.5rem;
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+/* Text truncation */
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Avatar placeholders */
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--sp-gold);
+    color: var(--sp-black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+}
+
+.avatar-lg {
+    width: 56px;
+    height: 56px;
+    font-size: 1.25rem;
+}
+
+/* Dividers */
+.divider {
+    height: 1px;
+    background-color: var(--sp-border);
+    margin: 1rem 0;
+}
+
+/* Loading spinner */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.spinner-border {
+    color: var(--sp-gold);
+}
+
+/* Clickable rows */
+.table-clickable tr {
+    cursor: pointer;
+}
+
+.table-clickable tr:hover {
+    background-color: rgba(201, 169, 98, 0.08);
+}
+
+/* Hover card effect */
+.hover-lift {
+    transition: transform var(--tm-transition-fast), box-shadow var(--tm-transition-fast);
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--tm-shadow-gold);
+}
+
+/* Gradient backgrounds - Gold themed */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, var(--sp-gold-dark) 0%, var(--sp-gold) 100%);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.bg-gradient-danger {
+    background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+}
+
+/* Gold accent utilities */
+.text-gold {
+    color: var(--sp-gold) !important;
+}
+
+.bg-gold {
+    background-color: var(--sp-gold) !important;
+}
+
+.border-gold {
+    border-color: var(--sp-gold) !important;
+}
+
+/* ==========================================================================
+   Pagination
+   ========================================================================== */
+
+.pagination {
+    --bs-pagination-bg: var(--sp-bg-card);
+    --bs-pagination-border-color: var(--sp-border);
+    --bs-pagination-color: var(--sp-white);
+    --bs-pagination-hover-bg: var(--sp-bg-card-hover);
+    --bs-pagination-hover-border-color: var(--sp-gold);
+    --bs-pagination-hover-color: var(--sp-gold);
+    --bs-pagination-focus-bg: var(--sp-bg-card);
+    --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+    --bs-pagination-active-bg: var(--sp-gold);
+    --bs-pagination-active-border-color: var(--sp-gold);
+    --bs-pagination-active-color: var(--sp-black);
+    --bs-pagination-disabled-bg: var(--sp-bg-card);
+    --bs-pagination-disabled-border-color: var(--sp-border);
+    --bs-pagination-disabled-color: var(--sp-gray);
+}
+
+/* ==========================================================================
+   List Groups
+   ========================================================================== */
+
+.list-group-item {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+    color: var(--sp-white);
+}
+
+.list-group-item:hover {
+    background-color: var(--sp-bg-card-hover);
+}
+
+.list-group-item.active {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+/* ==========================================================================
+   Accordions - Dark Theme
+   ========================================================================== */
+
+.accordion {
+    --bs-accordion-bg: var(--sp-bg-card);
+    --bs-accordion-border-color: var(--sp-border);
+    --bs-accordion-btn-bg: var(--sp-bg-card);
+    --bs-accordion-btn-color: var(--sp-white);
+    --bs-accordion-active-bg: var(--sp-bg-card);
+    --bs-accordion-active-color: var(--sp-gold);
+}
+
+.accordion-item {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+}
+
+.accordion-button {
+    background-color: var(--sp-bg-card);
+    color: var(--sp-white);
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: var(--sp-bg-card);
+    color: var(--sp-gold);
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+    border-color: var(--sp-gold);
+}
+
+.accordion-button::after {
+    filter: invert(1);
+}
+
+.accordion-body {
+    background-color: var(--sp-bg-card);
+    color: var(--sp-white);
+}
+
+/* Form selects in accordion - force dark background */
+.accordion-body .form-select {
+    background-color: var(--sp-bg-dark) !important;
+    color: var(--sp-white) !important;
+    border-color: var(--sp-border) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23C9A962' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+}
+
+.accordion-body .form-select:focus {
+    border-color: var(--sp-gold) !important;
+    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25) !important;
+}
+
+/* ==========================================================================
+   BOOTSTRAP DARK THEME OVERRIDES
+   Force dark backgrounds on all Bootstrap components
+   ========================================================================== */
+
+/* Cards */
+.card {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+    color: var(--sp-white);
+}
+
+.card-header {
+    background-color: rgba(201, 169, 98, 0.1);
+    border-bottom-color: var(--sp-border);
+}
+
+.card-footer {
+    background-color: var(--sp-bg-card);
+    border-top-color: var(--sp-border);
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
+    background-color: #252525;
+    border-color: var(--sp-border);
+    color: var(--sp-white);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: #2a2a2a;
+    border-color: var(--sp-gold);
+    color: var(--sp-white);
+    box-shadow: 0 0 0 0.25rem rgba(201, 169, 98, 0.25);
+}
+
+.form-control::placeholder {
+    color: var(--sp-gray);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+    background-color: #1a1a1a;
+    color: var(--sp-gray);
+}
+
+.input-group-text {
+    background-color: #1A1A1A;
+    border-color: var(--sp-border);
+    color: var(--sp-gray-light);
+}
+
+/* Tables */
+.table {
+    --bs-table-bg: var(--sp-bg-card);
+    --bs-table-color: var(--sp-white);
+    --bs-table-border-color: var(--sp-border);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+    --bs-table-hover-bg: rgba(201, 169, 98, 0.1);
+}
+
+.table-light,
+.table > thead {
+    --bs-table-bg: #252525;
+    --bs-table-color: var(--sp-gold);
+}
+
+/* List Groups */
+.list-group-item {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+    color: var(--sp-white);
+}
+
+.list-group-item-action:hover,
+.list-group-item-action:focus {
+    background-color: var(--sp-bg-card-hover);
+    color: var(--sp-gold);
+}
+
+/* Dropdowns */
+.dropdown-menu {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+}
+
+.dropdown-item {
+    color: var(--sp-white);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--sp-bg-card-hover);
+    color: var(--sp-gold);
+}
+
+.dropdown-divider {
+    border-color: var(--sp-border);
+}
+
+/* Modals */
+.modal-content {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+    color: var(--sp-white);
+}
+
+.modal-header {
+    border-bottom-color: var(--sp-border);
+}
+
+.modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.modal-footer {
+    border-top-color: var(--sp-border);
+}
+
+/* Alerts - Dark versions */
+.alert {
+    border-width: 1px;
+}
+
+.alert-info {
+    background-color: rgba(13, 202, 240, 0.15);
+    border-color: rgba(13, 202, 240, 0.3);
+    color: #0dcaf0;
+}
+
+.alert-success {
+    background-color: rgba(25, 135, 84, 0.15);
+    border-color: rgba(25, 135, 84, 0.3);
+    color: #75d89f;
+}
+
+.alert-warning {
+    background-color: rgba(255, 193, 7, 0.15);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+}
+
+.alert-danger {
+    background-color: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #f08090;
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+    background-color: transparent;
+}
+
+.breadcrumb-item a {
+    color: var(--sp-gray-light);
+}
+
+.breadcrumb-item.active {
+    color: var(--sp-gold);
+}
+
+/* Pagination */
+.page-link {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+    color: var(--sp-white);
+}
+
+.page-link:hover {
+    background-color: var(--sp-bg-card-hover);
+    border-color: var(--sp-gold);
+    color: var(--sp-gold);
+}
+
+.page-item.active .page-link {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+.page-item.disabled .page-link {
+    background-color: #1a1a1a;
+    border-color: var(--sp-border);
+    color: var(--sp-gray);
+}
+
+/* Badge adjustments */
+.badge.bg-light {
+    background-color: #252525 !important;
+    color: var(--sp-white) !important;
+}
+
+/* Close button (global) */
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Offcanvas */
+.offcanvas {
+    background-color: var(--sp-bg-card);
+    color: var(--sp-white);
+}
+
+/* Toast */
+.toast {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+    color: var(--sp-white);
+}
+
+.toast-header {
+    background-color: #252525;
+    border-bottom-color: var(--sp-border);
+    color: var(--sp-white);
+}
+
+/* Popovers */
+.popover {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border);
+}
+
+.popover-header {
+    background-color: #252525;
+    border-bottom-color: var(--sp-border);
+    color: var(--sp-gold);
+}
+
+.popover-body {
+    color: var(--sp-white);
+}
+
+/* Tooltips - keep dark by default */
+
+/* Nav tabs */
+.nav-tabs {
+    border-bottom-color: var(--sp-border);
+}
+
+.nav-tabs .nav-link {
+    color: var(--sp-gray-light);
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: var(--sp-border);
+    color: var(--sp-gold);
+}
+
+.nav-tabs .nav-link.active {
+    background-color: var(--sp-bg-card);
+    border-color: var(--sp-border) var(--sp-border) var(--sp-bg-card);
+    color: var(--sp-gold);
+}
+
+/* Nav pills */
+.nav-pills .nav-link {
+    color: var(--sp-gray-light);
+}
+
+.nav-pills .nav-link:hover {
+    color: var(--sp-gold);
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+/* Progress bars */
+.progress {
+    background-color: #252525;
+}
+
+/* Background utilities - Force dark theme */
+.bg-light {
+    background-color: var(--sp-bg-card) !important;
+    color: var(--sp-white) !important;
+}
+
+.bg-white {
+    background-color: var(--sp-bg-card) !important;
+    color: var(--sp-white) !important;
+}
+
+/* Form sections with subtle gold border accent */
+.card.bg-light {
+    border: 1px solid var(--sp-border) !important;
+}
+
+.card.bg-light .card-title {
+    color: var(--sp-gold);
+}
+
+/* ==========================================================================
+   Responsive Styles
+   ========================================================================== */
+
+/* Tablet and smaller - collapse sidebar */
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .main-content-inner {
+        padding: 1rem;
+    }
+}
+
+/* Small screens - adjust stat cards */
+@media (max-width: 767.98px) {
+    .main-content-inner {
+        padding: 0.75rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .stat-card .stat-label {
+        font-size: 0.75rem;
+    }
+
+    /* Stack cards on very small screens */
+    .row .col-6.col-md-3 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 575.98px) {
+    .row .col-6.col-md-3 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    h1.h2 {
+        font-size: 1.25rem;
+    }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+    .sidebar,
+    .navbar,
+    .no-print {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+
+    body {
+        font-size: 12pt;
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    a[href]:after {
+        content: none !important;
+    }
+}
+
+/* ==========================================================================
+   BUG #2 FIX: Remove green checkmarks on empty optional fields
+   ========================================================================== */
+
+.was-validated .form-control:not(:required):not(:focus):placeholder-shown:valid,
+.was-validated .form-select:not(:required):not(:focus):valid:has(option:first-child:checked) {
+    border-color: var(--bs-border-color) !important;
+    background-image: none !important;
+}
+
+/* Also remove checkmark on URL fields when empty */
+.was-validated input[type="url"]:not(:required):placeholder-shown:valid,
+.was-validated input[type="email"]:not(:required):placeholder-shown:valid {
+    border-color: var(--bs-border-color) !important;
+    background-image: none !important;
+}
+
+/* ==========================================================================
+   BUG #13 FIX: File input text truncation in small input-groups
+   ========================================================================== */
+
+/* Ensure file inputs have enough width to show text properly */
+.input-group-sm input[type="file"].form-control {
+    min-width: 180px;
+}
+
+/* Custom styling for file input to prevent "A...isi" truncation */
+input[type="file"].form-control::file-selector-button {
+    white-space: nowrap;
+    overflow: visible;
+}
+
+/* On smaller screens, let file input take full width in profile picture section */
+@media (max-width: 576px) {
+    .input-group-sm input[type="file"].form-control {
+        min-width: 150px;
+    }
+}

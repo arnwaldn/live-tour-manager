@@ -1,0 +1,37 @@
+{% extends "email/base.html" %}
+
+{% block title %}Guestlist Refusée - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<h2>Demande guestlist non retenue</h2>
+
+<p>Bonjour,</p>
+
+<p>Nous sommes au regret de vous informer que votre demande d'accès guestlist n'a pas pu être acceptée.</p>
+
+<div class="info-box">
+    <h3>Détails de l'événement</h3>
+    <p><span class="label">Artiste:</span> <span class="value">{{ band.name }}</span></p>
+    <p><span class="label">Tournée:</span> <span class="value">{{ tour.name }}</span></p>
+    <p><span class="label">Lieu:</span> <span class="value">{{ venue.name }}</span></p>
+    <p><span class="label">Date:</span> <span class="value">{{ tour_stop.date.strftime('%d/%m/%Y') }}</span></p>
+</div>
+
+<div class="info-box">
+    <h3>Votre demande</h3>
+    <p><span class="label">Nom:</span> <span class="value">{{ entry.guest_name }}</span></p>
+    <p><span class="label">Statut:</span> <span class="status-denied">Refusée</span></p>
+    {% if entry.notes %}
+    <p><span class="label">Commentaire:</span> <span class="value">{{ entry.notes }}</span></p>
+    {% endif %}
+</div>
+
+<p>Cette décision peut être due à une capacité limitée ou à d'autres contraintes organisationnelles. N'hésitez pas à réessayer pour un prochain événement.</p>
+
+<p>Nous vous remercions de votre compréhension.</p>
+
+<p style="margin-top: 30px;">
+    Cordialement,<br>
+    <strong>L'équipe Studio Palenque</strong>
+</p>
+{% endblock %}

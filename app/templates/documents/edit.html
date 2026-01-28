@@ -1,0 +1,138 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Modifier {{ document.name }} - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-pencil me-2"></i>Modifier le document
+    </h1>
+    <a href="{{ url_for('documents.detail', id=document.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <!-- Document Name -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ form.name.label.text }} <span class="text-danger">*</span></label>
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                        {% for error in form.name.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Document Type -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">{{ form.document_type.label.text }} <span class="text-danger">*</span></label>
+                        {{ form.document_type(class="form-select" + (" is-invalid" if form.document_type.errors else "")) }}
+                        {% for error in form.document_type.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.description.label.text }}</label>
+                        {{ form.description(class="form-control", rows=3) }}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Expiry Information -->
+                    <h5 class="mb-3"><i class="bi bi-calendar-check me-2"></i>Informations d'expiration</h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.document_number.label.text }}</label>
+                            {{ form.document_number(class="form-control", placeholder="Ex: 12AB34567") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.issuing_country.label.text }}</label>
+                            {{ form.issuing_country(class="form-control", placeholder="Ex: France") }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.issue_date.label.text }}</label>
+                            {{ form.issue_date(class="form-control", type="date") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.expiry_date.label.text }}</label>
+                            {{ form.expiry_date(class="form-control", type="date") }}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('documents.detail', id=document.id) }}" class="btn btn-outline-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- File Info (read-only) -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-earmark me-2"></i>Fichier</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>{{ document.original_filename }}</strong>
+                </p>
+                <p class="text-muted small mb-2">
+                    <i class="bi bi-hdd me-1"></i>{{ document.file_size_formatted }}
+                </p>
+                <p class="text-muted small mb-0">
+                    <code>{{ document.mime_type or 'Inconnu' }}</code>
+                </p>
+                <hr>
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Le fichier ne peut pas être modifié. Pour changer le fichier, supprimez ce document et téléchargez-en un nouveau.
+                </p>
+            </div>
+        </div>
+
+        <!-- Owner Info (read-only) -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-check me-2"></i>Propriétaire</h5>
+            </div>
+            <div class="card-body">
+                {% if document.owner_type %}
+                <p class="mb-0">
+                    {% if document.owner_type == 'user' %}
+                    <i class="bi bi-person me-2"></i>{{ document.owner_name }}
+                    {% elif document.owner_type == 'band' %}
+                    <i class="bi bi-music-note me-2"></i>{{ document.owner_name }}
+                    {% elif document.owner_type == 'tour' %}
+                    <i class="bi bi-calendar-event me-2"></i>{{ document.owner_name }}
+                    {% endif %}
+                </p>
+                {% else %}
+                <p class="text-muted mb-0">Non attribué</p>
+                {% endif %}
+                <hr>
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    L'attribution ne peut pas être modifiée après le téléchargement.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

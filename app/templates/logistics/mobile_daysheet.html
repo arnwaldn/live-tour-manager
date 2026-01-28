@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>{{ stop.venue.name if stop.venue else stop.date.strftime('%d/%m') }} - Quick Check</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #0d6efd;
+            --success: #198754;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --dark: #212529;
+            --light: #f8f9fa;
+            --muted: #6c757d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 18px;
+            line-height: 1.4;
+            background: var(--light);
+            color: var(--dark);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Header */
+        .mobile-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%);
+            color: white;
+            padding: 1.25rem 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .mobile-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mobile-header .date {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .mobile-header .band-name {
+            font-size: 0.875rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+
+        /* Content */
+        .mobile-content {
+            padding: 1rem;
+            padding-bottom: 100px; /* Space for fixed bottom */
+        }
+
+        /* Section */
+        .mobile-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Call Times */
+        .call-times {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .call-item {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1rem;
+            background: var(--light);
+            border-radius: 10px;
+            border-left: 4px solid var(--muted);
+        }
+
+        .call-item.highlight {
+            background: linear-gradient(135deg, #d1e7dd 0%, #badbcc 100%);
+            border-left-color: var(--success);
+        }
+
+        .call-item.now {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            border-left-color: var(--warning);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        .call-time {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            min-width: 80px;
+        }
+
+        .call-label {
+            font-size: 1.125rem;
+            font-weight: 500;
+        }
+
+        /* Venue */
+        .venue-address {
+            font-size: 1.125rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        /* Buttons */
+        .btn-mobile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            min-height: 56px;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .btn-mobile:active {
+            transform: scale(0.98);
+        }
+
+        .btn-mobile i {
+            font-size: 1.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-outline {
+            background: white;
+            color: var(--dark);
+            border: 2px solid #dee2e6;
+        }
+
+        /* Transport Info */
+        .transport-card {
+            background: linear-gradient(135deg, #cff4fc 0%, #9eeaf9 100%);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .transport-type {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .transport-details {
+            font-size: 1rem;
+            color: var(--muted);
+        }
+
+        /* Hotel Info */
+        .hotel-card {
+            background: linear-gradient(135deg, #20c997 0%, #198754 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .hotel-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .hotel-ref {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        /* Fixed Bottom */
+        .mobile-bottom {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        /* No data */
+        .no-data {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--muted);
+        }
+
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Links */
+        .quick-links {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .quick-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--light);
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--dark);
+            font-size: 0.875rem;
+            font-weight: 500;
+            min-height: 80px;
+        }
+
+        .quick-link i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 400px) {
+            .mobile-content {
+                max-width: 500px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="mobile-header">
+        <h1>
+            {% if stop.venue %}
+            {{ stop.venue.name }}
+            {% else %}
+            {{ stop.date.strftime('%d %B %Y') }}
+            {% endif %}
+        </h1>
+        <div class="date">{{ stop.date.strftime('%A %d %B %Y') }}</div>
+        {% if stop.tour and stop.tour.band %}
+        <div class="band-name">{{ stop.tour.band.name }}</div>
+        {% endif %}
+    </header>
+
+    <!-- Content -->
+    <main class="mobile-content">
+        <!-- Call Times -->
+        <section class="mobile-section">
+            <div class="section-title">
+                <i class="bi bi-clock"></i> Horaires
+            </div>
+
+            {% if call_times %}
+            <div class="call-times">
+                {% for call in call_times %}
+                <div class="call-item {% if call.is_highlight %}highlight{% endif %}">
+                    <span class="call-time">{{ call.time.strftime('%H:%M') }}</span>
+                    <span class="call-label">{{ call.label }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-data">
+                <i class="bi bi-calendar-x"></i>
+                <p>Pas d'horaires definis</p>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Venue -->
+        {% if stop.venue %}
+        <section class="mobile-section">
+            <div class="section-title">
+                <i class="bi bi-geo-alt"></i> Lieu
+            </div>
+            <p class="venue-address">
+                {{ stop.venue.address }}<br>
+                {{ stop.venue.postal_code }} {{ stop.venue.city }}<br>
+                {{ stop.venue.country }}
+            </p>
+            {% if stop.venue.has_coordinates %}
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('tours.tour_map', id=stop.tour.id) }}" class="btn-mobile btn-primary flex-grow-1">
+                    <i class="bi bi-map"></i>
+                    Carte
+                </a>
+                <a href="{{ stop.venue.google_maps_url }}" target="_blank" rel="noopener" class="btn-mobile btn-secondary">
+                    <i class="bi bi-google"></i>
+                    Google
+                </a>
+            </div>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <!-- Next Transport -->
+        {% if next_transport %}
+        <section class="mobile-section">
+            <div class="section-title">
+                <i class="bi bi-arrow-right-circle"></i> Prochain Transport
+            </div>
+            <div class="transport-card">
+                <div class="transport-type">
+                    {% if next_transport.logistics_type.value == 'FLIGHT' %}
+                    <i class="bi bi-airplane"></i> Vol
+                    {% elif next_transport.logistics_type.value == 'TRAIN' %}
+                    <i class="bi bi-train-front"></i> Train
+                    {% elif next_transport.logistics_type.value == 'BUS' %}
+                    <i class="bi bi-bus-front"></i> Bus
+                    {% else %}
+                    <i class="bi bi-car-front"></i> Transport
+                    {% endif %}
+                    {{ next_transport.provider or '' }}
+                </div>
+                {% if next_transport.departure_time %}
+                <div class="transport-details">
+                    Depart: {{ next_transport.departure_time.strftime('%H:%M') }}
+                    {% if next_transport.departure_location %} - {{ next_transport.departure_location }}{% endif %}
+                </div>
+                {% endif %}
+                {% if next_transport.confirmation_number %}
+                <div class="transport-details">Ref: {{ next_transport.confirmation_number }}</div>
+                {% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Hotel -->
+        {% if hotel %}
+        <section class="mobile-section">
+            <div class="section-title">
+                <i class="bi bi-building"></i> Hebergement
+            </div>
+            <div class="hotel-card">
+                <div class="hotel-name">{{ hotel.provider }}</div>
+                {% if hotel.confirmation_number %}
+                <div class="hotel-ref">Ref: {{ hotel.confirmation_number }}</div>
+                {% endif %}
+                {% if hotel.notes %}
+                <div class="hotel-ref" style="margin-top: 0.5rem;">{{ hotel.notes }}</div>
+                {% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Quick Links -->
+        <section class="mobile-section">
+            <div class="section-title">
+                <i class="bi bi-link-45deg"></i> Acces Rapide
+            </div>
+            <div class="quick-links">
+                <a href="{{ url_for('logistics.day_sheet', stop_id=stop.id) }}" class="quick-link">
+                    <i class="bi bi-file-text"></i>
+                    Day Sheet
+                </a>
+                <a href="{{ url_for('logistics.travel_itinerary', stop_id=stop.id) }}" class="quick-link">
+                    <i class="bi bi-signpost-2"></i>
+                    Itineraire
+                </a>
+                <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="quick-link">
+                    <i class="bi bi-person-lines-fill"></i>
+                    Guestlist
+                </a>
+                <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="quick-link">
+                    <i class="bi bi-gear"></i>
+                    Logistique
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Fixed Bottom - Emergency Contact -->
+    {% if primary_contact %}
+    <footer class="mobile-bottom">
+        <a href="tel:{{ primary_contact.phone }}" class="btn-mobile btn-danger">
+            <i class="bi bi-telephone-fill"></i>
+            {{ primary_contact.name }}{% if primary_contact.role %} ({{ primary_contact.role }}){% endif %}
+        </a>
+    </footer>
+    {% endif %}
+
+    <script>
+        // Service Worker registration for PWA capabilities (optional)
+        if ('serviceWorker' in navigator) {
+            // Could register SW here for offline support
+        }
+
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>

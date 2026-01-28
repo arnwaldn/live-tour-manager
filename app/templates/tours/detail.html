@@ -1,0 +1,265 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ tour.name }} - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item active">{{ tour.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+    <div class="mb-3 mb-md-0">
+        <div class="d-flex align-items-center">
+            <h1 class="h2 mb-1">{{ tour.name }}</h1>
+            <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'secondary' }} ms-3">
+                {{ tour.status.value }}
+            </span>
+        </div>
+        <p class="text-muted mb-0">
+            <a href="{{ url_for('bands.detail', id=tour.band.id) }}">{{ tour.band.name }}</a>
+            · {{ tour.start_date.strftime('%d/%m/%Y') }} - {{ tour.end_date.strftime('%d/%m/%Y') }}
+        </p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('tours.overview', id=tour.id) }}" class="btn btn-outline-gold" title="Vue d'ensemble">
+            <i class="bi bi-speedometer2 me-1"></i>Overview
+        </a>
+        <a href="{{ url_for('tours.calendar', id=tour.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-calendar3 me-1"></i>Calendrier
+        </a>
+        <a href="{{ url_for('tours.tour_map', id=tour.id) }}" class="btn btn-outline-info">
+            <i class="bi bi-map me-1"></i>Carte
+        </a>
+        <a href="{{ url_for('logistics.export_tour_pdf', tour_id=tour.id) }}" class="btn btn-outline-success" title="Exporter en PDF">
+            <i class="bi bi-file-pdf me-1"></i>PDF
+        </a>
+        {% if tour.band.is_manager(current_user) %}
+        <a href="{{ url_for('tours.edit', id=tour.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i>Modifier
+        </a>
+        {% if tour.stops %}
+        <a href="{{ url_for('tours.add_stop', id=tour.id) }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Ajouter une date
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Tour Info Column -->
+    <div class="col-12 col-lg-4">
+        <!-- Description Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">Informations</h5>
+            </div>
+            <div class="card-body">
+                {% if tour.description %}
+                <p class="mb-3">{{ tour.description }}</p>
+                {% else %}
+                <p class="text-muted mb-3">Aucune description</p>
+                {% endif %}
+
+                <hr>
+
+                <div class="row g-3">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Début</small>
+                        <strong>{{ tour.start_date.strftime('%d/%m/%Y') }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Fin</small>
+                        <strong>{{ tour.end_date.strftime('%d/%m/%Y') }}</strong>
+                    </div>
+                    {% if tour.budget %}
+                    <div class="col-6">
+                        <small class="text-muted d-block">Budget</small>
+                        <strong>{{ "{:,.0f}".format(tour.budget) }} €</strong>
+                    </div>
+                    {% endif %}
+                    <div class="col-6">
+                        <small class="text-muted d-block">Dates</small>
+                        <strong>{{ tour.stops|length }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">Statistiques</h5>
+            </div>
+            <div class="card-body">
+                {% set total_guests = namespace(count=0, checked_in=0, pending=0) %}
+                {% for stop in tour.stops %}
+                    {% set total_guests.count = total_guests.count + stop.guestlist_entries|length %}
+                    {% for entry in stop.guestlist_entries %}
+                        {% if entry.status.value == 'checked_in' %}
+                            {% set total_guests.checked_in = total_guests.checked_in + 1 %}
+                        {% elif entry.status.value == 'pending' %}
+                            {% set total_guests.pending = total_guests.pending + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+
+                <div class="row g-3 text-center">
+                    <div class="col-4">
+                        <div class="h3 mb-0 text-primary">{{ tour.stops|length }}</div>
+                        <small class="text-muted">Dates</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="h3 mb-0 text-success">{{ total_guests.count }}</div>
+                        <small class="text-muted">Invités</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="h3 mb-0 text-warning">{{ total_guests.pending }}</div>
+                        <small class="text-muted">En attente</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">Accès rapide</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('tours.calendar', id=tour.id) }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-calendar3 me-2"></i>Vue calendrier
+                </a>
+                <a href="{{ url_for('logistics.export_tour_pdf', tour_id=tour.id) }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-pdf me-2"></i>Export PDF
+                </a>
+                {% if tour.band.is_manager(current_user) %}
+                <form action="{{ url_for('tours.duplicate', id=tour.id) }}" method="POST" class="d-inline w-100">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="list-group-item list-group-item-action w-100 text-start border-0">
+                        <i class="bi bi-copy me-2"></i>Dupliquer la tournée
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tour Stops Column -->
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">Dates ({{ tour.stops|length }})</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if tour.stops %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th class="d-none d-md-table-cell">Salle</th>
+                                <th class="d-none d-lg-table-cell">Horaires</th>
+                                <th>Guestlist</th>
+                                <th>Statut</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stop in tour.stops|sort(attribute='date') %}
+                            <tr>
+                                <td>
+                                    <strong>{{ stop.date.strftime('%d/%m/%Y') }}</strong>
+                                    <br class="d-md-none">
+                                    <small class="d-md-none text-muted">{{ stop.venue.name }}</small>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <a href="{{ url_for('venues.detail', id=stop.venue.id) }}">
+                                        {{ stop.venue.name }}
+                                    </a>
+                                    <br>
+                                    <small class="text-muted">{{ stop.venue.city }}</small>
+                                </td>
+                                <td class="d-none d-lg-table-cell">
+                                    {% if stop.doors_time %}
+                                    <small>Portes: {{ stop.doors_time.strftime('%H:%M') }}</small>
+                                    {% endif %}
+                                    {% if stop.set_time %}
+                                    <br><small>Show: {{ stop.set_time.strftime('%H:%M') }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="text-decoration-none">
+                                        {{ stop.guestlist_entries|length }}
+                                        {% set pending = stop.guestlist_entries|selectattr('status.value', 'equalto', 'pending')|list|length %}
+                                        {% if pending > 0 %}
+                                        <span class="badge bg-warning">{{ pending }}</span>
+                                        {% endif %}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'warning' if stop.status.value == 'pending' else 'secondary' }}">
+                                        {{ stop.status.value }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}"
+                                           class="btn btn-outline-primary" title="Détails">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if tour.band.is_manager(current_user) %}
+                                        <a href="{{ url_for('tours.edit_stop', id=tour.id, stop_id=stop.id) }}"
+                                           class="btn btn-outline-secondary" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-3 mb-0">Aucune date planifiée</p>
+                    {% if tour.band.is_manager(current_user) %}
+                    <a href="{{ url_for('tours.add_stop', id=tour.id) }}" class="btn btn-primary mt-3">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter une date
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if tour.band.is_manager(current_user) %}
+<!-- Danger Zone -->
+<div class="card border-danger mt-4">
+    <div class="card-header bg-danger bg-opacity-10 text-danger">
+        <h5 class="mb-0">Zone de danger</h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-3">Supprimer cette tournée supprimera également toutes les dates et guestlists associées.</p>
+        <form action="{{ url_for('tours.delete', id=tour.id) }}" method="POST"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette tournée? Cette action est irréversible.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash me-1"></i>Supprimer la tournée
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

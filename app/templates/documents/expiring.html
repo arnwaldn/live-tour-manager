@@ -1,0 +1,233 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Documents expirant - Studio Palenque Tour{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-exclamation-triangle text-warning me-2"></i>Documents expirant
+    </h1>
+    <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Tous les documents
+    </a>
+</div>
+
+<!-- Summary Cards -->
+{% set expired_docs = documents|selectattr('expiry_status', 'equalto', 'expired')|list %}
+{% set expiring_docs = documents|selectattr('expiry_status', 'equalto', 'expiring_soon')|list %}
+
+<div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+    <div class="col">
+        <div class="card border-danger h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-x-circle display-4 text-danger"></i>
+                <h2 class="mt-2 text-danger">{{ expired_docs|length }}</h2>
+                <p class="text-muted mb-0">Documents expirés</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card border-warning h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle display-4 text-warning"></i>
+                <h2 class="mt-2 text-warning">{{ expiring_docs|length }}</h2>
+                <p class="text-muted mb-0">Expirent dans 90 jours</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card border-info h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-check display-4 text-info"></i>
+                <h2 class="mt-2">{{ documents|length }}</h2>
+                <p class="text-muted mb-0">Total à surveiller</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if documents %}
+<!-- Expired Documents -->
+{% if expired_docs %}
+<div class="card mb-4 border-danger">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"><i class="bi bi-x-circle me-2"></i>Documents expirés ({{ expired_docs|length }})</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Document</th>
+                        <th>Type</th>
+                        <th>Propriétaire</th>
+                        <th>Date expiration</th>
+                        <th>Expire depuis</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in expired_docs %}
+                    <tr class="table-danger">
+                        <td>
+                            <strong>{{ doc.name }}</strong>
+                            {% if doc.document_number %}
+                            <br><small class="text-muted">{{ doc.document_number }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if doc.document_type.value == 'passport' %}
+                            <span class="badge bg-primary">Passeport</span>
+                            {% elif doc.document_type.value == 'visa' %}
+                            <span class="badge bg-info">Visa</span>
+                            {% elif doc.document_type.value == 'work_permit' %}
+                            <span class="badge bg-dark">Permis travail</span>
+                            {% elif doc.document_type.value == 'insurance' %}
+                            <span class="badge bg-secondary">Assurance</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark">{{ doc.document_type.value }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if doc.owner_type == 'user' %}
+                            <i class="bi bi-person me-1"></i>{{ doc.owner_name }}
+                            {% elif doc.owner_type == 'band' %}
+                            <i class="bi bi-music-note me-1"></i>{{ doc.owner_name }}
+                            {% elif doc.owner_type == 'tour' %}
+                            <i class="bi bi-calendar-event me-1"></i>{{ doc.owner_name }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ doc.expiry_date.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <span class="badge bg-danger">{{ -doc.days_until_expiry }} jours</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('documents.detail', id=doc.id) }}"
+                                   class="btn btn-outline-primary" title="Détails">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('documents.download', id=doc.id) }}"
+                                   class="btn btn-outline-success" title="Télécharger">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Expiring Soon Documents -->
+{% if expiring_docs %}
+<div class="card border-warning">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Expirent bientôt ({{ expiring_docs|length }})</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Document</th>
+                        <th>Type</th>
+                        <th>Propriétaire</th>
+                        <th>Date expiration</th>
+                        <th>Jours restants</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in expiring_docs|sort(attribute='expiry_date') %}
+                    <tr class="{% if doc.days_until_expiry <= 30 %}table-warning{% endif %}">
+                        <td>
+                            <strong>{{ doc.name }}</strong>
+                            {% if doc.document_number %}
+                            <br><small class="text-muted">{{ doc.document_number }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if doc.document_type.value == 'passport' %}
+                            <span class="badge bg-primary">Passeport</span>
+                            {% elif doc.document_type.value == 'visa' %}
+                            <span class="badge bg-info">Visa</span>
+                            {% elif doc.document_type.value == 'work_permit' %}
+                            <span class="badge bg-dark">Permis travail</span>
+                            {% elif doc.document_type.value == 'insurance' %}
+                            <span class="badge bg-secondary">Assurance</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark">{{ doc.document_type.value }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if doc.owner_type == 'user' %}
+                            <i class="bi bi-person me-1"></i>{{ doc.owner_name }}
+                            {% elif doc.owner_type == 'band' %}
+                            <i class="bi bi-music-note me-1"></i>{{ doc.owner_name }}
+                            {% elif doc.owner_type == 'tour' %}
+                            <i class="bi bi-calendar-event me-1"></i>{{ doc.owner_name }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ doc.expiry_date.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            {% if doc.days_until_expiry <= 30 %}
+                            <span class="badge bg-danger">{{ doc.days_until_expiry }} jours</span>
+                            {% elif doc.days_until_expiry <= 60 %}
+                            <span class="badge bg-warning text-dark">{{ doc.days_until_expiry }} jours</span>
+                            {% else %}
+                            <span class="badge bg-info">{{ doc.days_until_expiry }} jours</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('documents.detail', id=doc.id) }}"
+                                   class="btn btn-outline-primary" title="Détails">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('documents.download', id=doc.id) }}"
+                                   class="btn btn-outline-success" title="Télécharger">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Alert Box -->
+<div class="alert alert-info mt-4">
+    <h5><i class="bi bi-lightbulb me-2"></i>Recommandations</h5>
+    <ul class="mb-0">
+        <li>Renouvelez les <strong>passeports</strong> au moins 6 mois avant expiration pour les voyages internationaux.</li>
+        <li>Les <strong>visas</strong> doivent être valides pour toute la durée de la tournée.</li>
+        <li>Vérifiez les <strong>permis de travail</strong> pour chaque pays visité.</li>
+        <li>Les <strong>assurances</strong> doivent couvrir toutes les dates de tournée.</li>
+    </ul>
+</div>
+
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-check-circle display-1 text-success"></i>
+        <h4 class="mt-3 text-success">Tout est en ordre!</h4>
+        <p class="text-muted">Aucun document n'expire dans les 90 prochains jours.</p>
+        <a href="{{ url_for('documents.index') }}" class="btn btn-outline-primary mt-2">
+            <i class="bi bi-file-earmark-text me-1"></i>Voir tous les documents
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

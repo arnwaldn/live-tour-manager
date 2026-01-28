@@ -1,0 +1,8 @@
+"""
+Notifications blueprint for in-app notifications.
+"""
+from flask import Blueprint
+
+notifications_bp = Blueprint('notifications', __name__)
+
+from app.blueprints.notifications import routes

@@ -1,0 +1,328 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ venue.name }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS - Using jsdelivr (CSP whitelisted) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+#venueMap {
+    height: 250px;
+    border-radius: 0.5rem;
+    z-index: 1;
+}
+.leaflet-popup-content-wrapper {
+    border-radius: 0.5rem;
+}
+.venue-popup {
+    text-align: center;
+}
+.venue-popup h6 {
+    margin-bottom: 0.25rem;
+}
+.venue-popup small {
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('venues.index') }}">Salles</a></li>
+        <li class="breadcrumb-item active">{{ venue.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">{{ venue.name }}</h1>
+        <p class="text-muted mb-0">
+            <i class="bi bi-geo-alt me-1"></i>
+            {{ venue.city }}, {{ venue.country }}
+            {% if venue.venue_type %}
+            <span class="badge bg-secondary ms-2">{{ venue.venue_type.value }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <a href="{{ url_for('venues.edit', id=venue.id) }}" class="btn btn-outline-primary">
+        <i class="bi bi-pencil me-1"></i>Modifier
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Info Column -->
+    <div class="col-12 col-lg-4">
+        <!-- Address Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Adresse</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">{{ venue.address }}</p>
+                <p class="mb-2">{{ venue.postal_code }} {{ venue.city }}</p>
+                <p class="mb-3">{{ venue.country }}</p>
+
+                {% if venue.has_coordinates %}
+                <!-- Interactive Map -->
+                <div id="venueMap" class="mb-3" style="height: 250px; background: #2a2a3e; border: 1px solid #444;"></div>
+                <div class="btn-group btn-group-sm">
+                    <a href="{{ venue.google_maps_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                        <i class="bi bi-google me-1"></i>Google Maps
+                    </a>
+                    <a href="{{ venue.map_url }}" target="_blank" rel="noopener" class="btn btn-outline-secondary">
+                        <i class="bi bi-map me-1"></i>OpenStreetMap
+                    </a>
+                </div>
+                {% else %}
+                <a href="https://www.google.com/maps/search/?api=1&query={{ venue.address|urlencode }}+{{ venue.city|urlencode }}"
+                   target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-map me-1"></i>Rechercher sur Google Maps
+                </a>
+                <p class="small text-muted mt-2 mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Coordonnées GPS non disponibles. Modifiez la salle pour les ajouter automatiquement.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Contact Info Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informations</h5>
+            </div>
+            <div class="card-body">
+                {% if venue.capacity %}
+                <p class="mb-2">
+                    <i class="bi bi-people me-2 text-muted"></i>
+                    <strong>{{ venue.capacity }}</strong> places
+                </p>
+                {% endif %}
+
+                {% if venue.phone %}
+                <p class="mb-2">
+                    <i class="bi bi-telephone me-2 text-muted"></i>
+                    <a href="tel:{{ venue.phone }}">{{ venue.phone }}</a>
+                </p>
+                {% endif %}
+
+                {% if venue.email %}
+                <p class="mb-2">
+                    <i class="bi bi-envelope me-2 text-muted"></i>
+                    <a href="mailto:{{ venue.email }}">{{ venue.email }}</a>
+                </p>
+                {% endif %}
+
+                {% if venue.website %}
+                <p class="mb-2">
+                    <i class="bi bi-globe me-2 text-muted"></i>
+                    <a href="{{ venue.website }}" target="_blank" rel="noopener">{{ venue.website }}</a>
+                </p>
+                {% endif %}
+
+                <!-- Section Contacts (Collapse) -->
+                <hr class="my-3">
+                <button class="btn btn-outline-primary w-100 d-flex justify-content-between align-items-center"
+                        type="button" data-bs-toggle="collapse" data-bs-target="#contactsCollapse"
+                        aria-expanded="false" aria-controls="contactsCollapse">
+                    <span><i class="bi bi-people me-2"></i>Contacts ({{ venue.contacts|length }})</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+
+                <div class="collapse mt-3" id="contactsCollapse">
+                    {% if venue.contacts %}
+                    <ul class="list-group list-group-flush">
+                        {% for contact in venue.contacts %}
+                        <li class="list-group-item px-0 d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ contact.name }}</strong>
+                                {% if contact.role %}<small class="text-muted d-block">{{ contact.role }}</small>{% endif %}
+                                {% if contact.phone %}
+                                <a href="tel:{{ contact.phone }}" class="small d-block"><i class="bi bi-telephone me-1"></i>{{ contact.phone }}</a>
+                                {% endif %}
+                                {% if contact.email %}
+                                <a href="mailto:{{ contact.email }}" class="small"><i class="bi bi-envelope me-1"></i>{{ contact.email }}</a>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{{ url_for('venues.edit_contact', id=venue.id, contact_id=contact.id) }}">
+                                        <i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                    <li>
+                                        <form action="{{ url_for('venues.delete_contact', id=venue.id, contact_id=contact.id) }}" method="POST">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Supprimer ce contact?')">
+                                                <i class="bi bi-trash me-2"></i>Supprimer</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <a href="{{ url_for('venues.add_contact', id=venue.id) }}" class="btn btn-sm btn-primary mt-2 w-100">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter un contact
+                    </a>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted small mb-2">Aucun contact enregistré</p>
+                        <a href="{{ url_for('venues.add_contact', id=venue.id) }}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-person-plus me-1"></i>Ajouter un contact
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Info -->
+        {% if venue.technical_specs or venue.notes %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Technique</h5>
+            </div>
+            <div class="card-body">
+                {% if venue.technical_specs %}
+                <h6>Spécifications</h6>
+                <p class="small">{{ venue.technical_specs }}</p>
+                {% endif %}
+
+                {% if venue.notes %}
+                <h6>Notes</h6>
+                <p class="small mb-0">{{ venue.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Concerts Column -->
+    <div class="col-12 col-lg-8">
+        <!-- Recent Shows -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Concerts passés et à venir</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if venue.tour_stops %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Tournée</th>
+                                <th class="d-none d-md-table-cell">Groupe</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stop in venue.tour_stops|sort(attribute='date', reverse=True) %}
+                            {% if loop.index <= 10 %}
+                            <tr>
+                                <td>
+                                    <strong>{{ stop.date.strftime('%d/%m/%Y') }}</strong>
+                                </td>
+                                <td>{{ stop.tour.name }}</td>
+                                <td class="d-none d-md-table-cell">{{ stop.tour.band.name }}</td>
+                                <td>
+                                    <a href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">Aucun concert enregistré</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Danger Zone -->
+<div class="card border-danger mt-4">
+    <div class="card-header bg-danger bg-opacity-10 text-danger">
+        <h5 class="mb-0">Zone de danger</h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-3">La suppression de cette salle n'affectera pas les dates de concert existantes.</p>
+        <form action="{{ url_for('venues.delete', id=venue.id) }}" method="POST"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette salle? Cette action est irréversible.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash me-1"></i>Supprimer la salle
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if venue.has_coordinates %}
+<!-- Leaflet JS - Using jsdelivr (CSP whitelisted) -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map centered on venue
+    const venueCoords = [{{ venue.latitude }}, {{ venue.longitude }}];
+    const map = L.map('venueMap').setView(venueCoords, 16);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        crossOrigin: true
+    }).addTo(map);
+
+    // Custom marker icon (venue)
+    const venueIcon = L.divIcon({
+        className: 'custom-marker',
+        html: '<div style="background-color: #198754; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"><i class="bi bi-building" style="font-size: 16px;"></i></div>',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
+
+    // Add marker
+    const marker = L.marker(venueCoords, { icon: venueIcon }).addTo(map);
+
+    // Add popup
+    marker.bindPopup(`
+        <div class="venue-popup">
+            <h6>{{ venue.name }}</h6>
+            <small>{{ venue.city }}, {{ venue.country }}</small>
+            {% if venue.capacity %}
+            <br><small class="text-muted"><i class="bi bi-people me-1"></i>{{ venue.capacity }} places</small>
+            {% endif %}
+        </div>
+    `);
+
+    // Force Leaflet to recalculate dimensions after render
+    setTimeout(function() {
+        map.invalidateSize();
+        console.log('Leaflet map initialized for venue:', '{{ venue.name }}');
+    }, 100);
+
+    // Debug: Log if tiles fail to load
+    map.on('tileerror', function(error) {
+        console.error('Tile load error:', error);
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

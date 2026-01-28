@@ -1,0 +1,378 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Itineraire - {{ stop.venue.name if stop.venue else stop.date.strftime('%d/%m/%Y') }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .card { border: 1px solid #dee2e6 !important; box-shadow: none !important; }
+    body { font-size: 11pt; }
+}
+.itinerary-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+/* Timeline styles */
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+    margin-left: 1rem;
+}
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+.timeline-marker {
+    position: absolute;
+    left: -2.25rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.875rem;
+    z-index: 1;
+}
+.timeline-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #e0e0e0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border-left: 3px solid;
+}
+.timeline-content.highlight {
+    background: linear-gradient(135deg, #134e4a 0%, #0d9488 100%);
+    color: #ffffff;
+    border-left-width: 5px;
+}
+.timeline-time {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #4dabf7;
+}
+.timeline-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+.timeline-details {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+/* Hotel card */
+.hotel-card {
+    background: linear-gradient(135deg, #20c997 0%, #198754 100%);
+    color: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+/* Dark theme for cards */
+.card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+    color: #e0e0e0;
+}
+.card-header {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff;
+}
+.card-body {
+    color: #e0e0e0;
+}
+.card-body h5, .card-body h6 {
+    color: #ffffff;
+}
+.card-body p {
+    color: rgba(255, 255, 255, 0.8);
+}
+/* Quick Links */
+.list-group-item {
+    background: rgba(26, 26, 46, 0.9) !important;
+    color: #e0e0e0 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.list-group-item:hover {
+    background: rgba(22, 33, 62, 1) !important;
+    color: #ffffff !important;
+}
+/* Assignments badges */
+.assigned-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    margin: 0.1rem;
+    color: #ffffff;
+}
+.hotel-card .assigned-badge {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(0, 0, 0, 0.3);
+}
+.assignments-list {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="no-print">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournees</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=stop.tour.id) }}">{{ stop.tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('logistics.manage', stop_id=stop.id) }}">Logistique</a></li>
+        <li class="breadcrumb-item active">Itineraire</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 no-print">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1"><i class="bi bi-signpost-2 me-2"></i>Itineraire du Jour</h1>
+        <p class="text-muted mb-0">
+            {{ stop.date.strftime('%A %d %B %Y') }}
+        </p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('logistics.day_sheet', stop_id=stop.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-file-text me-1"></i>Day Sheet
+        </a>
+        <a href="{{ url_for('logistics.mobile_daysheet', stop_id=stop.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-phone me-1"></i>Mobile
+        </a>
+        <a href="{{ url_for('logistics.export_ical', stop_id=stop.id) }}" class="btn btn-outline-success">
+            <i class="bi bi-calendar-plus me-1"></i>iCal
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-secondary">
+            <i class="bi bi-printer me-1"></i>Imprimer
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="itinerary-header text-center">
+    <h1 class="display-6 mb-2">{{ stop.tour.band.name }}</h1>
+    <div class="h4 mb-3">
+        {% if stop.venue %}
+        <i class="bi bi-geo-alt me-2"></i>{{ stop.venue.city }}, {{ stop.venue.country }}
+        {% endif %}
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-auto">
+            <i class="bi bi-calendar3 me-2"></i>{{ stop.date.strftime('%d/%m/%Y') }}
+        </div>
+        {% if stop.venue %}
+        <div class="col-auto">
+            <i class="bi bi-building me-2"></i>{{ stop.venue.name }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Timeline Column -->
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Timeline</h5>
+            </div>
+            <div class="card-body">
+                {% if timeline %}
+                <div class="timeline">
+                    {% for event in timeline %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker" style="background: {{ event.color }};">
+                            <i class="bi {{ event.icon }}"></i>
+                        </div>
+                        <div class="timeline-content {% if event.get('is_highlight') %}highlight{% endif %}" style="border-left-color: {{ event.color }};">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <span class="timeline-time">{{ event.time.strftime('%H:%M') }}</span>
+                                    <h6 class="timeline-title mt-1 mb-0">{{ event.title }}</h6>
+                                    {% if event.subtitle %}
+                                    <div class="text-muted small">{{ event.subtitle }}</div>
+                                    {% endif %}
+                                </div>
+                                {% if event.is_transport and event.maps_url %}
+                                <div class="btn-group btn-group-sm no-print">
+                                    <a href="{{ url_for('tours.tour_map', id=stop.tour.id) }}" class="btn btn-primary" title="Carte">
+                                        <i class="bi bi-map"></i>
+                                    </a>
+                                    <a href="{{ event.maps_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary" title="Google Maps">
+                                        <i class="bi bi-google"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if event.details %}
+                            <div class="timeline-details mt-2">
+                                {% for detail in event.details %}
+                                <div>{{ detail }}</div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if event.assignments %}
+                            <div class="assignments-list">
+                                <small class="opacity-75"><i class="bi bi-people-fill me-1"></i>Passagers:</small>
+                                <div class="mt-1">
+                                {% for assignment in event.assignments %}
+                                    <span class="assigned-badge">
+                                        <i class="bi bi-person-fill"></i>
+                                        {{ assignment.user.first_name }} {{ assignment.user.last_name[0] }}.
+                                        {% if assignment.seat_number %}<small>({{ assignment.seat_number }})</small>{% endif %}
+                                    </span>
+                                {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-calendar-x display-4"></i>
+                    <p class="mt-3">Aucun evenement programme pour cette journee.</p>
+                    <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="btn btn-primary mt-2 no-print">
+                        <i class="bi bi-plus me-1"></i>Ajouter des informations
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Column -->
+    <div class="col-12 col-lg-4">
+        <!-- Venue -->
+        {% if stop.venue %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-building me-2"></i>Venue</h5>
+            </div>
+            <div class="card-body">
+                <h5 class="mb-2">{{ stop.venue.name }}</h5>
+                <p class="mb-2">
+                    {{ stop.venue.address }}<br>
+                    {{ stop.venue.postal_code }} {{ stop.venue.city }}<br>
+                    {{ stop.venue.country }}
+                </p>
+                {% if stop.venue.has_coordinates %}
+                <div class="btn-group w-100 no-print">
+                    <a href="{{ url_for('tours.tour_map', id=stop.tour.id) }}" class="btn btn-primary">
+                        <i class="bi bi-map me-1"></i>Carte
+                    </a>
+                    <a href="{{ stop.venue.google_maps_url }}" target="_blank" rel="noopener" class="btn btn-outline-light">
+                        <i class="bi bi-google me-1"></i>Google Maps
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Hotel -->
+        {% if hotels %}
+        <div class="hotel-card mb-4">
+            <h5 class="mb-3"><i class="bi bi-building me-2"></i>Hebergement</h5>
+            {% for hotel in hotels %}
+            <div class="{% if not loop.last %}mb-3 pb-3 border-bottom border-light{% endif %}">
+                <h6 class="mb-1">{{ hotel.provider }}</h6>
+                {% if hotel.confirmation_number %}
+                <small class="opacity-75">Ref: {{ hotel.confirmation_number }}</small>
+                {% endif %}
+                {% if hotel.notes %}
+                <div class="mt-2 small">{{ hotel.notes }}</div>
+                {% endif %}
+                {% if hotel.assignments %}
+                <div class="assignments-list">
+                    <small class="opacity-75"><i class="bi bi-people-fill me-1"></i>Chambres:</small>
+                    <div class="mt-1">
+                    {% for assignment in hotel.assignments %}
+                        <span class="assigned-badge">
+                            <i class="bi bi-door-open"></i>
+                            {% if assignment.room_number %}{{ assignment.room_number }}: {% endif %}
+                            {{ assignment.user.first_name }} {{ assignment.user.last_name[0] }}.
+                        </span>
+                    {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Emergency Contact -->
+        {% if primary_contact %}
+        <div class="card border-0 shadow-sm mb-4 border-danger" style="border-left: 4px solid #dc3545 !important;">
+            <div class="card-body">
+                <h6 class="text-danger mb-2">
+                    <i class="bi bi-telephone-fill me-2"></i>Contact Principal
+                </h6>
+                <div class="h5 mb-1">{{ primary_contact.name }}</div>
+                {% if primary_contact.role %}
+                <div class="text-muted small mb-2">{{ primary_contact.role }}</div>
+                {% endif %}
+                {% if primary_contact.phone %}
+                <a href="tel:{{ primary_contact.phone }}" class="btn btn-danger w-100 no-print">
+                    <i class="bi bi-telephone me-2"></i>{{ primary_contact.phone }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Links -->
+        <div class="card border-0 shadow-sm no-print">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-link-45deg me-2"></i>Liens Rapides</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('logistics.day_sheet', stop_id=stop.id) }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-text me-2"></i>Day Sheet Complet
+                </a>
+                <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-person-lines-fill me-2"></i>Guestlist
+                </a>
+                <a href="{{ url_for('logistics.mobile_daysheet', stop_id=stop.id) }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-phone me-2"></i>Version Mobile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="text-center text-muted mt-4 small">
+    <p class="mb-0">
+        Itineraire genere le {{ now.strftime('%d/%m/%Y a %H:%M') }} - Tour Manager
+    </p>
+</div>
+{% endblock %}

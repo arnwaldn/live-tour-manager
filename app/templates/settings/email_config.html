@@ -1,0 +1,609 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Configuration Email - Tour Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('settings.index') }}">Paramètres</a></li>
+        <li class="breadcrumb-item active">Configuration Email</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-envelope-gear me-2"></i>Configuration SMTP</h5>
+            </div>
+            <div class="card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" id="smtp-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Serveur SMTP</label>
+                            <input type="text" name="mail_server" class="form-control"
+                                   value="{{ config.MAIL_SERVER or 'smtp.gmail.com' }}" required>
+                            <small class="text-muted">Ex: smtp.gmail.com, smtp.office365.com</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Port</label>
+                            <input type="number" name="mail_port" class="form-control"
+                                   value="{{ config.MAIL_PORT or 587 }}" required>
+                            <small class="text-muted">587 (TLS) ou 465 (SSL)</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="mail_use_tls" class="form-check-input" id="mail_use_tls"
+                                   {{ 'checked' if config.MAIL_USE_TLS != 'false' }}>
+                            <label class="form-check-label" for="mail_use_tls">Utiliser TLS (recommandé)</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email (username)</label>
+                        <input type="email" name="mail_username" class="form-control"
+                               value="{{ config.MAIL_USERNAME or '' }}" required>
+                        <small class="text-muted">Adresse email utilisée pour l'authentification SMTP</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mot de passe application</label>
+                        <div class="input-group">
+                            <input type="password" name="mail_password" class="form-control" id="mail_password"
+                                   placeholder="{{ '********' if config.MAIL_PASSWORD else 'Entrez le mot de passe' }}">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                <i class="bi bi-eye" id="toggle-icon"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Laissez vide pour conserver le mot de passe actuel</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Expéditeur par défaut</label>
+                        <input type="text" name="mail_default_sender" class="form-control"
+                               value="{{ config.MAIL_DEFAULT_SENDER or '' }}"
+                               placeholder="Tour Manager <noreply@exemple.com>">
+                        <small class="text-muted">Format: Nom &lt;email@exemple.com&gt;</small>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Enregistrer
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="test-btn" onclick="testEmail()">
+                            <i class="bi bi-send me-1"></i>Tester la configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Status Card -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body text-center py-4">
+                {% if email_configured %}
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                <h5 class="mt-3 text-success mb-0">Email Configuré</h5>
+                <p class="text-muted small mt-2 mb-0">Les emails peuvent être envoyés</p>
+                {% else %}
+                <i class="bi bi-exclamation-circle-fill text-warning" style="font-size: 3rem;"></i>
+                <h5 class="mt-3 text-warning mb-0">Configuration Requise</h5>
+                <p class="text-muted small mt-2 mb-0">Configurez les paramètres SMTP</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Guide Configuration - Accordeon -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-book me-2"></i>Guide de Configuration</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="accordion accordion-flush" id="emailHelpAccordion">
+
+                    <!-- Gmail -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseGmail">
+                                <i class="bi bi-google me-2 text-danger"></i>
+                                <span>Gmail / Google Workspace</span>
+                            </button>
+                        </h2>
+                        <div id="collapseGmail" class="accordion-collapse collapse"
+                             data-bs-parent="#emailHelpAccordion">
+                            <div class="accordion-body small">
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <strong>Important:</strong> Un mot de passe d'application est requis.
+                                </div>
+
+                                <h6 class="fw-bold">Étape 1: Activer la validation en 2 étapes</h6>
+                                <ol class="text-muted ps-3 mb-3">
+                                    <li>Allez sur <strong>myaccount.google.com/security</strong></li>
+                                    <li>Dans "Connexion à Google", cliquez sur "Validation en deux étapes"</li>
+                                    <li>Suivez les instructions pour activer</li>
+                                </ol>
+
+                                <h6 class="fw-bold">Étape 2: Créer un mot de passe d'application</h6>
+                                <ol class="text-muted ps-3 mb-3">
+                                    <li>Allez sur <strong>myaccount.google.com/apppasswords</strong></li>
+                                    <li>Sélectionnez "Autre (nom personnalisé)"</li>
+                                    <li>Entrez "Tour Manager" comme nom</li>
+                                    <li>Cliquez sur "Générer"</li>
+                                    <li><strong>Copiez le mot de passe de 16 caractères</strong> (sans espaces)</li>
+                                </ol>
+
+                                <div class="bg-light rounded p-2 mb-3">
+                                    <small class="text-muted d-block"><strong>Paramètres:</strong></small>
+                                    <code class="small">Serveur: smtp.gmail.com | Port: 587 | TLS: Oui</code>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary flex-grow-1"
+                                            onclick="prefillProvider('gmail')">
+                                        <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
+                                    </button>
+                                    <a href="https://myaccount.google.com/apppasswords" target="_blank"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Outlook -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseOutlook">
+                                <i class="bi bi-microsoft me-2 text-primary"></i>
+                                <span>Outlook / Office 365</span>
+                            </button>
+                        </h2>
+                        <div id="collapseOutlook" class="accordion-collapse collapse"
+                             data-bs-parent="#emailHelpAccordion">
+                            <div class="accordion-body small">
+                                <h6 class="fw-bold">Comptes personnels (@outlook.com, @hotmail.com)</h6>
+                                <ol class="text-muted ps-3 mb-3">
+                                    <li>Allez sur <strong>account.microsoft.com/security</strong></li>
+                                    <li>Activez la vérification en deux étapes</li>
+                                    <li>Créez un mot de passe d'application</li>
+                                </ol>
+
+                                <h6 class="fw-bold">Comptes professionnels (Office 365)</h6>
+                                <ol class="text-muted ps-3 mb-3">
+                                    <li>Vérifiez que SMTP est activé par votre administrateur</li>
+                                    <li>Utilisez votre mot de passe normal (ou app password si 2FA activé)</li>
+                                </ol>
+
+                                <div class="bg-light rounded p-2 mb-3">
+                                    <small class="text-muted d-block"><strong>Paramètres:</strong></small>
+                                    <code class="small">Serveur: smtp.office365.com | Port: 587 | TLS: Oui</code>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary flex-grow-1"
+                                            onclick="prefillProvider('outlook')">
+                                        <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
+                                    </button>
+                                    <a href="https://account.microsoft.com/security" target="_blank"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Yahoo -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseYahoo">
+                                <i class="bi bi-envelope-fill me-2" style="color: #6001D2;"></i>
+                                <span>Yahoo Mail</span>
+                            </button>
+                        </h2>
+                        <div id="collapseYahoo" class="accordion-collapse collapse"
+                             data-bs-parent="#emailHelpAccordion">
+                            <div class="accordion-body small">
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <strong>Important:</strong> Un mot de passe d'application est requis.
+                                </div>
+
+                                <h6 class="fw-bold">Créer un mot de passe d'application</h6>
+                                <ol class="text-muted ps-3 mb-3">
+                                    <li>Allez sur <strong>login.yahoo.com/account/security</strong></li>
+                                    <li>Cliquez sur "Générer un mot de passe pour les applications"</li>
+                                    <li>Sélectionnez "Autre application"</li>
+                                    <li>Copiez le mot de passe généré</li>
+                                </ol>
+
+                                <div class="bg-light rounded p-2 mb-3">
+                                    <small class="text-muted d-block"><strong>Paramètres:</strong></small>
+                                    <code class="small">Serveur: smtp.mail.yahoo.com | Port: 587 | TLS: Oui</code>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary flex-grow-1"
+                                            onclick="prefillProvider('yahoo')">
+                                        <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
+                                    </button>
+                                    <a href="https://login.yahoo.com/account/security" target="_blank"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OVH -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseOVH">
+                                <i class="bi bi-cloud me-2 text-info"></i>
+                                <span>OVH</span>
+                            </button>
+                        </h2>
+                        <div id="collapseOVH" class="accordion-collapse collapse"
+                             data-bs-parent="#emailHelpAccordion">
+                            <div class="accordion-body small">
+                                <div class="alert alert-success py-2 mb-3">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    <strong>Simple:</strong> Pas de mot de passe d'application requis.
+                                </div>
+
+                                <h6 class="fw-bold">Configuration</h6>
+                                <ol class="text-muted ps-3 mb-3">
+                                    <li>Utilisez votre adresse email OVH complète</li>
+                                    <li>Utilisez le mot de passe de votre boîte mail</li>
+                                </ol>
+
+                                <div class="bg-light rounded p-2 mb-3">
+                                    <small class="text-muted d-block"><strong>Paramètres:</strong></small>
+                                    <code class="small">Serveur: ssl0.ovh.net | Port: 587 | TLS: Oui</code>
+                                </div>
+
+                                <button type="button" class="btn btn-sm btn-primary w-100"
+                                        onclick="prefillProvider('ovh')">
+                                    <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ionos -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseIonos">
+                                <i class="bi bi-cloud me-2 text-primary"></i>
+                                <span>Ionos (1&1)</span>
+                            </button>
+                        </h2>
+                        <div id="collapseIonos" class="accordion-collapse collapse"
+                             data-bs-parent="#emailHelpAccordion">
+                            <div class="accordion-body small">
+                                <div class="alert alert-success py-2 mb-3">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    <strong>Simple:</strong> Utilisez le mot de passe de votre boîte mail.
+                                </div>
+
+                                <div class="bg-light rounded p-2 mb-3">
+                                    <small class="text-muted d-block"><strong>Paramètres:</strong></small>
+                                    <code class="small">Serveur: smtp.ionos.fr | Port: 587 | TLS: Oui</code>
+                                </div>
+
+                                <button type="button" class="btn btn-sm btn-primary w-100"
+                                        onclick="prefillProvider('ionos')">
+                                    <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Free -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseFree">
+                                <i class="bi bi-broadcast me-2 text-danger"></i>
+                                <span>Free</span>
+                            </button>
+                        </h2>
+                        <div id="collapseFree" class="accordion-collapse collapse"
+                             data-bs-parent="#emailHelpAccordion">
+                            <div class="accordion-body small">
+                                <div class="alert alert-warning py-2 mb-3">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    <strong>Prerequis:</strong> SMTP doit être activé dans votre espace Free.
+                                </div>
+
+                                <h6 class="fw-bold">Activer le SMTP</h6>
+                                <ol class="text-muted ps-3 mb-3">
+                                    <li>Connectez-vous sur <strong>subscribe.free.fr/login/</strong></li>
+                                    <li>Allez dans "Gérer mon compte" > "Mes emails"</li>
+                                    <li>Activez "SMTP authentifié"</li>
+                                </ol>
+
+                                <div class="bg-light rounded p-2 mb-3">
+                                    <small class="text-muted d-block"><strong>Paramètres:</strong></small>
+                                    <code class="small">Serveur: smtp.free.fr | Port: 587 | TLS: Oui</code>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary flex-grow-1"
+                                            onclick="prefillProvider('free')">
+                                        <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
+                                    </button>
+                                    <a href="https://subscribe.free.fr/login/" target="_blank"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Orange -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseOrange">
+                                <i class="bi bi-phone me-2" style="color: #FF6600;"></i>
+                                <span>Orange</span>
+                            </button>
+                        </h2>
+                        <div id="collapseOrange" class="accordion-collapse collapse"
+                             data-bs-parent="#emailHelpAccordion">
+                            <div class="accordion-body small">
+                                <div class="alert alert-warning py-2 mb-3">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    <strong>Prerequis:</strong> SMTP doit être activé dans votre espace client.
+                                </div>
+
+                                <h6 class="fw-bold">Activer le SMTP</h6>
+                                <ol class="text-muted ps-3 mb-3">
+                                    <li>Connectez-vous sur <strong>messagerie.orange.fr</strong></li>
+                                    <li>Allez dans Paramètres > SMTP</li>
+                                    <li>Activez "Envoi de mails via applications tierces"</li>
+                                </ol>
+
+                                <div class="bg-light rounded p-2 mb-3">
+                                    <small class="text-muted d-block"><strong>Paramètres:</strong></small>
+                                    <code class="small">Serveur: smtp.orange.fr | Port: 587 | TLS: Oui</code>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary flex-grow-1"
+                                            onclick="prefillProvider('orange')">
+                                        <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
+                                    </button>
+                                    <a href="https://messagerie.orange.fr" target="_blank"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Infomaniak -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseInfomaniak">
+                                <i class="bi bi-globe me-2 text-success"></i>
+                                <span>Infomaniak</span>
+                            </button>
+                        </h2>
+                        <div id="collapseInfomaniak" class="accordion-collapse collapse"
+                             data-bs-parent="#emailHelpAccordion">
+                            <div class="accordion-body small">
+                                <div class="alert alert-success py-2 mb-3">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    <strong>Simple:</strong> Utilisez le mot de passe de votre boîte mail.
+                                </div>
+
+                                <div class="bg-light rounded p-2 mb-3">
+                                    <small class="text-muted d-block"><strong>Paramètres:</strong></small>
+                                    <code class="small">Serveur: mail.infomaniak.com | Port: 587 | TLS: Oui</code>
+                                </div>
+
+                                <button type="button" class="btn btn-sm btn-primary w-100"
+                                        onclick="prefillProvider('infomaniak')">
+                                    <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SMTP Personnalise -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapseCustom">
+                                <i class="bi bi-gear me-2 text-secondary"></i>
+                                <span>Autre fournisseur</span>
+                            </button>
+                        </h2>
+                        <div id="collapseCustom" class="accordion-collapse collapse"
+                             data-bs-parent="#emailHelpAccordion">
+                            <div class="accordion-body small">
+                                <h6 class="fw-bold">Configuration manuelle</h6>
+                                <ol class="text-muted ps-3 mb-3">
+                                    <li>Contactez votre hébergeur pour obtenir les paramètres SMTP</li>
+                                    <li>Vérifiez si un mot de passe d'application est requis</li>
+                                    <li>Port <strong>587</strong> (TLS) est le plus courant</li>
+                                    <li>Port <strong>465</strong> (SSL) est une alternative</li>
+                                </ol>
+
+                                <div class="bg-light rounded p-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-lightbulb me-1"></i>
+                                        <strong>Astuce:</strong> Cherchez "paramètres SMTP [nom de votre hébergeur]" sur Google.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Result Modal -->
+<div class="modal fade" id="testResultModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Résultat du test</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="test-result-body">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword() {
+    const input = document.getElementById('mail_password');
+    const icon = document.getElementById('toggle-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
+
+function prefillProvider(provider) {
+    const configs = {
+        gmail: { server: 'smtp.gmail.com', port: 587, tls: true },
+        outlook: { server: 'smtp.office365.com', port: 587, tls: true },
+        yahoo: { server: 'smtp.mail.yahoo.com', port: 587, tls: true },
+        ovh: { server: 'ssl0.ovh.net', port: 587, tls: true },
+        ionos: { server: 'smtp.ionos.fr', port: 587, tls: true },
+        free: { server: 'smtp.free.fr', port: 587, tls: true },
+        orange: { server: 'smtp.orange.fr', port: 587, tls: true },
+        infomaniak: { server: 'mail.infomaniak.com', port: 587, tls: true }
+    };
+
+    const cfg = configs[provider];
+    if (cfg) {
+        document.querySelector('[name="mail_server"]').value = cfg.server;
+        document.querySelector('[name="mail_port"]').value = cfg.port;
+        document.querySelector('[name="mail_use_tls"]').checked = cfg.tls;
+
+        // Scroll to form and highlight
+        document.querySelector('[name="mail_server"]').focus();
+
+        // Show success toast
+        const toastHtml = `
+            <div class="toast align-items-center text-bg-success border-0 position-fixed bottom-0 end-0 m-3" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Paramètres ${provider.charAt(0).toUpperCase() + provider.slice(1)} appliqués!
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', toastHtml);
+        const toastEl = document.body.lastElementChild;
+        const toast = new bootstrap.Toast(toastEl, { delay: 2000 });
+        toast.show();
+        toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+    }
+}
+
+function testEmail() {
+    const btn = document.getElementById('test-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Envoi en cours...';
+
+    // Get form data
+    const form = document.getElementById('smtp-form');
+    const formData = new FormData(form);
+
+    fetch('{{ url_for("settings.email_config_test") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultBody = document.getElementById('test-result-body');
+        if (data.success) {
+            resultBody.innerHTML = `
+                <div class="text-center py-3">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-success">Email envoyé avec succès!</h5>
+                    <p class="text-muted">Un email de test a été envoyé à votre adresse.</p>
+                </div>
+            `;
+        } else {
+            resultBody.innerHTML = `
+                <div class="text-center py-3">
+                    <i class="bi bi-x-circle-fill text-danger" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-danger">Échec de l'envoi</h5>
+                    <p class="text-muted">${data.error}</p>
+                </div>
+            `;
+        }
+        new bootstrap.Modal(document.getElementById('testResultModal')).show();
+    })
+    .catch(error => {
+        const resultBody = document.getElementById('test-result-body');
+        resultBody.innerHTML = `
+            <div class="text-center py-3">
+                <i class="bi bi-x-circle-fill text-danger" style="font-size: 3rem;"></i>
+                <h5 class="mt-3 text-danger">Erreur de connexion</h5>
+                <p class="text-muted">Impossible de contacter le serveur.</p>
+            </div>
+        `;
+        new bootstrap.Modal(document.getElementById('testResultModal')).show();
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+</script>
+{% endblock %}

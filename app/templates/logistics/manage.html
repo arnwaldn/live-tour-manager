@@ -1,0 +1,787 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Logistique - {{ stop.map_location_name }} - Tour Manager{% endblock %}
+
+{% block extra_css %}
+<style>
+.logistics-card {
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+.logistics-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.logistics-card.transport { border-left-color: #0d6efd; }
+.logistics-card.accommodation { border-left-color: #20c997; }
+.logistics-card.service { border-left-color: #fd7e14; }
+.logistics-card.other { border-left-color: #6c757d; }
+
+.status-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+}
+.status-pending { background: #ffc107; color: #212529; }
+.status-booked { background: #17a2b8; color: white; }
+.status-confirmed { background: #28a745; color: white; }
+.status-completed { background: #6c757d; color: white; }
+.status-cancelled { background: #dc3545; color: white; }
+
+.time-badge {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    min-width: 70px;
+    text-align: center;
+}
+.category-header {
+    background: linear-gradient(135deg, var(--sp-bg-card) 0%, #252525 100%);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--sp-gold);
+}
+.contact-card {
+    background: linear-gradient(135deg, var(--sp-bg-card) 0%, #252525 100%);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+.contact-card.primary {
+    border-left: 3px solid #28a745;
+}
+.quick-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+/* Assignments display */
+.assignments-section {
+    background: rgba(0,0,0,0.02);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.75rem;
+}
+.assignment-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(13, 110, 253, 0.1);
+    border: 1px solid rgba(13, 110, 253, 0.2);
+    border-radius: 1rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    margin: 0.125rem;
+}
+.assignment-badge .btn-remove {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 0.25rem;
+    font-size: 0.65rem;
+    color: #dc3545;
+    cursor: pointer;
+    opacity: 0.6;
+}
+.assignment-badge .btn-remove:hover {
+    opacity: 1;
+}
+.assignment-details {
+    font-size: 0.65rem;
+    color: #6c757d;
+}
+.btn-assign {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=stop.tour.id) }}">{{ stop.tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}">{{ stop.map_location_name }}</a></li>
+        <li class="breadcrumb-item active">Logistique</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">
+            <i class="bi bi-briefcase me-2"></i>Logistique
+            {% if is_manager %}
+            <span class="badge bg-warning text-dark ms-2" style="font-size: 0.5em; vertical-align: middle;">
+                <i class="bi bi-eye me-1"></i>Vue Manager
+            </span>
+            {% else %}
+            <span class="badge ms-2" style="font-size: 0.5em; vertical-align: middle; background: var(--sp-gold); color: #000;">
+                <i class="bi bi-person me-1"></i>Ma logistique
+            </span>
+            {% endif %}
+        </h1>
+        <p class="text-muted mb-0">
+            <i class="bi bi-geo-alt me-1"></i>{{ stop.map_location_name }} ·
+            <i class="bi bi-calendar3 me-1"></i>{{ stop.date.strftime('%A %d %B %Y') }}
+        </p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+        <a href="{{ url_for('logistics.day_sheet', stop_id=stop.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-file-text me-1"></i>Day Sheet
+        </a>
+        {% if stop.tour.band.is_manager(current_user) %}
+        <a href="{{ url_for('logistics.add_logistics', stop_id=stop.id) }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Ajouter
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Main Content -->
+    <div class="col-12 col-lg-8">
+
+        {% set transport_entries = logistics_entries|selectattr('is_transport')|list %}
+        {% set accommodation_entries = logistics_entries|selectattr('is_accommodation')|list %}
+        {% set service_entries = logistics_entries|rejectattr('is_transport')|rejectattr('is_accommodation')|list %}
+
+        <!-- Empty state for non-managers with no assigned logistics -->
+        {% if not logistics_entries and not is_manager %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-briefcase display-4 text-muted mb-3"></i>
+                <h5 class="text-muted">Aucune logistique vous concernant</h5>
+                <p class="text-muted mb-0">
+                    Vous n'êtes assigné à aucun transport ou hébergement pour cette date.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- TRANSPORTS Section -->
+        {% if transport_entries %}
+        <div class="category-header d-flex align-items-center mb-3">
+            <i class="bi bi-airplane fs-4 text-primary me-2"></i>
+            <h5 class="mb-0">Transports</h5>
+            <span class="badge bg-primary ms-2">{{ transport_entries|length }}</span>
+        </div>
+
+        {% for entry in transport_entries|sort(attribute='start_datetime') %}
+        <div class="card logistics-card transport mb-3 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-start">
+                    <!-- Time -->
+                    <div class="time-badge me-3">
+                        {% if entry.start_datetime %}
+                        <div class="fw-bold">{{ entry.start_datetime.strftime('%H:%M') }}</div>
+                        {% if entry.end_datetime %}
+                        <small style="opacity: 0.7;">{{ entry.end_datetime.strftime('%H:%M') }}</small>
+                        {% endif %}
+                        {% else %}
+                        <div>--:--</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge bg-primary me-2">
+                                    <i class="{{ entry.type_icon }} me-1"></i>
+                                    {{ entry.logistics_type.value|replace('_', ' ')|title }}
+                                </span>
+                                <span class="status-badge status-{{ entry.status.value if entry.status else 'pending' }}">
+                                    {{ entry.status_label }}
+                                </span>
+                            </div>
+                            {% if stop.tour.band.is_manager(current_user) %}
+                            <div class="quick-actions">
+                                {% if entry.status and entry.status.value == 'pending' %}
+                                <form action="{{ url_for('logistics.update_status', id=entry.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="status" value="confirmed">
+                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Confirmer">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <a href="{{ url_for('logistics.edit_logistics', id=entry.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form action="{{ url_for('logistics.delete_logistics', id=entry.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="return confirm('Supprimer?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="mb-1">{{ entry.provider or 'Transport' }}</h6>
+
+                        {% if entry.logistics_type.value == 'flight' %}
+                        <div class="small text-muted mb-1">
+                            {% if entry.flight_number %}<strong>{{ entry.flight_number }}</strong> · {% endif %}
+                            {{ entry.departure_airport or '?' }}
+                            {% if entry.departure_terminal %}(T{{ entry.departure_terminal }}){% endif %}
+                            <i class="bi bi-arrow-right mx-1"></i>
+                            {{ entry.arrival_airport or '?' }}
+                            {% if entry.arrival_terminal %}(T{{ entry.arrival_terminal }}){% endif %}
+                        </div>
+                        {% else %}
+                        {% if entry.pickup_location or entry.dropoff_location %}
+                        <div class="small text-muted mb-1">
+                            {% if entry.pickup_location %}{{ entry.pickup_location }}{% endif %}
+                            {% if entry.pickup_location and entry.dropoff_location %}<i class="bi bi-arrow-right mx-1"></i>{% endif %}
+                            {% if entry.dropoff_location %}{{ entry.dropoff_location }}{% endif %}
+                        </div>
+                        {% endif %}
+                        {% if entry.vehicle_type %}
+                        <small class="text-muted"><i class="bi bi-truck me-1"></i>{{ entry.vehicle_type }}</small>
+                        {% endif %}
+                        {% if entry.driver_name %}
+                        <small class="text-muted ms-2"><i class="bi bi-person me-1"></i>{{ entry.driver_name }}</small>
+                        {% endif %}
+                        {% endif %}
+
+                        {% if entry.confirmation_number %}
+                        <div class="small"><i class="bi bi-ticket-perforated me-1"></i>Ref: {{ entry.confirmation_number }}</div>
+                        {% endif %}
+
+                        <div class="d-flex align-items-center mt-2 flex-wrap gap-2">
+                            {% if entry.cost %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-currency-{{ entry.currency|lower }} me-1"></i>{{ "%.2f"|format(entry.cost) }} {{ entry.currency }}
+                                {% if entry.is_paid %}<i class="bi bi-check-circle-fill text-success ms-1"></i>{% endif %}
+                            </span>
+                            {% endif %}
+                            {% if entry.contact_name %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-person me-1"></i>{{ entry.contact_name }}
+                                {% if entry.contact_phone %} - {{ entry.contact_phone }}{% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if entry.notes %}
+                        <div class="small text-muted mt-2 fst-italic">{{ entry.notes|truncate(100) }}</div>
+                        {% endif %}
+
+                        <!-- Assignations nominatives -->
+                        <div class="assignments-section">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <small class="text-muted fw-semibold">
+                                    <i class="bi bi-people me-1"></i>Assignés ({{ entry.assignments.count() }})
+                                </small>
+                                {% if stop.tour.band.is_manager(current_user) %}
+                                <a href="{{ url_for('logistics.assign_user', id=entry.id) }}" class="btn btn-outline-primary btn-assign">
+                                    <i class="bi bi-plus me-1"></i>Assigner
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% if entry.assignments.count() > 0 %}
+                            <div class="d-flex flex-wrap">
+                                {% for assignment in entry.assignments %}
+                                <div class="assignment-badge">
+                                    <i class="bi bi-person-fill"></i>
+                                    <span>{{ assignment.user.first_name }} {{ assignment.user.last_name }}</span>
+                                    {% if assignment.seat_number %}
+                                    <span class="assignment-details">({{ assignment.seat_number }})</span>
+                                    {% endif %}
+                                    {% if stop.tour.band.is_manager(current_user) %}
+                                    <form action="{{ url_for('logistics.unassign_user', id=entry.id, user_id=assignment.user_id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn-remove" title="Désassigner" onclick="return confirm('Désassigner {{ assignment.user.first_name }}?')">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <small class="text-muted fst-italic">Aucune personne assignée</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- HEBERGEMENTS Section -->
+        {% if accommodation_entries %}
+        <div class="category-header d-flex align-items-center mb-3 mt-4">
+            <i class="bi bi-building fs-4 text-teal me-2" style="color: #20c997;"></i>
+            <h5 class="mb-0">Hébergements</h5>
+            <span class="badge bg-success ms-2">{{ accommodation_entries|length }}</span>
+        </div>
+
+        {% for entry in accommodation_entries|sort(attribute='start_datetime') %}
+        <div class="card logistics-card accommodation mb-3 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-start">
+                    <!-- Check-in time or icon -->
+                    <div class="time-badge me-3" style="background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);">
+                        {% if entry.check_in_time %}
+                        <div class="fw-bold">{{ entry.check_in_time.strftime('%H:%M') }}</div>
+                        <small style="opacity: 0.7;">Check-in</small>
+                        {% else %}
+                        <i class="bi bi-building fs-5"></i>
+                        {% endif %}
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge me-2" style="background: #20c997;">
+                                    <i class="{{ entry.type_icon }} me-1"></i>
+                                    {{ 'Hotel' if entry.logistics_type.value == 'hotel' else 'Appartement' }}
+                                </span>
+                                <span class="status-badge status-{{ entry.status.value if entry.status else 'pending' }}">
+                                    {{ entry.status_label }}
+                                </span>
+                            </div>
+                            {% if stop.tour.band.is_manager(current_user) %}
+                            <div class="quick-actions">
+                                {% if entry.status and entry.status.value == 'pending' %}
+                                <form action="{{ url_for('logistics.update_status', id=entry.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="status" value="confirmed">
+                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Confirmer">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <a href="{{ url_for('logistics.edit_logistics', id=entry.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form action="{{ url_for('logistics.delete_logistics', id=entry.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="return confirm('Supprimer?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="mb-1">{{ entry.provider or 'Hébergement' }}</h6>
+
+                        {% if entry.address or entry.city %}
+                        <div class="small text-muted mb-1">
+                            <i class="bi bi-geo-alt me-1"></i>
+                            {{ entry.address }}{% if entry.address and entry.city %}, {% endif %}{{ entry.city }}
+                            {% if entry.country %}, {{ entry.country }}{% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            {% if entry.number_of_rooms %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-door-open me-1"></i>{{ entry.number_of_rooms }} chambre{% if entry.number_of_rooms > 1 %}s{% endif %}
+                            </span>
+                            {% endif %}
+                            {% if entry.room_type %}
+                            <span class="badge bg-light text-dark">{{ entry.room_type }}</span>
+                            {% endif %}
+                            {% if entry.breakfast_included %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-cup-hot me-1"></i>PDJ inclus
+                            </span>
+                            {% endif %}
+                            {% if entry.check_out_time %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-box-arrow-right me-1"></i>Check-out: {{ entry.check_out_time.strftime('%H:%M') }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if entry.confirmation_number %}
+                        <div class="small mt-2"><i class="bi bi-ticket-perforated me-1"></i>Ref: {{ entry.confirmation_number }}</div>
+                        {% endif %}
+
+                        <div class="d-flex align-items-center mt-2 flex-wrap gap-2">
+                            {% if entry.cost %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-currency-{{ entry.currency|lower }} me-1"></i>{{ "%.2f"|format(entry.cost) }} {{ entry.currency }}
+                                {% if entry.is_paid %}<i class="bi bi-check-circle-fill text-success ms-1"></i>{% endif %}
+                            </span>
+                            {% endif %}
+                            {% if entry.contact_name %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-person me-1"></i>{{ entry.contact_name }}
+                                {% if entry.contact_phone %} - {{ entry.contact_phone }}{% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if entry.notes %}
+                        <div class="small text-muted mt-2 fst-italic">{{ entry.notes|truncate(100) }}</div>
+                        {% endif %}
+
+                        <!-- Assignations nominatives (Hébergements) -->
+                        <div class="assignments-section">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <small class="text-muted fw-semibold">
+                                    <i class="bi bi-people me-1"></i>Répartition chambres ({{ entry.assignments.count() }})
+                                </small>
+                                {% if stop.tour.band.is_manager(current_user) %}
+                                <a href="{{ url_for('logistics.assign_user', id=entry.id) }}" class="btn btn-outline-success btn-assign">
+                                    <i class="bi bi-plus me-1"></i>Assigner
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% if entry.assignments.count() > 0 %}
+                            <div class="d-flex flex-wrap">
+                                {% for assignment in entry.assignments %}
+                                <div class="assignment-badge" style="background: rgba(32, 201, 151, 0.1); border-color: rgba(32, 201, 151, 0.2);">
+                                    <i class="bi bi-person-fill"></i>
+                                    <span>{{ assignment.user.first_name }} {{ assignment.user.last_name }}</span>
+                                    {% if assignment.room_number %}
+                                    <span class="assignment-details">(Ch. {{ assignment.room_number }}{% if assignment.room_sharing_with %} avec {{ assignment.room_sharing_with }}{% endif %})</span>
+                                    {% elif assignment.room_sharing_with %}
+                                    <span class="assignment-details">(avec {{ assignment.room_sharing_with }})</span>
+                                    {% endif %}
+                                    {% if stop.tour.band.is_manager(current_user) %}
+                                    <form action="{{ url_for('logistics.unassign_user', id=entry.id, user_id=assignment.user_id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn-remove" title="Désassigner" onclick="return confirm('Désassigner {{ assignment.user.first_name }}?')">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <small class="text-muted fst-italic">Aucune répartition définie</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- SERVICES Section -->
+        {% if service_entries %}
+        <div class="category-header d-flex align-items-center mb-3 mt-4">
+            <i class="bi bi-gear fs-4 text-warning me-2"></i>
+            <h5 class="mb-0">Services & Autres</h5>
+            <span class="badge bg-warning text-dark ms-2">{{ service_entries|length }}</span>
+        </div>
+
+        {% for entry in service_entries|sort(attribute='start_datetime') %}
+        <div class="card logistics-card service mb-3 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-start">
+                    <!-- Time -->
+                    <div class="time-badge me-3" style="background: linear-gradient(135deg, #fd7e14 0%, #dc3545 100%);">
+                        {% if entry.start_datetime %}
+                        <div class="fw-bold">{{ entry.start_datetime.strftime('%H:%M') }}</div>
+                        {% if entry.end_datetime %}
+                        <small style="opacity: 0.7;">{{ entry.end_datetime.strftime('%H:%M') }}</small>
+                        {% endif %}
+                        {% else %}
+                        <i class="{{ entry.type_icon }} fs-5"></i>
+                        {% endif %}
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge bg-warning text-dark me-2">
+                                    <i class="{{ entry.type_icon }} me-1"></i>
+                                    {{ entry.logistics_type.value|replace('_', ' ')|title }}
+                                </span>
+                                <span class="status-badge status-{{ entry.status.value if entry.status else 'pending' }}">
+                                    {{ entry.status_label }}
+                                </span>
+                            </div>
+                            {% if stop.tour.band.is_manager(current_user) %}
+                            <div class="quick-actions">
+                                {% if entry.status and entry.status.value == 'pending' %}
+                                <form action="{{ url_for('logistics.update_status', id=entry.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="status" value="confirmed">
+                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Confirmer">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <a href="{{ url_for('logistics.edit_logistics', id=entry.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form action="{{ url_for('logistics.delete_logistics', id=entry.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="return confirm('Supprimer?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="mb-1">{{ entry.provider or entry.display_name }}</h6>
+
+                        {% if entry.address or entry.city %}
+                        <div class="small text-muted mb-1">
+                            <i class="bi bi-geo-alt me-1"></i>{{ entry.address }}{% if entry.city %}, {{ entry.city }}{% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if entry.confirmation_number %}
+                        <div class="small"><i class="bi bi-ticket-perforated me-1"></i>Ref: {{ entry.confirmation_number }}</div>
+                        {% endif %}
+
+                        <div class="d-flex align-items-center mt-2 flex-wrap gap-2">
+                            {% if entry.cost %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-currency-{{ entry.currency|lower }} me-1"></i>{{ "%.2f"|format(entry.cost) }} {{ entry.currency }}
+                                {% if entry.is_paid %}<i class="bi bi-check-circle-fill text-success ms-1"></i>{% endif %}
+                            </span>
+                            {% endif %}
+                            {% if entry.contact_name %}
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-person me-1"></i>{{ entry.contact_name }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if entry.notes %}
+                        <div class="small text-muted mt-2 fst-italic">{{ entry.notes|truncate(100) }}</div>
+                        {% endif %}
+
+                        <!-- Assignations nominatives (Services) -->
+                        <div class="assignments-section">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <small class="text-muted fw-semibold">
+                                    <i class="bi bi-people me-1"></i>Assignés ({{ entry.assignments.count() }})
+                                </small>
+                                {% if stop.tour.band.is_manager(current_user) %}
+                                <a href="{{ url_for('logistics.assign_user', id=entry.id) }}" class="btn btn-outline-warning btn-assign">
+                                    <i class="bi bi-plus me-1"></i>Assigner
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% if entry.assignments.count() > 0 %}
+                            <div class="d-flex flex-wrap">
+                                {% for assignment in entry.assignments %}
+                                <div class="assignment-badge" style="background: rgba(253, 126, 20, 0.1); border-color: rgba(253, 126, 20, 0.2);">
+                                    <i class="bi bi-person-fill"></i>
+                                    <span>{{ assignment.user.first_name }} {{ assignment.user.last_name }}</span>
+                                    {% if assignment.special_requests %}
+                                    <span class="assignment-details" title="{{ assignment.special_requests }}">(Note)</span>
+                                    {% endif %}
+                                    {% if stop.tour.band.is_manager(current_user) %}
+                                    <form action="{{ url_for('logistics.unassign_user', id=entry.id, user_id=assignment.user_id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn-remove" title="Désassigner" onclick="return confirm('Désassigner {{ assignment.user.first_name }}?')">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <small class="text-muted fst-italic">Aucune personne assignée</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- Empty State -->
+        {% if not logistics_entries %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-briefcase text-muted" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Aucune information logistique</h4>
+                <p class="text-muted">Ajoutez les informations de transport, hébergement et services pour cette date.</p>
+                {% if stop.tour.band.is_manager(current_user) %}
+                <a href="{{ url_for('logistics.add_logistics', stop_id=stop.id) }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>Ajouter une entrée
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-12 col-lg-4">
+        <!-- Local Contacts -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>Contacts locaux</h5>
+                {% if stop.tour.band.is_manager(current_user) %}
+                <a href="{{ url_for('logistics.add_contact', stop_id=stop.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus-lg"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body pt-0">
+                {% if local_contacts %}
+                {% for contact in local_contacts %}
+                <div class="contact-card {% if contact.is_primary %}primary{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ contact.name }}</strong>
+                            {% if contact.is_primary %}
+                            <span class="badge bg-success ms-1" style="font-size: 0.65rem;">Principal</span>
+                            {% endif %}
+                            {% if contact.role %}
+                            <br><small class="text-muted">{{ contact.role }}</small>
+                            {% endif %}
+                            {% if contact.company %}
+                            <br><small class="text-muted"><i class="bi bi-building me-1"></i>{{ contact.company }}</small>
+                            {% endif %}
+                        </div>
+                        {% if stop.tour.band.is_manager(current_user) %}
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('logistics.edit_contact', id=contact.id) }}">
+                                        <i class="bi bi-pencil me-2"></i>Modifier
+                                    </a>
+                                </li>
+                                <li>
+                                    <form action="{{ url_for('logistics.delete_contact', id=contact.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Supprimer ce contact?')">
+                                            <i class="bi bi-trash me-2"></i>Supprimer
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-2">
+                        {% if contact.phone %}
+                        <a href="tel:{{ contact.phone }}" class="btn btn-sm btn-outline-primary me-1">
+                            <i class="bi bi-telephone"></i> {{ contact.phone }}
+                        </a>
+                        {% endif %}
+                        {% if contact.phone_secondary %}
+                        <a href="tel:{{ contact.phone_secondary }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-telephone"></i>
+                        </a>
+                        {% endif %}
+                        {% if contact.email %}
+                        <a href="mailto:{{ contact.email }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-envelope"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% if contact.notes %}
+                    <div class="small text-muted mt-2 fst-italic">{{ contact.notes }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-3">
+                    <p class="text-muted mb-0">Aucun contact local</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Cost Summary -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Budget</h5>
+            </div>
+            <div class="card-body pt-0">
+                {% if costs_by_type %}
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        {% for type_name, type_cost in costs_by_type.items() %}
+                        <tr>
+                            <td class="ps-0">{{ type_name }}</td>
+                            <td class="text-end pe-0">{{ "%.2f"|format(type_cost) }} EUR</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light">
+                            <th class="ps-0">Total</th>
+                            <th class="text-end pe-0">{{ "%.2f"|format(total_cost) }} EUR</th>
+                        </tr>
+                    </tfoot>
+                </table>
+                {% else %}
+                <div class="text-center py-2">
+                    <p class="text-muted mb-0">Aucun coût enregistré</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Venue/Location Info -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">
+                    <i class="bi bi-{% if stop.venue %}building{% else %}pin-map{% endif %} me-2"></i>
+                    {% if stop.venue %}Salle{% else %}Lieu{% endif %}
+                </h5>
+            </div>
+            <div class="card-body pt-0">
+                <h6>{{ stop.map_location_name }}</h6>
+                {% if stop.venue %}
+                <p class="small text-muted mb-2">
+                    {{ stop.venue.address }}<br>
+                    {{ stop.venue.postal_code }} {{ stop.venue.city }}
+                    {% if stop.venue.country %}<br>{{ stop.venue.country }}{% endif %}
+                </p>
+                {% if stop.venue.phone %}
+                <p class="small mb-1">
+                    <a href="tel:{{ stop.venue.phone }}">
+                        <i class="bi bi-telephone me-1"></i>{{ stop.venue.phone }}
+                    </a>
+                </p>
+                {% endif %}
+                <a href="{{ url_for('venues.detail', id=stop.venue.id) }}" class="btn btn-sm btn-outline-primary mt-2">
+                    Voir la fiche salle
+                </a>
+                {% else %}
+                <p class="small text-muted mb-2">
+                    {% if stop.location_address %}{{ stop.location_address }}<br>{% endif %}
+                    {{ stop.location_city }}
+                    {% if stop.location_country %}, {{ stop.location_country }}{% endif %}
+                </p>
+                {% endif %}
+
+                {% if stop.has_coordinates %}
+                <a href="{{ url_for('tours.tour_map', id=stop.tour.id) }}" class="btn btn-sm btn-outline-secondary mt-2">
+                    <i class="bi bi-map me-1"></i>Voir sur la carte
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

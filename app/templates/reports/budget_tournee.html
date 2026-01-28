@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Budget tournée - {{ tour.name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #333;
+        }
+        .header {
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .subtitle {
+            font-size: 9pt;
+            color: #666;
+        }
+        h1 {
+            font-size: 16pt;
+            color: #1e40af;
+            margin: 20px 0 10px 0;
+        }
+        h2 {
+            font-size: 12pt;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 5px;
+            margin: 25px 0 10px 0;
+        }
+        .tour-info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .summary-grid {
+            display: table;
+            width: 100%;
+            margin: 20px 0;
+        }
+        .summary-box {
+            display: table-cell;
+            width: 25%;
+            padding: 15px;
+            text-align: center;
+            background: #f3f4f6;
+            border-right: 2px solid white;
+        }
+        .summary-box:last-child {
+            border-right: none;
+        }
+        .summary-box .value {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        .summary-box .label {
+            font-size: 9pt;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        .summary-box.highlight {
+            background: #2563eb;
+            color: white;
+        }
+        .summary-box.highlight .value {
+            color: white;
+        }
+        .summary-box.highlight .label {
+            color: #bfdbfe;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th {
+            background: #2563eb;
+            color: white;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 9pt;
+        }
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 9pt;
+        }
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        .amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        .percent {
+            text-align: right;
+            color: #6b7280;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #2563eb;
+            border-radius: 4px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 8pt;
+            color: #6b7280;
+        }
+        .chart-placeholder {
+            background: #f3f4f6;
+            border: 1px dashed #d1d5db;
+            padding: 30px;
+            text-align: center;
+            color: #9ca3af;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">STUDIO PALENQUE TOUR</div>
+        <div class="subtitle">Rapport budgétaire tournée</div>
+    </div>
+
+    <h1>{{ tour.name }}</h1>
+
+    <div class="tour-info">
+        <table style="border: none; margin: 0;">
+            <tr>
+                <td style="border: none; width: 120px;"><strong>Groupe:</strong></td>
+                <td style="border: none;">{{ tour.band.name if tour.band else 'N/A' }}</td>
+                <td style="border: none; width: 120px;"><strong>Dates:</strong></td>
+                <td style="border: none;">{{ tour.start_date.strftime('%d/%m/%Y') if tour.start_date else 'N/A' }} - {{ tour.end_date.strftime('%d/%m/%Y') if tour.end_date else 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td style="border: none;"><strong>Nombre dates:</strong></td>
+                <td style="border: none;">{{ tour.stops|length if tour.stops else 0 }}</td>
+                <td style="border: none;"><strong>Statut:</strong></td>
+                <td style="border: none;">{{ tour.status.value if tour.status else 'N/A' }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-box highlight">
+            <div class="value">{{ "{:,.0f}".format(total_amount) }} EUR</div>
+            <div class="label">Total dépenses</div>
+        </div>
+        <div class="summary-box">
+            <div class="value">{{ payments|length }}</div>
+            <div class="label">Paiements</div>
+        </div>
+        <div class="summary-box">
+            <div class="value">{{ summary.by_status.get('paid', {}).get('count', 0) }}</div>
+            <div class="label">Payés</div>
+        </div>
+        <div class="summary-box">
+            <div class="value">{{ summary.by_status.get('approved', {}).get('count', 0) }}</div>
+            <div class="label">À payer</div>
+        </div>
+    </div>
+
+    <h2>Répartition par catégorie</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 30%">Catégorie</th>
+                <th style="width: 15%">Paiements</th>
+                <th style="width: 25%">Montant</th>
+                <th style="width: 15%" class="percent">%</th>
+                <th style="width: 15%">Répartition</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cat in by_category %}
+            <tr>
+                <td><strong>{{ cat.name }}</strong></td>
+                <td>{{ cat.count }}</td>
+                <td class="amount">{{ "{:,.2f}".format(cat.total) }} EUR</td>
+                <td class="percent">{{ "{:.1f}".format((cat.total / total_amount * 100) if total_amount > 0 else 0) }}%</td>
+                <td>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ (cat.total / total_amount * 100) if total_amount > 0 else 0 }}%"></div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Répartition par type de paiement</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 30%">Type</th>
+                <th style="width: 15%">Paiements</th>
+                <th style="width: 25%">Montant</th>
+                <th style="width: 15%" class="percent">%</th>
+                <th style="width: 15%">Répartition</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ptype in by_type %}
+            <tr>
+                <td><strong>{{ ptype.name }}</strong></td>
+                <td>{{ ptype.count }}</td>
+                <td class="amount">{{ "{:,.2f}".format(ptype.total) }} EUR</td>
+                <td class="percent">{{ "{:.1f}".format((ptype.total / total_amount * 100) if total_amount > 0 else 0) }}%</td>
+                <td>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ (ptype.total / total_amount * 100) if total_amount > 0 else 0 }}%"></div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Statut des paiements</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Statut</th>
+                <th>Nombre</th>
+                <th class="amount">Montant</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for status_name, data in summary.by_status.items() if data.count > 0 %}
+            <tr>
+                <td>
+                    {% if status_name == 'draft' %}Brouillon
+                    {% elif status_name == 'pending' %}En attente
+                    {% elif status_name == 'approved' %}Approuvé
+                    {% elif status_name == 'paid' %}Payé
+                    {% elif status_name == 'cancelled' %}Annulé
+                    {% else %}{{ status_name }}
+                    {% endif %}
+                </td>
+                <td>{{ data.count }}</td>
+                <td class="amount">{{ "{:,.2f}".format(data.total) }} EUR</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <strong>Document généré le:</strong> {{ generated_at.strftime('%d/%m/%Y à %H:%M') }}<br>
+        <strong>Studio Palenque Tour Manager</strong> - Rapport budgétaire pour la tournée {{ tour.name }}
+    </div>
+</body>
+</html>

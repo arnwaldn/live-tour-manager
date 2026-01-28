@@ -1,0 +1,429 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Day Sheet - {{ stop.date.strftime('%d/%m/%Y') }} - {{ tour.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/day_sheet.css') }}">
+<style>
+/* Additional page-specific styles */
+.day-sheet-wrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+@media print {
+    .no-print { display: none !important; }
+    .day-sheet-wrapper { max-width: 100%; }
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
+        <li class="breadcrumb-item active">Day Sheet</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 no-print">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">
+            <i class="bi bi-calendar2-day me-2"></i>Day Sheet
+        </h1>
+        <p class="text-muted mb-0">Planning détaillé de la journée</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-primary">
+            <i class="bi bi-printer me-1"></i>Imprimer
+        </button>
+        <a href="{{ url_for('tours.edit_stop', id=tour.id, stop_id=stop.id) }}" class="btn btn-primary">
+            <i class="bi bi-pencil me-1"></i>Modifier
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="day-sheet-wrapper">
+    <div class="day-sheet">
+        <!-- Header -->
+        <div class="day-sheet-header">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <h2>{{ tour.band.name }}</h2>
+                    <div class="date">{{ stop.date.strftime('%A %d %B %Y') }}</div>
+                    {% if stop.venue %}
+                    <div class="venue">
+                        <i class="bi bi-geo-alt me-1"></i>
+                        {{ stop.venue.name }} · {{ stop.venue.city }}, {{ stop.venue.country }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="text-end">
+                    {% set status_labels = {
+                        'draft': ('Brouillon', 'secondary'),
+                        'pending': ('En négociation', 'warning'),
+                        'confirmed': ('Confirmé', 'primary'),
+                        'performed': ('Réalisé', 'success'),
+                        'settled': ('Réglé', 'info'),
+                        'canceled': ('Annulé', 'danger')
+                    } %}
+                    {% set label, color = status_labels.get(stop.status.value, ('Inconnu', 'secondary')) %}
+                    <span class="badge bg-{{ color }} fs-6">{{ label }}</span>
+                    {% if stop.show_type %}
+                    <div class="mt-2 text-muted small">{{ stop.show_type }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Info Cards -->
+        <div class="day-sheet-info">
+            {% if stop.venue and stop.venue.capacity %}
+            <div class="info-card">
+                <div class="info-card-label">Capacité</div>
+                <div class="info-card-value">{{ stop.venue.capacity }} places</div>
+            </div>
+            {% endif %}
+            {% if stop.sold_tickets %}
+            <div class="info-card">
+                <div class="info-card-label">Billets vendus</div>
+                <div class="info-card-value gold">{{ stop.sold_tickets }}</div>
+            </div>
+            {% endif %}
+            {% if stop.set_length_minutes %}
+            <div class="info-card">
+                <div class="info-card-label">Durée du set</div>
+                <div class="info-card-value">{{ stop.set_length_minutes }} min</div>
+            </div>
+            {% endif %}
+            {% if stop.guestlist_count %}
+            <div class="info-card">
+                <div class="info-card-label">Guestlist</div>
+                <div class="info-card-value">{{ stop.guestlist_count }} pers.</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Timeline Container -->
+        <div class="timeline-container">
+            <!-- Time Column -->
+            <div class="time-column">
+                {% for hour in range(6, 24) %}
+                <div class="time-slot">{{ '%02d:00'|format(hour) }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Events Column -->
+            <div class="events-column">
+                <!-- Hour Lines -->
+                {% for i in range(18) %}
+                <div class="hour-line" style="top: {{ i * 80 }}px;"></div>
+                {% endfor %}
+
+                {# Build events list with positions #}
+                {% set events = [] %}
+
+                {% if stop.load_in_time %}
+                    {% set hour = stop.load_in_time.hour %}
+                    {% set minute = stop.load_in_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.load_in_time,
+                        'top': top,
+                        'type': 'load-in',
+                        'title': 'Load-In',
+                        'icon': 'bi-truck',
+                        'description': 'Chargement et installation'
+                    }) %}
+                {% endif %}
+
+                {% if stop.crew_call_time %}
+                    {% set hour = stop.crew_call_time.hour %}
+                    {% set minute = stop.crew_call_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.crew_call_time,
+                        'top': top,
+                        'type': 'crew-call',
+                        'title': 'Appel Équipe',
+                        'icon': 'bi-tools',
+                        'description': 'Arrivée crew technique'
+                    }) %}
+                {% endif %}
+
+                {% if stop.artist_call_time %}
+                    {% set hour = stop.artist_call_time.hour %}
+                    {% set minute = stop.artist_call_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.artist_call_time,
+                        'top': top,
+                        'type': 'artist-call',
+                        'title': 'Appel Artistes',
+                        'icon': 'bi-person-badge',
+                        'description': 'Arrivée des artistes'
+                    }) %}
+                {% endif %}
+
+                {% if stop.catering_time %}
+                    {% set hour = stop.catering_time.hour %}
+                    {% set minute = stop.catering_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.catering_time,
+                        'top': top,
+                        'type': 'catering',
+                        'title': 'Catering',
+                        'icon': 'bi-cup-hot',
+                        'description': 'Repas équipe et artistes'
+                    }) %}
+                {% endif %}
+
+                {% if stop.soundcheck_time %}
+                    {% set hour = stop.soundcheck_time.hour %}
+                    {% set minute = stop.soundcheck_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.soundcheck_time,
+                        'top': top,
+                        'type': 'soundcheck',
+                        'title': 'Soundcheck',
+                        'icon': 'bi-soundwave',
+                        'description': 'Balance son et lumières'
+                    }) %}
+                {% endif %}
+
+                {% if stop.press_time %}
+                    {% set hour = stop.press_time.hour %}
+                    {% set minute = stop.press_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.press_time,
+                        'top': top,
+                        'type': 'press',
+                        'title': 'Presse',
+                        'icon': 'bi-newspaper',
+                        'description': 'Interviews et médias'
+                    }) %}
+                {% endif %}
+
+                {% if stop.meet_greet_time %}
+                    {% set hour = stop.meet_greet_time.hour %}
+                    {% set minute = stop.meet_greet_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.meet_greet_time,
+                        'top': top,
+                        'type': 'meet-greet',
+                        'title': 'Meet & Greet',
+                        'icon': 'bi-people',
+                        'description': 'Rencontre avec les fans'
+                    }) %}
+                {% endif %}
+
+                {% if stop.doors_time %}
+                    {% set hour = stop.doors_time.hour %}
+                    {% set minute = stop.doors_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.doors_time,
+                        'top': top,
+                        'type': 'doors',
+                        'title': 'Ouverture Portes',
+                        'icon': 'bi-door-open',
+                        'description': 'Entrée du public'
+                    }) %}
+                {% endif %}
+
+                {% if stop.set_time %}
+                    {% set hour = stop.set_time.hour %}
+                    {% set minute = stop.set_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.set_time,
+                        'top': top,
+                        'type': 'show',
+                        'title': 'SHOW',
+                        'icon': 'bi-music-note-beamed',
+                        'description': tour.band.name ~ ((' · ' ~ stop.set_length_minutes ~ ' min') if stop.set_length_minutes else '')
+                    }) %}
+                {% endif %}
+
+                {% if stop.curfew_time %}
+                    {% set hour = stop.curfew_time.hour %}
+                    {% set minute = stop.curfew_time.minute %}
+                    {% set top = ((hour - 6) * 80) + (minute * 80 / 60) %}
+                    {% set _ = events.append({
+                        'time': stop.curfew_time,
+                        'top': top,
+                        'type': 'curfew',
+                        'title': 'Couvre-feu',
+                        'icon': 'bi-moon',
+                        'description': 'Fin obligatoire'
+                    }) %}
+                {% endif %}
+
+                {# Render events sorted by time #}
+                {% for event in events|sort(attribute='time') %}
+                <div class="event-block {{ event.type }}{% if event.type == 'show' %} active{% endif %}"
+                     style="top: {{ event.top|int }}px; height: 60px;">
+                    <i class="bi {{ event.icon }} event-icon"></i>
+                    <div class="event-time">{{ event.time.strftime('%H:%M') }}</div>
+                    <div class="event-title">{{ event.title }}</div>
+                    <div class="event-description">{{ event.description }}</div>
+                </div>
+                {% endfor %}
+
+                {% if not events %}
+                <div class="no-events">
+                    <i class="bi bi-calendar-x"></i>
+                    <p>Aucun horaire défini pour cette date.</p>
+                    <a href="{{ url_for('tours.edit_stop', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter des horaires
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Current Time Indicator (JS will position this) -->
+                {% if stop.is_today %}
+                <div class="current-time-indicator" id="current-time-indicator" style="display: none;"></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="day-sheet-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #17a2b8;"></div>
+                <span>Load-In</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #6c757d;"></div>
+                <span>Crew Call</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #9b59b6;"></div>
+                <span>Artist Call</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e67e22;"></div>
+                <span>Catering</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #3498db;"></div>
+                <span>Soundcheck</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e91e63;"></div>
+                <span>Presse</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #20c997;"></div>
+                <span>Meet & Greet</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #fd7e14;"></div>
+                <span>Portes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #28a745;"></div>
+                <span>Show</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #dc3545;"></div>
+                <span>Couvre-feu</span>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="day-sheet-actions no-print">
+            <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-info-circle me-1"></i>Détails complets
+            </a>
+            <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-outline-primary">
+                <i class="bi bi-person-lines-fill me-1"></i>Guestlist
+            </a>
+            <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="btn btn-outline-primary">
+                <i class="bi bi-truck me-1"></i>Logistique
+            </a>
+        </div>
+
+        <!-- Notes Section -->
+        {% if stop.notes or stop.internal_notes %}
+        <div class="p-4" style="background: var(--ds-card-bg); border-top: 1px solid var(--ds-border);">
+            {% if stop.notes %}
+            <div class="mb-3">
+                <h6 class="text-muted mb-2"><i class="bi bi-sticky me-2"></i>Notes</h6>
+                <p class="mb-0" style="color: var(--ds-text);">{{ stop.notes }}</p>
+            </div>
+            {% endif %}
+            {% if stop.internal_notes and tour.band.is_manager(current_user) %}
+            <div>
+                <h6 class="text-muted mb-2"><i class="bi bi-lock me-2"></i>Notes internes</h6>
+                <p class="mb-0" style="color: var(--ds-text);">{{ stop.internal_notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Local Contacts -->
+        {% if stop.local_contacts %}
+        <div class="p-4" style="background: var(--ds-bg); border-top: 1px solid var(--ds-border);">
+            <h6 class="text-muted mb-3"><i class="bi bi-telephone me-2"></i>Contacts sur place</h6>
+            <div class="row g-3">
+                {% for contact in stop.local_contacts %}
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="info-card">
+                        <div class="info-card-label">{{ contact.role or 'Contact' }}</div>
+                        <div class="info-card-value">{{ contact.name }}</div>
+                        {% if contact.phone %}
+                        <div class="mt-2">
+                            <a href="tel:{{ contact.phone }}" style="color: var(--ds-gold);">
+                                <i class="bi bi-telephone me-1"></i>{{ contact.phone }}
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if stop.is_today %}
+<script>
+// Update current time indicator position
+function updateCurrentTimeIndicator() {
+    const indicator = document.getElementById('current-time-indicator');
+    if (!indicator) return;
+
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+
+    // Only show between 6:00 and 24:00
+    if (hours >= 6 && hours < 24) {
+        const top = ((hours - 6) * 80) + (minutes * 80 / 60);
+        indicator.style.top = top + 'px';
+        indicator.style.display = 'block';
+    } else {
+        indicator.style.display = 'none';
+    }
+}
+
+// Update every minute
+updateCurrentTimeIndicator();
+setInterval(updateCurrentTimeIndicator, 60000);
+</script>
+{% endif %}
+{% endblock %}

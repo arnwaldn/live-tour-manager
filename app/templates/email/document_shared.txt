@@ -1,0 +1,27 @@
+==============================
+STUDIO PALENQUE TOUR
+==============================
+
+DOCUMENT PARTAGE AVEC VOUS
+
+Bonjour {{ shared_to.first_name }},
+
+{{ shared_by.full_name }} a partage un document avec vous.
+
+---
+DOCUMENT
+---
+Nom: {{ document.name }}
+{% if document.description %}Description: {{ document.description }}
+{% endif %}Type: {{ document.document_type.value }}
+Taille: {{ document.file_size_formatted }}
+
+Pour voir le document: {{ view_url }}
+
+Cordialement,
+L'equipe Studio Palenque
+
+---
+Vous recevez cet email car un document a ete partage avec vous.
+
+(c) 2026 Studio Palenque Group
