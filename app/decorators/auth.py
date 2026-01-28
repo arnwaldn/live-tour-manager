@@ -163,9 +163,10 @@ def band_access_required(f):
 
         band = Band.query.get_or_404(band_id)
 
-        # Allow access if user is manager, member, or has manage_band permission
+        # Allow access if user is admin, manager, member, or has manage_band permission
         if not (band.has_access(current_user) or
-                current_user.has_permission('manage_band')):
+                current_user.has_permission('manage_band') or
+                current_user.is_admin()):
             flash('Vous n\'avez pas accès à ce groupe.', 'error')
             abort(403)
 
