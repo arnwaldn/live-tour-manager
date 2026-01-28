@@ -1,0 +1,184 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Gestion des professions - Tour Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-briefcase-fill me-2"></i>Gestion des professions
+    </h1>
+    <a href="{{ url_for('settings.professions_create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-2"></i>Nouvelle profession
+    </a>
+</div>
+
+<!-- Flash Messages -->
+{% include "components/_flash_messages.html" %}
+
+<!-- Stats Cards -->
+<div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
+    <div class="col">
+        <div class="card bg-dark text-white">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ total_count }}</h2>
+                <small class="text-muted">Total professions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ active_count }}</h2>
+                <small>Actives</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <h2 class="mb-0">{{ inactive_count }}</h2>
+                <small>Inactives</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Professions by Category -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Professions par catégorie</h5>
+        <span class="badge bg-info">{{ professions_by_category|length }} catégories</span>
+    </div>
+    <div class="card-body">
+        <div class="accordion" id="professionsAccordion">
+            {% for category, professions in professions_by_category.items() %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ category.name }}">
+                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#collapse{{ category.name }}"
+                            aria-expanded="{{ 'true' if loop.first else 'false' }}" aria-controls="collapse{{ category.name }}">
+                        <i class="bi {{ category_icons.get(category, 'bi-briefcase') }} me-2"
+                           style="color: {{ category_colors.get(category, '#6c757d') }};"></i>
+                        <strong>{{ category_labels.get(category, category.value) }}</strong>
+                        <span class="badge bg-secondary ms-2">{{ professions|length }}</span>
+                    </button>
+                </h2>
+                <div id="collapse{{ category.name }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+                     aria-labelledby="heading{{ category.name }}" data-bs-parent="#professionsAccordion">
+                    <div class="accordion-body p-0">
+                        {% if professions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 100px;">Code</th>
+                                        <th>Nom FR</th>
+                                        <th>Nom EN</th>
+                                        <th>Accès</th>
+                                        <th>Tarif/jour</th>
+                                        <th>Per diem</th>
+                                        <th>Statut</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for profession in professions %}
+                                    <tr class="{% if not profession.is_active %}table-secondary{% endif %}">
+                                        <td>
+                                            <code class="{% if profession.is_active %}text-primary{% else %}text-muted{% endif %}">
+                                                {{ profession.code }}
+                                            </code>
+                                        </td>
+                                        <td>
+                                            <strong>{{ profession.name_fr }}</strong>
+                                            {% if profession.description %}
+                                            <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip"
+                                               title="{{ profession.description }}"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ profession.name_en }}</td>
+                                        <td>
+                                            {% if profession.default_access_level %}
+                                            <span class="badge bg-{% if profession.default_access_level.name == 'ADMIN' %}danger{% elif profession.default_access_level.name == 'MANAGER' %}primary{% elif profession.default_access_level.name == 'STAFF' %}info{% elif profession.default_access_level.name == 'VIEWER' %}secondary{% else %}warning{% endif %}">
+                                                {{ profession.default_access_level.value }}
+                                            </span>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if profession.daily_rate %}
+                                            <span class="text-success">{{ "%.0f"|format(profession.daily_rate) }} €</span>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if profession.per_diem %}
+                                            <span>{{ "%.0f"|format(profession.per_diem) }} €</span>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if profession.is_active %}
+                                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('settings.professions_edit', id=profession.id) }}"
+                                                   class="btn btn-outline-primary" title="Modifier">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <form action="{{ url_for('settings.professions_toggle', id=profession.id) }}"
+                                                      method="POST" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-outline-{% if profession.is_active %}warning{% else %}success{% endif %}"
+                                                            title="{% if profession.is_active %}Désactiver{% else %}Activer{% endif %}">
+                                                        <i class="bi bi-{% if profession.is_active %}pause{% else %}play{% endif %}-fill"></i>
+                                                    </button>
+                                                </form>
+                                                <form action="{{ url_for('settings.professions_delete', id=profession.id) }}"
+                                                      method="POST" class="d-inline"
+                                                      onsubmit="return confirm('Supprimer la profession {{ profession.name_fr }}?\n\nCette action est irréversible.');">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-outline-danger" title="Supprimer">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            Aucune profession dans cette catégorie
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

@@ -171,10 +171,23 @@
                         </div>
                     </div>
 
-                    <!-- Profession (une seule) -->
+                    <!-- Professions (plusieurs possibles) -->
                     <hr class="my-4">
-                    <h6 class="mb-3"><i class="bi bi-briefcase me-2"></i>Profession</h6>
-                    <p class="text-muted small mb-3">Sélectionnez la profession de l'utilisateur.</p>
+                    <h6 class="mb-3"><i class="bi bi-briefcase me-2"></i>Profession(s)</h6>
+                    <p class="text-muted small mb-3">
+                        Sélectionnez une ou plusieurs professions. La première cochée sera la profession principale.
+                        <span class="badge bg-primary ms-1">Principale</span> = affichée par défaut.
+                    </p>
+
+                    <!-- Profession principale selector (hidden, updated by JS) -->
+                    <input type="hidden" name="primary_profession" id="primary_profession"
+                           value="{{ user.primary_profession.id if user and user.primary_profession else '' }}">
+
+                    <!-- Selected professions summary -->
+                    <div id="selectedProfessionsPreview" class="mb-3 p-2 bg-dark rounded" style="display: none;">
+                        <small class="text-muted">Professions sélectionnées:</small>
+                        <div id="selectedProfessionsList" class="d-flex flex-wrap gap-1 mt-1"></div>
+                    </div>
 
                     {% if professions_by_category %}
                     <div class="accordion" id="professionsAccordion">
@@ -198,14 +211,26 @@
                                 <div class="accordion-body">
                                     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2">
                                         {% for profession in data.professions %}
+                                        {% set is_user_profession = user and profession.id in (user.professions|map(attribute='id')|list) %}
+                                        {% set is_primary = user and user.primary_profession and user.primary_profession.id == profession.id %}
                                         <div class="col">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="profession"
-                                                       id="profession_{{ profession.id }}" value="{{ profession.id }}"
-                                                       {% if form.profession.data == profession.id or form.profession.data|string == profession.id|string %}checked{% endif %}>
-                                                <label class="form-check-label" for="profession_{{ profession.id }}">
+                                            <div class="form-check d-flex align-items-center">
+                                                <input class="form-check-input profession-checkbox" type="checkbox"
+                                                       name="professions" id="profession_{{ profession.id }}"
+                                                       value="{{ profession.id }}"
+                                                       data-name="{{ profession.name_fr }}"
+                                                       {% if is_user_profession %}checked{% endif %}>
+                                                <label class="form-check-label ms-2 flex-grow-1" for="profession_{{ profession.id }}">
                                                     {{ profession.name_fr }}
+                                                    {% if is_primary %}
+                                                    <span class="badge bg-primary ms-1 primary-badge" data-profession-id="{{ profession.id }}">Principale</span>
+                                                    {% endif %}
                                                 </label>
+                                                <button type="button" class="btn btn-sm btn-outline-primary set-primary-btn ms-1 {% if not is_user_profession %}d-none{% endif %}"
+                                                        data-profession-id="{{ profession.id }}" data-profession-name="{{ profession.name_fr }}"
+                                                        title="Définir comme principale" style="padding: 0.1rem 0.3rem; font-size: 0.7rem;">
+                                                    <i class="bi bi-star{% if is_primary %}-fill{% endif %}"></i>
+                                                </button>
                                             </div>
                                         </div>
                                         {% endfor %}
@@ -664,8 +689,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ============ AUTO-SUGGESTION PROFESSION → ACCESS LEVEL + TAUX ============
-    const professionRadios = document.querySelectorAll('input[name="profession"]');
+    // ============ MULTI-PROFESSIONS MANAGEMENT ============
+    const professionCheckboxes = document.querySelectorAll('.profession-checkbox');
+    const primaryProfessionInput = document.getElementById('primary_profession');
+    const previewContainer = document.getElementById('selectedProfessionsPreview');
+    const previewList = document.getElementById('selectedProfessionsList');
     const accessLevelSelect = document.getElementById('access_level');
     const isEditMode = {{ 'true' if user else 'false' }};
 
@@ -676,16 +704,84 @@ document.addEventListener('DOMContentLoaded', function() {
             data.forEach(p => {
                 professionsCache[p.id] = p;
             });
+            // Mettre à jour l'aperçu après chargement du cache
+            updateProfessionsPreview();
         })
         .catch(err => console.error('Erreur chargement professions:', err));
 
-    // Fonction pour obtenir la profession sélectionnée (radio button = une seule)
-    function getSelectedProfession() {
-        const selected = document.querySelector('input[name="profession"]:checked');
-        return selected ? parseInt(selected.value) : null;
+    // Fonction pour obtenir les professions sélectionnées (checkboxes = plusieurs)
+    function getSelectedProfessions() {
+        const selected = [];
+        professionCheckboxes.forEach(cb => {
+            if (cb.checked) {
+                selected.push({
+                    id: parseInt(cb.value),
+                    name: cb.dataset.name
+                });
+            }
+        });
+        return selected;
     }
 
-    // Fonction pour appliquer les defaults d'une profession
+    // Fonction pour obtenir la profession principale
+    function getPrimaryProfessionId() {
+        return primaryProfessionInput.value ? parseInt(primaryProfessionInput.value) : null;
+    }
+
+    // Fonction pour définir la profession principale
+    function setPrimaryProfession(professionId) {
+        primaryProfessionInput.value = professionId;
+
+        // Mettre à jour les badges visuels
+        document.querySelectorAll('.primary-badge').forEach(badge => badge.remove());
+        document.querySelectorAll('.set-primary-btn i').forEach(icon => {
+            icon.classList.remove('bi-star-fill');
+            icon.classList.add('bi-star');
+        });
+
+        // Ajouter le badge sur la nouvelle principale
+        const checkbox = document.getElementById('profession_' + professionId);
+        if (checkbox) {
+            const label = checkbox.closest('.form-check').querySelector('.form-check-label');
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary ms-1 primary-badge';
+            badge.dataset.professionId = professionId;
+            badge.textContent = 'Principale';
+            label.appendChild(badge);
+
+            // Mettre à jour l'icône du bouton
+            const btn = checkbox.closest('.form-check').querySelector('.set-primary-btn i');
+            if (btn) {
+                btn.classList.remove('bi-star');
+                btn.classList.add('bi-star-fill');
+            }
+        }
+
+        updateProfessionsPreview();
+    }
+
+    // Mettre à jour l'aperçu des professions sélectionnées
+    function updateProfessionsPreview() {
+        const selected = getSelectedProfessions();
+        const primaryId = getPrimaryProfessionId();
+
+        if (selected.length === 0) {
+            previewContainer.style.display = 'none';
+            return;
+        }
+
+        previewContainer.style.display = 'block';
+        previewList.innerHTML = '';
+
+        selected.forEach(prof => {
+            const badge = document.createElement('span');
+            badge.className = 'badge ' + (prof.id === primaryId ? 'bg-primary' : 'bg-secondary');
+            badge.innerHTML = prof.name + (prof.id === primaryId ? ' <i class="bi bi-star-fill ms-1"></i>' : '');
+            previewList.appendChild(badge);
+        });
+    }
+
+    // Fonction pour appliquer les defaults de la profession principale
     function applyProfessionDefaults(professionId) {
         const profession = professionsCache[professionId];
         if (!profession) return;
@@ -705,61 +801,87 @@ document.addEventListener('DOMContentLoaded', function() {
         // Pré-remplir les taux de paiement (seulement si vides)
         const rates = profession.default_rates;
         if (rates) {
-            // Frequency
-            const freqField = document.getElementById('payment_frequency');
-            if (freqField && !freqField.value && rates.frequency) {
-                freqField.value = rates.frequency;
-            }
+            const fields = [
+                { id: 'payment_frequency', key: 'frequency' },
+                { id: 'show_rate', key: 'show_rate', animate: true },
+                { id: 'daily_rate', key: 'daily_rate', animate: true },
+                { id: 'weekly_rate', key: 'weekly_rate' },
+                { id: 'per_diem', key: 'per_diem' }
+            ];
 
-            // Show rate
-            const showRateField = document.getElementById('show_rate');
-            if (showRateField && !showRateField.value && rates.show_rate) {
-                showRateField.value = rates.show_rate;
-                showRateField.classList.add('border-success');
-                setTimeout(() => showRateField.classList.remove('border-success'), 2000);
-            }
-
-            // Daily rate
-            const dailyRateField = document.getElementById('daily_rate');
-            if (dailyRateField && !dailyRateField.value && rates.daily_rate) {
-                dailyRateField.value = rates.daily_rate;
-                dailyRateField.classList.add('border-success');
-                setTimeout(() => dailyRateField.classList.remove('border-success'), 2000);
-            }
-
-            // Weekly rate
-            const weeklyRateField = document.getElementById('weekly_rate');
-            if (weeklyRateField && !weeklyRateField.value && rates.weekly_rate) {
-                weeklyRateField.value = rates.weekly_rate;
-            }
-
-            // Per diem
-            const perDiemField = document.getElementById('per_diem');
-            if (perDiemField && !perDiemField.value && rates.per_diem !== undefined) {
-                perDiemField.value = rates.per_diem;
-            }
+            fields.forEach(({ id, key, animate }) => {
+                const field = document.getElementById(id);
+                if (field && !field.value && rates[key]) {
+                    field.value = rates[key];
+                    if (animate) {
+                        field.classList.add('border-success');
+                        setTimeout(() => field.classList.remove('border-success'), 2000);
+                    }
+                }
+            });
         }
     }
 
-    // Écouter les changements de profession (radio buttons)
-    professionRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            const profId = getSelectedProfession();
-            if (profId) {
+    // Écouter les changements de profession (checkboxes)
+    professionCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const profId = parseInt(this.value);
+            const setPrimaryBtn = this.closest('.form-check').querySelector('.set-primary-btn');
+
+            if (this.checked) {
+                // Montrer le bouton "définir comme principale"
+                if (setPrimaryBtn) setPrimaryBtn.classList.remove('d-none');
+
+                // Si c'est la première profession cochée, la définir comme principale
+                const selected = getSelectedProfessions();
+                if (selected.length === 1) {
+                    setPrimaryProfession(profId);
+                    if (!isEditMode) {
+                        applyProfessionDefaults(profId);
+                    }
+                }
+            } else {
+                // Cacher le bouton
+                if (setPrimaryBtn) setPrimaryBtn.classList.add('d-none');
+
+                // Si c'était la principale, choisir une autre
+                if (getPrimaryProfessionId() === profId) {
+                    const selected = getSelectedProfessions();
+                    if (selected.length > 0) {
+                        setPrimaryProfession(selected[0].id);
+                    } else {
+                        primaryProfessionInput.value = '';
+                    }
+                }
+            }
+
+            updateProfessionsPreview();
+        });
+    });
+
+    // Boutons "définir comme principale"
+    document.querySelectorAll('.set-primary-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const profId = parseInt(this.dataset.professionId);
+            setPrimaryProfession(profId);
+            if (!isEditMode) {
                 applyProfessionDefaults(profId);
             }
         });
     });
 
-    // Appliquer au chargement si profession déjà sélectionnée (mode création)
-    if (!isEditMode) {
-        setTimeout(() => {
-            const profId = getSelectedProfession();
-            if (profId) {
-                applyProfessionDefaults(profId);
+    // Initialisation au chargement
+    setTimeout(() => {
+        updateProfessionsPreview();
+        // Si pas de principale définie, prendre la première cochée
+        if (!getPrimaryProfessionId()) {
+            const selected = getSelectedProfessions();
+            if (selected.length > 0) {
+                setPrimaryProfession(selected[0].id);
             }
-        }, 500); // Attendre que le cache soit chargé
-    }
+        }
+    }, 100);
 
     // ============ GESTION CARTES VOYAGE VIA AJAX ============
     // (Evite les formulaires imbriqués qui causent des bugs de soumission)

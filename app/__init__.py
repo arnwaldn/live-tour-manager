@@ -85,6 +85,16 @@ def create_app(config_name=None):
         with app.app_context():
             db.create_all()
 
+    # Auto-seed professions if table is empty
+    with app.app_context():
+        try:
+            from app.models.profession import Profession, seed_professions
+            if Profession.query.count() == 0:
+                seed_professions()
+                app.logger.info('Auto-seeded professions table with default data')
+        except Exception:
+            pass  # Table may not exist yet during initial migration
+
     return app
 
 
@@ -385,6 +395,27 @@ def register_cli_commands(app):
         print(f"J-1 reminders sent: {stats['j1_sent']}")
         print(f"Skipped (already sent): {stats['skipped']}")
         print(f"Errors: {stats['errors']}")
+
+    @app.cli.command('seed-professions')
+    @click.option('--force', is_flag=True, help='Force reseed even if professions exist')
+    def seed_professions_cmd(force):
+        """Seed professions table with default data (35 professions, 6 categories)."""
+        from app.models.profession import Profession, seed_professions
+        from app.extensions import db
+
+        existing_count = Profession.query.count()
+        if existing_count > 0 and not force:
+            print(f"Professions already seeded ({existing_count} found).")
+            print("Use --force to reseed (will not duplicate existing records).")
+            return
+
+        print("Seeding professions...")
+        seed_professions()
+        db.session.commit()
+
+        new_count = Profession.query.count()
+        print(f"Done! {new_count} professions available.")
+        print("Categories: MUSICIEN, TECHNICIEN, PRODUCTION, STYLE, SECURITE, MANAGEMENT")
 
 
 def register_context_processors(app):

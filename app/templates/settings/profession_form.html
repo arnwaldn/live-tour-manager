@@ -1,0 +1,225 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Tour Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+        <i class="bi bi-{% if profession %}pencil{% else %}plus-circle{% endif %} me-2"></i>{{ title }}
+    </h1>
+    <a href="{{ url_for('settings.professions_list') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Retour à la liste
+    </a>
+</div>
+
+<!-- Flash Messages -->
+{% include "components/_flash_messages.html" %}
+
+<form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+
+    <div class="row">
+        <!-- Left Column: Basic Info -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informations générales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Code -->
+                        <div class="col-md-4">
+                            <label for="code" class="form-label">Code <span class="text-danger">*</span></label>
+                            {{ form.code(class="form-control" + (" is-invalid" if form.code.errors else ""), placeholder="Ex: GUITAR", style="text-transform: uppercase;") }}
+                            {% if form.code.errors %}
+                            <div class="invalid-feedback">{{ form.code.errors[0] }}</div>
+                            {% endif %}
+                            <small class="text-muted">Identifiant unique en majuscules</small>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="col-md-8">
+                            <label for="category" class="form-label">Catégorie <span class="text-danger">*</span></label>
+                            {{ form.category(class="form-select" + (" is-invalid" if form.category.errors else "")) }}
+                            {% if form.category.errors %}
+                            <div class="invalid-feedback">{{ form.category.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Name FR -->
+                        <div class="col-md-6">
+                            <label for="name_fr" class="form-label">Nom (Français) <span class="text-danger">*</span></label>
+                            {{ form.name_fr(class="form-control" + (" is-invalid" if form.name_fr.errors else ""), placeholder="Ex: Guitariste") }}
+                            {% if form.name_fr.errors %}
+                            <div class="invalid-feedback">{{ form.name_fr.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Name EN -->
+                        <div class="col-md-6">
+                            <label for="name_en" class="form-label">Nom (Anglais) <span class="text-danger">*</span></label>
+                            {{ form.name_en(class="form-control" + (" is-invalid" if form.name_en.errors else ""), placeholder="Ex: Guitarist") }}
+                            {% if form.name_en.errors %}
+                            <div class="invalid-feedback">{{ form.name_en.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-12">
+                            <label for="description" class="form-label">Description</label>
+                            {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows="2", placeholder="Description optionnelle...") }}
+                            {% if form.description.errors %}
+                            <div class="invalid-feedback">{{ form.description.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Sort Order -->
+                        <div class="col-md-6">
+                            <label for="sort_order" class="form-label">Ordre d'affichage</label>
+                            {{ form.sort_order(class="form-control" + (" is-invalid" if form.sort_order.errors else ""), placeholder="0") }}
+                            {% if form.sort_order.errors %}
+                            <div class="invalid-feedback">{{ form.sort_order.errors[0] }}</div>
+                            {% endif %}
+                            <small class="text-muted">Plus petit = affiché en premier</small>
+                        </div>
+
+                        <!-- Access Level -->
+                        <div class="col-md-6">
+                            <label for="default_access_level" class="form-label">Niveau d'accès par défaut <span class="text-danger">*</span></label>
+                            {{ form.default_access_level(class="form-select" + (" is-invalid" if form.default_access_level.errors else "")) }}
+                            {% if form.default_access_level.errors %}
+                            <div class="invalid-feedback">{{ form.default_access_level.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rates Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-currency-euro me-2"></i>Tarifs par défaut</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Show Rate -->
+                        <div class="col-md-6">
+                            <label for="show_rate" class="form-label">Tarif concert (€)</label>
+                            <div class="input-group">
+                                {{ form.show_rate(class="form-control" + (" is-invalid" if form.show_rate.errors else ""), placeholder="0.00") }}
+                                <span class="input-group-text">€</span>
+                            </div>
+                            {% if form.show_rate.errors %}
+                            <div class="invalid-feedback d-block">{{ form.show_rate.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Daily Rate -->
+                        <div class="col-md-6">
+                            <label for="daily_rate" class="form-label">Tarif journalier (€)</label>
+                            <div class="input-group">
+                                {{ form.daily_rate(class="form-control" + (" is-invalid" if form.daily_rate.errors else ""), placeholder="0.00") }}
+                                <span class="input-group-text">€</span>
+                            </div>
+                            {% if form.daily_rate.errors %}
+                            <div class="invalid-feedback d-block">{{ form.daily_rate.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Weekly Rate -->
+                        <div class="col-md-6">
+                            <label for="weekly_rate" class="form-label">Tarif hebdomadaire (€)</label>
+                            <div class="input-group">
+                                {{ form.weekly_rate(class="form-control" + (" is-invalid" if form.weekly_rate.errors else ""), placeholder="0.00") }}
+                                <span class="input-group-text">€</span>
+                            </div>
+                            {% if form.weekly_rate.errors %}
+                            <div class="invalid-feedback d-block">{{ form.weekly_rate.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Per Diem -->
+                        <div class="col-md-6">
+                            <label for="per_diem" class="form-label">Per diem (€)</label>
+                            <div class="input-group">
+                                {{ form.per_diem(class="form-control" + (" is-invalid" if form.per_diem.errors else ""), placeholder="35.00") }}
+                                <span class="input-group-text">€</span>
+                            </div>
+                            {% if form.per_diem.errors %}
+                            <div class="invalid-feedback d-block">{{ form.per_diem.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Default Frequency -->
+                        <div class="col-md-6">
+                            <label for="default_frequency" class="form-label">Fréquence de paiement</label>
+                            {{ form.default_frequency(class="form-select" + (" is-invalid" if form.default_frequency.errors else "")) }}
+                            {% if form.default_frequency.errors %}
+                            <div class="invalid-feedback">{{ form.default_frequency.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Status & Actions -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-toggle-on me-2"></i>Statut</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        {{ form.is_active(class="form-check-input", id="is_active") }}
+                        <label class="form-check-label" for="is_active">
+                            <strong>Profession active</strong>
+                            <br><small class="text-muted">Une profession inactive n'apparaîtra pas dans les sélecteurs</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-save me-2"></i>Actions</h5>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    {{ form.submit(class="btn btn-primary btn-lg") }}
+                    <a href="{{ url_for('settings.professions_list') }}" class="btn btn-outline-secondary">
+                        Annuler
+                    </a>
+                </div>
+            </div>
+
+            {% if profession %}
+            <div class="card mt-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Zone de danger</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">La suppression d'une profession est irréversible et n'est possible que si aucun utilisateur ne l'utilise.</p>
+                    <form action="{{ url_for('settings.professions_delete', id=profession.id) }}"
+                          method="POST"
+                          onsubmit="return confirm('Supprimer définitivement la profession {{ profession.name_fr }}?\n\nCette action est IRRÉVERSIBLE.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-trash me-2"></i>Supprimer cette profession
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-uppercase code field
+document.getElementById('code').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
+</script>
+{% endblock %}

@@ -16,7 +16,9 @@ from sqlalchemy.exc import IntegrityError
 from app.blueprints.settings import settings_bp
 from app.blueprints.settings.forms import (
     UserCreateForm, UserEditForm, TravelCardForm,
-    get_access_level_choices, get_profession_choices, get_professions_by_category
+    ProfessionCreateForm, ProfessionEditForm,
+    get_access_level_choices, get_profession_choices, get_professions_by_category,
+    get_category_choices
 )
 from app.extensions import db
 from app.models.user import User, Role, TravelCard, AccessLevel
@@ -636,15 +638,19 @@ def users_create():
 
         db.session.commit()
 
-        # Add profession (v2.0) - UNE SEULE profession par utilisateur (radio button)
-        profession_id = request.form.get('profession')
-        if profession_id:
-            profession = Profession.query.get(int(profession_id))
+        # Add professions (v2.1) - PLUSIEURS professions possibles (checkboxes)
+        profession_ids = request.form.getlist('professions')
+        primary_profession_id = request.form.get('primary_profession')
+
+        for i, prof_id in enumerate(profession_ids):
+            profession = Profession.query.get(int(prof_id))
             if profession:
+                # La première profession cochée est principale si pas explicitement définie
+                is_primary = (str(prof_id) == str(primary_profession_id)) if primary_profession_id else (i == 0)
                 user_profession = UserProfession(
                     user_id=user.id,
                     profession_id=profession.id,
-                    is_primary=True
+                    is_primary=is_primary
                 )
                 db.session.add(user_profession)
 
@@ -697,13 +703,16 @@ def users_edit(id):
     # Load existing PaymentConfig
     payment_config = UserPaymentConfig.query.get(user.id)
 
+    # Get existing profession IDs for this user (for template pre-selection)
+    selected_profession_ids = [up.profession_id for up in user.user_professions.all()]
+    primary_profession = user.user_professions.filter_by(is_primary=True).first()
+    primary_profession_id = primary_profession.profession_id if primary_profession else None
+
     if request.method == 'GET':
         # Pre-fill new fields (v2.0)
         form.access_level.data = user.access_level.name if user.access_level else 'STAFF'
         form.label_name.data = user.label_name or ''
-        # Profession unique - prendre la première (et seule) profession
-        user_profession = user.user_professions.first()
-        form.profession.data = user_profession.profession_id if user_profession else ''
+        # Multi-professions (v2.1) - handled by template with selected_profession_ids
 
         # Legacy fields
         form.roles.data = [r.id for r in user.roles]
@@ -745,18 +754,23 @@ def users_edit(id):
         # Update label affiliation (v2.0) - free text field
         user.label_name = form.label_name.data.strip() if form.label_name.data else None
 
-        # Update profession (v2.0) - UNE SEULE profession par utilisateur
+        # Update professions (v2.1) - PLUSIEURS professions possibles (checkboxes)
         # Remove existing professions
         UserProfession.query.filter_by(user_id=user.id).delete()
-        # Add the selected profession (radio button)
-        profession_id = request.form.get('profession')
-        if profession_id:
-            profession = Profession.query.get(int(profession_id))
+
+        # Add selected professions from checkboxes
+        profession_ids = request.form.getlist('professions')
+        primary_prof_id = request.form.get('primary_profession')
+
+        for i, prof_id in enumerate(profession_ids):
+            profession = Profession.query.get(int(prof_id))
             if profession:
+                # Determine if this is the primary profession
+                is_primary = (str(prof_id) == str(primary_prof_id)) if primary_prof_id else (i == 0)
                 user_profession = UserProfession(
                     user_id=user.id,
                     profession_id=profession.id,
-                    is_primary=True
+                    is_primary=is_primary
                 )
                 db.session.add(user_profession)
 
@@ -840,7 +854,9 @@ def users_edit(id):
         form=form,
         user=user,
         title='Modifier l\'utilisateur',
-        professions_by_category=professions_by_category
+        professions_by_category=professions_by_category,
+        selected_profession_ids=selected_profession_ids,
+        primary_profession_id=primary_profession_id
     )
 
 
@@ -916,6 +932,168 @@ def api_professions_list():
         Profession.category, Profession.sort_order
     ).all()
     return jsonify([p.to_dict() for p in professions])
+
+
+# =============================================================================
+# PROFESSION MANAGEMENT (Manager only)
+# =============================================================================
+
+@settings_bp.route('/professions')
+@login_required
+@requires_manager
+def professions_list():
+    """List all professions grouped by category."""
+    from app.models.profession import ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
+
+    # Get all professions ordered by category and sort_order
+    professions = Profession.query.order_by(
+        Profession.category, Profession.sort_order, Profession.name_fr
+    ).all()
+
+    # Group by category
+    professions_by_category = {}
+    for cat in ProfessionCategory:
+        professions_by_category[cat] = [p for p in professions if p.category == cat]
+
+    # Stats
+    total_count = len(professions)
+    active_count = sum(1 for p in professions if p.is_active)
+    inactive_count = total_count - active_count
+
+    return render_template(
+        'settings/professions.html',
+        professions_by_category=professions_by_category,
+        category_labels=CATEGORY_LABELS,
+        category_icons=CATEGORY_ICONS,
+        category_colors=CATEGORY_COLORS,
+        total_count=total_count,
+        active_count=active_count,
+        inactive_count=inactive_count
+    )
+
+
+@settings_bp.route('/professions/create', methods=['GET', 'POST'])
+@login_required
+@requires_manager
+def professions_create():
+    """Create a new profession."""
+    from app.models.profession import ProfessionCategory, AccessLevel as ProfessionAccessLevel
+
+    form = ProfessionCreateForm()
+
+    # Setup choices
+    form.category.choices = get_category_choices()
+    form.default_access_level.choices = get_access_level_choices()
+
+    if form.validate_on_submit():
+        profession = Profession(
+            code=form.code.data.upper(),
+            name_fr=form.name_fr.data,
+            name_en=form.name_en.data,
+            category=ProfessionCategory[form.category.data],
+            description=form.description.data,
+            sort_order=form.sort_order.data or 0,
+            default_access_level=AccessLevel[form.default_access_level.data],
+            is_active=form.is_active.data,
+            show_rate=form.show_rate.data,
+            daily_rate=form.daily_rate.data,
+            weekly_rate=form.weekly_rate.data,
+            per_diem=form.per_diem.data,
+            default_frequency=form.default_frequency.data or None
+        )
+        db.session.add(profession)
+        db.session.commit()
+
+        flash(f'Profession "{profession.name_fr}" créée avec succès.', 'success')
+        return redirect(url_for('settings.professions_list'))
+
+    return render_template(
+        'settings/profession_form.html',
+        form=form,
+        title='Créer une profession'
+    )
+
+
+@settings_bp.route('/professions/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_manager
+def professions_edit(id):
+    """Edit an existing profession."""
+    from app.models.profession import ProfessionCategory
+
+    profession = Profession.query.get_or_404(id)
+    form = ProfessionEditForm(original_code=profession.code, obj=profession)
+
+    # Setup choices
+    form.category.choices = get_category_choices()
+    form.default_access_level.choices = get_access_level_choices()
+
+    if request.method == 'GET':
+        # Pre-fill form
+        form.category.data = profession.category.name if profession.category else ''
+        form.default_access_level.data = profession.default_access_level.name if profession.default_access_level else 'STAFF'
+
+    if form.validate_on_submit():
+        profession.code = form.code.data.upper()
+        profession.name_fr = form.name_fr.data
+        profession.name_en = form.name_en.data
+        profession.category = ProfessionCategory[form.category.data]
+        profession.description = form.description.data
+        profession.sort_order = form.sort_order.data or 0
+        profession.default_access_level = AccessLevel[form.default_access_level.data]
+        profession.is_active = form.is_active.data
+        profession.show_rate = form.show_rate.data
+        profession.daily_rate = form.daily_rate.data
+        profession.weekly_rate = form.weekly_rate.data
+        profession.per_diem = form.per_diem.data
+        profession.default_frequency = form.default_frequency.data or None
+
+        db.session.commit()
+        flash(f'Profession "{profession.name_fr}" mise à jour.', 'success')
+        return redirect(url_for('settings.professions_list'))
+
+    return render_template(
+        'settings/profession_form.html',
+        form=form,
+        profession=profession,
+        title='Modifier la profession'
+    )
+
+
+@settings_bp.route('/professions/<int:id>/toggle', methods=['POST'])
+@login_required
+@requires_manager
+def professions_toggle(id):
+    """Toggle profession active/inactive status."""
+    profession = Profession.query.get_or_404(id)
+
+    profession.is_active = not profession.is_active
+    db.session.commit()
+
+    status = 'activée' if profession.is_active else 'désactivée'
+    flash(f'Profession "{profession.name_fr}" {status}.', 'success')
+    return redirect(url_for('settings.professions_list'))
+
+
+@settings_bp.route('/professions/<int:id>/delete', methods=['POST'])
+@login_required
+@requires_manager
+def professions_delete(id):
+    """Delete a profession (only if not used by any user)."""
+    profession = Profession.query.get_or_404(id)
+
+    # Check if profession is used by any user
+    users_count = UserProfession.query.filter_by(profession_id=id).count()
+    if users_count > 0:
+        flash(f'Impossible de supprimer: {users_count} utilisateur(s) utilisent cette profession.', 'error')
+        return redirect(url_for('settings.professions_list'))
+
+    profession_name = profession.name_fr
+    db.session.delete(profession)
+    db.session.commit()
+
+    flash(f'Profession "{profession_name}" supprimée.', 'success')
+    return redirect(url_for('settings.professions_list'))
 
 
 # =============================================================================

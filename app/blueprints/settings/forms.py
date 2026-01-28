@@ -5,14 +5,15 @@ Includes access levels, professions, and labels (v2.0).
 from flask_wtf import FlaskForm
 from wtforms import (
     StringField, PasswordField, BooleanField, SelectMultipleField,
-    SubmitField, DateField, SelectField, TextAreaField, DecimalField
+    SubmitField, DateField, SelectField, TextAreaField, DecimalField,
+    IntegerField
 )
 from wtforms.validators import (
     DataRequired, Email, Length, Optional, EqualTo, ValidationError, NumberRange
 )
 
 from app.models.user import User, AccessLevel, ACCESS_LEVEL_LABELS
-from app.models.profession import Profession, ProfessionCategory, CATEGORY_LABELS
+from app.models.profession import Profession, ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
 from app.models.payments import ContractType, PaymentFrequency
 
 
@@ -348,3 +349,116 @@ class TravelCardForm(FlaskForm):
         Length(max=100)
     ])
     expiry_date = DateField('Date de validité', validators=[Optional()])
+
+
+# =============================================================================
+# PROFESSION MANAGEMENT FORMS
+# =============================================================================
+
+def get_category_choices():
+    """Get profession category choices for select field."""
+    return [
+        (cat.name, CATEGORY_LABELS.get(cat, cat.value))
+        for cat in ProfessionCategory
+    ]
+
+
+class ProfessionCreateForm(FlaskForm):
+    """Form for creating a new profession."""
+
+    code = StringField('Code', validators=[
+        DataRequired(message='Le code est requis'),
+        Length(max=50)
+    ])
+    name_fr = StringField('Nom (FR)', validators=[
+        DataRequired(message='Le nom français est requis'),
+        Length(max=100)
+    ])
+    name_en = StringField('Nom (EN)', validators=[
+        DataRequired(message='Le nom anglais est requis'),
+        Length(max=100)
+    ])
+    category = SelectField('Catégorie', validators=[
+        DataRequired(message='La catégorie est requise')
+    ])
+    description = TextAreaField('Description', validators=[
+        Optional(),
+        Length(max=500)
+    ])
+    sort_order = IntegerField('Ordre d\'affichage', validators=[Optional()], default=0)
+    default_access_level = SelectField('Niveau d\'accès par défaut', validators=[
+        DataRequired(message='Le niveau d\'accès est requis')
+    ])
+    is_active = BooleanField('Active', default=True)
+
+    # Default rates
+    show_rate = DecimalField('Tarif concert (€)', validators=[Optional(), NumberRange(min=0)])
+    daily_rate = DecimalField('Tarif journalier (€)', validators=[Optional(), NumberRange(min=0)])
+    weekly_rate = DecimalField('Tarif hebdomadaire (€)', validators=[Optional(), NumberRange(min=0)])
+    per_diem = DecimalField('Per diem (€)', validators=[Optional(), NumberRange(min=0)], default=35.00)
+    default_frequency = SelectField('Fréquence par défaut', choices=[
+        ('per_show', 'Par concert'),
+        ('daily', 'Journalier'),
+        ('weekly', 'Hebdomadaire'),
+        ('monthly', 'Mensuel')
+    ], validators=[Optional()])
+
+    submit = SubmitField('Créer la profession')
+
+    def validate_code(self, field):
+        """Check if code is unique."""
+        if Profession.query.filter_by(code=field.data.upper()).first():
+            raise ValidationError('Ce code est déjà utilisé.')
+
+
+class ProfessionEditForm(FlaskForm):
+    """Form for editing an existing profession."""
+
+    code = StringField('Code', validators=[
+        DataRequired(message='Le code est requis'),
+        Length(max=50)
+    ])
+    name_fr = StringField('Nom (FR)', validators=[
+        DataRequired(message='Le nom français est requis'),
+        Length(max=100)
+    ])
+    name_en = StringField('Nom (EN)', validators=[
+        DataRequired(message='Le nom anglais est requis'),
+        Length(max=100)
+    ])
+    category = SelectField('Catégorie', validators=[
+        DataRequired(message='La catégorie est requise')
+    ])
+    description = TextAreaField('Description', validators=[
+        Optional(),
+        Length(max=500)
+    ])
+    sort_order = IntegerField('Ordre d\'affichage', validators=[Optional()], default=0)
+    default_access_level = SelectField('Niveau d\'accès par défaut', validators=[
+        DataRequired(message='Le niveau d\'accès est requis')
+    ])
+    is_active = BooleanField('Active', default=True)
+
+    # Default rates
+    show_rate = DecimalField('Tarif concert (€)', validators=[Optional(), NumberRange(min=0)])
+    daily_rate = DecimalField('Tarif journalier (€)', validators=[Optional(), NumberRange(min=0)])
+    weekly_rate = DecimalField('Tarif hebdomadaire (€)', validators=[Optional(), NumberRange(min=0)])
+    per_diem = DecimalField('Per diem (€)', validators=[Optional(), NumberRange(min=0)])
+    default_frequency = SelectField('Fréquence par défaut', choices=[
+        ('per_show', 'Par concert'),
+        ('daily', 'Journalier'),
+        ('weekly', 'Hebdomadaire'),
+        ('monthly', 'Mensuel')
+    ], validators=[Optional()])
+
+    submit = SubmitField('Enregistrer les modifications')
+
+    def __init__(self, original_code=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.original_code = original_code
+
+    def validate_code(self, field):
+        """Check if code is unique (excluding current)."""
+        if field.data.upper() != self.original_code:
+            if Profession.query.filter_by(code=field.data.upper()).first():
+                raise ValidationError('Ce code est déjà utilisé.')
