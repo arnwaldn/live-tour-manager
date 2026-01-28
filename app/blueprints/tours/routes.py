@@ -121,13 +121,17 @@ def get_users_by_category(users_list=None, assigned_ids=None):
 @login_required
 def index():
     """List all tours for user's bands."""
-    user_bands = current_user.bands + current_user.managed_bands
-    user_band_ids = [b.id for b in user_bands]
+    # Admin voit toutes les tournées
+    if current_user.is_admin():
+        user_bands = Band.query.all()
+        query = Tour.query
+    else:
+        user_bands = current_user.bands + current_user.managed_bands
+        user_band_ids = [b.id for b in user_bands]
+        query = Tour.query.filter(Tour.band_id.in_(user_band_ids))
 
     # Filter by status if requested
     status_filter = request.args.get('status')
-
-    query = Tour.query.filter(Tour.band_id.in_(user_band_ids))
 
     if status_filter:
         try:

@@ -64,6 +64,15 @@ def delete_logo_file(filename):
 @login_required
 def index():
     """List all bands accessible to the user."""
+    # Admin voit tous les groupes
+    if current_user.is_admin():
+        all_bands = Band.query.order_by(Band.name).all()
+        return render_template(
+            'bands/list.html',
+            managed_bands=all_bands,
+            member_bands=[]
+        )
+
     # Get bands where user is manager or member
     managed_bands = current_user.managed_bands
     member_bands = current_user.bands
