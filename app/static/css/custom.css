@@ -540,6 +540,27 @@ a:hover {
     color: var(--sp-gold-light);
 }
 
+/* Gold outline button - visible on dark theme */
+.btn-outline-gold {
+    color: var(--sp-gold);
+    border-color: var(--sp-gold);
+    background-color: transparent;
+}
+
+.btn-outline-gold:hover {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+    color: var(--sp-black);
+}
+
+.btn-outline-gold:focus,
+.btn-outline-gold:active {
+    background-color: var(--sp-gold-dark);
+    border-color: var(--sp-gold-dark);
+    color: var(--sp-black);
+    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.5);
+}
+
 /* Action button group */
 .btn-group-actions {
     display: flex;
