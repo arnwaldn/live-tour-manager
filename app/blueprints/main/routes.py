@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-29-v7'  # Deployment version marker
+        'version': '2026-01-29-v8'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -71,13 +71,35 @@ def health_diagnose():
                 professions_count = f'ERROR: {prof_err}'
                 primary_prof_name = f'ERROR: {prof_err}'
 
+            # Test travel_cards access
+            try:
+                travel_cards_count = len(user.travel_cards) if user.travel_cards else 0
+            except Exception as tc_err:
+                travel_cards_count = f'ERROR: {tc_err}'
+
+            # Test roles access
+            try:
+                roles_count = len(user.roles) if user.roles else 0
+            except Exception as r_err:
+                roles_count = f'ERROR: {r_err}'
+
+            # Test user_professions relationship
+            try:
+                user_profs = user.user_professions.all()
+                user_profs_count = len(user_profs)
+            except Exception as up_err:
+                user_profs_count = f'ERROR: {up_err}'
+
             diagnostics['users']['id_3'] = {
                 'exists': True,
                 'email': user.email[:3] + '***',  # Partial for privacy
                 'is_active': user.is_active,
                 'professions_count': professions_count,
                 'primary_profession': primary_prof_name,
-                'access_level': user.access_level.name if user.access_level else None
+                'access_level': user.access_level.name if user.access_level else None,
+                'travel_cards_count': travel_cards_count,
+                'roles_count': roles_count,
+                'user_professions_raw': user_profs_count
             }
         else:
             diagnostics['users']['id_3'] = {'exists': False}
