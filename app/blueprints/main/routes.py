@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-29-v6'  # Deployment version marker
+        'version': '2026-01-29-v7'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -62,10 +62,22 @@ def health_diagnose():
     try:
         user = User.query.get(3)
         if user:
+            # Test professions access (common error source)
+            try:
+                professions_count = len(user.professions)
+                primary_prof = user.primary_profession
+                primary_prof_name = primary_prof.name_fr if primary_prof else None
+            except Exception as prof_err:
+                professions_count = f'ERROR: {prof_err}'
+                primary_prof_name = f'ERROR: {prof_err}'
+
             diagnostics['users']['id_3'] = {
                 'exists': True,
                 'email': user.email[:3] + '***',  # Partial for privacy
-                'is_active': user.is_active
+                'is_active': user.is_active,
+                'professions_count': professions_count,
+                'primary_profession': primary_prof_name,
+                'access_level': user.access_level.name if user.access_level else None
             }
         else:
             diagnostics['users']['id_3'] = {'exists': False}
