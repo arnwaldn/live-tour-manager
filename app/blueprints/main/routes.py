@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-29-v10'  # Deployment version marker
+        'version': '2026-01-29-v11'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -179,6 +179,109 @@ def test_user_edit(user_id):
         result['steps']['7_primary_profession'] = f'OK ({"exists" if primary else "None"})'
     except Exception as e:
         result['steps']['7_primary_profession'] = f'ERROR: {e}'
+
+    return jsonify(result)
+
+
+@main_bp.route('/health/fix-professions-schema')
+def fix_professions_schema():
+    """Emergency endpoint to add missing columns to professions table.
+
+    This fixes the issue where migration r0s2t4v6x8z0 was not applied.
+    """
+    from sqlalchemy import inspect, text
+
+    result = {
+        'version': '2026-01-29-v11',
+        'action': 'fix_professions_schema',
+        'columns_checked': [],
+        'columns_added': [],
+        'errors': []
+    }
+
+    # Columns that should exist (from migration r0s2t4v6x8z0)
+    required_columns = {
+        'show_rate': 'NUMERIC(10, 2)',
+        'daily_rate': 'NUMERIC(10, 2)',
+        'weekly_rate': 'NUMERIC(10, 2)',
+        'per_diem': 'NUMERIC(10, 2)',
+        'default_frequency': 'VARCHAR(20)'
+    }
+
+    try:
+        # Check which columns exist
+        inspector = inspect(db.engine)
+        existing_columns = {col['name'] for col in inspector.get_columns('professions')}
+        result['existing_columns'] = list(existing_columns)
+
+        # Add missing columns
+        for col_name, col_type in required_columns.items():
+            result['columns_checked'].append(col_name)
+
+            if col_name not in existing_columns:
+                try:
+                    # Add the column
+                    db.session.execute(text(
+                        f'ALTER TABLE professions ADD COLUMN {col_name} {col_type}'
+                    ))
+                    result['columns_added'].append(col_name)
+                except Exception as add_err:
+                    result['errors'].append(f'{col_name}: {str(add_err)}')
+
+        # Commit all changes
+        if result['columns_added']:
+            db.session.commit()
+            result['status'] = 'columns_added'
+        else:
+            result['status'] = 'all_columns_exist'
+
+    except Exception as e:
+        db.session.rollback()
+        result['status'] = 'error'
+        result['errors'].append(str(e))
+
+    return jsonify(result)
+
+
+@main_bp.route('/health/migration-status')
+def migration_status():
+    """Check Alembic migration status in production."""
+    from sqlalchemy import text
+
+    result = {
+        'version': '2026-01-29-v11',
+        'action': 'migration_status'
+    }
+
+    try:
+        # Get current migration head from alembic_version table
+        version_result = db.session.execute(
+            text('SELECT version_num FROM alembic_version')
+        ).fetchone()
+
+        if version_result:
+            result['current_head'] = version_result[0]
+        else:
+            result['current_head'] = None
+
+        # Check if professions table exists and its columns
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+
+        if 'professions' in inspector.get_table_names():
+            columns = inspector.get_columns('professions')
+            result['professions_columns'] = [col['name'] for col in columns]
+            result['professions_table'] = 'exists'
+        else:
+            result['professions_table'] = 'missing'
+            result['professions_columns'] = []
+
+        # Expected head (latest migration)
+        result['expected_head'] = 'r0s2t4v6x8z0'  # add_rate_columns_to_professions
+        result['migration_up_to_date'] = result.get('current_head') == result['expected_head']
+
+    except Exception as e:
+        result['error'] = str(e)
 
     return jsonify(result)
 
