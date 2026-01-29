@@ -25,8 +25,54 @@ def health_check():
     return jsonify({
         'status': status,
         'database': db_status,
-        'service': 'tour-manager'
+        'service': 'tour-manager',
+        'version': '2026-01-29-v5'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
+
+
+@main_bp.route('/health/diagnose')
+def health_diagnose():
+    """Diagnostic endpoint to check data integrity (no auth required)."""
+    from app.models.tour import Tour
+    from app.models.user import User
+
+    diagnostics = {
+        'version': '2026-01-29-v5',
+        'tours': {},
+        'users': {}
+    }
+
+    # Check tour ID 4
+    try:
+        tour = Tour.query.get(4)
+        if tour:
+            diagnostics['tours']['id_4'] = {
+                'exists': True,
+                'name': tour.name,
+                'band_id': tour.band_id,
+                'band_exists': tour.band is not None,
+                'band_name': tour.band_name  # Uses safe property
+            }
+        else:
+            diagnostics['tours']['id_4'] = {'exists': False}
+    except Exception as e:
+        diagnostics['tours']['id_4'] = {'error': str(e)}
+
+    # Check user ID 3
+    try:
+        user = User.query.get(3)
+        if user:
+            diagnostics['users']['id_3'] = {
+                'exists': True,
+                'email': user.email[:3] + '***',  # Partial for privacy
+                'is_active': user.is_active
+            }
+        else:
+            diagnostics['users']['id_3'] = {'exists': False}
+    except Exception as e:
+        diagnostics['users']['id_3'] = {'error': str(e)}
+
+    return jsonify(diagnostics)
 
 
 from app.models.tour import Tour, TourStatus
