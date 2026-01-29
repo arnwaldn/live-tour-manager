@@ -236,6 +236,11 @@ def edit(id, tour=None):
     """Edit a tour."""
     band = tour.band
 
+    # Handle orphaned tour (band was deleted)
+    if band is None:
+        flash('Cette tournée est orpheline (groupe supprimé). Impossible de la modifier.', 'warning')
+        return redirect(url_for('tours.detail', id=id))
+
     # Initialize form with tour data
     form = TourForm(obj=tour)
 
@@ -480,7 +485,7 @@ def stop_detail(id, stop_id, tour=None):
     main_band_in_lineup = False
 
     for slot in stop.lineup_slots:
-        if slot.performer_name.lower() == tour.band.name.lower():
+        if tour.band and slot.performer_name.lower() == tour.band.name.lower():
             main_band_in_lineup = True
         all_performers.append({
             'name': slot.performer_name,
@@ -500,7 +505,7 @@ def stop_detail(id, stop_id, tour=None):
         time_range = f"{main_time} - {end_time}" if main_time and end_time else (main_time or 'Horaire non défini')
 
         all_performers.append({
-            'name': tour.band.name,
+            'name': tour.band_name,
             'type': 'main_artist',
             'type_label': 'Artiste principal',
             'start_time': stop.set_time,
@@ -1317,6 +1322,9 @@ def assign_members(id, stop_id, tour=None):
 
     # Récupérer tous les membres du groupe (membres + managers)
     band = tour.band
+    if band is None:
+        flash('Cette tournée est orpheline (groupe supprimé).', 'warning')
+        return redirect(url_for('tours.stop_detail', id=id, stop_id=stop_id))
     band_members = band.members + [band.manager] if band.manager else band.members
 
     if request.method == 'POST':
@@ -1411,6 +1419,9 @@ def assign_all_members(id, stop_id, tour=None):
 
     # Récupérer tous les membres du groupe
     band = tour.band
+    if band is None:
+        flash('Cette tournée est orpheline (groupe supprimé).', 'warning')
+        return redirect(url_for('tours.stop_detail', id=id, stop_id=stop_id))
     all_members = band.members + ([band.manager] if band.manager else [])
 
     # Identifier les membres déjà assignés
