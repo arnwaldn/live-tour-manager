@@ -548,9 +548,15 @@ def users_create():
     """Create a new user and send invitation email."""
     form = UserCreateForm()
 
-    # Setup form choices
+    # Setup form choices with defensive handling for all database queries
     form.access_level.choices = get_access_level_choices()
-    form.roles.choices = [(r.id, r.name) for r in Role.query.order_by(Role.name).all()]
+
+    # Defensive handling for roles (table might not exist or be empty)
+    try:
+        form.roles.choices = [(r.id, r.name) for r in Role.query.order_by(Role.name).all()]
+    except Exception as e:
+        current_app.logger.warning(f'Could not load roles in users_create: {e}')
+        form.roles.choices = []
 
     # Defensive handling for profession choices (table might not exist in production)
     try:
@@ -709,7 +715,12 @@ def users_edit(id):
         form.profession.choices = [('', '-- Sélectionner --')]
         professions_by_category = {}
 
-    form.roles.choices = [(r.id, r.name) for r in Role.query.order_by(Role.name).all()]
+    # Defensive handling for roles
+    try:
+        form.roles.choices = [(r.id, r.name) for r in Role.query.order_by(Role.name).all()]
+    except Exception as e:
+        current_app.logger.warning(f'Could not load roles in users_edit: {e}')
+        form.roles.choices = []
 
     # Load existing PaymentConfig
     payment_config = UserPaymentConfig.query.get(user.id)
