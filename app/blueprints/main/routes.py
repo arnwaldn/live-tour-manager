@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-29-v9'  # Deployment version marker
+        'version': '2026-01-29-v10'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -117,6 +117,70 @@ def health_diagnose():
         diagnostics['users']['id_3']['template_error'] = str(tmpl_err)
 
     return jsonify(diagnostics)
+
+
+@main_bp.route('/health/test-user-edit/<int:user_id>')
+def test_user_edit(user_id):
+    """Test endpoint that simulates user edit form setup."""
+    from app.models.user import User
+    from app.blueprints.settings.forms import UserEditForm, get_access_level_choices, get_profession_choices, get_professions_by_category
+
+    result = {'version': '2026-01-29-v10', 'steps': {}}
+
+    # Step 1: Get user
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': f'User {user_id} not found'}), 404
+        result['steps']['1_get_user'] = 'OK'
+    except Exception as e:
+        result['steps']['1_get_user'] = f'ERROR: {e}'
+        return jsonify(result)
+
+    # Step 2: Create form
+    try:
+        form = UserEditForm(original_email=user.email, obj=user)
+        result['steps']['2_create_form'] = 'OK'
+    except Exception as e:
+        result['steps']['2_create_form'] = f'ERROR: {e}'
+        return jsonify(result)
+
+    # Step 3: Get access level choices
+    try:
+        form.access_level.choices = get_access_level_choices()
+        result['steps']['3_access_level_choices'] = 'OK'
+    except Exception as e:
+        result['steps']['3_access_level_choices'] = f'ERROR: {e}'
+
+    # Step 4: Get profession choices
+    try:
+        form.profession.choices = [('', '-- Sélectionner --')] + get_profession_choices()
+        result['steps']['4_profession_choices'] = 'OK'
+    except Exception as e:
+        result['steps']['4_profession_choices'] = f'ERROR: {e}'
+
+    # Step 5: Get professions by category
+    try:
+        professions_by_category = get_professions_by_category()
+        result['steps']['5_professions_by_category'] = f'OK ({len(professions_by_category)} categories)'
+    except Exception as e:
+        result['steps']['5_professions_by_category'] = f'ERROR: {e}'
+
+    # Step 6: Access user.professions
+    try:
+        profs = user.professions
+        result['steps']['6_user_professions'] = f'OK ({len(profs)} professions)'
+    except Exception as e:
+        result['steps']['6_user_professions'] = f'ERROR: {e}'
+
+    # Step 7: Access user.primary_profession
+    try:
+        primary = user.primary_profession
+        result['steps']['7_primary_profession'] = f'OK ({"exists" if primary else "None"})'
+    except Exception as e:
+        result['steps']['7_primary_profession'] = f'ERROR: {e}'
+
+    return jsonify(result)
 
 
 from app.models.tour import Tour, TourStatus
