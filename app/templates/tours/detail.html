@@ -202,14 +202,18 @@
                                 <td>
                                     <strong>{{ stop.date.strftime('%d/%m/%Y') }}</strong>
                                     <br class="d-md-none">
-                                    <small class="d-md-none text-muted">{{ stop.venue.name }}</small>
+                                    <small class="d-md-none text-muted">{{ stop.venue_name }}</small>
                                 </td>
                                 <td class="d-none d-md-table-cell">
-                                    <a href="{{ url_for('venues.detail', id=stop.venue.id) }}">
-                                        {{ stop.venue.name }}
+                                    {% if stop.venue_id_safe %}
+                                    <a href="{{ url_for('venues.detail', id=stop.venue_id_safe) }}">
+                                        {{ stop.venue_name }}
                                     </a>
+                                    {% else %}
+                                    <span class="text-muted">{{ stop.venue_name }}</span>
+                                    {% endif %}
                                     <br>
-                                    <small class="text-muted">{{ stop.venue.city }}</small>
+                                    <small class="text-muted">{{ stop.venue_city }}</small>
                                 </td>
                                 <td class="d-none d-lg-table-cell">
                                     {% if stop.doors_time %}

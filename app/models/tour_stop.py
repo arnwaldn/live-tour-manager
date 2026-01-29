@@ -448,6 +448,27 @@ class TourStop(db.Model):
             return self.tour.band
         return self.band
 
+    # ============================================================
+    # SAFE VENUE ACCESS PROPERTIES (handle deleted venues)
+    # ============================================================
+
+    @property
+    def venue_name(self):
+        """Get venue name safely (returns placeholder if venue is None)."""
+        return self.venue.name if self.venue else '[Lieu supprimé]'
+
+    @property
+    def venue_city(self):
+        """Get venue city safely (returns location_city or placeholder)."""
+        if self.venue:
+            return self.venue.city
+        return self.location_city or '[Ville inconnue]'
+
+    @property
+    def venue_id_safe(self):
+        """Get venue ID safely (returns None if venue is None)."""
+        return self.venue.id if self.venue else None
+
     @property
     def associated_band_id(self):
         """Get the band ID associated with this event."""
