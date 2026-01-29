@@ -30,7 +30,7 @@ def get_visible_logistics(stop, user):
         List of LogisticsInfo items visible to user
     """
     # Manager du groupe voit tout
-    if stop.tour and stop.tour.band.is_manager(user):
+    if stop.tour and stop.tour.band_is_manager(user):
         return list(stop.logistics)
 
     # Manager ou admin voit tout
@@ -56,7 +56,7 @@ def manage(stop_id):
         return redirect(url_for('main.dashboard'))
 
     # Check if user is manager (for full visibility)
-    is_manager = tour.band.is_manager(current_user) or current_user.is_manager_or_above()
+    is_manager = tour.band_is_manager(current_user) or current_user.is_manager_or_above()
 
     # Get visible logistics based on user role
     visible_logistics = get_visible_logistics(stop, current_user)
@@ -104,7 +104,7 @@ def add_logistics(stop_id):
     tour = stop.tour
 
     # Check access and permission
-    if not tour.band.is_manager(current_user):
+    if not tour.band_is_manager(current_user):
         flash('Seul le manager peut ajouter des informations logistiques.', 'error')
         return redirect(url_for('logistics.manage', stop_id=stop_id))
 
@@ -256,7 +256,7 @@ def edit_logistics(id):
     tour = stop.tour
 
     # Check permission
-    if not tour.band.is_manager(current_user):
+    if not tour.band_is_manager(current_user):
         flash('Seul le manager peut modifier les informations logistiques.', 'error')
         return redirect(url_for('logistics.manage', stop_id=stop.id))
 
@@ -422,7 +422,7 @@ def delete_logistics(id):
     tour = stop.tour
 
     # Check permission
-    if not tour.band.is_manager(current_user):
+    if not tour.band_is_manager(current_user):
         flash('Seul le manager peut supprimer les informations logistiques.', 'error')
         return redirect(url_for('logistics.manage', stop_id=stop.id))
 
@@ -444,7 +444,7 @@ def update_status(id):
     tour = stop.tour
 
     # Check permission
-    if not tour.band.is_manager(current_user):
+    if not tour.band_is_manager(current_user):
         flash('Seul le manager peut modifier le statut.', 'error')
         return redirect(url_for('logistics.manage', stop_id=stop.id))
 
@@ -480,7 +480,7 @@ def add_contact(stop_id):
     tour = stop.tour
 
     # Check permission
-    if not tour.band.is_manager(current_user):
+    if not tour.band_is_manager(current_user):
         flash('Seul le manager peut ajouter des contacts locaux.', 'error')
         return redirect(url_for('logistics.manage', stop_id=stop_id))
 
@@ -527,7 +527,7 @@ def edit_contact(id):
     tour = stop.tour
 
     # Check permission
-    if not tour.band.is_manager(current_user):
+    if not tour.band_is_manager(current_user):
         flash('Seul le manager peut modifier les contacts locaux.', 'error')
         return redirect(url_for('logistics.manage', stop_id=stop.id))
 
@@ -568,7 +568,7 @@ def delete_contact(id):
     tour = stop.tour
 
     # Check permission
-    if not tour.band.is_manager(current_user):
+    if not tour.band_is_manager(current_user):
         flash('Seul le manager peut supprimer les contacts locaux.', 'error')
         return redirect(url_for('logistics.manage', stop_id=stop.id))
 
@@ -955,12 +955,12 @@ def export_ical(stop_id):
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')
-    cal.add('x-wr-calname', f'{tour.band.name} - {tour.name}')
+    cal.add('x-wr-calname', f'{tour.band_name} - {tour.name}')
 
     # Main event (the show)
     main_event = Event()
     main_event.add('uid', f'show-{stop.id}@tourmanager.studiopalenque.com')
-    main_event.add('summary', f'{tour.band.name} @ {stop.venue.name if stop.venue else "TBA"}')
+    main_event.add('summary', f'{tour.band_name} @ {stop.venue.name if stop.venue else "TBA"}')
 
     # Set show time
     show_time = stop.show_time or time(20, 30)
@@ -981,7 +981,7 @@ def export_ical(stop_id):
     # Description with details
     description_lines = [
         f"Tournee: {tour.name}",
-        f"Groupe: {tour.band.name}",
+        f"Groupe: {tour.band_name}",
         "",
     ]
 
@@ -1190,7 +1190,7 @@ def export_tour_ical(tour_id):
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')
-    cal.add('x-wr-calname', f'{tour.band.name} - {tour.name}')
+    cal.add('x-wr-calname', f'{tour.band_name} - {tour.name}')
 
     # Add each stop as an event
     for stop in sorted(tour.stops, key=lambda s: s.date):
@@ -1198,7 +1198,7 @@ def export_tour_ical(tour_id):
         event.add('uid', f'show-{stop.id}@tourmanager.studiopalenque.com')
 
         venue_name = stop.venue.name if stop.venue else 'TBA'
-        event.add('summary', f'{tour.band.name} @ {venue_name}')
+        event.add('summary', f'{tour.band_name} @ {venue_name}')
 
         show_time = stop.set_time or time(20, 30)
         event.add('dtstart', datetime.combine(stop.date, show_time))
@@ -1356,7 +1356,7 @@ def assign_user(id):
     tour = stop.tour
 
     # Check permission
-    if not tour.band.is_manager(current_user):
+    if not tour.band_is_manager(current_user):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'error': 'Permission refusée'}), 403
         flash('Seul le manager peut assigner des personnes.', 'error')
@@ -1443,7 +1443,7 @@ def unassign_user(id, user_id):
     tour = stop.tour
 
     # Check permission
-    if not tour.band.is_manager(current_user):
+    if not tour.band_is_manager(current_user):
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'error': 'Permission refusée'}), 403
         flash('Seul le manager peut désassigner des personnes.', 'error')
