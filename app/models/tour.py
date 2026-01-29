@@ -83,9 +83,12 @@ class Tour(db.Model):
         return self.band.id if self.band else None
 
     def band_is_manager(self, user):
-        """Check if user is band manager (safely handles None band)."""
+        """Check if user is band manager (safely handles None band) or is admin."""
+        # Admins and managers have full access to all tours
+        if user.is_manager_or_above():
+            return True
         if self.band is None:
-            return user.is_manager_or_above()
+            return False
         return self.band.is_manager(user)
 
     @property
