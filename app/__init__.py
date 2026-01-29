@@ -436,13 +436,17 @@ def register_context_processors(app):
         """Provide pending registrations count to templates (managers only)."""
         pending_count = 0
         if current_user.is_authenticated and current_user.is_manager_or_above():
-            from app.models.user import User
-            # Count users who are inactive and have no invitation token
-            # (invitation_token means they were invited, not self-registered)
-            pending_count = User.query.filter(
-                User.is_active == False,
-                User.invitation_token.is_(None)
-            ).count()
+            try:
+                from app.models.user import User
+                # Count users who are inactive and have no invitation token
+                # (invitation_token means they were invited, not self-registered)
+                pending_count = User.query.filter(
+                    User.is_active == False,
+                    User.invitation_token.is_(None)
+                ).count()
+            except Exception:
+                # Table might not exist or DB connection issue
+                pending_count = 0
         return {'pending_registrations_count': pending_count}
 
     @app.context_processor
@@ -451,9 +455,14 @@ def register_context_processors(app):
         unread_count = 0
         recent_notifications = []
         if current_user.is_authenticated:
-            from app.models.notification import Notification
-            unread_count = Notification.get_unread_count(current_user.id)
-            recent_notifications = Notification.get_recent(current_user.id, limit=5)
+            try:
+                from app.models.notification import Notification
+                unread_count = Notification.get_unread_count(current_user.id)
+                recent_notifications = Notification.get_recent(current_user.id, limit=5)
+            except Exception:
+                # Table might not exist or DB connection issue
+                unread_count = 0
+                recent_notifications = []
         return {
             'unread_notifications_count': unread_count,
             'recent_notifications': recent_notifications
