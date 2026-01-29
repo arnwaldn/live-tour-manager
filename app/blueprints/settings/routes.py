@@ -722,8 +722,12 @@ def users_edit(id):
         current_app.logger.warning(f'Could not load roles in users_edit: {e}')
         form.roles.choices = []
 
-    # Load existing PaymentConfig
-    payment_config = UserPaymentConfig.query.get(user.id)
+    # Load existing PaymentConfig (defensive handling)
+    try:
+        payment_config = UserPaymentConfig.query.get(user.id)
+    except Exception as e:
+        current_app.logger.warning(f'Could not load payment config for user {id}: {e}')
+        payment_config = None
 
     # Get existing profession IDs for this user (for template pre-selection)
     # Defensive handling in case user_professions table/relation has issues
@@ -742,8 +746,12 @@ def users_edit(id):
         form.label_name.data = user.label_name or ''
         # Multi-professions (v2.1) - handled by template with selected_profession_ids
 
-        # Legacy fields
-        form.roles.data = [r.id for r in user.roles]
+        # Legacy fields (defensive handling for roles relationship)
+        try:
+            form.roles.data = [r.id for r in user.roles]
+        except Exception as e:
+            current_app.logger.warning(f'Could not load user roles for user {id}: {e}')
+            form.roles.data = []
         form.is_active.data = user.is_active
 
         # Pre-fill PaymentConfig fields (staff_category/staff_role supprimés)
