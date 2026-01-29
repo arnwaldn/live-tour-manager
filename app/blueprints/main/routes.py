@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-29-v8'  # Deployment version marker
+        'version': '2026-01-29-v9'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -105,6 +105,16 @@ def health_diagnose():
             diagnostics['users']['id_3'] = {'exists': False}
     except Exception as e:
         diagnostics['users']['id_3'] = {'error': str(e)}
+
+    # Test template-style access (what template line 214 does)
+    try:
+        user = User.query.get(3)
+        if user:
+            # This is exactly what the template does at line 214
+            prof_ids = [p.id for p in user.professions]
+            diagnostics['users']['id_3']['template_prof_ids'] = prof_ids
+    except Exception as tmpl_err:
+        diagnostics['users']['id_3']['template_error'] = str(tmpl_err)
 
     return jsonify(diagnostics)
 
