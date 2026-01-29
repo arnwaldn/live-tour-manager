@@ -550,11 +550,16 @@ def users_create():
 
     # Setup form choices
     form.access_level.choices = get_access_level_choices()
-    form.profession.choices = [('', '-- Sélectionner --')] + get_profession_choices()
     form.roles.choices = [(r.id, r.name) for r in Role.query.order_by(Role.name).all()]
 
-    # Get professions grouped by category for template
-    professions_by_category = get_professions_by_category()
+    # Defensive handling for profession choices (table might not exist in production)
+    try:
+        form.profession.choices = [('', '-- Sélectionner --')] + get_profession_choices()
+        professions_by_category = get_professions_by_category()
+    except Exception as e:
+        current_app.logger.warning(f'Could not load professions in users_create: {e}')
+        form.profession.choices = [('', '-- Sélectionner --')]
+        professions_by_category = {}
 
     if form.validate_on_submit():
         # Create user with a temporary password (will be set via invitation)

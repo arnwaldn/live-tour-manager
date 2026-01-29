@@ -102,11 +102,17 @@ class Tour(db.Model):
 
     def can_edit(self, user):
         """Check if user can edit this tour."""
+        # Defensive: handle case where band relationship is broken
+        if self.band is None:
+            return user.is_manager_or_above()
         return (self.band.is_manager(user) or
                 user.is_manager_or_above())
 
     def can_view(self, user):
         """Check if user can view this tour."""
+        # Defensive: handle case where band relationship is broken
+        if self.band is None:
+            return user.is_staff_or_above()
         return (self.band.has_access(user) or
                 user.is_staff_or_above())
 

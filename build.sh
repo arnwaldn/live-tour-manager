@@ -18,6 +18,10 @@ echo "=== Step 2: Running database migrations ==="
 flask db upgrade
 
 echo ""
+echo "=== Step 3: Seeding default data ==="
+flask seed-professions || echo "Professions already seeded or table not ready"
+
+echo ""
 echo "============================================"
 echo "  Build completed successfully!"
 echo "============================================"
