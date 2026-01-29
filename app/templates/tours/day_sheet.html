@@ -57,7 +57,7 @@
         <div class="day-sheet-header">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                 <div>
-                    <h2>{{ tour.band.name }}</h2>
+                    <h2>{{ tour.band_name }}</h2>
                     <div class="date">{{ stop.date.strftime('%A %d %B %Y') }}</div>
                     {% if stop.venue %}
                     <div class="venue">
@@ -253,7 +253,7 @@
                         'type': 'show',
                         'title': 'SHOW',
                         'icon': 'bi-music-note-beamed',
-                        'description': tour.band.name ~ ((' · ' ~ stop.set_length_minutes ~ ' min') if stop.set_length_minutes else '')
+                        'description': tour.band_name ~ ((' · ' ~ stop.set_length_minutes ~ ' min') if stop.set_length_minutes else '')
                     }) %}
                 {% endif %}
 
@@ -365,7 +365,7 @@
                 <p class="mb-0" style="color: var(--ds-text);">{{ stop.notes }}</p>
             </div>
             {% endif %}
-            {% if stop.internal_notes and tour.band.is_manager(current_user) %}
+            {% if stop.internal_notes and tour.band_is_manager(current_user) %}
             <div>
                 <h6 class="text-muted mb-2"><i class="bi bi-lock me-2"></i>Notes internes</h6>
                 <p class="mb-0" style="color: var(--ds-text);">{{ stop.internal_notes }}</p>

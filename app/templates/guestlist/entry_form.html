@@ -88,7 +88,7 @@
                         </div>
                     </div>
 
-                    {% if current_user.is_staff_or_above() or stop.tour.band.is_manager(current_user) %}
+                    {% if current_user.is_staff_or_above() or stop.tour.band_is_manager(current_user) %}
                     <div class="mb-3">
                         <label for="status" class="form-label">Statut</label>
                         {{ form.status(class="form-select" + (" is-invalid" if form.status.errors else "")) }}

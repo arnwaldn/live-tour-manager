@@ -215,9 +215,9 @@
                                 <td>
                                     <strong>{{ tour.name }}</strong>
                                     <br class="d-md-none">
-                                    <small class="text-muted d-md-none">{{ tour.band.name }}</small>
+                                    <small class="text-muted d-md-none">{{ tour.band_name }}</small>
                                 </td>
-                                <td class="d-none d-md-table-cell">{{ tour.band.name }}</td>
+                                <td class="d-none d-md-table-cell">{{ tour.band_name }}</td>
                                 <td class="d-none d-sm-table-cell">
                                     <small>
                                         {{ tour.start_date.strftime('%d/%m') }} - {{ tour.end_date.strftime('%d/%m/%Y') }}

@@ -68,6 +68,31 @@ class Tour(db.Model):
     def __repr__(self):
         return f'<Tour {self.name}>'
 
+    # ============================================================
+    # SAFE BAND ACCESS PROPERTIES (handle orphaned tours)
+    # ============================================================
+
+    @property
+    def band_name(self):
+        """Get band name safely (returns placeholder if band is None)."""
+        return self.band.name if self.band else '[Groupe supprimé]'
+
+    @property
+    def band_id_safe(self):
+        """Get band ID safely (returns None if band is None)."""
+        return self.band.id if self.band else None
+
+    def band_is_manager(self, user):
+        """Check if user is band manager (safely handles None band)."""
+        if self.band is None:
+            return user.is_manager_or_above()
+        return self.band.is_manager(user)
+
+    @property
+    def band_manager(self):
+        """Get band manager safely (returns None if band is None)."""
+        return self.band.manager if self.band else None
+
     @property
     def duration_days(self):
         """Calculate tour duration in days."""

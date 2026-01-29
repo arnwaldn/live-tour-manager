@@ -21,7 +21,11 @@
             </span>
         </div>
         <p class="text-muted mb-0">
-            <a href="{{ url_for('bands.detail', id=tour.band.id) }}">{{ tour.band.name }}</a>
+            {% if tour.band_id_safe %}
+            <a href="{{ url_for('bands.detail', id=tour.band_id_safe) }}">{{ tour.band_name }}</a>
+            {% else %}
+            <span class="text-muted">{{ tour.band_name }}</span>
+            {% endif %}
             · {{ tour.start_date.strftime('%d/%m/%Y') }} - {{ tour.end_date.strftime('%d/%m/%Y') }}
         </p>
     </div>
@@ -58,7 +62,7 @@
                 </li>
             </ul>
         </div>
-        {% if tour.band.is_manager(current_user) %}
+        {% if tour.band_is_manager(current_user) %}
         <a href="{{ url_for('tours.edit', id=tour.id) }}" class="btn btn-outline-primary">
             <i class="bi bi-pencil me-1"></i>Modifier
         </a>
@@ -160,7 +164,7 @@
                 <a href="{{ url_for('logistics.export_tour_pdf', tour_id=tour.id) }}" class="list-group-item list-group-item-action">
                     <i class="bi bi-file-pdf me-2"></i>Export PDF
                 </a>
-                {% if tour.band.is_manager(current_user) %}
+                {% if tour.band_is_manager(current_user) %}
                 <form action="{{ url_for('tours.duplicate', id=tour.id) }}" method="POST" class="d-inline w-100">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="list-group-item list-group-item-action w-100 text-start border-0">
@@ -235,7 +239,7 @@
                                            class="btn btn-outline-primary" title="Détails">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        {% if tour.band.is_manager(current_user) %}
+                                        {% if tour.band_is_manager(current_user) %}
                                         <a href="{{ url_for('tours.edit_stop', id=tour.id, stop_id=stop.id) }}"
                                            class="btn btn-outline-secondary" title="Modifier">
                                             <i class="bi bi-pencil"></i>
@@ -252,7 +256,7 @@
                 <div class="text-center py-5">
                     <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
                     <p class="text-muted mt-3 mb-0">Aucune date planifiée</p>
-                    {% if tour.band.is_manager(current_user) %}
+                    {% if tour.band_is_manager(current_user) %}
                     <a href="{{ url_for('tours.add_stop', id=tour.id) }}" class="btn btn-primary mt-3">
                         <i class="bi bi-plus-lg me-1"></i>Ajouter une date
                     </a>
@@ -264,7 +268,7 @@
     </div>
 </div>
 
-{% if tour.band.is_manager(current_user) %}
+{% if tour.band_is_manager(current_user) %}
 <!-- Danger Zone -->
 <div class="card border-danger mt-4">
     <div class="card-header bg-danger bg-opacity-10 text-danger">

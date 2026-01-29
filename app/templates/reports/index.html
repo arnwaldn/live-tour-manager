@@ -190,7 +190,7 @@
                                 {{ tour.name }}
                             </a>
                         </td>
-                        <td>{{ tour.band.name }}</td>
+                        <td>{{ tour.band_name }}</td>
                         <td class="small text-muted">
                             {{ tour.start_date.strftime('%d/%m/%Y') }} -
                             {{ tour.end_date.strftime('%d/%m/%Y') if tour.end_date else 'En cours' }}

@@ -231,7 +231,7 @@
                                     <strong>{{ stop.date.strftime('%d/%m/%Y') }}</strong>
                                 </td>
                                 <td>{{ stop.tour.name }}</td>
-                                <td class="d-none d-md-table-cell">{{ stop.tour.band.name }}</td>
+                                <td class="d-none d-md-table-cell">{{ stop.tour.band_name }}</td>
                                 <td>
                                     <a href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}"
                                        class="btn btn-sm btn-outline-primary">

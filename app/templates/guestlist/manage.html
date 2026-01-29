@@ -29,7 +29,7 @@
         <a href="{{ url_for('guestlist.export_csv', stop_id=stop.id) }}" class="btn btn-outline-secondary">
             <i class="bi bi-download me-1"></i>Export
         </a>
-        {% if stop.tour.band.is_manager(current_user) or current_user.is_staff_or_above() %}
+        {% if stop.tour.band_is_manager(current_user) or current_user.is_staff_or_above() %}
         <a href="{{ url_for('guestlist.add_entry', stop_id=stop.id) }}" class="btn btn-primary">
             <i class="bi bi-plus-lg me-1"></i>Ajouter
         </a>
@@ -124,7 +124,7 @@
         <h5 class="mb-0 text-warning">
             <i class="bi bi-hourglass-split me-2"></i>En attente d'approbation ({{ pending_entries|length }})
         </h5>
-        {% if stop.tour.band.is_manager(current_user) or current_user.is_staff_or_above() %}
+        {% if stop.tour.band_is_manager(current_user) or current_user.is_staff_or_above() %}
         <div class="btn-group btn-group-sm">
             <form action="{{ url_for('guestlist.bulk_action', stop_id=stop.id) }}" method="POST" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -263,7 +263,7 @@
                                         </form>
                                     </li>
                                     {% endif %}
-                                    {% if stop.tour.band.is_manager(current_user) or current_user.is_staff_or_above() %}
+                                    {% if stop.tour.band_is_manager(current_user) or current_user.is_staff_or_above() %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('guestlist.edit_entry', id=entry.id) }}">
                                             <i class="bi bi-pencil me-2"></i>Modifier
@@ -306,7 +306,7 @@
                 La guestlist de ce concert est vide.
                 {% endif %}
             </p>
-            {% if stop.tour.band.is_manager(current_user) or current_user.is_staff_or_above() %}
+            {% if stop.tour.band_is_manager(current_user) or current_user.is_staff_or_above() %}
             <a href="{{ url_for('guestlist.add_entry', stop_id=stop.id) }}" class="btn btn-primary">
                 <i class="bi bi-plus-lg me-1"></i>Ajouter un invité
             </a>

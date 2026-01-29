@@ -300,7 +300,7 @@
         </h1>
         <div class="date">{{ stop.date.strftime('%A %d %B %Y') }}</div>
         {% if stop.tour and stop.tour.band %}
-        <div class="band-name">{{ stop.tour.band.name }}</div>
+        <div class="band-name">{{ stop.tour.band_name }}</div>
         {% endif %}
     </header>
 

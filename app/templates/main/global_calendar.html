@@ -21,7 +21,7 @@
         <select id="tour-filter" class="form-select" style="width: auto;">
             <option value="">Toutes les tournées</option>
             {% for tour in tours %}
-            <option value="{{ tour.id }}">{{ tour.name }} ({{ tour.band.name }})</option>
+            <option value="{{ tour.id }}">{{ tour.name }} ({{ tour.band_name }})</option>
             {% endfor %}
         </select>
         <!-- Add event button -->

@@ -264,7 +264,7 @@
         </div>
 
         <!-- Edit/Delete -->
-        {% if entry.tour_stop.tour.band.is_manager(current_user) or current_user.is_staff_or_above() %}
+        {% if entry.tour_stop.tour.band_is_manager(current_user) or current_user.is_staff_or_above() %}
         <div class="card border-0 shadow-sm">
             <div class="card-body">
                 <div class="d-grid gap-2">

@@ -50,7 +50,7 @@
                         <div>
                             <strong>{{ tour.name }}</strong>
                             <br>
-                            <small class="text-muted">{{ tour.band.name }}</small>
+                            <small class="text-muted">{{ tour.band_name }}</small>
                         </div>
                         <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'secondary' }}">
                             {{ tour.status.value }}

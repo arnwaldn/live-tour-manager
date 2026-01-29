@@ -137,7 +137,7 @@
         <a href="{{ url_for('logistics.day_sheet', stop_id=stop.id) }}" class="btn btn-outline-primary">
             <i class="bi bi-file-text me-1"></i>Day Sheet
         </a>
-        {% if stop.tour.band.is_manager(current_user) %}
+        {% if stop.tour.band_is_manager(current_user) %}
         <a href="{{ url_for('logistics.add_logistics', stop_id=stop.id) }}" class="btn btn-primary">
             <i class="bi bi-plus-lg me-1"></i>Ajouter
         </a>
@@ -204,7 +204,7 @@
                                     {{ entry.status_label }}
                                 </span>
                             </div>
-                            {% if stop.tour.band.is_manager(current_user) %}
+                            {% if stop.tour.band_is_manager(current_user) %}
                             <div class="quick-actions">
                                 {% if entry.status and entry.status.value == 'pending' %}
                                 <form action="{{ url_for('logistics.update_status', id=entry.id) }}" method="POST" class="d-inline">
@@ -284,7 +284,7 @@
                                 <small class="text-muted fw-semibold">
                                     <i class="bi bi-people me-1"></i>Assignés ({{ entry.assignments.count() }})
                                 </small>
-                                {% if stop.tour.band.is_manager(current_user) %}
+                                {% if stop.tour.band_is_manager(current_user) %}
                                 <a href="{{ url_for('logistics.assign_user', id=entry.id) }}" class="btn btn-outline-primary btn-assign">
                                     <i class="bi bi-plus me-1"></i>Assigner
                                 </a>
@@ -299,7 +299,7 @@
                                     {% if assignment.seat_number %}
                                     <span class="assignment-details">({{ assignment.seat_number }})</span>
                                     {% endif %}
-                                    {% if stop.tour.band.is_manager(current_user) %}
+                                    {% if stop.tour.band_is_manager(current_user) %}
                                     <form action="{{ url_for('logistics.unassign_user', id=entry.id, user_id=assignment.user_id) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn-remove" title="Désassigner" onclick="return confirm('Désassigner {{ assignment.user.first_name }}?')">
@@ -355,7 +355,7 @@
                                     {{ entry.status_label }}
                                 </span>
                             </div>
-                            {% if stop.tour.band.is_manager(current_user) %}
+                            {% if stop.tour.band_is_manager(current_user) %}
                             <div class="quick-actions">
                                 {% if entry.status and entry.status.value == 'pending' %}
                                 <form action="{{ url_for('logistics.update_status', id=entry.id) }}" method="POST" class="d-inline">
@@ -439,7 +439,7 @@
                                 <small class="text-muted fw-semibold">
                                     <i class="bi bi-people me-1"></i>Répartition chambres ({{ entry.assignments.count() }})
                                 </small>
-                                {% if stop.tour.band.is_manager(current_user) %}
+                                {% if stop.tour.band_is_manager(current_user) %}
                                 <a href="{{ url_for('logistics.assign_user', id=entry.id) }}" class="btn btn-outline-success btn-assign">
                                     <i class="bi bi-plus me-1"></i>Assigner
                                 </a>
@@ -456,7 +456,7 @@
                                     {% elif assignment.room_sharing_with %}
                                     <span class="assignment-details">(avec {{ assignment.room_sharing_with }})</span>
                                     {% endif %}
-                                    {% if stop.tour.band.is_manager(current_user) %}
+                                    {% if stop.tour.band_is_manager(current_user) %}
                                     <form action="{{ url_for('logistics.unassign_user', id=entry.id, user_id=assignment.user_id) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn-remove" title="Désassigner" onclick="return confirm('Désassigner {{ assignment.user.first_name }}?')">
@@ -514,7 +514,7 @@
                                     {{ entry.status_label }}
                                 </span>
                             </div>
-                            {% if stop.tour.band.is_manager(current_user) %}
+                            {% if stop.tour.band_is_manager(current_user) %}
                             <div class="quick-actions">
                                 {% if entry.status and entry.status.value == 'pending' %}
                                 <form action="{{ url_for('logistics.update_status', id=entry.id) }}" method="POST" class="d-inline">
@@ -574,7 +574,7 @@
                                 <small class="text-muted fw-semibold">
                                     <i class="bi bi-people me-1"></i>Assignés ({{ entry.assignments.count() }})
                                 </small>
-                                {% if stop.tour.band.is_manager(current_user) %}
+                                {% if stop.tour.band_is_manager(current_user) %}
                                 <a href="{{ url_for('logistics.assign_user', id=entry.id) }}" class="btn btn-outline-warning btn-assign">
                                     <i class="bi bi-plus me-1"></i>Assigner
                                 </a>
@@ -589,7 +589,7 @@
                                     {% if assignment.special_requests %}
                                     <span class="assignment-details" title="{{ assignment.special_requests }}">(Note)</span>
                                     {% endif %}
-                                    {% if stop.tour.band.is_manager(current_user) %}
+                                    {% if stop.tour.band_is_manager(current_user) %}
                                     <form action="{{ url_for('logistics.unassign_user', id=entry.id, user_id=assignment.user_id) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn-remove" title="Désassigner" onclick="return confirm('Désassigner {{ assignment.user.first_name }}?')">
@@ -618,7 +618,7 @@
                 <i class="bi bi-briefcase text-muted" style="font-size: 4rem;"></i>
                 <h4 class="mt-3">Aucune information logistique</h4>
                 <p class="text-muted">Ajoutez les informations de transport, hébergement et services pour cette date.</p>
-                {% if stop.tour.band.is_manager(current_user) %}
+                {% if stop.tour.band_is_manager(current_user) %}
                 <a href="{{ url_for('logistics.add_logistics', stop_id=stop.id) }}" class="btn btn-primary">
                     <i class="bi bi-plus-lg me-1"></i>Ajouter une entrée
                 </a>
@@ -634,7 +634,7 @@
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-people me-2"></i>Contacts locaux</h5>
-                {% if stop.tour.band.is_manager(current_user) %}
+                {% if stop.tour.band_is_manager(current_user) %}
                 <a href="{{ url_for('logistics.add_contact', stop_id=stop.id) }}" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-plus-lg"></i>
                 </a>
@@ -657,7 +657,7 @@
                             <br><small class="text-muted"><i class="bi bi-building me-1"></i>{{ contact.company }}</small>
                             {% endif %}
                         </div>
-                        {% if stop.tour.band.is_manager(current_user) %}
+                        {% if stop.tour.band_is_manager(current_user) %}
                         <div class="dropdown">
                             <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
                                 <i class="bi bi-three-dots-vertical"></i>

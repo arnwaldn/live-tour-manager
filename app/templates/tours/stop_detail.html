@@ -157,7 +157,7 @@
         <a href="{{ url_for('tours.export_stop_ical', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary" title="Ajouter au calendrier">
             <i class="bi bi-calendar-plus me-1"></i>Calendrier
         </a>
-        {% if tour.band.is_manager(current_user) %}
+        {% if tour.band_is_manager(current_user) %}
         <a href="{{ url_for('tours.edit_stop', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-primary">
             <i class="bi bi-pencil me-1"></i>Modifier
         </a>
@@ -410,7 +410,7 @@
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-music-note-list me-2"></i>Programmation</h5>
-                {% if tour.band.is_manager(current_user) %}
+                {% if tour.band_is_manager(current_user) %}
                 <a href="{{ url_for('tours.manage_lineup', id=tour.id, stop_id=stop.id) }}" class="btn btn-sm btn-outline-warning">
                     Gerer
                 </a>
@@ -450,7 +450,7 @@
                     <i class="bi bi-music-note-list d-block fs-4 mb-2"></i>
                     Aucun artiste programme
                 </p>
-                {% if tour.band.is_manager(current_user) %}
+                {% if tour.band_is_manager(current_user) %}
                 <div class="d-grid mt-3">
                     <a href="{{ url_for('tours.manage_lineup', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-warning">
                         <i class="bi bi-plus-circle me-1"></i>Ajouter des artistes
@@ -553,7 +553,7 @@
                 {% endif %}
 
                 <!-- Saisie manuelle billets vendus -->
-                {% if tour.band.is_manager(current_user) %}
+                {% if tour.band_is_manager(current_user) %}
                 <div class="border-top pt-3 mt-3">
                     <form action="{{ url_for('tours.update_stop_tickets', id=tour.id, stop_id=stop.id) }}"
                           method="POST" class="d-flex align-items-end gap-2">
@@ -642,7 +642,7 @@
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-person-check me-2"></i>Équipe assignée</h5>
-                {% if tour.band.is_manager(current_user) %}
+                {% if tour.band_is_manager(current_user) %}
                 <a href="{{ url_for('tours.assign_members', id=tour.id, stop_id=stop.id) }}" class="btn btn-sm btn-outline-primary">
                     Gérer
                 </a>
@@ -657,7 +657,7 @@
                     {% set total_invited = invitations|length %}
 
                     {# Show stats summary for manager #}
-                    {% if tour.band.is_manager(current_user) and total_invited > 0 %}
+                    {% if tour.band_is_manager(current_user) and total_invited > 0 %}
                     <div class="d-flex justify-content-around text-center mb-3 pb-3 border-bottom">
                         <div>
                             <span class="badge bg-success">{{ accepted_count }}</span>
@@ -707,7 +707,7 @@
                                                         {% endif %}
                                                         <div>
                                                             <span class="fw-medium">{{ member.full_name }}</span>
-                                                            {% if member == tour.band.manager %}
+                                                            {% if member == tour.band_manager %}
                                                             <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">Manager</span>
                                                             {% endif %}
                                                         </div>
@@ -760,7 +760,7 @@
                                         {% endif %}
                                         <div>
                                             <span class="fw-medium">{{ member.full_name }}</span>
-                                            {% if member == tour.band.manager %}
+                                            {% if member == tour.band_manager %}
                                             <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">Manager</span>
                                             {% endif %}
                                         </div>
@@ -796,7 +796,7 @@
                     <i class="bi bi-person-dash d-block fs-4 mb-2"></i>
                     Aucun membre assigné
                 </p>
-                {% if tour.band.is_manager(current_user) %}
+                {% if tour.band_is_manager(current_user) %}
                 <div class="d-grid mt-3">
                     <a href="{{ url_for('tours.assign_members', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-person-plus me-1"></i>Assigner des membres
@@ -848,7 +848,7 @@
     </div>
 </div>
 
-{% if tour.band.is_manager(current_user) %}
+{% if tour.band_is_manager(current_user) %}
 <!-- Danger Zone -->
 <div class="card border-danger mt-4">
     <div class="card-header bg-danger bg-opacity-10 text-danger">
