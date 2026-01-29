@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-29-v5'  # Deployment version marker
+        'version': '2026-01-29-v6'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -37,7 +37,7 @@ def health_diagnose():
     from app.models.user import User
 
     diagnostics = {
-        'version': '2026-01-29-v5',
+        'version': '2026-01-29-v6',
         'tours': {},
         'users': {}
     }
