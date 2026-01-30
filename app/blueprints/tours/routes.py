@@ -379,6 +379,7 @@ def add_stop(id, tour=None):
             show_type=form.show_type.data or None,
             # Financial fields
             guarantee=form.guarantee.data,
+            venue_rental_cost=form.venue_rental_cost.data,
             ticket_price=form.ticket_price.data,
             sold_tickets=form.sold_tickets.data,
             door_deal_percentage=form.door_deal_percentage.data,
@@ -600,6 +601,7 @@ def edit_stop(id, stop_id, tour=None):
         stop.show_type = form.show_type.data or None
         # Financial fields
         stop.guarantee = form.guarantee.data
+        stop.venue_rental_cost = form.venue_rental_cost.data
         stop.ticket_price = form.ticket_price.data
         stop.sold_tickets = form.sold_tickets.data
         stop.door_deal_percentage = form.door_deal_percentage.data
