@@ -19,16 +19,34 @@ def ping():
 
 @main_bp.route('/health/migration-check')
 def migration_check():
-    """New endpoint to bypass cache - same as db-raw but fresh URL."""
+    """Check migration status and table count."""
     import traceback
     from datetime import datetime
 
     try:
         result = {
-            'version': 'migration-check-v1',
+            'version': 'migration-check-v2',
             'timestamp': datetime.utcnow().isoformat(),
             'checks': {}
         }
+
+        # Check table count first (this should always work)
+        try:
+            r = db.session.execute(db.text("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public'
+                ORDER BY table_name
+            """))
+            tables = [row[0] for row in r.fetchall()]
+            result['table_count'] = len(tables)
+            result['tables'] = tables[:30]  # First 30 tables
+            result['checks']['tables'] = 'OK'
+            db.session.rollback()  # Reset transaction
+        except Exception as e:
+            result['table_count'] = 0
+            result['tables'] = []
+            result['checks']['tables'] = f'FAILED: {str(e)[:200]}'
+            db.session.rollback()
 
         # Check alembic version
         try:
@@ -36,25 +54,15 @@ def migration_check():
             row = r.fetchone()
             result['alembic_version'] = row[0] if row else None
             result['checks']['alembic'] = 'OK'
+            db.session.rollback()
         except Exception as e:
             result['alembic_version'] = None
             result['checks']['alembic'] = f'FAILED: {str(e)[:200]}'
-
-        # Check venue_rental_cost column
-        try:
-            r = db.session.execute(db.text("""
-                SELECT column_name FROM information_schema.columns
-                WHERE table_name = 'tour_stops' AND column_name = 'venue_rental_cost'
-            """))
-            exists = r.fetchone() is not None
-            result['venue_rental_cost_exists'] = exists
-            result['checks']['column'] = 'OK' if exists else 'MISSING'
-        except Exception as e:
-            result['venue_rental_cost_exists'] = False
-            result['checks']['column'] = f'FAILED: {str(e)[:200]}'
+            db.session.rollback()
 
         result['expected'] = '6ea92203edbe'
         result['migration_ok'] = result.get('alembic_version') == '6ea92203edbe'
+        result['diagnosis'] = 'DB_EMPTY' if result['table_count'] == 0 else ('MIGRATIONS_MISSING' if not result['migration_ok'] else 'OK')
 
         return jsonify(result)
     except Exception as e:
