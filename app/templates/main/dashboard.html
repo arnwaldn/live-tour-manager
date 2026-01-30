@@ -21,6 +21,10 @@
 {% endblock %}
 
 {% block content %}
+<!-- DEBUG v15 -->
+<div style="background:#C9A962;color:#000;padding:5px 10px;font-size:12px;margin-bottom:10px;">
+    DEBUG v15: user_id={{ current_user.id }}, is_admin={{ is_admin }}, total_bands={{ stats.total_bands }}
+</div>
 <!-- Stats Cards -->
 <div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
     <div class="col">
