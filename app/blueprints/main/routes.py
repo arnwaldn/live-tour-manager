@@ -19,31 +19,44 @@ def ping():
 
 @main_bp.route('/health/run-migrations')
 def run_migrations():
-    """Execute flask db upgrade using Alembic API directly."""
+    """Stamp migrations as applied (since tables were created via db.create_all)."""
     import traceback
     from datetime import datetime
-    from flask import current_app
 
     try:
-        from flask_migrate import upgrade
-        from alembic import command
-        from alembic.config import Config
+        from flask_migrate import stamp
 
-        # Method 1: Try flask-migrate's upgrade function
+        # Since tables were created via db.create_all(), we need to stamp
+        # the current revision as applied without running migrations
         try:
-            upgrade()
-            method_used = 'flask-migrate'
+            stamp(revision='head')
+            method_used = 'stamp-head'
         except Exception as e1:
-            # Method 2: Direct Alembic API
+            # Manual approach: create alembic_version table and insert version
             try:
-                import os
-                migrations_dir = os.path.join(current_app.root_path, '..', 'migrations')
-                alembic_cfg = Config()
-                alembic_cfg.set_main_option('script_location', migrations_dir)
-                alembic_cfg.set_main_option('sqlalchemy.url', str(db.engine.url))
-                command.upgrade(alembic_cfg, 'head')
-                method_used = 'alembic-direct'
+                # Create alembic_version table if not exists
+                db.session.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS alembic_version (
+                        version_num VARCHAR(32) NOT NULL,
+                        CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+                    )
+                """))
+                db.session.commit()
+
+                # Get the latest migration revision from migrations folder
+                # Using the expected version from our diagnostic
+                latest_version = '6ea92203edbe'
+
+                # Insert or update the version
+                db.session.execute(db.text("""
+                    INSERT INTO alembic_version (version_num)
+                    VALUES (:version)
+                    ON CONFLICT (version_num) DO NOTHING
+                """), {'version': latest_version})
+                db.session.commit()
+                method_used = 'manual-stamp'
             except Exception as e2:
+                db.session.rollback()
                 return jsonify({
                     'status': 'FAILED',
                     'method1_error': str(e1)[:300],
@@ -51,7 +64,7 @@ def run_migrations():
                     'timestamp': datetime.utcnow().isoformat()
                 }), 500
 
-        # Check alembic version after migration
+        # Check alembic version after stamp
         try:
             r = db.session.execute(db.text("SELECT version_num FROM alembic_version"))
             version = r.fetchone()
@@ -61,7 +74,7 @@ def run_migrations():
             alembic_version = f'check_failed: {str(e)[:100]}'
             db.session.rollback()
 
-        # Check if venue_rental_cost column exists now
+        # Check if venue_rental_cost column exists
         try:
             r = db.session.execute(db.text("""
                 SELECT column_name FROM information_schema.columns
