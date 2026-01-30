@@ -17,6 +17,50 @@ def ping():
     return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-30-v5", 200, {'Content-Type': 'text/plain'}
 
 
+@main_bp.route('/health/run-migrations')
+def run_migrations():
+    """Execute flask db upgrade to apply all pending migrations."""
+    import subprocess
+    import traceback
+    from datetime import datetime
+
+    try:
+        # Run flask db upgrade
+        result = subprocess.run(
+            ['flask', 'db', 'upgrade'],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            cwd='/opt/render/project/src'  # Render working directory
+        )
+
+        # Check alembic version after migration
+        try:
+            r = db.session.execute(db.text("SELECT version_num FROM alembic_version"))
+            version = r.fetchone()
+            alembic_version = version[0] if version else None
+            db.session.rollback()
+        except:
+            alembic_version = None
+            db.session.rollback()
+
+        return jsonify({
+            'status': 'SUCCESS' if result.returncode == 0 else 'FAILED',
+            'return_code': result.returncode,
+            'stdout': result.stdout[-2000:] if result.stdout else '',
+            'stderr': result.stderr[-2000:] if result.stderr else '',
+            'alembic_version': alembic_version,
+            'timestamp': datetime.utcnow().isoformat()
+        }), 200 if result.returncode == 0 else 500
+
+    except Exception as e:
+        return jsonify({
+            'status': 'ERROR',
+            'error': str(e)[:500],
+            'traceback': traceback.format_exc()[-1000:]
+        }), 500
+
+
 @main_bp.route('/health/create-tables')
 def create_tables():
     """Emergency endpoint to create all missing tables from SQLAlchemy models."""
