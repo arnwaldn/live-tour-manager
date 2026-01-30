@@ -14,7 +14,55 @@ from app.extensions import db
 def ping():
     """Ultra-simple ping - no DB, no templates. For deployment verification."""
     from datetime import datetime
-    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-30-v3", 200, {'Content-Type': 'text/plain'}
+    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-30-v4", 200, {'Content-Type': 'text/plain'}
+
+
+@main_bp.route('/health/db-test')
+def db_test():
+    """Minimal DB connection test with detailed error reporting."""
+    import os
+    import traceback
+    from datetime import datetime
+
+    result = {
+        'timestamp': datetime.utcnow().isoformat(),
+        'version': 'v2026-01-30-v4'
+    }
+
+    # Check DATABASE_URL presence (masked)
+    db_url = os.environ.get('DATABASE_URL', '')
+    if db_url:
+        # Mask password in URL for display
+        if '@' in db_url:
+            prefix = db_url.split('@')[0]
+            suffix = db_url.split('@')[1] if '@' in db_url else ''
+            if ':' in prefix:
+                masked = prefix.rsplit(':', 1)[0] + ':****@' + suffix
+            else:
+                masked = prefix + '@' + suffix
+        else:
+            masked = '(no @ in URL)'
+        result['database_url_present'] = True
+        result['database_url_masked'] = masked[:80] + '...' if len(masked) > 80 else masked
+    else:
+        result['database_url_present'] = False
+        result['database_url_masked'] = None
+
+    # Try simple SELECT 1
+    try:
+        from app.extensions import db
+        db.session.execute(db.text('SELECT 1'))
+        db.session.commit()
+        result['db_connection'] = 'OK'
+        result['select_1'] = 'SUCCESS'
+    except Exception as e:
+        result['db_connection'] = 'FAILED'
+        result['error_type'] = type(e).__name__
+        result['error_message'] = str(e)[:500]
+        result['traceback'] = traceback.format_exc()[-1000:]
+
+    status_code = 200 if result.get('db_connection') == 'OK' else 500
+    return jsonify(result), status_code
 
 
 @main_bp.route('/health')
