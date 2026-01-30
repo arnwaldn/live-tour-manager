@@ -44,11 +44,14 @@
                     <option value="">Tous les types</option>
                     <option value="Club" {{ 'selected' if request.args.get('venue_type') == 'Club' }}>Club</option>
                     <option value="Theater" {{ 'selected' if request.args.get('venue_type') == 'Theater' }}>Théâtre</option>
-                    <option value="Concert Hall" {{ 'selected' if request.args.get('venue_type') == 'Concert Hall' }}>Salle de concert</option>
+                    <option value="Performance Hall" {{ 'selected' if request.args.get('venue_type') == 'Performance Hall' }}>Salle de spectacle</option>
                     <option value="Arena" {{ 'selected' if request.args.get('venue_type') == 'Arena' }}>Arena</option>
+                    <option value="Stadium" {{ 'selected' if request.args.get('venue_type') == 'Stadium' }}>Stade</option>
                     <option value="Festival" {{ 'selected' if request.args.get('venue_type') == 'Festival' }}>Festival</option>
                     <option value="Bar" {{ 'selected' if request.args.get('venue_type') == 'Bar' }}>Bar</option>
+                    <option value="Restaurant" {{ 'selected' if request.args.get('venue_type') == 'Restaurant' }}>Restaurant</option>
                     <option value="Outdoor" {{ 'selected' if request.args.get('venue_type') == 'Outdoor' }}>Plein air</option>
+                    <option value="Church" {{ 'selected' if request.args.get('venue_type') == 'Church' }}>Église</option>
                     <option value="Other" {{ 'selected' if request.args.get('venue_type') == 'Other' }}>Autre</option>
                 </select>
             </div>

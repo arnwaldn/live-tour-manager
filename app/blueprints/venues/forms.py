@@ -47,6 +47,7 @@ class VenueForm(FlaskForm):
         ('', '-- Sélectionner --'),
         ('Club', 'Club'),
         ('Theater', 'Théâtre'),
+        ('Performance Hall', 'Salle de spectacle'),
         ('Arena', 'Arena'),
         ('Stadium', 'Stade'),
         ('Festival', 'Festival'),
