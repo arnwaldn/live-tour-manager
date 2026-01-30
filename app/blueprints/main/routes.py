@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30-v15'  # Deployment version marker
+        'version': '2026-01-30-v16'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
