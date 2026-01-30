@@ -298,50 +298,57 @@ from app.models.venue import Venue
 def dashboard():
     """Main dashboard - adapted to user's role."""
 
-    # Get user's bands (as member or manager)
-    user_bands = current_user.bands + current_user.managed_bands
-    user_band_ids = [b.id for b in user_bands]
+    # Get user's bands (as member or manager) - deduplicated by ID
+    user_bands_dict = {b.id: b for b in current_user.bands + current_user.managed_bands}
+    user_bands = list(user_bands_dict.values())
+    user_band_ids = list(user_bands_dict.keys())
 
     # Active tours for user's bands
     active_tours = Tour.query.filter(
         Tour.band_id.in_(user_band_ids),
         Tour.status.in_([TourStatus.ACTIVE, TourStatus.CONFIRMED])
-    ).order_by(Tour.start_date).all()
+    ).order_by(Tour.start_date).all() if user_band_ids else []
 
-    # Upcoming shows (next 14 days)
+    # Date ranges
     today = date.today()
     two_weeks = today + timedelta(days=14)
 
+    # Upcoming shows (next 14 days) - displayed in section
     upcoming_stops = TourStop.query.join(Tour).filter(
         Tour.band_id.in_(user_band_ids),
         TourStop.date >= today,
         TourStop.date <= two_weeks,
         TourStop.status != TourStopStatus.CANCELED
-    ).order_by(TourStop.date).limit(5).all()
+    ).order_by(TourStop.date).limit(5).all() if user_band_ids else []
+
+    # Count of concerts BEYOND 14 days (for UI message)
+    beyond_two_weeks_count = TourStop.query.join(Tour).filter(
+        Tour.band_id.in_(user_band_ids),
+        TourStop.date > two_weeks,
+        TourStop.status != TourStopStatus.CANCELED
+    ).count() if user_band_ids else 0
 
     # Today's shows
     today_stops = TourStop.query.join(Tour).filter(
         Tour.band_id.in_(user_band_ids),
         TourStop.date == today,
         TourStop.status != TourStopStatus.CANCELED
-    ).all()
+    ).all() if user_band_ids else []
 
     # Pending guestlist requests (for managers)
     pending_guestlist = []
-    if current_user.is_staff_or_above():
+    if current_user.is_staff_or_above() and user_band_ids:
         pending_guestlist = GuestlistEntry.query.join(TourStop).join(Tour).filter(
             Tour.band_id.in_(user_band_ids),
             GuestlistEntry.status == GuestlistStatus.PENDING
         ).order_by(GuestlistEntry.created_at.desc()).limit(10).all()
 
-    # Stats
+    # Stats - upcoming_shows now uses same 14-day window as the section for consistency
     stats = {
         'total_tours': len(active_tours),
-        'upcoming_shows': TourStop.query.join(Tour).filter(
-            Tour.band_id.in_(user_band_ids),
-            TourStop.date >= today,
-            TourStop.status != TourStopStatus.CANCELED
-        ).count(),
+        'upcoming_shows': len(upcoming_stops) + beyond_two_weeks_count,  # Total future concerts
+        'upcoming_shows_14days': len(upcoming_stops),  # Just next 14 days
+        'beyond_two_weeks': beyond_two_weeks_count,  # Concerts beyond 14 days
         'pending_guestlist': len(pending_guestlist),
         'total_bands': len(user_bands)
     }
