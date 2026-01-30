@@ -243,6 +243,82 @@ def fix_professions_schema():
     return jsonify(result)
 
 
+@main_bp.route('/health/bands-debug')
+def bands_debug():
+    """Debug endpoint to check band counting logic."""
+    from flask_login import current_user
+    from app.models.band import Band, BandMembership
+    from app.models.user import User
+
+    result = {
+        'version': '2026-01-30-v1',
+        'action': 'bands_debug'
+    }
+
+    # Get user ID 3 (test user) or from query param
+    user_id = request.args.get('user_id', 3, type=int)
+
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': f'User {user_id} not found'}), 404
+
+        # Get bands via the property (BandMembership)
+        bands_via_membership = user.bands  # This is a property
+
+        # Get managed bands (relationship)
+        managed_bands = list(user.managed_bands)  # Force evaluation
+
+        # Check BandMembership directly
+        memberships = BandMembership.query.filter_by(user_id=user_id).all()
+
+        # Check Band.manager_id directly
+        bands_as_manager = Band.query.filter_by(manager_id=user_id).all()
+
+        result['user'] = {
+            'id': user.id,
+            'email': user.email[:3] + '***',
+            'full_name': user.full_name
+        }
+
+        result['bands_property'] = {
+            'count': len(bands_via_membership),
+            'bands': [{'id': b.id, 'name': b.name} for b in bands_via_membership]
+        }
+
+        result['managed_bands_relationship'] = {
+            'count': len(managed_bands),
+            'bands': [{'id': b.id, 'name': b.name} for b in managed_bands]
+        }
+
+        result['memberships_direct'] = {
+            'count': len(memberships),
+            'memberships': [{'band_id': m.band_id, 'role': m.role} for m in memberships]
+        }
+
+        result['bands_manager_id_direct'] = {
+            'count': len(bands_as_manager),
+            'bands': [{'id': b.id, 'name': b.name, 'manager_id': b.manager_id} for b in bands_as_manager]
+        }
+
+        # Simulate dashboard logic
+        user_bands_dict = {b.id: b for b in bands_via_membership + managed_bands}
+        user_bands = list(user_bands_dict.values())
+
+        result['dashboard_deduplication'] = {
+            'total_combined': len(bands_via_membership + managed_bands),
+            'after_dedup': len(user_bands),
+            'bands': [{'id': b.id, 'name': b.name} for b in user_bands]
+        }
+
+    except Exception as e:
+        result['error'] = str(e)
+        import traceback
+        result['traceback'] = traceback.format_exc()
+
+    return jsonify(result)
+
+
 @main_bp.route('/health/migration-status')
 def migration_status():
     """Check Alembic migration status in production."""
