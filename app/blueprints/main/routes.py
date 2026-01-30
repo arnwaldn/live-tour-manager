@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30-v11'  # Deployment version marker
+        'version': '2026-01-30-v12'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -577,7 +577,8 @@ def dashboard():
         upcoming_stops=upcoming_stops,
         today_stops=today_stops,
         pending_guestlist=pending_guestlist,
-        stats=stats
+        stats=stats,
+        is_admin=is_admin  # DEBUG: pass to template
     )
 
 
