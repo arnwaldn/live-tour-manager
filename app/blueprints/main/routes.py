@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30-v6'  # Deployment version marker
+        'version': '2026-01-30-v7'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -324,6 +324,35 @@ def bands_debug():
         result['error'] = str(e)
         import traceback
         result['traceback'] = traceback.format_exc()
+
+    return jsonify(result)
+
+
+@main_bp.route('/health/admin-bands-check')
+def admin_bands_check():
+    """NO AUTH endpoint to verify admin logic."""
+    from app.models.user import User
+
+    result = {'version': '2026-01-30-v7'}
+
+    # Check user ID 1 (Arnaud)
+    user = User.query.get(1)
+    if user:
+        is_admin = user.is_admin()
+        result['user_1'] = {
+            'id': 1,
+            'name': user.full_name,
+            'access_level': user.access_level.value if user.access_level else None,
+            'is_admin': is_admin
+        }
+
+        # Simulate dashboard logic for admin
+        if is_admin:
+            all_bands = Band.query.order_by(Band.name).all()
+            result['admin_branch_result'] = {
+                'count': len(all_bands),
+                'bands': [{'id': b.id, 'name': b.name} for b in all_bands]
+            }
 
     return jsonify(result)
 
