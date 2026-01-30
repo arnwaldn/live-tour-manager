@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30-v2'  # Deployment version marker
+        'version': '2026-01-30-v3'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -251,11 +251,18 @@ def bands_debug():
     from app.models.user import User
 
     result = {
-        'version': '2026-01-30-v2',
+        'version': '2026-01-30-v3',
         'action': 'bands_debug'
     }
 
-    # Get user ID 3 (test user) or from query param
+    # Show all bands and their manager_ids first
+    all_bands = Band.query.all()
+    result['all_bands'] = [
+        {'id': b.id, 'name': b.name, 'manager_id': b.manager_id}
+        for b in all_bands
+    ]
+
+    # Get user ID from query param (default 3)
     user_id = request.args.get('user_id', 3, type=int)
 
     try:
@@ -293,7 +300,7 @@ def bands_debug():
 
         result['memberships_direct'] = {
             'count': len(memberships),
-            'memberships': [{'band_id': m.band_id, 'role': m.role} for m in memberships]
+            'memberships': [{'band_id': m.band_id, 'role_in_band': m.role_in_band} for m in memberships]
         }
 
         result['bands_manager_id_direct'] = {
