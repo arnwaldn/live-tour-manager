@@ -130,8 +130,8 @@ def detail(id, band=None):
 @band_access_required
 def edit(id, band=None):
     """Edit a band."""
-    # Only manager can edit
-    if not band.is_manager(current_user):
+    # Only manager or admin can edit
+    if not band.is_manager(current_user) and not current_user.is_admin():
         flash('Seul le manager peut modifier le groupe.', 'error')
         return redirect(url_for('bands.detail', id=id))
 
@@ -173,8 +173,8 @@ def edit(id, band=None):
 @band_access_required
 def delete(id, band=None):
     """Delete a band."""
-    # Only manager can delete
-    if not band.is_manager(current_user):
+    # Only manager or admin can delete
+    if not band.is_manager(current_user) and not current_user.is_admin():
         flash('Seul le manager peut supprimer le groupe.', 'error')
         return redirect(url_for('bands.detail', id=id))
 
@@ -210,7 +210,7 @@ def serve_logo(filename):
 @band_access_required
 def invite_member(id, band=None):
     """Invite a member to the band."""
-    if not band.is_manager(current_user):
+    if not band.is_manager(current_user) and not current_user.is_admin():
         flash('Seul le manager peut inviter des membres.', 'error')
         return redirect(url_for('bands.detail', id=id))
 
@@ -268,7 +268,7 @@ def invite_member(id, band=None):
 @band_access_required
 def edit_member(id, member_id, band=None):
     """Edit a band member's details."""
-    if not band.is_manager(current_user):
+    if not band.is_manager(current_user) and not current_user.is_admin():
         flash('Seul le manager peut modifier les membres.', 'error')
         return redirect(url_for('bands.detail', id=id))
 
@@ -294,7 +294,7 @@ def edit_member(id, member_id, band=None):
 @band_access_required
 def remove_member(id, member_id, band=None):
     """Remove a member from the band."""
-    if not band.is_manager(current_user):
+    if not band.is_manager(current_user) and not current_user.is_admin():
         flash('Seul le manager peut retirer des membres.', 'error')
         return redirect(url_for('bands.detail', id=id))
 
