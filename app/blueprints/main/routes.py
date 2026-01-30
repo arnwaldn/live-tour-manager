@@ -10,6 +10,13 @@ from app.blueprints.main.forms import StandaloneEventForm
 from app.extensions import db
 
 
+@main_bp.route('/ping')
+def ping():
+    """Ultra-simple ping - no DB, no templates. For deployment verification."""
+    from datetime import datetime
+    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-30-v3", 200, {'Content-Type': 'text/plain'}
+
+
 @main_bp.route('/health')
 def health_check():
     """Health check endpoint for Docker/load balancer."""
