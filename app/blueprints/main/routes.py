@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30-v4'  # Deployment version marker
+        'version': '2026-01-30-v5'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -317,6 +317,49 @@ def bands_debug():
         result['dashboard_deduplication'] = {
             'total_combined': len(bands_via_membership + managed_bands),
             'after_dedup': len(user_bands),
+            'bands': [{'id': b.id, 'name': b.name} for b in user_bands]
+        }
+
+    except Exception as e:
+        result['error'] = str(e)
+        import traceback
+        result['traceback'] = traceback.format_exc()
+
+    return jsonify(result)
+
+
+@main_bp.route('/health/dashboard-debug')
+@login_required
+def dashboard_debug():
+    """Debug endpoint to check dashboard band count for CURRENT user."""
+    result = {
+        'version': '2026-01-30-v5',
+        'action': 'dashboard_debug'
+    }
+
+    try:
+        result['current_user'] = {
+            'id': current_user.id,
+            'email': current_user.email[:3] + '***',
+            'full_name': current_user.full_name,
+            'access_level': current_user.access_level.value if current_user.access_level else None,
+            'is_admin': current_user.is_admin()
+        }
+
+        # Same logic as dashboard route
+        if current_user.is_admin():
+            user_bands = Band.query.order_by(Band.name).all()
+            result['branch'] = 'admin'
+        else:
+            managed_bands = Band.query.filter_by(manager_id=current_user.id).all()
+            member_band_ids = [m.band_id for m in BandMembership.query.filter_by(user_id=current_user.id).all()]
+            member_bands = Band.query.filter(Band.id.in_(member_band_ids)).all() if member_band_ids else []
+            user_bands_dict = {b.id: b for b in member_bands + managed_bands}
+            user_bands = list(user_bands_dict.values())
+            result['branch'] = 'non-admin'
+
+        result['user_bands'] = {
+            'count': len(user_bands),
             'bands': [{'id': b.id, 'name': b.name} for b in user_bands]
         }
 
