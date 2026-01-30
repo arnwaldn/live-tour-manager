@@ -167,6 +167,9 @@
         <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="btn btn-outline-primary">
             <i class="bi bi-truck me-1"></i>Logistique
         </a>
+        <a href="{{ url_for('crew.schedule', stop_id=stop.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-people-fill me-1"></i>Planning Équipe
+        </a>
         {% if stop.status.value in ['draft', 'pending', 'confirmed'] %}
         <a href="{{ url_for('tours.reschedule_stop', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-warning">
             <i class="bi bi-arrow-repeat me-1"></i>Reporter

@@ -113,6 +113,7 @@ def register_blueprints(app):
     from app.blueprints.notifications import notifications_bp
     from app.blueprints.integrations import integrations_bp
     from app.blueprints.payments import payments_bp
+    from app.blueprints.crew import crew_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
@@ -127,6 +128,7 @@ def register_blueprints(app):
     app.register_blueprint(notifications_bp, url_prefix='/notifications')
     app.register_blueprint(integrations_bp, url_prefix='/integrations')
     app.register_blueprint(payments_bp, url_prefix='/payments')
+    app.register_blueprint(crew_bp, url_prefix='/crew')
 
 
 def register_mail_config_reloader(app):

@@ -32,6 +32,14 @@ from app.models.mission_invitation import MissionInvitation, MissionInvitationSt
 from app.models.reminder import TourStopReminder
 from app.models.system_settings import SystemSettings
 
+# Crew Schedule module
+from app.models.crew_schedule import (
+    CrewScheduleSlot,
+    CrewAssignment,
+    ExternalContact,
+    AssignmentStatus,
+)
+
 # Financial module - Enterprise Grade
 from app.models.payments import (
     TeamMemberPayment,
@@ -123,6 +131,11 @@ __all__ = [
     'TourStopReminder',
     # System Settings
     'SystemSettings',
+    # === CREW SCHEDULE MODULE ===
+    'CrewScheduleSlot',
+    'CrewAssignment',
+    'ExternalContact',
+    'AssignmentStatus',
     # === FINANCIAL MODULE ===
     # Payments
     'TeamMemberPayment',

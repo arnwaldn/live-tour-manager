@@ -380,3 +380,90 @@ def generate_stop_ical(tour_stop, tour=None, include_alarm=True):
     cal.add_component(event)
 
     return cal.to_ical()
+
+
+def generate_crew_schedule_ical(tour_stop, user=None):
+    """
+    Generate iCal for crew schedule of a tour stop.
+
+    Args:
+        tour_stop: TourStop model instance
+        user: Optional User to filter assignments (shows only their slots)
+
+    Returns:
+        bytes: iCal file content
+    """
+    from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment
+
+    # Get slots (filtered if user provided)
+    if user:
+        slots = CrewScheduleSlot.query.filter_by(tour_stop_id=tour_stop.id).join(
+            CrewAssignment
+        ).filter(CrewAssignment.user_id == user.id).all()
+        cal_name = f"Mon planning - {tour_stop.venue.name if tour_stop.venue else tour_stop.date}"
+    else:
+        slots = list(tour_stop.crew_slots)
+        cal_name = f"Planning équipe - {tour_stop.venue.name if tour_stop.venue else tour_stop.date}"
+
+    cal = create_calendar(cal_name)
+
+    for slot in slots:
+        event = _create_crew_slot_event(slot, tour_stop)
+        cal.add_component(event)
+
+    return cal.to_ical()
+
+
+def _create_crew_slot_event(slot, tour_stop):
+    """Create an iCal event for a crew schedule slot."""
+    event = Event()
+
+    event.add('uid', f'crewslot-{slot.id}@tourmanager.studiopalenque.com')
+    event.add('dtstamp', datetime.now(DEFAULT_TIMEZONE))
+
+    # Summary with category
+    category_label = slot.profession_category.value.title() if slot.profession_category else 'Général'
+    event.add('summary', f"👷 {slot.task_name} ({category_label})")
+
+    # Date/time
+    start_dt = datetime.combine(tour_stop.date, slot.start_time)
+    start_dt = DEFAULT_TIMEZONE.localize(start_dt)
+    end_dt = datetime.combine(tour_stop.date, slot.end_time)
+    end_dt = DEFAULT_TIMEZONE.localize(end_dt)
+
+    # Handle slots that go past midnight
+    if end_dt < start_dt:
+        end_dt += timedelta(days=1)
+
+    event.add('dtstart', start_dt)
+    event.add('dtend', end_dt)
+
+    # Location
+    location = build_location(tour_stop)
+    if location:
+        event.add('location', location)
+
+    # Description with assignments
+    lines = [f"Tâche: {slot.task_name}"]
+    if slot.task_description:
+        lines.append(f"Description: {slot.task_description}")
+    lines.append("")
+    lines.append("Équipe assignée:")
+    for assignment in slot.assignments:
+        name = assignment.user.full_name if assignment.user else assignment.external_contact.full_name
+        status = "✓" if assignment.status.value == 'confirmed' else "⏳"
+        lines.append(f"  {status} {name}")
+
+    event.add('description', '\n'.join(lines))
+
+    # Category
+    event.add('categories', ['CREW'])
+
+    # Alarm 1h before
+    alarm = Alarm()
+    alarm.add('action', 'DISPLAY')
+    alarm.add('description', f'Rappel: {slot.task_name}')
+    alarm.add('trigger', timedelta(hours=-1))
+    event.add_component(alarm)
+
+    return event
