@@ -26,8 +26,52 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30'  # Deployment version marker
+        'version': '2026-01-30-v2'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
+
+
+@main_bp.route('/health/db-raw')
+def db_raw_check():
+    """Raw DB check - no model imports. For debugging migration issues."""
+    try:
+        # Check if venue_rental_cost column exists in tour_stops
+        result = db.session.execute(db.text("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'tour_stops'
+            AND column_name = 'venue_rental_cost'
+        """))
+        col_exists = result.fetchone() is not None
+
+        # Get migration status from alembic
+        result2 = db.session.execute(db.text(
+            "SELECT version_num FROM alembic_version"
+        ))
+        version_row = result2.fetchone()
+        version = version_row[0] if version_row else None
+
+        # Count tables
+        result3 = db.session.execute(db.text("""
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_schema = 'public'
+        """))
+        table_count = result3.fetchone()[0]
+
+        return jsonify({
+            'db_connected': True,
+            'venue_rental_cost_exists': col_exists,
+            'alembic_version': version,
+            'expected_version': '6ea92203edbe',
+            'migration_ok': version == '6ea92203edbe',
+            'table_count': table_count,
+            'diagnosis': 'OK' if col_exists and version == '6ea92203edbe' else 'MIGRATION_MISSING'
+        })
+    except Exception as e:
+        return jsonify({
+            'db_connected': False,
+            'error': str(e),
+            'error_type': type(e).__name__
+        }), 500
 
 
 @main_bp.route('/health/diagnose')
