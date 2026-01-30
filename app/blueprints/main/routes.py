@@ -89,54 +89,73 @@ def health_check():
 def db_raw_check():
     """Raw DB check - no model imports. For debugging migration issues."""
     import traceback
-    result = {'db_connected': True, 'checks': {}}
+    from datetime import datetime
 
-    # Step 1: Check SELECT 1
+    # Global try/except to capture ANY exception
     try:
-        db.session.execute(db.text('SELECT 1'))
-        result['checks']['select_1'] = 'OK'
+        result = {
+            'version': 'db-raw-v5',  # Version marker to verify deployment
+            'timestamp': datetime.utcnow().isoformat(),
+            'db_connected': True,
+            'checks': {}
+        }
+
+        # Step 1: Check SELECT 1
+        try:
+            db.session.execute(db.text('SELECT 1'))
+            result['checks']['select_1'] = 'OK'
+        except Exception as e:
+            result['checks']['select_1'] = f'FAILED: {type(e).__name__}: {str(e)[:200]}'
+            result['db_connected'] = False
+
+        # Step 2: Check alembic_version table exists and get version
+        try:
+            r = db.session.execute(db.text("SELECT version_num FROM alembic_version"))
+            version_row = r.fetchone()
+            result['alembic_version'] = version_row[0] if version_row else None
+            result['checks']['alembic_version'] = 'OK'
+        except Exception as e:
+            result['alembic_version'] = None
+            result['checks']['alembic_version'] = f'FAILED: {type(e).__name__}: {str(e)[:200]}'
+
+        # Step 3: Check tour_stops table exists
+        try:
+            r = db.session.execute(db.text("SELECT 1 FROM tour_stops LIMIT 1"))
+            result['checks']['tour_stops_table'] = 'OK'
+        except Exception as e:
+            result['checks']['tour_stops_table'] = f'FAILED: {type(e).__name__}: {str(e)[:200]}'
+
+        # Step 4: Check venue_rental_cost column
+        try:
+            r = db.session.execute(db.text("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'tour_stops' AND column_name = 'venue_rental_cost'
+            """))
+            col_exists = r.fetchone() is not None
+            result['venue_rental_cost_exists'] = col_exists
+            result['checks']['venue_rental_cost'] = 'OK' if col_exists else 'COLUMN_MISSING'
+        except Exception as e:
+            result['venue_rental_cost_exists'] = False
+            result['checks']['venue_rental_cost'] = f'FAILED: {type(e).__name__}: {str(e)[:200]}'
+
+        # Summary
+        result['expected_version'] = '6ea92203edbe'
+        result['migration_ok'] = result.get('alembic_version') == '6ea92203edbe'
+
+        all_ok = all('OK' in str(v) for v in result['checks'].values())
+        result['diagnosis'] = 'OK' if all_ok else 'ISSUES_DETECTED'
+
+        return jsonify(result), 200 if all_ok else 500
+
     except Exception as e:
-        result['checks']['select_1'] = f'FAILED: {type(e).__name__}: {str(e)[:200]}'
-        result['db_connected'] = False
-
-    # Step 2: Check alembic_version table exists and get version
-    try:
-        r = db.session.execute(db.text("SELECT version_num FROM alembic_version"))
-        version_row = r.fetchone()
-        result['alembic_version'] = version_row[0] if version_row else None
-        result['checks']['alembic_version'] = 'OK'
-    except Exception as e:
-        result['alembic_version'] = None
-        result['checks']['alembic_version'] = f'FAILED: {type(e).__name__}: {str(e)[:200]}'
-
-    # Step 3: Check tour_stops table exists
-    try:
-        r = db.session.execute(db.text("SELECT 1 FROM tour_stops LIMIT 1"))
-        result['checks']['tour_stops_table'] = 'OK'
-    except Exception as e:
-        result['checks']['tour_stops_table'] = f'FAILED: {type(e).__name__}: {str(e)[:200]}'
-
-    # Step 4: Check venue_rental_cost column
-    try:
-        r = db.session.execute(db.text("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name = 'tour_stops' AND column_name = 'venue_rental_cost'
-        """))
-        col_exists = r.fetchone() is not None
-        result['venue_rental_cost_exists'] = col_exists
-        result['checks']['venue_rental_cost'] = 'OK' if col_exists else 'COLUMN_MISSING'
-    except Exception as e:
-        result['venue_rental_cost_exists'] = False
-        result['checks']['venue_rental_cost'] = f'FAILED: {type(e).__name__}: {str(e)[:200]}'
-
-    # Summary
-    result['expected_version'] = '6ea92203edbe'
-    result['migration_ok'] = result.get('alembic_version') == '6ea92203edbe'
-
-    all_ok = all('OK' in str(v) for v in result['checks'].values())
-    result['diagnosis'] = 'OK' if all_ok else 'ISSUES_DETECTED'
-
-    return jsonify(result), 200 if all_ok else 500
+        # Catch-all for any unexpected error
+        return jsonify({
+            'version': 'db-raw-v5',
+            'fatal_error': True,
+            'error_type': type(e).__name__,
+            'error_message': str(e)[:500],
+            'traceback': traceback.format_exc()[-1500:]
+        }), 500
 
 
 @main_bp.route('/health/diagnose')
