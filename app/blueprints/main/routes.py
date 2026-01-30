@@ -103,6 +103,54 @@ def run_migrations():
         }), 500
 
 
+@main_bp.route('/health/add-missing-columns')
+def add_missing_columns():
+    """Add any missing columns that weren't created by db.create_all()."""
+    import traceback
+    from datetime import datetime
+
+    results = {'columns_added': [], 'columns_skipped': [], 'errors': []}
+
+    # List of columns to check and add if missing
+    columns_to_add = [
+        {
+            'table': 'tour_stops',
+            'column': 'venue_rental_cost',
+            'sql': "ALTER TABLE tour_stops ADD COLUMN venue_rental_cost NUMERIC(10, 2)"
+        }
+    ]
+
+    for col_info in columns_to_add:
+        try:
+            # Check if column exists
+            r = db.session.execute(db.text("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = :table AND column_name = :column
+            """), {'table': col_info['table'], 'column': col_info['column']})
+            exists = r.fetchone() is not None
+            db.session.rollback()
+
+            if exists:
+                results['columns_skipped'].append(f"{col_info['table']}.{col_info['column']}")
+            else:
+                # Add the column
+                db.session.execute(db.text(col_info['sql']))
+                db.session.commit()
+                results['columns_added'].append(f"{col_info['table']}.{col_info['column']}")
+        except Exception as e:
+            db.session.rollback()
+            results['errors'].append({
+                'column': f"{col_info['table']}.{col_info['column']}",
+                'error': str(e)[:200]
+            })
+
+    return jsonify({
+        'status': 'SUCCESS' if not results['errors'] else 'PARTIAL',
+        'results': results,
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+
 @main_bp.route('/health/create-tables')
 def create_tables():
     """Emergency endpoint to create all missing tables from SQLAlchemy models."""
