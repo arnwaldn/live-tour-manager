@@ -138,23 +138,31 @@
             });
         });
 
-        // Submit button loading state
+        // Submit button loading state - improved to handle validation properly
         document.querySelectorAll('form').forEach(function(form) {
-            form.addEventListener('submit', function() {
+            form.addEventListener('submit', function(e) {
                 const submitBtn = form.querySelector('[type="submit"]');
-                if (submitBtn && !form.dataset.noLoading) {
-                    const originalText = submitBtn.innerHTML;
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Chargement...';
+                if (!submitBtn || form.dataset.noLoading) return;
 
-                    // Reset if form has validation errors
-                    setTimeout(function() {
-                        if (form.classList.contains('was-validated') && !form.checkValidity()) {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalText;
-                        }
-                    }, 100);
+                // Don't disable button if form validation failed (prevent multiple clicks issue)
+                if (form.hasAttribute('novalidate') && !form.checkValidity()) {
+                    return; // First handler already prevented submission
                 }
+
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Chargement...';
+
+                // Store original text for potential reset
+                submitBtn.dataset.originalText = originalText;
+
+                // Reset button after timeout (fallback for server errors or slow responses)
+                setTimeout(function() {
+                    if (submitBtn.disabled) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = submitBtn.dataset.originalText || originalText;
+                    }
+                }, 10000); // 10 second timeout for slow connections
             });
         });
 

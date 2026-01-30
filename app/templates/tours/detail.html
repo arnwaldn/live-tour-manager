@@ -39,9 +39,15 @@
         <a href="{{ url_for('tours.tour_map', id=tour.id) }}" class="btn btn-outline-info">
             <i class="bi bi-map me-1"></i>Carte
         </a>
+        {% if pdf_available %}
         <a href="{{ url_for('logistics.export_tour_pdf', tour_id=tour.id) }}" class="btn btn-outline-success" title="Exporter en PDF">
             <i class="bi bi-file-pdf me-1"></i>PDF
         </a>
+        {% else %}
+        <span class="btn btn-outline-secondary disabled" title="Export PDF non disponible (module non installé)" data-bs-toggle="tooltip">
+            <i class="bi bi-file-pdf me-1"></i>PDF
+        </span>
+        {% endif %}
         <div class="btn-group">
             <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Ajouter au calendrier">
                 <i class="bi bi-calendar-plus me-1"></i>Calendrier
@@ -159,9 +165,15 @@
                 <a href="{{ url_for('tours.calendar', id=tour.id) }}" class="list-group-item list-group-item-action">
                     <i class="bi bi-calendar3 me-2"></i>Vue calendrier
                 </a>
+                {% if pdf_available %}
                 <a href="{{ url_for('logistics.export_tour_pdf', tour_id=tour.id) }}" class="list-group-item list-group-item-action">
                     <i class="bi bi-file-pdf me-2"></i>Export PDF
                 </a>
+                {% else %}
+                <span class="list-group-item text-muted" title="Module non installé">
+                    <i class="bi bi-file-pdf me-2"></i>Export PDF <small>(indisponible)</small>
+                </span>
+                {% endif %}
                 {% if tour.band_is_manager(current_user) %}
                 <form action="{{ url_for('tours.duplicate', id=tour.id) }}" method="POST" class="d-inline w-100">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

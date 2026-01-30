@@ -468,6 +468,15 @@ def register_context_processors(app):
             'recent_notifications': recent_notifications
         }
 
+    @app.context_processor
+    def pdf_availability_processor():
+        """Provide PDF export availability status to templates."""
+        try:
+            from app.utils.pdf_generator import PDF_AVAILABLE
+            return {'pdf_available': PDF_AVAILABLE}
+        except ImportError:
+            return {'pdf_available': False}
+
     # Register Jinja2 filters
     @app.template_filter('timeago')
     def timeago_filter(dt):
