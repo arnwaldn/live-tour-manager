@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30-v7'  # Deployment version marker
+        'version': '2026-01-30-v8'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -454,15 +454,37 @@ from app.models.venue import Venue
 @login_required
 def dashboard():
     """Main dashboard - adapted to user's role."""
-    import logging
-    logger = logging.getLogger(__name__)
 
-    # DEBUG v6: Log what branch we're taking
-    is_admin = current_user.is_admin()
-    logger.info(f"[DASHBOARD-v6] User {current_user.id} ({current_user.email}), is_admin={is_admin}")
-    print(f"[DASHBOARD-v6] User {current_user.id} ({current_user.email}), is_admin={is_admin}")
+    # DEBUG v8: If ?debug=1, return JSON instead of HTML
+    if request.args.get('debug') == '1':
+        is_admin = current_user.is_admin()
+        if is_admin:
+            user_bands = Band.query.order_by(Band.name).all()
+        else:
+            managed_bands = Band.query.filter_by(manager_id=current_user.id).all()
+            member_band_ids = [m.band_id for m in BandMembership.query.filter_by(user_id=current_user.id).all()]
+            member_bands = Band.query.filter(Band.id.in_(member_band_ids)).all() if member_band_ids else []
+            user_bands_dict = {b.id: b for b in member_bands + managed_bands}
+            user_bands = list(user_bands_dict.values())
+
+        return jsonify({
+            'version': '2026-01-30-v8',
+            'current_user': {
+                'id': current_user.id,
+                'email': current_user.email[:5] + '***',
+                'full_name': current_user.full_name,
+                'access_level': current_user.access_level.value if current_user.access_level else None,
+                'is_admin': is_admin
+            },
+            'branch': 'admin' if is_admin else 'non-admin',
+            'user_bands': {
+                'count': len(user_bands),
+                'bands': [{'id': b.id, 'name': b.name} for b in user_bands]
+            }
+        })
 
     # Admin sees ALL bands (consistent with bands/routes.py behavior)
+    is_admin = current_user.is_admin()
     if is_admin:
         user_bands = Band.query.order_by(Band.name).all()
         user_band_ids = [b.id for b in user_bands]
