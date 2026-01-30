@@ -14,7 +14,54 @@ from app.extensions import db
 def ping():
     """Ultra-simple ping - no DB, no templates. For deployment verification."""
     from datetime import datetime
-    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-30-v4", 200, {'Content-Type': 'text/plain'}
+    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-30-v5", 200, {'Content-Type': 'text/plain'}
+
+
+@main_bp.route('/health/migration-check')
+def migration_check():
+    """New endpoint to bypass cache - same as db-raw but fresh URL."""
+    import traceback
+    from datetime import datetime
+
+    try:
+        result = {
+            'version': 'migration-check-v1',
+            'timestamp': datetime.utcnow().isoformat(),
+            'checks': {}
+        }
+
+        # Check alembic version
+        try:
+            r = db.session.execute(db.text("SELECT version_num FROM alembic_version"))
+            row = r.fetchone()
+            result['alembic_version'] = row[0] if row else None
+            result['checks']['alembic'] = 'OK'
+        except Exception as e:
+            result['alembic_version'] = None
+            result['checks']['alembic'] = f'FAILED: {str(e)[:200]}'
+
+        # Check venue_rental_cost column
+        try:
+            r = db.session.execute(db.text("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'tour_stops' AND column_name = 'venue_rental_cost'
+            """))
+            exists = r.fetchone() is not None
+            result['venue_rental_cost_exists'] = exists
+            result['checks']['column'] = 'OK' if exists else 'MISSING'
+        except Exception as e:
+            result['venue_rental_cost_exists'] = False
+            result['checks']['column'] = f'FAILED: {str(e)[:200]}'
+
+        result['expected'] = '6ea92203edbe'
+        result['migration_ok'] = result.get('alembic_version') == '6ea92203edbe'
+
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            'error': str(e)[:500],
+            'traceback': traceback.format_exc()[-1000:]
+        }), 500
 
 
 @main_bp.route('/health/db-test')
