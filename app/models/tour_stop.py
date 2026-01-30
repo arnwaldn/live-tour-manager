@@ -333,6 +333,7 @@ class TourStop(db.Model):
 
     # Financial
     guarantee = db.Column(db.Numeric(10, 2))
+    venue_rental_cost = db.Column(db.Numeric(10, 2))  # Prix location salle
     door_deal_percentage = db.Column(db.Numeric(5, 2))
     ticket_price = db.Column(db.Numeric(8, 2))
     ticket_url = db.Column(db.String(255))  # URL billetterie

@@ -296,6 +296,12 @@
                 <span class="settlement-label">Cachet garanti</span>
                 <span class="settlement-value">{{ format_currency(settlement.guarantee, settlement.currency) }}</span>
             </div>
+            {% if settlement.venue_rental_cost and settlement.venue_rental_cost > 0 %}
+            <div class="settlement-row">
+                <span class="settlement-label">Location salle</span>
+                <span class="settlement-value">{{ format_currency(settlement.venue_rental_cost, settlement.currency) }}</span>
+            </div>
+            {% endif %}
             {% if settlement.door_deal_percentage > 0 %}
             <div class="settlement-row">
                 <span class="settlement-label">Pourcentage Door Deal</span>

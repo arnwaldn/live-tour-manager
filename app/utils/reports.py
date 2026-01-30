@@ -15,6 +15,7 @@ def calculate_stop_financials(tour_stop) -> Dict[str, Any]:
 
     Returns dict with:
         - guarantee: Base guarantee amount
+        - venue_rental_cost: Venue rental cost (location salle)
         - ticket_revenue: Revenue from ticket sales (GBOR)
         - ticketing_fees: Fees deducted (R2)
         - net_ticket_revenue: NBOR - Net Box Office Receipts (R2)
@@ -26,6 +27,7 @@ def calculate_stop_financials(tour_stop) -> Dict[str, Any]:
         - currency: Currency code
     """
     guarantee = Decimal(str(tour_stop.guarantee or 0))
+    venue_rental_cost = Decimal(str(tour_stop.venue_rental_cost or 0))
     ticket_price = Decimal(str(tour_stop.ticket_price or 0))
     sold_tickets = tour_stop.sold_tickets or 0
     door_deal_pct = Decimal(str(tour_stop.door_deal_percentage or 0))
@@ -53,6 +55,7 @@ def calculate_stop_financials(tour_stop) -> Dict[str, Any]:
 
     return {
         'guarantee': float(guarantee),
+        'venue_rental_cost': float(venue_rental_cost),
         'ticket_revenue': float(gross_ticket_revenue),  # GBOR
         'ticketing_fee_percentage': float(ticketing_fee_pct),  # R2
         'ticketing_fees': float(ticketing_fees),  # R2
@@ -76,6 +79,7 @@ def calculate_tour_financials(tour) -> Dict[str, Any]:
 
     Returns dict with:
         - total_guarantee: Sum of all guarantees
+        - total_venue_rental_cost: Sum of all venue rental costs
         - total_ticket_revenue: Sum of all ticket revenues
         - total_door_deal_revenue: Sum of door deal revenues
         - total_estimated_revenue: Grand total revenue
@@ -90,6 +94,7 @@ def calculate_tour_financials(tour) -> Dict[str, Any]:
     currencies = {}
 
     total_guarantee = Decimal('0')
+    total_venue_rental_cost = Decimal('0')
     total_ticket_revenue = Decimal('0')
     total_door_deal_revenue = Decimal('0')
     total_sold_tickets = 0
@@ -100,6 +105,7 @@ def calculate_tour_financials(tour) -> Dict[str, Any]:
         stops_data.append(stop_fin)
 
         total_guarantee += Decimal(str(stop_fin['guarantee']))
+        total_venue_rental_cost += Decimal(str(stop_fin['venue_rental_cost']))
         total_ticket_revenue += Decimal(str(stop_fin['ticket_revenue']))
         total_door_deal_revenue += Decimal(str(stop_fin['door_deal_revenue']))
         total_sold_tickets += stop_fin['sold_tickets']
@@ -129,6 +135,7 @@ def calculate_tour_financials(tour) -> Dict[str, Any]:
         'end_date': tour.end_date,
         'status': tour.status.value if tour.status else 'unknown',
         'total_guarantee': float(total_guarantee),
+        'total_venue_rental_cost': float(total_venue_rental_cost),
         'total_ticket_revenue': float(total_ticket_revenue),
         'total_door_deal_revenue': float(total_door_deal_revenue),
         'total_estimated_revenue': float(total_estimated),
@@ -145,6 +152,7 @@ def calculate_tour_financials(tour) -> Dict[str, Any]:
         'logistics_by_paid_by': logistics['by_paid_by'],
         'logistics_unpaid': logistics['unpaid_total'],
         'formatted_logistics_total': format_currency(logistics['total']['total'], primary_currency),
+        'formatted_venue_rental_cost': format_currency(float(total_venue_rental_cost), primary_currency),
     }
 
 
@@ -187,6 +195,7 @@ def calculate_settlement(tour_stop) -> Dict[str, Any]:
     - GBOR (Gross Box Office Receipts) - Recettes brutes
     - Ticketing fees déduction (R2)
     - NBOR (Net Box Office Receipts) - Recettes nettes (R2)
+    - Venue rental cost (location salle)
     - Promoter expenses (R4/R5)
     - Split Point calculation (R5)
     - Artist payment: max(guarantee, split_point_backend)
@@ -194,12 +203,13 @@ def calculate_settlement(tour_stop) -> Dict[str, Any]:
     Settlement determines artist payment based on:
     - Guarantee (fixed amount)
     - Door deal (% of NET receipts after expenses)
-    - Split Point: promoter_expenses + guarantee
+    - Split Point: promoter_expenses + guarantee + venue_rental_cost
     - Artist receives the HIGHER of guarantee OR door deal on revenue above split point
 
     Returns complete settlement breakdown for PDF/display.
     """
     guarantee = Decimal(str(tour_stop.guarantee or 0))
+    venue_rental_cost = Decimal(str(tour_stop.venue_rental_cost or 0))
     ticket_price = Decimal(str(tour_stop.ticket_price or 0))
     sold_tickets = tour_stop.sold_tickets or 0
     door_deal_pct = Decimal(str(tour_stop.door_deal_percentage or 0))
@@ -227,8 +237,8 @@ def calculate_settlement(tour_stop) -> Dict[str, Any]:
 
     # ===== SPLIT POINT CALCULATION (R5) =====
 
-    # Split Point = Promoter recovers expenses + guarantee before artist gets backend
-    split_point = promoter_expenses_total + guarantee
+    # Split Point = Promoter recovers expenses + guarantee + venue rental before artist gets backend
+    split_point = promoter_expenses_total + guarantee + venue_rental_cost
 
     # Revenue available for backend split (after split point)
     backend_base = max(nbor - split_point, Decimal('0'))
@@ -313,6 +323,7 @@ def calculate_settlement(tour_stop) -> Dict[str, Any]:
 
         # Deal structure
         'guarantee': float(guarantee),
+        'venue_rental_cost': float(venue_rental_cost),
         'door_deal_percentage': float(door_deal_pct),
         'door_deal_amount': float(door_deal_amount),  # Backend amount
         'simple_door_deal': float(simple_door_deal),  # Legacy calculation
@@ -633,7 +644,7 @@ def generate_csv_report(tour_data: Dict[str, Any]) -> str:
     # Header
     writer.writerow([
         'Date', 'Venue', 'Ville', 'Statut',
-        'Cachet (Guarantee)', 'Prix Billet', 'Billets Vendus',
+        'Cachet (Guarantee)', 'Location Salle', 'Prix Billet', 'Billets Vendus',
         'Capacité', 'Taux Remplissage (%)',
         'Revenus Billetterie', 'Part Porte', 'Revenu Total Estimé',
         'Devise'
@@ -647,6 +658,7 @@ def generate_csv_report(tour_data: Dict[str, Any]) -> str:
             stop['venue_city'],
             stop['status'],
             stop['guarantee'],
+            stop.get('venue_rental_cost', 0),
             stop.get('ticket_price', 0),
             stop['sold_tickets'],
             stop['capacity'],
@@ -661,6 +673,7 @@ def generate_csv_report(tour_data: Dict[str, Any]) -> str:
     writer.writerow([])
     writer.writerow(['TOTAL', '', '', '',
                      tour_data['total_guarantee'],
+                     tour_data.get('total_venue_rental_cost', 0),
                      '',
                      tour_data['total_sold_tickets'],
                      tour_data['total_capacity'],

@@ -123,6 +123,10 @@ class TourStopForm(FlaskForm):
         Optional(),
         NumberRange(min=0)
     ], places=2)
+    venue_rental_cost = DecimalField('Prix location salle', validators=[
+        Optional(),
+        NumberRange(min=0, message='Le prix doit être positif')
+    ], places=2)
     ticket_price = DecimalField('Prix du billet', validators=[
         Optional(),
         NumberRange(min=0)
