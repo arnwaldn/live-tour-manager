@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30-v13'  # Deployment version marker
+        'version': '2026-01-30-v14'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -503,8 +503,7 @@ def dashboard():
     if is_admin:
         user_bands = Band.query.order_by(Band.name).all()
         user_band_ids = [b.id for b in user_bands]
-        logger.info(f"[DASHBOARD-v6] ADMIN branch: {len(user_bands)} bands")
-        print(f"[DASHBOARD-v6] ADMIN branch: {len(user_bands)} bands")
+        print(f"[DASHBOARD-v13] ADMIN branch: {len(user_bands)} bands")
     else:
         # Get user's bands (as member or manager) - using direct queries for reliability
         # 1. Bands where user is manager (via Band.manager_id)
@@ -518,8 +517,7 @@ def dashboard():
         user_bands_dict = {b.id: b for b in member_bands + managed_bands}
         user_bands = list(user_bands_dict.values())
         user_band_ids = list(user_bands_dict.keys())
-        logger.info(f"[DASHBOARD-v6] NON-ADMIN branch: {len(user_bands)} bands")
-        print(f"[DASHBOARD-v6] NON-ADMIN branch: {len(user_bands)} bands")
+        print(f"[DASHBOARD-v13] NON-ADMIN branch: {len(user_bands)} bands")
 
     # Active tours for user's bands
     active_tours = Tour.query.filter(
