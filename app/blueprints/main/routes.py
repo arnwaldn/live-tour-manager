@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30-v3'  # Deployment version marker
+        'version': '2026-01-30-v4'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -251,7 +251,7 @@ def bands_debug():
     from app.models.user import User
 
     result = {
-        'version': '2026-01-30-v3',
+        'version': '2026-01-30-v4',
         'action': 'bands_debug'
     }
 
@@ -285,7 +285,9 @@ def bands_debug():
         result['user'] = {
             'id': user.id,
             'email': user.email[:3] + '***',
-            'full_name': user.full_name
+            'full_name': user.full_name,
+            'access_level': user.access_level.value if user.access_level else None,
+            'is_admin': user.is_admin()
         }
 
         result['bands_property'] = {
@@ -381,18 +383,23 @@ from app.models.venue import Venue
 def dashboard():
     """Main dashboard - adapted to user's role."""
 
-    # Get user's bands (as member or manager) - using direct queries for reliability
-    # 1. Bands where user is manager (via Band.manager_id)
-    managed_bands = Band.query.filter_by(manager_id=current_user.id).all()
+    # Admin sees ALL bands (consistent with bands/routes.py behavior)
+    if current_user.is_admin():
+        user_bands = Band.query.order_by(Band.name).all()
+        user_band_ids = [b.id for b in user_bands]
+    else:
+        # Get user's bands (as member or manager) - using direct queries for reliability
+        # 1. Bands where user is manager (via Band.manager_id)
+        managed_bands = Band.query.filter_by(manager_id=current_user.id).all()
 
-    # 2. Bands where user is member (via BandMembership)
-    member_band_ids = [m.band_id for m in BandMembership.query.filter_by(user_id=current_user.id).all()]
-    member_bands = Band.query.filter(Band.id.in_(member_band_ids)).all() if member_band_ids else []
+        # 2. Bands where user is member (via BandMembership)
+        member_band_ids = [m.band_id for m in BandMembership.query.filter_by(user_id=current_user.id).all()]
+        member_bands = Band.query.filter(Band.id.in_(member_band_ids)).all() if member_band_ids else []
 
-    # 3. Combine and deduplicate by ID
-    user_bands_dict = {b.id: b for b in member_bands + managed_bands}
-    user_bands = list(user_bands_dict.values())
-    user_band_ids = list(user_bands_dict.keys())
+        # 3. Combine and deduplicate by ID
+        user_bands_dict = {b.id: b for b in member_bands + managed_bands}
+        user_bands = list(user_bands_dict.values())
+        user_band_ids = list(user_bands_dict.keys())
 
     # Active tours for user's bands
     active_tours = Tour.query.filter(
