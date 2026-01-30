@@ -17,6 +17,56 @@ def ping():
     return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-30-v5", 200, {'Content-Type': 'text/plain'}
 
 
+@main_bp.route('/health/create-tables')
+def create_tables():
+    """Emergency endpoint to create all missing tables from SQLAlchemy models."""
+    import traceback
+    from datetime import datetime
+
+    # Security: Only allow this once, check if tables need creation
+    try:
+        # Check if users table exists
+        try:
+            db.session.execute(db.text('SELECT 1 FROM users LIMIT 1'))
+            db.session.rollback()
+            return jsonify({
+                'status': 'SKIPPED',
+                'message': 'Users table already exists, no action needed',
+                'timestamp': datetime.utcnow().isoformat()
+            })
+        except:
+            db.session.rollback()
+
+        # Create all tables
+        db.create_all()
+
+        # Verify
+        db.session.execute(db.text('SELECT 1 FROM users LIMIT 1'))
+        db.session.rollback()
+
+        # Count tables after creation
+        result = db.session.execute(db.text("""
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_schema = 'public'
+        """))
+        table_count = result.fetchone()[0]
+        db.session.rollback()
+
+        return jsonify({
+            'status': 'SUCCESS',
+            'message': 'All tables created successfully',
+            'table_count': table_count,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'FAILED',
+            'error': str(e)[:500],
+            'traceback': traceback.format_exc()[-1000:]
+        }), 500
+
+
 @main_bp.route('/health/migration-check')
 def migration_check():
     """Check migration status and table count."""
