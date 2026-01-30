@@ -26,7 +26,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-01-30-v8'  # Deployment version marker
+        'version': '2026-01-30-v9'  # Deployment version marker
     }), 200 if status == 'healthy' else 503
 
 
@@ -455,8 +455,8 @@ from app.models.venue import Venue
 def dashboard():
     """Main dashboard - adapted to user's role."""
 
-    # DEBUG v8: If ?debug=1, return JSON instead of HTML
-    if request.args.get('debug') == '1':
+    # DEBUG v9: If ?debug=1, return JSON or HTML debug page
+    if request.args.get('debug'):
         is_admin = current_user.is_admin()
         if is_admin:
             user_bands = Band.query.order_by(Band.name).all()
@@ -467,8 +467,8 @@ def dashboard():
             user_bands_dict = {b.id: b for b in member_bands + managed_bands}
             user_bands = list(user_bands_dict.values())
 
-        return jsonify({
-            'version': '2026-01-30-v8',
+        debug_data = {
+            'version': '2026-01-30-v9',
             'current_user': {
                 'id': current_user.id,
                 'email': current_user.email[:5] + '***',
@@ -481,7 +481,22 @@ def dashboard():
                 'count': len(user_bands),
                 'bands': [{'id': b.id, 'name': b.name} for b in user_bands]
             }
-        })
+        }
+
+        # If debug=html, return HTML page that's easy to screenshot
+        if request.args.get('debug') == 'html':
+            import json
+            html = f"""<!DOCTYPE html>
+<html><head><title>Debug Dashboard v9</title></head>
+<body style="background:#1a1a1a;color:#fff;font-family:monospace;padding:20px;">
+<h1 style="color:#C9A962;">Dashboard Debug v9</h1>
+<pre style="background:#2a2a2a;padding:15px;border-radius:5px;">
+{json.dumps(debug_data, indent=2)}
+</pre>
+</body></html>"""
+            return html
+
+        return jsonify(debug_data)
 
     # Admin sees ALL bands (consistent with bands/routes.py behavior)
     is_admin = current_user.is_admin()
