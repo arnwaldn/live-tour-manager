@@ -19,20 +19,37 @@ def ping():
 
 @main_bp.route('/health/run-migrations')
 def run_migrations():
-    """Execute flask db upgrade to apply all pending migrations."""
-    import subprocess
+    """Execute flask db upgrade using Alembic API directly."""
     import traceback
     from datetime import datetime
+    from flask import current_app
 
     try:
-        # Run flask db upgrade
-        result = subprocess.run(
-            ['flask', 'db', 'upgrade'],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            cwd='/opt/render/project/src'  # Render working directory
-        )
+        from flask_migrate import upgrade
+        from alembic import command
+        from alembic.config import Config
+
+        # Method 1: Try flask-migrate's upgrade function
+        try:
+            upgrade()
+            method_used = 'flask-migrate'
+        except Exception as e1:
+            # Method 2: Direct Alembic API
+            try:
+                import os
+                migrations_dir = os.path.join(current_app.root_path, '..', 'migrations')
+                alembic_cfg = Config()
+                alembic_cfg.set_main_option('script_location', migrations_dir)
+                alembic_cfg.set_main_option('sqlalchemy.url', str(db.engine.url))
+                command.upgrade(alembic_cfg, 'head')
+                method_used = 'alembic-direct'
+            except Exception as e2:
+                return jsonify({
+                    'status': 'FAILED',
+                    'method1_error': str(e1)[:300],
+                    'method2_error': str(e2)[:300],
+                    'timestamp': datetime.utcnow().isoformat()
+                }), 500
 
         # Check alembic version after migration
         try:
@@ -40,20 +57,32 @@ def run_migrations():
             version = r.fetchone()
             alembic_version = version[0] if version else None
             db.session.rollback()
+        except Exception as e:
+            alembic_version = f'check_failed: {str(e)[:100]}'
+            db.session.rollback()
+
+        # Check if venue_rental_cost column exists now
+        try:
+            r = db.session.execute(db.text("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'tour_stops' AND column_name = 'venue_rental_cost'
+            """))
+            venue_col_exists = r.fetchone() is not None
+            db.session.rollback()
         except:
-            alembic_version = None
+            venue_col_exists = False
             db.session.rollback()
 
         return jsonify({
-            'status': 'SUCCESS' if result.returncode == 0 else 'FAILED',
-            'return_code': result.returncode,
-            'stdout': result.stdout[-2000:] if result.stdout else '',
-            'stderr': result.stderr[-2000:] if result.stderr else '',
+            'status': 'SUCCESS',
+            'method': method_used,
             'alembic_version': alembic_version,
+            'venue_rental_cost_exists': venue_col_exists,
             'timestamp': datetime.utcnow().isoformat()
-        }), 200 if result.returncode == 0 else 500
+        })
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({
             'status': 'ERROR',
             'error': str(e)[:500],
