@@ -235,23 +235,3 @@ class MemberScheduleForm(FlaskForm):
     meal_time = TimeField('Heure repas', validators=[Optional()])
     notes = TextAreaField('Notes', validators=[Length(max=500)])
     submit = SubmitField('Enregistrer')
-
-
-class PlanningSlotForm(FlaskForm):
-    """Form for creating/editing a planning slot."""
-
-    user_id = SelectField('Membre', coerce=int, validators=[
-        DataRequired(message='Veuillez sélectionner un membre')
-    ])
-    profession_id = SelectField('Profession', coerce=int, validators=[Optional()])
-    start_time = TimeField('Début', validators=[
-        DataRequired(message='Heure de début requise')
-    ])
-    end_time = TimeField('Fin', validators=[
-        DataRequired(message='Heure de fin requise')
-    ])
-    task_description = StringField('Tâche', validators=[
-        DataRequired(message='Description de la tâche requise'),
-        Length(max=200)
-    ])
-    submit = SubmitField('Enregistrer')

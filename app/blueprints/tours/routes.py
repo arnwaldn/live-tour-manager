@@ -8,7 +8,6 @@ from flask_login import login_required, current_user
 
 from app.blueprints.tours import tours_bp
 from app.blueprints.tours.forms import TourForm, TourStopForm, RescheduleStopForm, LineupSlotForm, MemberScheduleForm
-# PlanningSlotForm import removed temporarily for deployment testing
 from app.models.tour import Tour, TourStatus
 from app.models.tour_stop import TourStop, TourStopStatus, EventType, tour_stop_members
 from app.models.venue import Venue
@@ -1589,119 +1588,82 @@ CATEGORY_MAPPING = {
 @login_required
 @tour_access_required
 def staff_planning(id, stop_id, category='tous', tour=None):
-    """Planning journée 24h avec grille horaire et filtrage par catégorie."""
+    """Planning journée 24h avec vue par catégorie."""
     from app.models.tour_stop import TourStopMember
-    from app.models.profession import Profession, ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
+    from app.models.profession import ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
 
     stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
-    # Mapping des catégories (URL -> ProfessionCategory.value)
-    URL_TO_CATEGORY = {
-        'tous': None,
-        'artistes': 'musicien',
-        'techniciens': 'technicien',
-        'securite': 'securite',
-        'managers': 'management',
-        'style': 'style',
-        'production': 'production',
-    }
-
     # Valider la catégorie
-    if category not in URL_TO_CATEGORY:
+    if category not in CATEGORY_MAPPING:
         flash('Catégorie invalide.', 'error')
         return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
 
-    # Récupérer les slots de planning pour ce stop
-    # Handle case where planning_slots table doesn't exist yet
-    try:
-        slots_query = PlanningSlot.query.filter_by(tour_stop_id=stop_id)
+    # Récupérer les membres assignés à ce stop
+    members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
 
-        # Filtrer par catégorie si pas "tous"
-        cat_value = URL_TO_CATEGORY[category]
-        if cat_value:
-            # Filtrer les slots dont l'utilisateur ou la profession correspond à la catégorie
-            filtered_slots = []
-            for slot in slots_query.all():
-                slot_cat = slot.category_value
-                if slot_cat == cat_value:
-                    filtered_slots.append(slot)
-            slots = filtered_slots
-        else:
-            slots = slots_query.all()
-    except Exception:
-        # Table doesn't exist or query failed - return empty slots
-        slots = []
-        cat_value = URL_TO_CATEGORY[category]
+    # Filtrer par catégorie si pas "tous"
+    if category != 'tous':
+        cat_value = CATEGORY_MAPPING[category]
+        filtered_members = []
+        for m in members:
+            user = User.query.get(m.user_id)
+            if user and user.professions:
+                for prof in user.professions:
+                    if prof.category.value == cat_value:
+                        filtered_members.append(m)
+                        break
+        members = filtered_members
 
-    # Organiser les slots par utilisateur
-    slots_by_user = {}
-    for slot in slots:
-        if slot.user_id not in slots_by_user:
-            slots_by_user[slot.user_id] = {
-                'user': slot.user,
-                'profession': slot.effective_profession,
-                'category': slot.category_value,
-                'slots': []
-            }
-        slots_by_user[slot.user_id]['slots'].append(slot)
+    # Enrichir les données des membres
+    members_data = []
+    for m in members:
+        user = User.query.get(m.user_id)
+        if user:
+            # Trouver la profession principale
+            profession_name = 'Non défini'
+            profession_category = None
+            if user.professions:
+                profession_name = user.professions[0].name_fr
+                profession_category = user.professions[0].category
 
-    # Trier les utilisateurs par catégorie puis par nom
-    users_data = sorted(
-        slots_by_user.values(),
-        key=lambda x: (x['category'] or 'zzz', x['user'].full_name if x['user'] else '')
-    )
+            members_data.append({
+                'member': m,
+                'user': user,
+                'profession_name': profession_name,
+                'profession_category': profession_category,
+            })
 
-    # Préparer les onglets de catégories
+    # Trier par heure de début puis par nom
+    members_data.sort(key=lambda x: (
+        x['member'].work_start or x['member'].call_time or '99:99',
+        x['user'].full_name
+    ))
+
+    # Préparer les données des catégories pour les onglets
     categories = [
-        {'key': 'tous', 'label': 'Tout le planning', 'icon': 'bi-calendar2-week', 'color': '#6c757d'},
-        {'key': 'artistes', 'label': 'Artistes', 'icon': 'bi-music-note-beamed', 'color': '#8b5cf6'},
-        {'key': 'techniciens', 'label': 'Techniciens', 'icon': 'bi-tools', 'color': '#3b82f6'},
-        {'key': 'securite', 'label': 'Sécurité', 'icon': 'bi-shield-check', 'color': '#ef4444'},
-        {'key': 'managers', 'label': 'Managers', 'icon': 'bi-briefcase', 'color': '#22c55e'},
-        {'key': 'style', 'label': 'Habilleurs & Maquill.', 'icon': 'bi-brush', 'color': '#ec4899'},
-        {'key': 'production', 'label': 'Production', 'icon': 'bi-clipboard-check', 'color': '#f97316'},
+        {'key': 'tous', 'label': 'TOUS', 'icon': 'bi-people', 'color': '#6c757d'},
     ]
-
-    # Couleurs CSS par catégorie
-    category_colors = {
-        'musicien': '#8b5cf6',
-        'technicien': '#3b82f6',
-        'securite': '#ef4444',
-        'management': '#22c55e',
-        'style': '#ec4899',
-        'production': '#f97316',
-    }
+    for cat in ProfessionCategory:
+        categories.append({
+            'key': cat.value + 's' if not cat.value.endswith('e') else cat.value,
+            'label': CATEGORY_LABELS.get(cat, cat.value).upper(),
+            'icon': CATEGORY_ICONS.get(cat, 'bi-person'),
+            'color': CATEGORY_COLORS.get(cat, '#6c757d'),
+        })
 
     # Vérifier si l'utilisateur peut éditer (manager ou admin)
     can_edit = current_user.is_admin or current_user.is_manager
-
-    # Récupérer les membres assignés pour le formulaire d'ajout
-    members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
-    assigned_users = [(m.user_id, User.query.get(m.user_id).full_name) for m in members if User.query.get(m.user_id)]
-
-    # Récupérer les professions pour le formulaire
-    professions = Profession.query.order_by(Profession.name_fr).all()
-    profession_choices = [(0, '-- Profession par défaut --')] + [(p.id, p.name_fr) for p in professions]
-
-    # Préparer le formulaire
-    form = PlanningSlotForm()
-    form.user_id.choices = [(0, '-- Sélectionner un membre --')] + assigned_users
-    form.profession_id.choices = profession_choices
-
-    # Heures de la grille (01:00 à 00:00)
-    hours = list(range(1, 24)) + [0]  # 1, 2, ..., 23, 0
 
     return render_template(
         'tours/staff_planning.html',
         tour=tour,
         stop=stop,
-        users_data=users_data,
+        members_data=members_data,
         categories=categories,
         current_category=category,
-        category_colors=category_colors,
         can_edit=can_edit,
-        form=form,
-        hours=hours
+        form=MemberScheduleForm()
     )
 
 
@@ -1736,123 +1698,3 @@ def update_member_schedule(id, stop_id, member_id, tour=None):
     # Rediriger vers la bonne catégorie
     category = request.args.get('category', 'tous')
     return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
-
-
-# ============================================================================
-# PLANNING SLOTS CRUD
-# ============================================================================
-
-@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/add-slot', methods=['POST'])
-@login_required
-@tour_edit_required
-def add_planning_slot(id, stop_id, tour=None):
-    """Ajouter un créneau au planning."""
-    from datetime import datetime
-
-    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
-
-    form = PlanningSlotForm()
-
-    # Recharger les choices pour validation
-    from app.models.tour_stop import TourStopMember
-    from app.models.profession import Profession
-    members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
-    assigned_users = [(m.user_id, User.query.get(m.user_id).full_name) for m in members if User.query.get(m.user_id)]
-    professions = Profession.query.order_by(Profession.name_fr).all()
-
-    form.user_id.choices = [(0, '-- Sélectionner --')] + assigned_users
-    form.profession_id.choices = [(0, '-- Par défaut --')] + [(p.id, p.name_fr) for p in professions]
-
-    if form.validate_on_submit():
-        slot = PlanningSlot(
-            tour_stop_id=stop_id,
-            user_id=form.user_id.data,
-            profession_id=form.profession_id.data if form.profession_id.data != 0 else None,
-            start_time=form.start_time.data,
-            end_time=form.end_time.data,
-            task_description=form.task_description.data,
-            created_by_id=current_user.id,
-            created_at=datetime.utcnow()
-        )
-        db.session.add(slot)
-        db.session.commit()
-        log_create(slot, slot.user)
-
-        flash('Créneau ajouté avec succès.', 'success')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field}: {error}', 'error')
-
-    category = request.args.get('category', 'tous')
-    return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
-
-
-@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/edit-slot/<int:slot_id>', methods=['POST'])
-@login_required
-@tour_edit_required
-def edit_planning_slot(id, stop_id, slot_id, tour=None):
-    """Modifier un créneau du planning."""
-    from datetime import datetime
-
-    slot = PlanningSlot.query.filter_by(id=slot_id, tour_stop_id=stop_id).first_or_404()
-
-    form = PlanningSlotForm()
-
-    # Recharger les choices
-    from app.models.tour_stop import TourStopMember
-    from app.models.profession import Profession
-    members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
-    assigned_users = [(m.user_id, User.query.get(m.user_id).full_name) for m in members if User.query.get(m.user_id)]
-    professions = Profession.query.order_by(Profession.name_fr).all()
-
-    form.user_id.choices = [(0, '-- Sélectionner --')] + assigned_users
-    form.profession_id.choices = [(0, '-- Par défaut --')] + [(p.id, p.name_fr) for p in professions]
-
-    if form.validate_on_submit():
-        slot.user_id = form.user_id.data
-        slot.profession_id = form.profession_id.data if form.profession_id.data != 0 else None
-        slot.start_time = form.start_time.data
-        slot.end_time = form.end_time.data
-        slot.task_description = form.task_description.data
-        slot.updated_at = datetime.utcnow()
-
-        db.session.commit()
-        log_update(slot, slot.user)
-
-        flash('Créneau modifié avec succès.', 'success')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field}: {error}', 'error')
-
-    category = request.args.get('category', 'tous')
-    return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
-
-
-@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/delete-slot/<int:slot_id>', methods=['POST'])
-@login_required
-@tour_edit_required
-def delete_planning_slot(id, stop_id, slot_id, tour=None):
-    """Supprimer un créneau du planning."""
-    slot = PlanningSlot.query.filter_by(id=slot_id, tour_stop_id=stop_id).first_or_404()
-
-    user = slot.user
-    log_delete(slot, user)
-
-    db.session.delete(slot)
-    db.session.commit()
-
-    flash('Créneau supprimé.', 'success')
-
-    category = request.args.get('category', 'tous')
-    return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
-
-
-@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/slots', methods=['GET'])
-@login_required
-@tour_access_required
-def get_planning_slots(id, stop_id, tour=None):
-    """API: Récupérer les slots en JSON."""
-    slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).all()
-    return jsonify([slot.to_dict() for slot in slots])
