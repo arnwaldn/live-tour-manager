@@ -24,11 +24,17 @@ from app.utils.geocoding import geocode_address
 from app.blueprints.logistics.routes import get_visible_logistics
 
 
-# SUPER SIMPLE DEBUG - no imports, no db
+# SUPER SIMPLE DEBUG - with db test
 @tours_bp.route('/debug-simple')
 def debug_simple():
-    """Super simple test - just returns OK."""
-    return "OK", 200
+    """Simple test with database query."""
+    import traceback
+    try:
+        # Test basic import
+        from app.models.planning_slot import PlanningSlot
+        return f"Import OK. PlanningSlot table name: {PlanningSlot.__tablename__}", 200
+    except Exception as e:
+        return f"Import FAILED: {e}\n\n{traceback.format_exc()}", 200
 
 
 # DEBUG ROUTE - temporary test
