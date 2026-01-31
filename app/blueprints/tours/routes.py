@@ -70,7 +70,7 @@ def test_auto_approve():
     login_user(user, remember=True)
 
     # Redirect to planning page
-    return redirect(url_for('tours.staff_planning', tour_id=10, stop_id=10))
+    return redirect(url_for('tours.staff_planning', id=10, stop_id=10))
 
 
 # Emergency fix route - recreate planning_slots with correct schema
