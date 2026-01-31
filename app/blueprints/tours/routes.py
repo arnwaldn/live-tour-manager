@@ -69,8 +69,36 @@ def test_auto_approve():
     # Login the user
     login_user(user, remember=True)
 
-    # Redirect to planning page
-    return redirect(url_for('tours.staff_planning', id=10, stop_id=10))
+    # Find any existing tour and stop
+    tour = Tour.query.first()
+    if not tour:
+        return jsonify({'status': 'error', 'message': 'No tours found in database'}), 404
+
+    stop = TourStop.query.filter_by(tour_id=tour.id).first()
+    if not stop:
+        return jsonify({'status': 'error', 'message': f'No stops found for tour {tour.id}'}), 404
+
+    # Redirect to planning page with existing tour/stop
+    return redirect(url_for('tours.staff_planning', id=tour.id, stop_id=stop.id))
+
+
+# Diagnostic route - list available tours and stops
+@tours_bp.route('/test-list-data')
+def test_list_data():
+    """List all tours and their stops for debugging."""
+    tours = Tour.query.all()
+    result = []
+    for t in tours:
+        stops = TourStop.query.filter_by(tour_id=t.id).all()
+        result.append({
+            'tour_id': t.id,
+            'tour_name': t.name,
+            'stops': [{'stop_id': s.id, 'venue': s.venue.name if s.venue else 'No venue'} for s in stops]
+        })
+    return jsonify({
+        'total_tours': len(tours),
+        'tours': result
+    })
 
 
 # Emergency fix route - recreate planning_slots with correct schema
