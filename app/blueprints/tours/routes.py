@@ -64,9 +64,10 @@ def test_auto_approve():
             return jsonify({'status': 'error', 'message': 'Test user not found'}), 404
 
         # Approve the user and make admin for testing
+        from app.models.user import AccessLevel
         if user.status != 'active':
             user.status = 'active'
-        user.role = 'admin'  # Make admin for testing
+        user.access_level = AccessLevel.ADMIN  # Make admin for testing
         db.session.commit()
 
         # Login the user
