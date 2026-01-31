@@ -24,6 +24,31 @@ from app.utils.geocoding import geocode_address
 from app.blueprints.logistics.routes import get_visible_logistics
 
 
+# Diagnostic route - check planning_slots table schema
+@tours_bp.route('/check-planning-schema')
+def check_planning_schema():
+    """Check if planning_slots table has correct schema."""
+    from sqlalchemy import inspect
+    try:
+        inspector = inspect(db.engine)
+        columns = [col['name'] for col in inspector.get_columns('planning_slots')]
+        has_role_name = 'role_name' in columns
+        has_category = 'category' in columns
+        return jsonify({
+            'status': 'ok' if (has_role_name and has_category) else 'wrong_schema',
+            'columns': columns,
+            'has_role_name': has_role_name,
+            'has_category': has_category
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'trace': traceback.format_exc()
+        }), 200
+
+
 def get_users_by_category(users_list=None, assigned_ids=None):
     """Retourne les utilisateurs groupés par catégorie de métier pour l'assignation.
 
