@@ -24,6 +24,13 @@ from app.utils.geocoding import geocode_address
 from app.blueprints.logistics.routes import get_visible_logistics
 
 
+# SUPER SIMPLE DEBUG - no imports, no db
+@tours_bp.route('/debug-simple')
+def debug_simple():
+    """Super simple test - just returns OK."""
+    return "OK", 200
+
+
 # DEBUG ROUTE - temporary test
 @tours_bp.route('/debug-planning-test')
 def debug_planning_test():
