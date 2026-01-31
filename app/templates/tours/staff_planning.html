@@ -8,7 +8,7 @@
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{{ url_for('tours.list_tours') }}">Tournées</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
                     <li class="breadcrumb-item"><a href="{{ url_for('tours.tour_detail', id=tour.id) }}">{{ tour.name }}</a></li>
                     <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m') }}</a></li>
                     <li class="breadcrumb-item active">Planning</li>
