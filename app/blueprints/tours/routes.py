@@ -1672,8 +1672,8 @@ def staff_planning(id, stop_id, category='tous', tour=None):
         {'key': 'management', 'label': 'Management', 'icon': 'bi-briefcase'},
     ]
 
-    # Heures de la grille (06:00 à 02:00 le lendemain - horaires typiques concert)
-    hours = list(range(6, 24)) + [0, 1, 2]
+    # Heures de la grille (01:00 à 00:00 minuit - journée complète)
+    hours = list(range(1, 24)) + [0]  # 1h à 23h puis minuit (0)
 
     # Permissions
     can_edit = tour.band.is_manager(current_user) if tour and tour.band else current_user.is_admin()
@@ -1689,7 +1689,7 @@ def staff_planning(id, stop_id, category='tous', tour=None):
     planning_slots = slots_query.order_by(PlanningSlot.start_time).all()
 
     return render_template(
-        'tours/staff_planning.html',
+        'tours/staff_planning_v2.html',
         tour=tour,
         stop=stop,
         planning_data=planning_data,
