@@ -247,27 +247,25 @@
     </div>
 
     {% if total_members == 0 %}
-    <!-- Aucun membre assigné -->
-    <div class="card">
-        <div class="card-body text-center py-5">
-            <i class="bi bi-people text-muted" style="font-size: 4rem;"></i>
-            <h4 class="mt-3">Aucun membre assigné</h4>
-            <p class="text-muted">
-                Assignez des membres à ce concert pour voir leur planning.
-            </p>
-            <div class="d-flex justify-content-center gap-3">
-                <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-primary">
-                    <i class="bi bi-person-plus me-1"></i> Assigner des membres
-                </a>
-                {% if can_edit %}
-                <a href="{{ url_for('tours.seed_demo_planning', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-warning">
-                    <i class="bi bi-lightning-fill me-1"></i> Créer des données de démo
-                </a>
-                {% endif %}
-            </div>
+    <!-- Message d'information -->
+    <div class="alert alert-info d-flex align-items-center mb-4">
+        <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+        <div class="flex-grow-1">
+            <strong>Aucun membre assigné.</strong>
+            <span class="ms-2">Assignez des membres à ce concert pour voir leur planning sur la grille ci-dessous.</span>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-person-plus me-1"></i> Assigner
+            </a>
+            <a href="{{ url_for('tours.seed_demo_planning', id=tour.id, stop_id=stop.id) }}" class="btn btn-sm btn-warning">
+                <i class="bi bi-lightning-fill me-1"></i> Démo
+            </a>
         </div>
     </div>
-    {% else %}
+    {% endif %}
+
+    {# Toujours afficher la grille #}
 
     <!-- Grille de Planning -->
     <div class="planning-container">
@@ -373,8 +371,6 @@
             {% endfor %}
         </div>
     </div>
-
-    {% endif %}
 </div>
 
 {% if can_edit %}
