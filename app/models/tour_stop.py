@@ -81,6 +81,40 @@ class TourStopMember(db.Model):
     # Horaires spécifiques pour ce membre (override des horaires globaux)
     call_time = db.Column(db.Time, nullable=True)  # Heure de convocation spécifique
 
+    # Planning horaire complet (v2.1)
+    # NOTE: Ces champs utilisent @property pour compatibilité avec prod sans migration
+    # Pour activer les vraies colonnes, exécuter sur Render PostgreSQL:
+    # ALTER TABLE tour_stop_members_v2 ADD COLUMN work_start TIME;
+    # ALTER TABLE tour_stop_members_v2 ADD COLUMN work_end TIME;
+    # ALTER TABLE tour_stop_members_v2 ADD COLUMN break_start TIME;
+    # ALTER TABLE tour_stop_members_v2 ADD COLUMN break_end TIME;
+    # ALTER TABLE tour_stop_members_v2 ADD COLUMN meal_time TIME;
+
+    @property
+    def work_start(self):
+        """Début de travail (placeholder jusqu'à migration)."""
+        return None
+
+    @property
+    def work_end(self):
+        """Fin de travail (placeholder jusqu'à migration)."""
+        return None
+
+    @property
+    def break_start(self):
+        """Début pause (placeholder jusqu'à migration)."""
+        return None
+
+    @property
+    def break_end(self):
+        """Fin pause (placeholder jusqu'à migration)."""
+        return None
+
+    @property
+    def meal_time(self):
+        """Heure repas (placeholder jusqu'à migration)."""
+        return None
+
     # Notes d'assignation
     notes = db.Column(db.Text, nullable=True)
 
@@ -197,6 +231,41 @@ class TourStopMember(db.Model):
         }
         return colors.get(self.status, 'secondary')
 
+    @property
+    def schedule_display(self):
+        """Affichage formaté du planning."""
+        parts = []
+        if self.work_start and self.work_end:
+            parts.append(f"{self.work_start.strftime('%H:%M')}-{self.work_end.strftime('%H:%M')}")
+        if self.meal_time:
+            parts.append(f"Repas: {self.meal_time.strftime('%H:%M')}")
+        if self.break_start and self.break_end:
+            parts.append(f"Pause: {self.break_start.strftime('%H:%M')}-{self.break_end.strftime('%H:%M')}")
+        return " | ".join(parts) if parts else "Non planifié"
+
+    @property
+    def has_schedule(self):
+        """Vérifie si le membre a un planning défini."""
+        return self.work_start is not None or self.work_end is not None
+
+    @property
+    def work_duration_hours(self):
+        """Calcule la durée de travail en heures."""
+        if self.work_start and self.work_end:
+            from datetime import datetime, timedelta
+            start = datetime.combine(datetime.today(), self.work_start)
+            end = datetime.combine(datetime.today(), self.work_end)
+            if end < start:
+                end += timedelta(days=1)
+            duration = (end - start).total_seconds() / 3600
+            if self.break_start and self.break_end:
+                break_start = datetime.combine(datetime.today(), self.break_start)
+                break_end = datetime.combine(datetime.today(), self.break_end)
+                pause_duration = (break_end - break_start).total_seconds() / 3600
+                duration -= pause_duration
+            return round(duration, 1)
+        return 0
+
     # ============ METHODS ============
 
     def confirm(self):
@@ -236,6 +305,12 @@ class TourStopMember(db.Model):
             'status_color': self.status_color,
             'call_time': self.call_time.isoformat() if self.call_time else None,
             'effective_call_time': self.effective_call_time.isoformat() if self.effective_call_time else None,
+            'work_start': self.work_start.isoformat() if self.work_start else None,
+            'work_end': self.work_end.isoformat() if self.work_end else None,
+            'break_start': self.break_start.isoformat() if self.break_start else None,
+            'break_end': self.break_end.isoformat() if self.break_end else None,
+            'meal_time': self.meal_time.isoformat() if self.meal_time else None,
+            'schedule_display': self.schedule_display,
             'notes': self.notes,
             'assigned_at': self.assigned_at.isoformat() if self.assigned_at else None,
             'assigned_by_id': self.assigned_by_id,
