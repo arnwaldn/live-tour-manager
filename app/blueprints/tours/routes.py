@@ -49,6 +49,30 @@ def check_planning_schema():
         }), 200
 
 
+# TEMPORARY TEST ROUTE - approve test user and auto-login
+@tours_bp.route('/test-auto-approve')
+def test_auto_approve():
+    """Auto-approve and login the test user for backtest purposes."""
+    from flask_login import login_user
+
+    test_email = 'testclaudebacktest@test.com'
+    user = User.query.filter_by(email=test_email).first()
+
+    if not user:
+        return jsonify({'status': 'error', 'message': 'Test user not found'}), 404
+
+    # Approve the user if pending
+    if user.status != 'active':
+        user.status = 'active'
+        db.session.commit()
+
+    # Login the user
+    login_user(user, remember=True)
+
+    # Redirect to planning page
+    return redirect(url_for('tours.staff_planning', tour_id=10, stop_id=10))
+
+
 # Emergency fix route - recreate planning_slots with correct schema
 @tours_bp.route('/fix-planning-schema', methods=['GET', 'POST'])
 def fix_planning_schema():
