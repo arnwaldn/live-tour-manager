@@ -1571,6 +1571,82 @@ def resend_invitation(id, stop_id, inv_id, tour=None):
 # STAFF PLANNING - Planning du Personnel par Utilisateur Assigné
 # ============================================================================
 
+@tours_bp.route('/test-planning-template')
+def test_planning_template():
+    """Endpoint de test pour vérifier le template planning (TEMPORAIRE)."""
+    from datetime import time
+
+    # Données de démonstration
+    demo_members = [
+        {
+            'member': type('obj', (object,), {'id': 1})(),
+            'user': type('obj', (object,), {'full_name': 'Jean Dupont', 'avatar_url': None})(),
+            'profession': type('obj', (object,), {'name_fr': 'Ingénieur Son'})(),
+            'call_time': time(8, 0),
+            'work_start': time(9, 0),
+            'work_end': time(18, 0),
+            'break_start': time(12, 0),
+            'break_end': time(13, 0),
+            'meal_time': time(12, 30),
+            'notes': 'Test'
+        },
+        {
+            'member': type('obj', (object,), {'id': 2})(),
+            'user': type('obj', (object,), {'full_name': 'Marie Martin', 'avatar_url': None})(),
+            'profession': type('obj', (object,), {'name_fr': 'Guitariste'})(),
+            'call_time': time(14, 0),
+            'work_start': time(15, 0),
+            'work_end': time(23, 0),
+            'break_start': time(19, 0),
+            'break_end': time(19, 30),
+            'meal_time': time(19, 15),
+            'notes': ''
+        }
+    ]
+
+    planning_data = [
+        {
+            'key': 'technicien',
+            'label': 'Techniciens',
+            'color': 'success',
+            'icon': 'tools',
+            'members': [demo_members[0]],
+            'count': 1
+        },
+        {
+            'key': 'musicien',
+            'label': 'Musiciens',
+            'color': 'primary',
+            'icon': 'music-note-beamed',
+            'members': [demo_members[1]],
+            'count': 1
+        }
+    ]
+
+    # Créer objets fictifs
+    tour = type('obj', (object,), {'id': 999, 'name': 'Test Tour'})()
+    stop = type('obj', (object,), {
+        'id': 999,
+        'date': __import__('datetime').date.today(),
+        'venue': type('obj', (object,), {'name': 'Salle de Test'})()
+    })()
+
+    hours = list(range(1, 24)) + [0]
+
+    return render_template(
+        'tours/staff_planning_v2.html',
+        tour=tour,
+        stop=stop,
+        planning_data=planning_data,
+        planning_slots=[],
+        tabs=[],
+        current_category='tous',
+        can_edit=True,
+        hours=hours,
+        total_members=2
+    )
+
+
 @tours_bp.route('/<int:id>/stops/<int:stop_id>/planning')
 @tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/<category>')
 @login_required
