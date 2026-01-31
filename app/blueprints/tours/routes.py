@@ -101,6 +101,58 @@ def test_list_data():
     })
 
 
+# Diagnostic route - test planning page rendering
+@tours_bp.route('/test-planning-debug')
+def test_planning_debug():
+    """Test staff_planning function with detailed error capture."""
+    import traceback
+    from flask_login import login_user
+
+    try:
+        # First login test user
+        test_email = 'testclaudebacktest@test.com'
+        user = User.query.filter_by(email=test_email).first()
+        if not user:
+            return jsonify({'step': 'user_lookup', 'error': 'Test user not found'}), 404
+
+        if user.status != 'active':
+            user.status = 'active'
+            db.session.commit()
+
+        login_user(user, remember=True)
+
+        # Get tour and stop
+        tour = Tour.query.first()
+        if not tour:
+            return jsonify({'step': 'tour_lookup', 'error': 'No tours found'}), 404
+
+        stop = TourStop.query.filter_by(tour_id=tour.id).first()
+        if not stop:
+            return jsonify({'step': 'stop_lookup', 'error': 'No stops found'}), 404
+
+        # Try to render the planning page
+        from app.models.planning import PlanningSlot, PLANNING_ROLES
+
+        # Check if PlanningSlot model works
+        slots = PlanningSlot.query.filter_by(tour_stop_id=stop.id).all()
+
+        return jsonify({
+            'status': 'success',
+            'user': user.email,
+            'tour_id': tour.id,
+            'stop_id': stop.id,
+            'slots_count': len(slots),
+            'planning_roles_keys': list(PLANNING_ROLES.keys()) if PLANNING_ROLES else 'PLANNING_ROLES not defined'
+        })
+
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 # Emergency fix route - recreate planning_slots with correct schema
 @tours_bp.route('/fix-planning-schema', methods=['GET', 'POST'])
 def fix_planning_schema():
