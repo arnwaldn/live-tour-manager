@@ -1612,20 +1612,26 @@ def staff_planning(id, stop_id, category='tous', tour=None):
         return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
 
     # Récupérer les slots de planning pour ce stop
-    slots_query = PlanningSlot.query.filter_by(tour_stop_id=stop_id)
+    # Handle case where planning_slots table doesn't exist yet
+    try:
+        slots_query = PlanningSlot.query.filter_by(tour_stop_id=stop_id)
 
-    # Filtrer par catégorie si pas "tous"
-    cat_value = URL_TO_CATEGORY[category]
-    if cat_value:
-        # Filtrer les slots dont l'utilisateur ou la profession correspond à la catégorie
-        filtered_slots = []
-        for slot in slots_query.all():
-            slot_cat = slot.category_value
-            if slot_cat == cat_value:
-                filtered_slots.append(slot)
-        slots = filtered_slots
-    else:
-        slots = slots_query.all()
+        # Filtrer par catégorie si pas "tous"
+        cat_value = URL_TO_CATEGORY[category]
+        if cat_value:
+            # Filtrer les slots dont l'utilisateur ou la profession correspond à la catégorie
+            filtered_slots = []
+            for slot in slots_query.all():
+                slot_cat = slot.category_value
+                if slot_cat == cat_value:
+                    filtered_slots.append(slot)
+            slots = filtered_slots
+        else:
+            slots = slots_query.all()
+    except Exception:
+        # Table doesn't exist or query failed - return empty slots
+        slots = []
+        cat_value = URL_TO_CATEGORY[category]
 
     # Organiser les slots par utilisateur
     slots_by_user = {}
