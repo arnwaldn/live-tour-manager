@@ -24,6 +24,28 @@ from app.utils.geocoding import geocode_address
 from app.blueprints.logistics.routes import get_visible_logistics
 
 
+# DEBUG ROUTE - temporary test
+@tours_bp.route('/debug-planning-test')
+def debug_planning_test():
+    """Temporary debug route to test planning imports."""
+    try:
+        from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
+        count = PlanningSlot.query.count()
+        return jsonify({
+            'status': 'ok',
+            'slot_count': count,
+            'roles': list(PLANNING_ROLES.keys()),
+            'labels': CATEGORY_LABELS
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 def get_users_by_category(users_list=None, assigned_ids=None):
     """Retourne les utilisateurs groupés par catégorie de métier pour l'assignation.
 
