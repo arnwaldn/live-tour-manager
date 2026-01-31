@@ -63,21 +63,93 @@
         </div>
     </div>
 
-    {% if total_members == 0 %}
-    <!-- Aucun membre assigné -->
-    <div class="card">
-        <div class="card-body text-center py-5">
-            <i class="bi bi-people text-muted" style="font-size: 4rem;"></i>
-            <h4 class="mt-3">Aucun membre assigné</h4>
-            <p class="text-muted">
-                Commencez par assigner des membres à ce concert depuis la page de détails.
-            </p>
-            <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-primary">
-                <i class="bi bi-person-plus me-1"></i> Assigner des membres
-            </a>
+    {% if can_edit %}
+    <!-- Bouton Ajouter un créneau -->
+    <div class="mb-4">
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSlotModal">
+            <i class="bi bi-plus-lg me-1"></i> Ajouter un créneau
+        </button>
+        <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-primary ms-2">
+            <i class="bi bi-person-plus me-1"></i> Gérer les membres
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Créneaux de planning -->
+    {% if planning_slots %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-clock-history me-2"></i>
+                Créneaux horaires
+                <span class="badge bg-light text-dark ms-2">{{ planning_slots | length }}</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Catégorie</th>
+                            <th>Rôle</th>
+                            <th>Horaires</th>
+                            <th>Tâche</th>
+                            <th>Assigné à</th>
+                            {% if can_edit %}
+                            <th style="width: 100px;">Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slot in planning_slots %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ slot.category }}</span></td>
+                            <td><strong>{{ slot.role_name }}</strong></td>
+                            <td>
+                                <span class="badge bg-primary">
+                                    {{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}
+                                </span>
+                            </td>
+                            <td>{{ slot.task_description }}</td>
+                            <td>
+                                {% if slot.user %}
+                                {{ slot.user.full_name }}
+                                {% else %}
+                                <span class="text-muted">Non assigné</span>
+                                {% endif %}
+                            </td>
+                            {% if can_edit %}
+                            <td>
+                                <form method="POST" action="{{ url_for('tours.delete_planning_slot', id=tour.id, stop_id=stop.id, slot_id=slot.id) }}" class="d-inline">
+                                    <input type="hidden" name="category" value="{{ current_category }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Supprimer ce créneau ?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-    {% else %}
+    {% endif %}
+
+    {% if total_members == 0 and not planning_slots %}
+    <!-- Aucun membre assigné et aucun créneau -->
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-calendar-x text-muted" style="font-size: 4rem;"></i>
+            <h4 class="mt-3">Planning vide</h4>
+            <p class="text-muted">
+                Créez des créneaux horaires avec le bouton "Ajouter un créneau",<br>
+                ou assignez des membres pour gérer leur planning individuel.
+            </p>
+        </div>
+    </div>
+    {% elif total_members > 0 %}
 
     <!-- Planning par catégorie -->
     {% for category in planning_data %}
@@ -196,6 +268,67 @@
 </div>
 
 {% if can_edit %}
+<!-- Modal d'ajout de créneau -->
+<div class="modal fade" id="addSlotModal" tabindex="-1" aria-labelledby="addSlotModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addSlotModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Ajouter un créneau
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <form method="POST" action="{{ url_for('tours.add_planning_slot', id=tour.id, stop_id=stop.id) }}">
+                <input type="hidden" name="category" value="{{ current_category }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="slot_category" class="form-label">Catégorie</label>
+                        <select class="form-select" id="slot_category" name="slot_category" required>
+                            <option value="">-- Sélectionner --</option>
+                            <option value="musicien">Musiciens</option>
+                            <option value="technicien">Techniciens</option>
+                            <option value="production">Production</option>
+                            <option value="style">Style & Costumes</option>
+                            <option value="securite">Sécurité</option>
+                            <option value="management">Management</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="role_name" class="form-label">Rôle / Poste</label>
+                        <input type="text" class="form-control" id="role_name" name="role_name"
+                               placeholder="Ex: Ingénieur son, Guitariste, Agent de sécurité..." required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="slot_start_time" class="form-label">Heure de début</label>
+                            <input type="time" class="form-control" id="slot_start_time" name="start_time" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="slot_end_time" class="form-label">Heure de fin</label>
+                            <input type="time" class="form-control" id="slot_end_time" name="end_time" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="task_description" class="form-label">Description de la tâche</label>
+                        <input type="text" class="form-control" id="task_description" name="task_description"
+                               placeholder="Ex: Montage scène, Balance son, Accueil VIP..." required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-plus-lg me-1"></i> Créer le créneau
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal d'édition du planning -->
 <div class="modal fade" id="editScheduleModal" tabindex="-1" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
     <div class="modal-dialog">

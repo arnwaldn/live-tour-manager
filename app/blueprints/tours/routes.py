@@ -1681,11 +1681,19 @@ def staff_planning(id, stop_id, category='tous', tour=None):
     # Compter le total de membres
     total_members = sum(len(cat.get('members', [])) for cat in planning_data)
 
+    # Charger les créneaux de planning (slots)
+    from app.models.planning_slot import PlanningSlot
+    slots_query = PlanningSlot.query.filter_by(tour_stop_id=stop_id)
+    if category != 'tous':
+        slots_query = slots_query.filter_by(category=category)
+    planning_slots = slots_query.order_by(PlanningSlot.start_time).all()
+
     return render_template(
         'tours/staff_planning.html',
         tour=tour,
         stop=stop,
         planning_data=planning_data,
+        planning_slots=planning_slots,
         tabs=tabs,
         current_category=category,
         can_edit=can_edit,
