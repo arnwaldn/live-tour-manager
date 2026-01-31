@@ -83,6 +83,62 @@ def stop_debug(tour_id, stop_id):
         except Exception as inv_error:
             result['errors'].append(f'MissionInvitation error: {str(inv_error)}')
 
+        # Step 7: Test get_users_by_category (this is often the culprit)
+        try:
+            from app.blueprints.tours.routes import get_users_by_category
+            assigned_ids = [m.id for m in stop.assigned_members]
+            categories_data, users_without_profession = get_users_by_category(
+                users_list=list(stop.assigned_members),
+                assigned_ids=assigned_ids
+            )
+            result['categories_data_count'] = len(categories_data)
+            result['users_without_profession_count'] = len(users_without_profession)
+        except Exception as cat_error:
+            result['errors'].append(f'get_users_by_category error: {str(cat_error)}')
+            result['categories_traceback'] = traceback.format_exc()
+
+        # Step 8: Test the full performers list building (from stop_detail logic)
+        try:
+            all_performers = []
+            main_band_in_lineup = False
+
+            for slot in stop.lineup_slots:
+                if tour.band and slot.performer_name.lower() == tour.band.name.lower():
+                    main_band_in_lineup = True
+                all_performers.append({
+                    'name': slot.performer_name,
+                    'type': slot.performer_type.value if slot.performer_type else 'other',
+                    'type_label': slot.performer_type_label if hasattr(slot, 'performer_type_label') else 'Autre',
+                    'start_time': slot.start_time,
+                    'time_range': slot.time_range_formatted if hasattr(slot, 'time_range_formatted') else None,
+                    'duration': slot.duration_formatted if hasattr(slot, 'duration_formatted') else None,
+                    'is_confirmed': slot.is_confirmed,
+                    'is_main_band': False
+                })
+
+            # Add main band if not in lineup
+            if not main_band_in_lineup and tour.band:
+                main_time = stop.set_time.strftime('%H:%M') if stop.set_time else None
+                end_time = stop.curfew_time.strftime('%H:%M') if stop.curfew_time else None
+                time_range = f"{main_time} - {end_time}" if main_time and end_time else (main_time or 'Horaire non défini')
+
+                all_performers.append({
+                    'name': tour.band.name if tour.band else 'N/A',
+                    'type': 'main_artist',
+                    'type_label': 'Artiste principal',
+                    'start_time': stop.set_time,
+                    'time_range': time_range,
+                    'duration': None,
+                    'is_confirmed': True,
+                    'is_main_band': True
+                })
+
+            result['performers_count'] = len(all_performers)
+            result['performers_built'] = True
+        except Exception as perf_error:
+            result['errors'].append(f'performers build error: {str(perf_error)}')
+            result['performers_traceback'] = traceback.format_exc()
+
         result['success'] = len(result['errors']) == 0
 
     except Exception as e:
