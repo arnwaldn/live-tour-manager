@@ -1822,6 +1822,18 @@ def debug_staff_planning(tour_id, stop_id):
 @tour_access_required
 def staff_planning(id, stop_id, category='tous', tour=None):
     """Planning du personnel - affiche les utilisateurs assignés groupés par profession."""
+    import traceback
+    try:
+        return _staff_planning_impl(id, stop_id, category, tour)
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
+def _staff_planning_impl(id, stop_id, category, tour):
+    """Implementation interne de staff_planning."""
     from app.models.tour_stop import TourStopMember
     from app.models.profession import (
         Profession, ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
