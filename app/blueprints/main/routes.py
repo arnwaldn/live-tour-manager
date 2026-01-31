@@ -14,7 +14,82 @@ from app.extensions import db
 def ping():
     """Ultra-simple ping - no DB, no templates. For deployment verification."""
     from datetime import datetime
-    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-30-v5", 200, {'Content-Type': 'text/plain'}
+    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-31-v1", 200, {'Content-Type': 'text/plain'}
+
+
+@main_bp.route('/health/stop-debug/<int:tour_id>/<int:stop_id>')
+def stop_debug(tour_id, stop_id):
+    """Debug endpoint for stop_detail errors - no auth required."""
+    import traceback
+    from app.models.tour import Tour
+    from app.models.tour_stop import TourStop
+    from app.models.lineup import LineupSlot
+    from app.models.mission_invitation import MissionInvitation
+
+    result = {
+        'version': '2026-01-31-v1',
+        'tour_id': tour_id,
+        'stop_id': stop_id,
+        'errors': []
+    }
+
+    try:
+        # Step 1: Get tour
+        tour = Tour.query.get(tour_id)
+        if not tour:
+            result['errors'].append(f'Tour {tour_id} not found')
+            return jsonify(result)
+        result['tour'] = {'id': tour.id, 'name': tour.name, 'band_id': tour.band_id}
+
+        # Step 2: Check band
+        if tour.band:
+            result['band'] = {'id': tour.band.id, 'name': tour.band.name}
+        else:
+            result['band'] = None
+            result['errors'].append('Tour has no band')
+
+        # Step 3: Get stop
+        stop = TourStop.query.filter_by(id=stop_id, tour_id=tour_id).first()
+        if not stop:
+            result['errors'].append(f'TourStop {stop_id} not found for tour {tour_id}')
+            return jsonify(result)
+        result['stop'] = {'id': stop.id, 'date': str(stop.date), 'event_type': stop.event_type.value if stop.event_type else None}
+
+        # Step 4: Check lineup_slots
+        result['lineup_slots'] = []
+        for i, slot in enumerate(stop.lineup_slots):
+            try:
+                slot_data = {
+                    'id': slot.id,
+                    'performer_name': slot.performer_name,
+                    'performer_type': slot.performer_type.value if slot.performer_type else None,
+                    'start_time': str(slot.start_time) if slot.start_time else None
+                }
+                result['lineup_slots'].append(slot_data)
+            except Exception as slot_error:
+                result['errors'].append(f'Slot {i} error: {str(slot_error)}')
+
+        # Step 5: Check assigned_members
+        try:
+            assigned_count = len(stop.assigned_members)
+            result['assigned_members_count'] = assigned_count
+        except Exception as am_error:
+            result['errors'].append(f'assigned_members error: {str(am_error)}')
+
+        # Step 6: Test MissionInvitation.get_for_stop
+        try:
+            invitations = list(MissionInvitation.get_for_stop(stop.id))
+            result['invitations_count'] = len(invitations)
+        except Exception as inv_error:
+            result['errors'].append(f'MissionInvitation error: {str(inv_error)}')
+
+        result['success'] = len(result['errors']) == 0
+
+    except Exception as e:
+        result['errors'].append(f'Global error: {str(e)}')
+        result['traceback'] = traceback.format_exc()
+
+    return jsonify(result)
 
 
 @main_bp.route('/health/run-migrations')
