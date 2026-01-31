@@ -81,39 +81,12 @@ class TourStopMember(db.Model):
     # Horaires spécifiques pour ce membre (override des horaires globaux)
     call_time = db.Column(db.Time, nullable=True)  # Heure de convocation spécifique
 
-    # Planning horaire complet (v2.1)
-    # NOTE: Ces champs utilisent @property pour compatibilité avec prod sans migration
-    # Pour activer les vraies colonnes, exécuter sur Render PostgreSQL:
-    # ALTER TABLE tour_stop_members_v2 ADD COLUMN work_start TIME;
-    # ALTER TABLE tour_stop_members_v2 ADD COLUMN work_end TIME;
-    # ALTER TABLE tour_stop_members_v2 ADD COLUMN break_start TIME;
-    # ALTER TABLE tour_stop_members_v2 ADD COLUMN break_end TIME;
-    # ALTER TABLE tour_stop_members_v2 ADD COLUMN meal_time TIME;
-
-    @property
-    def work_start(self):
-        """Début de travail (placeholder jusqu'à migration)."""
-        return None
-
-    @property
-    def work_end(self):
-        """Fin de travail (placeholder jusqu'à migration)."""
-        return None
-
-    @property
-    def break_start(self):
-        """Début pause (placeholder jusqu'à migration)."""
-        return None
-
-    @property
-    def break_end(self):
-        """Fin pause (placeholder jusqu'à migration)."""
-        return None
-
-    @property
-    def meal_time(self):
-        """Heure repas (placeholder jusqu'à migration)."""
-        return None
+    # Planning horaire complet (v2.1) - colonnes ajoutées par migration
+    work_start = db.Column(db.Time, nullable=True)  # Début de travail
+    work_end = db.Column(db.Time, nullable=True)    # Fin de travail
+    break_start = db.Column(db.Time, nullable=True) # Début pause
+    break_end = db.Column(db.Time, nullable=True)   # Fin pause
+    meal_time = db.Column(db.Time, nullable=True)   # Heure repas
 
     # Notes d'assignation
     notes = db.Column(db.Text, nullable=True)
