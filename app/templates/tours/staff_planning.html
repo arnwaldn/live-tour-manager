@@ -1,56 +1,65 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Planning Journée - {{ stop.date.strftime('%d/%m/%Y') }} - {{ tour.name }}{% endblock %}
+{% block title %}Planning Journée - {{ stop.date.strftime('%d/%m/%Y') }}{% endblock %}
 
 {% block extra_css %}
 <style>
-/* Planning Grid Styles */
-.planning-container {
-    max-width: 100%;
+/* ========== PLANNING GRID STYLES ========== */
+.planning-wrapper {
+    background: #1a1d21;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Tabs */
+.planning-tabs {
+    display: flex;
+    gap: 0;
+    background: #2d3238;
+    border-bottom: 2px solid #3d4248;
     overflow-x: auto;
 }
 
-/* Category tabs */
-.category-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    padding: 0.75rem;
-    background: var(--bs-gray-900);
-    border-radius: 0.75rem;
-}
-
-.category-tab {
-    padding: 0.625rem 1.25rem;
-    border-radius: 0.5rem;
+.planning-tab {
+    padding: 1rem 1.5rem;
+    color: #9ca3af;
     text-decoration: none;
-    color: var(--bs-gray-400);
     font-weight: 500;
-    font-size: 0.875rem;
-    transition: all 0.2s;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
 }
 
-.category-tab:hover {
-    color: var(--bs-white);
-    background: rgba(255,255,255,0.1);
+.planning-tab:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.05);
 }
 
-.category-tab.active {
-    color: white;
+.planning-tab.active {
+    color: #fff;
+    border-bottom-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* Title bar */
+.planning-title {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
     font-weight: 600;
+    color: #fff;
+    border-bottom: 1px solid #3d4248;
 }
 
-/* Planning Grid */
+/* Grid container */
 .planning-grid {
     display: grid;
-    grid-template-columns: 180px repeat(24, 50px);
-    background: var(--bs-gray-900);
-    border-radius: 0.75rem;
-    overflow: hidden;
+    grid-template-columns: 160px repeat(24, minmax(50px, 1fr));
+    min-width: 1400px;
 }
 
 /* Header row */
@@ -58,108 +67,104 @@
     display: contents;
 }
 
-.grid-header > div {
-    background: var(--bs-gray-800);
-    padding: 0.75rem 0.5rem;
+.grid-header-cell {
+    background: #2d3238;
+    padding: 0.75rem 0.25rem;
     text-align: center;
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--bs-gray-400);
-    border-bottom: 2px solid var(--bs-gray-700);
+    color: #9ca3af;
+    border-bottom: 1px solid #3d4248;
+    border-right: 1px solid #3d4248;
 }
 
-.grid-header > div:first-child {
+.grid-header-cell:first-child {
     text-align: left;
     padding-left: 1rem;
+    position: sticky;
+    left: 0;
+    z-index: 10;
 }
 
-/* Category section */
-.category-section {
+/* Category header */
+.category-row {
     display: contents;
 }
 
 .category-header {
     grid-column: 1 / -1;
-    padding: 0.75rem 1rem;
-    background: var(--bs-gray-850);
-    font-weight: 600;
-    font-size: 0.875rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-top: 1px solid var(--bs-gray-700);
+    padding: 0.5rem 1rem;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    color: #fff;
+    border-bottom: 1px solid #3d4248;
 }
 
-/* Member row */
-.member-row {
+/* Role row */
+.role-row {
     display: contents;
 }
 
-.member-cell {
-    padding: 0.5rem;
-    border-bottom: 1px solid var(--bs-gray-800);
-    min-height: 50px;
-}
-
-.member-info-cell {
+.role-cell {
+    background: #22262b;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: #e5e7eb;
+    border-bottom: 1px solid #3d4248;
+    border-right: 1px solid #3d4248;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-left: 1rem;
-    background: var(--bs-gray-850);
+    align-items: center;
+    position: sticky;
+    left: 0;
+    z-index: 5;
 }
 
-.member-name {
-    font-weight: 600;
-    color: var(--bs-white);
-    font-size: 0.875rem;
-}
-
-.member-profession {
-    font-size: 0.75rem;
-    color: var(--bs-gray-500);
-}
-
-/* Hour cells */
 .hour-cell {
+    background: #1e2227;
+    border-bottom: 1px solid #3d4248;
+    border-right: 1px solid #3d4248;
     position: relative;
-    border-left: 1px solid var(--bs-gray-800);
+    min-height: 45px;
 }
 
 /* Slots */
-.planning-slot {
+.slot {
     position: absolute;
-    top: 4px;
-    bottom: 4px;
+    top: 3px;
+    bottom: 3px;
     border-radius: 4px;
-    padding: 2px 6px;
+    padding: 3px 8px;
     font-size: 0.7rem;
-    color: white;
+    color: #fff;
     display: flex;
     flex-direction: column;
     justify-content: center;
     cursor: pointer;
     overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    z-index: 10;
+    z-index: 2;
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
 }
 
-.planning-slot:hover {
-    opacity: 0.9;
+.slot:hover {
     transform: scale(1.02);
-    z-index: 20;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    z-index: 10;
 }
 
 .slot-time {
-    font-weight: 600;
-    font-size: 0.65rem;
+    font-weight: 700;
+    font-size: 0.7rem;
+    margin-bottom: 1px;
 }
 
 .slot-task {
     font-size: 0.65rem;
     opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Category colors */
@@ -170,42 +175,21 @@
 .slot-style { background: linear-gradient(135deg, #ec4899, #be185d); }
 .slot-production { background: linear-gradient(135deg, #f97316, #c2410c); }
 
-/* Add slot button */
-.add-slot-btn {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--bs-gray-700);
-    color: var(--bs-gray-400);
-    border: none;
-    font-size: 0.75rem;
-    opacity: 0;
-    transition: opacity 0.2s;
-    cursor: pointer;
-}
-
-.hour-cell:hover .add-slot-btn {
-    opacity: 1;
-}
-
-.add-slot-btn:hover {
-    background: var(--bs-primary);
-    color: white;
-}
+.cat-musicien { background-color: #8b5cf6; }
+.cat-technicien { background-color: #3b82f6; }
+.cat-securite { background-color: #ef4444; }
+.cat-management { background-color: #22c55e; }
+.cat-style { background-color: #ec4899; }
+.cat-production { background-color: #f97316; }
 
 /* Legend */
 .planning-legend {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
-    padding: 1rem;
-    background: var(--bs-gray-900);
-    border-radius: 0 0 0.75rem 0.75rem;
-    margin-top: -0.75rem;
+    padding: 1rem 1.5rem;
+    background: #2d3238;
+    justify-content: flex-end;
 }
 
 .legend-item {
@@ -213,51 +197,49 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.75rem;
-    color: var(--bs-gray-400);
+    color: #9ca3af;
+    padding: 0.25rem 0.75rem;
+    background: #3d4248;
+    border-radius: 20px;
 }
 
 .legend-color {
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
     border-radius: 3px;
 }
 
 /* Empty state */
-.empty-planning {
+.empty-state {
     text-align: center;
     padding: 4rem 2rem;
-    color: var(--bs-gray-500);
+    color: #6b7280;
 }
 
-/* Modal styling */
-.slot-modal .modal-content {
-    background: var(--bs-gray-900);
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    display: block;
 }
 
-.slot-modal .form-control,
-.slot-modal .form-select {
-    background: var(--bs-gray-800);
-    border-color: var(--bs-gray-700);
-    color: white;
+/* Modal */
+.planning-modal .modal-content {
+    background: #1e2227;
+    border: 1px solid #3d4248;
 }
 
-/* Stats cards */
-.stat-card {
-    background: var(--bs-gray-900);
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-    text-align: center;
+.planning-modal .form-control,
+.planning-modal .form-select {
+    background: #2d3238;
+    border-color: #3d4248;
+    color: #fff;
 }
 
-.stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-}
-
-.stat-label {
-    font-size: 0.75rem;
-    color: var(--bs-gray-500);
-    margin-top: 0.25rem;
+.planning-modal .form-control:focus,
+.planning-modal .form-select:focus {
+    background: #2d3238;
+    border-color: #3b82f6;
+    color: #fff;
 }
 
 /* Responsive */
@@ -269,213 +251,194 @@
 
 @media print {
     .no-print { display: none !important; }
-    .planning-grid { grid-template-columns: 150px repeat(24, 40px); }
+    .planning-wrapper { background: #fff; }
+    .slot { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 </style>
 {% endblock %}
 
 {% block breadcrumb %}
-<nav aria-label="breadcrumb">
+<nav aria-label="breadcrumb" class="no-print">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
-        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m') }}</a></li>
         <li class="breadcrumb-item active">Planning</li>
     </ol>
 </nav>
 {% endblock %}
 
 {% block page_header %}
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 no-print">
-    <div class="mb-3 mb-md-0">
-        <h1 class="h2 mb-1">
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <div>
+        <h1 class="h3 mb-0">
             <i class="bi bi-calendar2-week me-2 text-primary"></i>Planning Journée
         </h1>
-        <p class="text-muted mb-0">
-            {{ stop.venue.name if stop.venue else stop.location_city or 'Lieu non défini' }} -
-            {{ stop.date.strftime('%A %d %B %Y') }}
-        </p>
+        <small class="text-muted">{{ stop.venue.name if stop.venue else 'Lieu' }} - {{ stop.date.strftime('%A %d %B %Y') }}</small>
     </div>
     <div class="btn-group">
-        <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Retour
+        <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>
         </a>
         {% if can_edit %}
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSlotModal">
-            <i class="bi bi-plus-lg me-1"></i>Ajouter créneau
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addSlotModal">
+            <i class="bi bi-plus-lg me-1"></i>Ajouter
         </button>
         {% endif %}
-        <button onclick="window.print()" class="btn btn-outline-primary">
-            <i class="bi bi-printer me-1"></i>
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-printer"></i>
         </button>
     </div>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="planning-container">
-    <!-- Category Tabs -->
-    <div class="category-tabs no-print">
-        {% for cat in categories %}
-        <a href="{{ url_for('tours.staff_planning', id=tour.id, stop_id=stop.id, category=cat.key) }}"
-           class="category-tab {{ 'active' if current_category == cat.key else '' }}"
-           style="{% if current_category == cat.key %}background: {{ cat.color }}20; border: 1px solid {{ cat.color }};{% endif %}">
-            <i class="{{ cat.icon }}"></i>
-            <span>{{ cat.label }}</span>
+<div class="planning-wrapper">
+    <!-- Tabs -->
+    <div class="planning-tabs no-print">
+        {% for tab in tabs %}
+        <a href="{{ url_for('tours.staff_planning', id=tour.id, stop_id=stop.id, category=tab.key) }}"
+           class="planning-tab {{ 'active' if current_category == tab.key }}">
+            <i class="{{ tab.icon }}"></i>
+            {{ tab.label }}
         </a>
         {% endfor %}
     </div>
 
-    {% if members_data %}
-    <!-- Planning Grid -->
-    <div class="planning-grid">
-        <!-- Header Row -->
-        <div class="grid-header">
-            <div>Équipe</div>
-            {% for hour in hours %}
-            <div>{{ '%02d' % hour }}h</div>
-            {% endfor %}
-        </div>
+    <!-- Title -->
+    <div class="planning-title">
+        PLANNING JOURNALIER CONCERT - VUE GLOBALE (01h00 - 00h00)
+    </div>
 
-        <!-- Group by category -->
-        {% set current_cat = namespace(value=None) %}
-        {% for item in members_data %}
-            {% set cat_value = item.profession_category.value if item.profession_category else 'autre' %}
-
-            {# Category header if changed #}
-            {% if current_category == 'tous' and cat_value != current_cat.value %}
-                {% set current_cat.value = cat_value %}
-                <div class="category-header" style="color: {{ item.profession_category|attr('value')|default('#6b7280') }};">
-                    {% set cat_icons = {'musicien': 'bi-music-note-beamed', 'technicien': 'bi-tools', 'securite': 'bi-shield-check', 'management': 'bi-briefcase', 'style': 'bi-brush', 'production': 'bi-clipboard-check'} %}
-                    <i class="{{ cat_icons.get(cat_value, 'bi-person') }}"></i>
-                    {{ {'musicien': 'Artistes', 'technicien': 'Techniciens', 'securite': 'Sécurité', 'management': 'Managers', 'style': 'Style', 'production': 'Production'}.get(cat_value, 'Autre') }}
-                </div>
-            {% endif %}
-
-            <!-- Member Row -->
-            <div class="member-row">
-                <div class="member-cell member-info-cell">
-                    <div class="member-name">{{ item.user.full_name }}</div>
-                    <div class="member-profession">{{ item.profession_name }}</div>
-                </div>
-
+    <!-- Grid -->
+    <div style="overflow-x: auto;">
+        <div class="planning-grid">
+            <!-- Header Row -->
+            <div class="grid-header">
+                <div class="grid-header-cell"></div>
                 {% for hour in hours %}
-                <div class="member-cell hour-cell" data-hour="{{ hour }}" data-user-id="{{ item.user.id }}">
-                    {# Render slots that start at this hour #}
-                    {% for slot in item.slots %}
-                        {% if slot.start_time.hour == hour %}
-                        {% set slot_width = slot.grid_span * 50 %}
-                        <div class="planning-slot slot-{{ slot.category }}"
-                             style="left: 0; width: {{ slot_width }}px;"
-                             data-slot-id="{{ slot.id }}"
-                             data-bs-toggle="modal"
-                             data-bs-target="#editSlotModal"
-                             onclick="loadSlotData({{ slot.id }}, '{{ slot.start_time.strftime('%H:%M') }}', '{{ slot.end_time.strftime('%H:%M') }}', '{{ slot.task_description }}')">
-                            <span class="slot-time">{{ slot.time_range }}</span>
-                            <span class="slot-task">{{ slot.task_description }}</span>
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if can_edit and not item.slots|selectattr('start_time.hour', 'equalto', hour)|list %}
-                    <button class="add-slot-btn"
-                            onclick="openAddSlotModal({{ item.user.id }}, '{{ item.user.full_name }}', {{ hour }})"
-                            title="Ajouter créneau">+</button>
-                    {% endif %}
-                </div>
+                <div class="grid-header-cell">{{ '%02d' % hour }}:00</div>
                 {% endfor %}
             </div>
-        {% endfor %}
+
+            {% if planning_data %}
+                {% for cat in planning_data %}
+                <!-- Category: {{ cat.label }} -->
+                <div class="category-row">
+                    <div class="category-header cat-{{ cat.key }}">
+                        {{ cat.label }}
+                    </div>
+                </div>
+
+                {% for role in cat.roles %}
+                <!-- Role: {{ role.name }} -->
+                <div class="role-row">
+                    <div class="role-cell">{{ role.name }}</div>
+                    {% for hour in hours %}
+                    <div class="hour-cell" data-hour="{{ hour }}" data-role="{{ role.name }}" data-category="{{ cat.key }}">
+                        {% for slot in role.slots %}
+                            {% if slot.start_time.hour == hour %}
+                            {% set duration_hours = slot.grid_column_span %}
+                            {% set width_percent = duration_hours * 100 %}
+                            <div class="slot slot-{{ cat.key }}"
+                                 style="left: 0; width: calc({{ width_percent }}% - 6px);"
+                                 data-slot-id="{{ slot.id }}"
+                                 onclick="editSlot({{ slot.id }}, '{{ slot.start_time.strftime('%H:%M') }}', '{{ slot.end_time.strftime('%H:%M') }}', '{{ slot.task_description }}', '{{ slot.role_name }}', '{{ slot.category }}')"
+                                 title="{{ slot.task_description }}">
+                                <span class="slot-time">{{ slot.time_range }}</span>
+                                <span class="slot-task">{{ slot.task_description }}</span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                {% endfor %}
+            {% else %}
+            <!-- Empty State -->
+            <div style="grid-column: 1 / -1;">
+                <div class="empty-state">
+                    <i class="bi bi-calendar-plus"></i>
+                    <h5>Aucun créneau planifié</h5>
+                    <p>Cliquez sur "Ajouter" pour créer le premier créneau du planning.</p>
+                    {% if can_edit %}
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSlotModal">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter un créneau
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Legend -->
     <div class="planning-legend">
-        <div class="legend-item"><div class="legend-color slot-musicien"></div>Artistes</div>
-        <div class="legend-item"><div class="legend-color slot-technicien"></div>Techniciens</div>
-        <div class="legend-item"><div class="legend-color slot-securite"></div>Sécurité</div>
-        <div class="legend-item"><div class="legend-color slot-management"></div>Managers</div>
-        <div class="legend-item"><div class="legend-color slot-style"></div>Style</div>
-        <div class="legend-item"><div class="legend-color slot-production"></div>Production</div>
+        <div class="legend-item"><div class="legend-color" style="background: #8b5cf6;"></div>Artistes (Violet)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #3b82f6;"></div>Techniciens (Bleu)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #ef4444;"></div>Sécurité (Rouge)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #22c55e;"></div>Managers (Vert)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #ec4899;"></div>Habilleurs/Maquill. (Rose)</div>
     </div>
+</div>
 
-    {% else %}
-    <!-- Empty State -->
-    <div class="empty-planning">
-        <i class="bi bi-calendar-x display-4 mb-3 d-block"></i>
-        <h5>Aucun membre assigné</h5>
-        <p class="mb-3">
-            {% if current_category != 'tous' %}
-            Aucun membre de cette catégorie n'est assigné à ce concert.
-            {% else %}
-            Commencez par assigner des membres à ce concert.
-            {% endif %}
-        </p>
-        <a href="{{ url_for('tours.assign_members', id=tour.id, stop_id=stop.id) }}" class="btn btn-primary">
-            <i class="bi bi-person-plus me-1"></i>Assigner des membres
-        </a>
+<!-- Stats -->
+<div class="row g-3 mt-3">
+    <div class="col-6 col-md-3">
+        <div class="card bg-dark border-0">
+            <div class="card-body text-center py-3">
+                <div class="h3 mb-0 text-primary">{{ total_slots }}</div>
+                <small class="text-muted">Créneaux</small>
+            </div>
+        </div>
     </div>
-    {% endif %}
-
-    <!-- Stats -->
-    <div class="row g-3 mt-4">
-        <div class="col-6 col-md-3">
-            <div class="stat-card">
-                <div class="stat-value text-primary">{{ members_data|length }}</div>
-                <div class="stat-label">Membres</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stat-card">
-                {% set total_slots = members_data|sum(attribute='slots')|length if members_data else 0 %}
-                <div class="stat-value text-success">{{ members_data|map(attribute='slots')|map('length')|sum }}</div>
-                <div class="stat-label">Créneaux</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stat-card">
-                {% set with_slots = members_data|selectattr('slots')|list|length %}
-                <div class="stat-value text-info">{{ with_slots }}</div>
-                <div class="stat-label">Planifiés</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stat-card">
-                {% set without_slots = members_data|rejectattr('slots')|list|length %}
-                <div class="stat-value text-warning">{{ without_slots }}</div>
-                <div class="stat-label">Non planifiés</div>
+    <div class="col-6 col-md-3">
+        <div class="card bg-dark border-0">
+            <div class="card-body text-center py-3">
+                <div class="h3 mb-0 text-info">{{ planning_data|length }}</div>
+                <small class="text-muted">Catégories</small>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add Slot Modal -->
 {% if can_edit %}
-<div class="modal fade slot-modal" id="addSlotModal" tabindex="-1">
+<!-- Add Slot Modal -->
+<div class="modal fade planning-modal" id="addSlotModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header border-secondary">
-                <h5 class="modal-title">
-                    <i class="bi bi-plus-circle me-2"></i>Ajouter un créneau
-                </h5>
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Ajouter un créneau</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ url_for('tours.add_planning_slot', id=tour.id, stop_id=stop.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="category" value="{{ current_category }}">
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Membre</label>
-                        <select name="user_id" id="addSlotUserId" class="form-select" required>
-                            <option value="">-- Sélectionner --</option>
-                            {% for user in available_users %}
-                            <option value="{{ user.id }}">{{ user.full_name }}</option>
-                            {% endfor %}
-                        </select>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Catégorie</label>
+                            <select name="slot_category" id="slotCategory" class="form-select" required onchange="updateRoles()">
+                                <option value="">-- Choisir --</option>
+                                <option value="musicien">Artistes</option>
+                                <option value="technicien">Techniciens</option>
+                                <option value="securite">Sécurité</option>
+                                <option value="management">Managers</option>
+                                <option value="style">Habilleurs & Maquilleurs</option>
+                                <option value="production">Production</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Poste/Rôle</label>
+                            <input type="text" name="role_name" id="roleName" class="form-control" list="rolesList" placeholder="Ex: Équipe Son" required>
+                            <datalist id="rolesList"></datalist>
+                        </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label">Début</label>
-                            <input type="time" name="start_time" id="addSlotStartTime" class="form-control" required>
+                            <input type="time" name="start_time" class="form-control" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label">Fin</label>
@@ -483,15 +446,13 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Description de la tâche</label>
-                        <input type="text" name="task_description" class="form-control" placeholder="Ex: Soundcheck, Installation..." required maxlength="200">
+                        <label class="form-label">Tâche / Description</label>
+                        <input type="text" name="task_description" class="form-control" placeholder="Ex: Montage/Câblage" required maxlength="200">
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-plus-lg me-1"></i>Ajouter
-                    </button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Ajouter</button>
                 </div>
             </form>
         </div>
@@ -499,47 +460,43 @@
 </div>
 
 <!-- Edit Slot Modal -->
-<div class="modal fade slot-modal" id="editSlotModal" tabindex="-1">
+<div class="modal fade planning-modal" id="editSlotModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header border-secondary">
-                <h5 class="modal-title">
-                    <i class="bi bi-pencil me-2"></i>Modifier le créneau
-                </h5>
+                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Modifier le créneau</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="editSlotForm" method="POST" action="">
+            <form id="editSlotForm" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="category" value="{{ current_category }}">
                 <div class="modal-body">
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label">Début</label>
-                            <input type="time" name="start_time" id="editSlotStartTime" class="form-control" required>
+                            <input type="time" name="start_time" id="editStartTime" class="form-control" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label">Fin</label>
-                            <input type="time" name="end_time" id="editSlotEndTime" class="form-control" required>
+                            <input type="time" name="end_time" id="editEndTime" class="form-control" required>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <input type="text" name="task_description" id="editSlotTask" class="form-control" required maxlength="200">
+                        <label class="form-label">Tâche</label>
+                        <input type="text" name="task_description" id="editTask" class="form-control" required maxlength="200">
                     </div>
                 </div>
                 <div class="modal-footer border-secondary justify-content-between">
-                    <button type="button" class="btn btn-danger" onclick="deleteSlot()">
+                    <button type="button" class="btn btn-danger" onclick="deleteCurrentSlot()">
                         <i class="bi bi-trash me-1"></i>Supprimer
                     </button>
                     <div>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check2 me-1"></i>Enregistrer
-                        </button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Enregistrer</button>
                     </div>
                 </div>
             </form>
-            <form id="deleteSlotForm" method="POST" action="" style="display:none;">
+            <form id="deleteSlotForm" method="POST" style="display:none;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="category" value="{{ current_category }}">
             </form>
@@ -551,29 +508,40 @@
 
 {% block extra_js %}
 <script>
-{% if can_edit %}
+// Roles by category
+const planningRoles = {{ planning_roles|tojson|safe }};
 let currentSlotId = null;
 
-function openAddSlotModal(userId, userName, hour) {
-    document.getElementById('addSlotUserId').value = userId;
-    document.getElementById('addSlotStartTime').value = String(hour).padStart(2, '0') + ':00';
-    new bootstrap.Modal(document.getElementById('addSlotModal')).show();
+function updateRoles() {
+    const cat = document.getElementById('slotCategory').value;
+    const datalist = document.getElementById('rolesList');
+    datalist.innerHTML = '';
+
+    if (cat && planningRoles[cat]) {
+        planningRoles[cat].forEach(role => {
+            const option = document.createElement('option');
+            option.value = role;
+            datalist.appendChild(option);
+        });
+    }
 }
 
-function loadSlotData(slotId, startTime, endTime, task) {
-    currentSlotId = slotId;
-    document.getElementById('editSlotStartTime').value = startTime;
-    document.getElementById('editSlotEndTime').value = endTime;
-    document.getElementById('editSlotTask').value = task;
+{% if can_edit %}
+function editSlot(id, start, end, task, role, cat) {
+    currentSlotId = id;
+    document.getElementById('editStartTime').value = start;
+    document.getElementById('editEndTime').value = end;
+    document.getElementById('editTask').value = task;
 
-    const editUrl = `{{ url_for('tours.edit_planning_slot', id=tour.id, stop_id=stop.id, slot_id=0) }}`.replace('/0', '/' + slotId);
-    document.getElementById('editSlotForm').action = editUrl;
+    document.getElementById('editSlotForm').action =
+        "{{ url_for('tours.edit_planning_slot', id=tour.id, stop_id=stop.id, slot_id=0) }}".replace('/0', '/' + id);
+    document.getElementById('deleteSlotForm').action =
+        "{{ url_for('tours.delete_planning_slot', id=tour.id, stop_id=stop.id, slot_id=0) }}".replace('/0', '/' + id);
 
-    const deleteUrl = `{{ url_for('tours.delete_planning_slot', id=tour.id, stop_id=stop.id, slot_id=0) }}`.replace('/0', '/' + slotId);
-    document.getElementById('deleteSlotForm').action = deleteUrl;
+    new bootstrap.Modal(document.getElementById('editSlotModal')).show();
 }
 
-function deleteSlot() {
+function deleteCurrentSlot() {
     if (confirm('Supprimer ce créneau ?')) {
         document.getElementById('deleteSlotForm').submit();
     }

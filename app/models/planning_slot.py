@@ -1,30 +1,122 @@
 """
 Planning slot model for daily concert staff scheduling.
+Slots are organized by ROLE/POSITION (e.g., "Équipe Son", "Superviseurs")
+not by individual users.
 """
 from datetime import datetime, time
 from app.extensions import db
 
 
+# Predefined roles by category
+PLANNING_ROLES = {
+    'musicien': ['Groupe Principal', 'Première Partie', 'Guest'],
+    'technicien': ['Équipe Son', 'Équipe Lumière', 'Plateau/Backline', 'Vidéo'],
+    'securite': ['Superviseurs', 'Agents Entrées', 'Agents Salle/Scène', 'Secouristes'],
+    'management': ['Prod. Manager', 'Tour Manager', 'Stage Manager', 'Régisseur'],
+    'style': ['Chef Costumier', 'Équipe Maquillage', 'Coiffure'],
+    'production': ['Directeur Production', 'Assistant Production', 'Runner'],
+}
+
+CATEGORY_COLORS = {
+    'musicien': '#8b5cf6',
+    'technicien': '#3b82f6',
+    'securite': '#ef4444',
+    'management': '#22c55e',
+    'style': '#ec4899',
+    'production': '#f97316',
+}
+
+CATEGORY_LABELS = {
+    'musicien': 'ARTISTES',
+    'technicien': 'TECHNICIENS',
+    'securite': 'SÉCURITÉ',
+    'management': 'MANAGERS',
+    'style': 'HABILLEURS & MAQUILL.',
+    'production': 'PRODUCTION',
+}
+
+
 class PlanningSlot(db.Model):
-    """A time slot in the daily concert planning grid."""
+    """A time slot in the daily concert planning grid.
+
+    Organized by role_name (position) within a category.
+    user_id is OPTIONAL - can assign someone later.
+    """
     __tablename__ = 'planning_slots'
 
     id = db.Column(db.Integer, primary_key=True)
     tour_stop_id = db.Column(db.Integer, db.ForeignKey('tour_stops.id', ondelete='CASCADE'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    profession_id = db.Column(db.Integer, db.ForeignKey('professions.id', ondelete='SET NULL'), nullable=True)
+
+    # Role/Position (e.g., "Équipe Son", "Superviseurs") - REQUIRED
+    role_name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), nullable=False)  # musicien, technicien, etc.
+
+    # Time slot
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     task_description = db.Column(db.String(200), nullable=False)
+
+    # Optional: assign a user to this slot
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+
+    # Metadata
     created_by_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     tour_stop = db.relationship('TourStop', backref=db.backref('planning_slots', lazy='dynamic', cascade='all, delete-orphan'))
-    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('planning_slots', lazy='dynamic'))
-    profession = db.relationship('Profession', backref=db.backref('planning_slots', lazy='dynamic'))
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('assigned_planning_slots', lazy='dynamic'))
     created_by = db.relationship('User', foreign_keys=[created_by_id])
+
+    @property
+    def category_color(self):
+        """Get color based on category."""
+        return CATEGORY_COLORS.get(self.category, '#6b7280')
+
+    @property
+    def time_range(self):
+        """Format time range as HH:MM-HH:MM."""
+        return f"{self.start_time.strftime('%H:%M')}-{self.end_time.strftime('%H:%M')}"
+
+    @property
+    def grid_column_start(self):
+        """Calculate CSS grid column start (hours from 01:00)."""
+        hour = self.start_time.hour
+        minute = self.start_time.minute
+        # Column 1 = 01:00, Column 24 = 00:00
+        if hour == 0:
+            return 24 + (minute / 60)
+        return hour + (minute / 60)
+
+    @property
+    def grid_column_span(self):
+        """Calculate how many hour-columns the slot spans."""
+        start_mins = self.start_time.hour * 60 + self.start_time.minute
+        end_mins = self.end_time.hour * 60 + self.end_time.minute
+        if end_mins <= start_mins:  # Crosses midnight
+            end_mins += 24 * 60
+        duration_mins = end_mins - start_mins
+        return max(duration_mins / 60, 0.5)  # Minimum 30 min visible
+
+    def to_dict(self):
+        """Convert to dictionary for JSON API."""
+        return {
+            'id': self.id,
+            'tour_stop_id': self.tour_stop_id,
+            'role_name': self.role_name,
+            'category': self.category,
+            'category_color': self.category_color,
+            'start_time': self.start_time.strftime('%H:%M'),
+            'end_time': self.end_time.strftime('%H:%M'),
+            'time_range': self.time_range,
+            'task_description': self.task_description,
+            'user_id': self.user_id,
+            'user_name': self.user.full_name if self.user else None,
+        }
+
+    def __repr__(self):
+        return f'<PlanningSlot {self.id}: {self.role_name} {self.time_range}>'
 
     @property
     def effective_profession(self):

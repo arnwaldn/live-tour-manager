@@ -1588,107 +1588,103 @@ CATEGORY_MAPPING = {
 @login_required
 @tour_access_required
 def staff_planning(id, stop_id, category='tous', tour=None):
-    """Planning journée 24h avec grille horaire et créneaux par personne."""
-    from app.models.tour_stop import TourStopMember
-    from app.models.profession import ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
-    from app.models.planning_slot import PlanningSlot
+    """Planning journée 24h avec grille horaire organisée par RÔLES/POSTES."""
+    from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
 
     stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
-    # Valider la catégorie
-    if category not in CATEGORY_MAPPING:
+    # Catégories valides
+    valid_categories = ['tous', 'musicien', 'technicien', 'securite', 'management', 'style', 'production']
+    if category not in valid_categories:
         flash('Catégorie invalide.', 'error')
         return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
 
-    # Récupérer les membres assignés à ce stop
-    members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
+    # Charger tous les slots de ce stop
+    all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(
+        PlanningSlot.category, PlanningSlot.role_name, PlanningSlot.start_time
+    ).all()
 
-    # Charger les planning slots
-    all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).all()
-
-    # Filtrer par catégorie si pas "tous"
+    # Filtrer par catégorie si nécessaire
     if category != 'tous':
-        cat_value = CATEGORY_MAPPING[category]
-        filtered_members = []
-        for m in members:
-            user = User.query.get(m.user_id)
-            if user and user.professions:
-                for prof in user.professions:
-                    if prof.category.value == cat_value:
-                        filtered_members.append(m)
-                        break
-        members = filtered_members
-
-        # Filtrer les slots par catégorie
-        filtered_slots = [s for s in all_slots if s.category == cat_value]
+        slots = [s for s in all_slots if s.category == category]
+        display_categories = [category]
     else:
-        filtered_slots = all_slots
+        slots = all_slots
+        display_categories = list(PLANNING_ROLES.keys())
 
-    # Enrichir les données des membres avec leurs slots
-    members_data = []
-    slots_by_user = {}
-    for slot in filtered_slots:
-        if slot.user_id not in slots_by_user:
-            slots_by_user[slot.user_id] = []
-        slots_by_user[slot.user_id].append(slot)
+    # Organiser les slots par catégorie puis par rôle
+    slots_by_category = {}
+    roles_with_slots = set()
 
-    for m in members:
-        user = User.query.get(m.user_id)
-        if user:
-            profession_name = 'Non défini'
-            profession_category = None
-            if user.professions:
-                profession_name = user.professions[0].name_fr
-                profession_category = user.professions[0].category
+    for slot in slots:
+        cat = slot.category
+        role = slot.role_name
+        roles_with_slots.add((cat, role))
 
-            user_slots = slots_by_user.get(user.id, [])
-            user_slots.sort(key=lambda s: s.start_time)
+        if cat not in slots_by_category:
+            slots_by_category[cat] = {}
+        if role not in slots_by_category[cat]:
+            slots_by_category[cat][role] = []
+        slots_by_category[cat][role].append(slot)
 
-            members_data.append({
-                'member': m,
-                'user': user,
-                'profession_name': profession_name,
-                'profession_category': profession_category,
-                'slots': user_slots,
+    # Construire la structure de données pour le template
+    planning_data = []
+    for cat in display_categories:
+        cat_roles = PLANNING_ROLES.get(cat, [])
+        # Ajouter aussi les rôles personnalisés qui ont des slots
+        custom_roles = set()
+        if cat in slots_by_category:
+            for role in slots_by_category[cat].keys():
+                if role not in cat_roles:
+                    custom_roles.add(role)
+
+        all_roles = cat_roles + sorted(list(custom_roles))
+
+        cat_data = {
+            'key': cat,
+            'label': CATEGORY_LABELS.get(cat, cat.upper()),
+            'color': CATEGORY_COLORS.get(cat, '#6b7280'),
+            'roles': []
+        }
+
+        for role in all_roles:
+            role_slots = slots_by_category.get(cat, {}).get(role, [])
+            cat_data['roles'].append({
+                'name': role,
+                'slots': role_slots
             })
 
-    # Trier par catégorie puis par nom
-    members_data.sort(key=lambda x: (
-        x['profession_category'].value if x['profession_category'] else 'zzz',
-        x['user'].full_name
-    ))
+        if cat_data['roles']:  # Seulement si la catégorie a des rôles
+            planning_data.append(cat_data)
 
-    # Préparer les données des catégories pour les onglets
-    categories = [
-        {'key': 'tous', 'label': 'Tout le planning', 'icon': 'bi-calendar2-week', 'color': '#6c757d'},
-        {'key': 'musicien', 'label': 'Artistes', 'icon': 'bi-music-note-beamed', 'color': '#8b5cf6'},
-        {'key': 'technicien', 'label': 'Techniciens', 'icon': 'bi-tools', 'color': '#3b82f6'},
-        {'key': 'securite', 'label': 'Sécurité', 'icon': 'bi-shield-check', 'color': '#ef4444'},
-        {'key': 'management', 'label': 'Managers', 'icon': 'bi-briefcase', 'color': '#22c55e'},
-        {'key': 'style', 'label': 'Style', 'icon': 'bi-brush', 'color': '#ec4899'},
-        {'key': 'production', 'label': 'Production', 'icon': 'bi-clipboard-check', 'color': '#f97316'},
+    # Onglets de navigation
+    tabs = [
+        {'key': 'tous', 'label': 'Tout le planning', 'icon': 'bi-calendar2-week'},
+        {'key': 'musicien', 'label': 'Artistes', 'icon': 'bi-music-note-beamed'},
+        {'key': 'technicien', 'label': 'Techniciens', 'icon': 'bi-tools'},
+        {'key': 'securite', 'label': 'Sécurité', 'icon': 'bi-shield-check'},
+        {'key': 'management', 'label': 'Managers', 'icon': 'bi-briefcase'},
+        {'key': 'style', 'label': 'Habilleurs & Maquilleurs', 'icon': 'bi-brush'},
     ]
 
-    # Générer les heures pour la grille (01:00 à 00:00)
-    hours = list(range(1, 24)) + [0]  # 1, 2, ..., 23, 0 (minuit)
+    # Heures de la grille (01:00 à 00:00)
+    hours = list(range(1, 24)) + [0]
 
-    # Vérifier si l'utilisateur peut éditer (manager ou admin)
+    # Permissions
     can_edit = tour.band.is_manager(current_user) if tour and tour.band else current_user.is_admin
-
-    # Liste des utilisateurs pour le modal d'ajout
-    available_users = [m['user'] for m in members_data]
 
     return render_template(
         'tours/staff_planning.html',
         tour=tour,
         stop=stop,
-        members_data=members_data,
-        categories=categories,
+        planning_data=planning_data,
+        tabs=tabs,
         current_category=category,
         can_edit=can_edit,
         hours=hours,
-        available_users=available_users,
-        form=MemberScheduleForm()
+        planning_roles=PLANNING_ROLES,
+        category_colors=CATEGORY_COLORS,
+        total_slots=len(slots)
     )
 
 
@@ -1738,33 +1734,30 @@ def add_planning_slot(id, stop_id, tour=None):
     stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
     # Récupérer les données du formulaire
-    user_id = request.form.get('user_id', type=int)
+    role_name = request.form.get('role_name', '').strip()
+    slot_category = request.form.get('slot_category', '').strip()
     start_time_str = request.form.get('start_time')
     end_time_str = request.form.get('end_time')
     task_description = request.form.get('task_description', '').strip()
 
-    if not all([user_id, start_time_str, end_time_str, task_description]):
+    if not all([role_name, slot_category, start_time_str, end_time_str, task_description]):
         flash('Tous les champs sont requis.', 'error')
-        return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id))
+        category = request.form.get('category', 'tous')
+        return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
 
     try:
         start_time = datetime.strptime(start_time_str, '%H:%M').time()
         end_time = datetime.strptime(end_time_str, '%H:%M').time()
     except ValueError:
         flash('Format d\'heure invalide.', 'error')
-        return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id))
-
-    # Récupérer la profession de l'utilisateur si disponible
-    user = User.query.get(user_id)
-    profession_id = None
-    if user and user.professions:
-        profession_id = user.professions[0].id
+        category = request.form.get('category', 'tous')
+        return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
 
     # Créer le slot
     slot = PlanningSlot(
         tour_stop_id=stop_id,
-        user_id=user_id,
-        profession_id=profession_id,
+        role_name=role_name,
+        category=slot_category,
         start_time=start_time,
         end_time=end_time,
         task_description=task_description,
