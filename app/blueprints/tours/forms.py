@@ -6,7 +6,7 @@ from wtforms import (
     StringField, TextAreaField, DateField, SelectField,
     DecimalField, TimeField, IntegerField, SubmitField, BooleanField
 )
-from wtforms.validators import DataRequired, Length, Optional, NumberRange, URL
+from wtforms.validators import DataRequired, Length, Optional, NumberRange, URL, ValidationError
 
 
 class TourForm(FlaskForm):
@@ -28,6 +28,12 @@ class TourForm(FlaskForm):
     end_date = DateField('Date de fin', validators=[
         DataRequired(message='La date de fin est requise')
     ])
+
+    def validate_end_date(self, field):
+        """Validate that end_date is after start_date."""
+        if self.start_date.data and field.data:
+            if field.data < self.start_date.data:
+                raise ValidationError('La date de fin doit être après la date de début')
     budget = DecimalField('Budget', validators=[
         Optional(),
         NumberRange(min=0)

@@ -791,24 +791,36 @@ def users_edit(id):
         user.label_name = form.label_name.data.strip() if form.label_name.data else None
 
         # Update professions (v2.1) - PLUSIEURS professions possibles (checkboxes)
-        # Remove existing professions
-        UserProfession.query.filter_by(user_id=user.id).delete()
-
-        # Add selected professions from checkboxes
+        # Utiliser une approche "diff and sync" pour éviter perte de données
         profession_ids = request.form.getlist('professions')
         primary_prof_id = request.form.get('primary_profession')
 
+        # Récupérer les professions actuelles
+        existing_professions = {up.profession_id: up for up in user.user_professions}
+        new_profession_ids = set(int(pid) for pid in profession_ids if pid)
+
+        # Supprimer les professions qui ne sont plus sélectionnées
+        for prof_id in list(existing_professions.keys()):
+            if prof_id not in new_profession_ids:
+                db.session.delete(existing_professions[prof_id])
+
+        # Ajouter ou mettre à jour les professions sélectionnées
         for i, prof_id in enumerate(profession_ids):
-            profession = Profession.query.get(int(prof_id))
+            prof_id_int = int(prof_id)
+            profession = Profession.query.get(prof_id_int)
             if profession:
-                # Determine if this is the primary profession
                 is_primary = (str(prof_id) == str(primary_prof_id)) if primary_prof_id else (i == 0)
-                user_profession = UserProfession(
-                    user_id=user.id,
-                    profession_id=profession.id,
-                    is_primary=is_primary
-                )
-                db.session.add(user_profession)
+                if prof_id_int in existing_professions:
+                    # Mettre à jour le statut primaire si nécessaire
+                    existing_professions[prof_id_int].is_primary = is_primary
+                else:
+                    # Ajouter nouvelle profession
+                    user_profession = UserProfession(
+                        user_id=user.id,
+                        profession_id=profession.id,
+                        is_primary=is_primary
+                    )
+                    db.session.add(user_profession)
 
         # Crew information - Personal
         user.date_of_birth = form.date_of_birth.data

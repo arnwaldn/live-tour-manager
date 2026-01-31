@@ -730,7 +730,7 @@ def copy_previous_crew(id, stop_id, tour=None):
     if copied_count > 0:
         db.session.commit()
         log_update('TourStop', stop.id, {'copied_crew_from': previous_stop.id, 'copied_count': copied_count})
-        flash(f'{copied_count} membre(s) copié(s) depuis {previous_stop.city_display}.', 'success')
+        flash(f'{copied_count} membre(s) copié(s) depuis {previous_stop.venue_city}.', 'success')
     else:
         flash('Tous les membres sont déjà assignés.', 'info')
 
