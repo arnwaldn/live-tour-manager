@@ -1887,3 +1887,77 @@ def planning_slots_json(id, stop_id, tour=None):
 
     slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).all()
     return jsonify([slot.to_dict() for slot in slots])
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/seed-demo')
+@login_required
+@tour_edit_required
+def seed_demo_planning(id, stop_id, tour=None):
+    """Créer des données de démonstration pour le planning.
+
+    Cette route ajoute des utilisateurs avec des professions au concert
+    et leur assigne des horaires de travail pour tester la grille visuelle.
+    """
+    from datetime import time
+    from app.models.tour_stop import TourStopMember
+    from app.models.profession import Profession, ProfessionCategory
+
+    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+
+    # Récupérer des utilisateurs avec des professions
+    users_with_profession = User.query.join(User.professions).distinct().limit(10).all()
+
+    if not users_with_profession:
+        # Si aucun utilisateur n'a de profession, en prendre quelques-uns
+        users_with_profession = User.query.limit(5).all()
+
+    # Horaires de démonstration variés
+    demo_schedules = [
+        {'call': time(8, 0), 'start': time(9, 0), 'end': time(18, 0), 'break_start': time(12, 0), 'break_end': time(13, 0), 'meal': time(12, 30)},
+        {'call': time(7, 30), 'start': time(8, 0), 'end': time(17, 0), 'break_start': time(12, 30), 'break_end': time(13, 30), 'meal': time(13, 0)},
+        {'call': time(14, 0), 'start': time(15, 0), 'end': time(23, 0), 'break_start': time(19, 0), 'break_end': time(19, 30), 'meal': time(19, 15)},
+        {'call': time(10, 0), 'start': time(11, 0), 'end': time(20, 0), 'break_start': time(15, 0), 'break_end': time(15, 30), 'meal': time(15, 15)},
+        {'call': time(6, 0), 'start': time(7, 0), 'end': time(16, 0), 'break_start': time(11, 30), 'break_end': time(12, 30), 'meal': time(12, 0)},
+    ]
+
+    added_count = 0
+    for i, user in enumerate(users_with_profession):
+        # Vérifier si déjà assigné
+        existing = TourStopMember.query.filter_by(
+            tour_stop_id=stop_id,
+            user_id=user.id
+        ).first()
+
+        if existing:
+            # Mettre à jour les horaires
+            schedule = demo_schedules[i % len(demo_schedules)]
+            existing.call_time = schedule['call']
+            existing.work_start = schedule['start']
+            existing.work_end = schedule['end']
+            existing.break_start = schedule['break_start']
+            existing.break_end = schedule['break_end']
+            existing.meal_time = schedule['meal']
+            existing.notes = f"Horaires de démonstration #{i+1}"
+        else:
+            # Créer un nouveau membre assigné
+            schedule = demo_schedules[i % len(demo_schedules)]
+            profession = user.professions[0] if user.professions else None
+
+            member = TourStopMember(
+                tour_stop_id=stop_id,
+                user_id=user.id,
+                profession_id=profession.id if profession else None,
+                call_time=schedule['call'],
+                work_start=schedule['start'],
+                work_end=schedule['end'],
+                break_start=schedule['break_start'],
+                break_end=schedule['break_end'],
+                meal_time=schedule['meal'],
+                notes=f"Horaires de démonstration #{i+1}"
+            )
+            db.session.add(member)
+            added_count += 1
+
+    db.session.commit()
+    flash(f'{added_count} membres ajoutés avec des horaires de démonstration.', 'success')
+    return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id))
