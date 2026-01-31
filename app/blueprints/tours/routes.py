@@ -1589,103 +1589,113 @@ CATEGORY_MAPPING = {
 @tour_access_required
 def staff_planning(id, stop_id, category='tous', tour=None):
     """Planning journée 24h avec grille horaire organisée par RÔLES/POSTES."""
-    from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
+    import traceback
+    from flask import current_app
+    try:
+        from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
+    except Exception as e:
+        current_app.logger.error(f"Import error: {e}\n{traceback.format_exc()}")
+        raise
 
-    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+    try:
+        stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
-    # Catégories valides
-    valid_categories = ['tous', 'musicien', 'technicien', 'securite', 'management', 'style', 'production']
-    if category not in valid_categories:
-        flash('Catégorie invalide.', 'error')
-        return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
+        # Catégories valides
+        valid_categories = ['tous', 'musicien', 'technicien', 'securite', 'management', 'style', 'production']
+        if category not in valid_categories:
+            flash('Catégorie invalide.', 'error')
+            return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
 
-    # Charger tous les slots de ce stop
-    all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(
-        PlanningSlot.category, PlanningSlot.role_name, PlanningSlot.start_time
-    ).all()
+        # Charger tous les slots de ce stop
+        all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(
+            PlanningSlot.category, PlanningSlot.role_name, PlanningSlot.start_time
+        ).all()
 
-    # Filtrer par catégorie si nécessaire
-    if category != 'tous':
-        slots = [s for s in all_slots if s.category == category]
-        display_categories = [category]
-    else:
-        slots = all_slots
-        display_categories = list(PLANNING_ROLES.keys())
+        # Filtrer par catégorie si nécessaire
+        if category != 'tous':
+            slots = [s for s in all_slots if s.category == category]
+            display_categories = [category]
+        else:
+            slots = all_slots
+            display_categories = list(PLANNING_ROLES.keys())
 
-    # Organiser les slots par catégorie puis par rôle
-    slots_by_category = {}
-    roles_with_slots = set()
+        # Organiser les slots par catégorie puis par rôle
+        slots_by_category = {}
+        roles_with_slots = set()
 
-    for slot in slots:
-        cat = slot.category
-        role = slot.role_name
-        roles_with_slots.add((cat, role))
+        for slot in slots:
+            cat = slot.category
+            role = slot.role_name
+            roles_with_slots.add((cat, role))
 
-        if cat not in slots_by_category:
-            slots_by_category[cat] = {}
-        if role not in slots_by_category[cat]:
-            slots_by_category[cat][role] = []
-        slots_by_category[cat][role].append(slot)
+            if cat not in slots_by_category:
+                slots_by_category[cat] = {}
+            if role not in slots_by_category[cat]:
+                slots_by_category[cat][role] = []
+            slots_by_category[cat][role].append(slot)
 
-    # Construire la structure de données pour le template
-    planning_data = []
-    for cat in display_categories:
-        cat_roles = PLANNING_ROLES.get(cat, [])
-        # Ajouter aussi les rôles personnalisés qui ont des slots
-        custom_roles = set()
-        if cat in slots_by_category:
-            for role in slots_by_category[cat].keys():
-                if role not in cat_roles:
-                    custom_roles.add(role)
+        # Construire la structure de données pour le template
+        planning_data = []
+        for cat in display_categories:
+            cat_roles = PLANNING_ROLES.get(cat, [])
+            # Ajouter aussi les rôles personnalisés qui ont des slots
+            custom_roles = set()
+            if cat in slots_by_category:
+                for role in slots_by_category[cat].keys():
+                    if role not in cat_roles:
+                        custom_roles.add(role)
 
-        all_roles = cat_roles + sorted(list(custom_roles))
+            all_roles = cat_roles + sorted(list(custom_roles))
 
-        cat_data = {
-            'key': cat,
-            'label': CATEGORY_LABELS.get(cat, cat.upper()),
-            'color': CATEGORY_COLORS.get(cat, '#6b7280'),
-            'roles': []
-        }
+            cat_data = {
+                'key': cat,
+                'label': CATEGORY_LABELS.get(cat, cat.upper()),
+                'color': CATEGORY_COLORS.get(cat, '#6b7280'),
+                'roles': []
+            }
 
-        for role in all_roles:
-            role_slots = slots_by_category.get(cat, {}).get(role, [])
-            cat_data['roles'].append({
-                'name': role,
-                'slots': role_slots
-            })
+            for role in all_roles:
+                role_slots = slots_by_category.get(cat, {}).get(role, [])
+                cat_data['roles'].append({
+                    'name': role,
+                    'slots': role_slots
+                })
 
-        if cat_data['roles']:  # Seulement si la catégorie a des rôles
-            planning_data.append(cat_data)
+            if cat_data['roles']:  # Seulement si la catégorie a des rôles
+                planning_data.append(cat_data)
 
-    # Onglets de navigation
-    tabs = [
-        {'key': 'tous', 'label': 'Tout le planning', 'icon': 'bi-calendar2-week'},
-        {'key': 'musicien', 'label': 'Artistes', 'icon': 'bi-music-note-beamed'},
-        {'key': 'technicien', 'label': 'Techniciens', 'icon': 'bi-tools'},
-        {'key': 'securite', 'label': 'Sécurité', 'icon': 'bi-shield-check'},
-        {'key': 'management', 'label': 'Managers', 'icon': 'bi-briefcase'},
-        {'key': 'style', 'label': 'Habilleurs & Maquilleurs', 'icon': 'bi-brush'},
-    ]
+        # Onglets de navigation
+        tabs = [
+            {'key': 'tous', 'label': 'Tout le planning', 'icon': 'bi-calendar2-week'},
+            {'key': 'musicien', 'label': 'Artistes', 'icon': 'bi-music-note-beamed'},
+            {'key': 'technicien', 'label': 'Techniciens', 'icon': 'bi-tools'},
+            {'key': 'securite', 'label': 'Sécurité', 'icon': 'bi-shield-check'},
+            {'key': 'management', 'label': 'Managers', 'icon': 'bi-briefcase'},
+            {'key': 'style', 'label': 'Habilleurs & Maquilleurs', 'icon': 'bi-brush'},
+        ]
 
-    # Heures de la grille (01:00 à 00:00)
-    hours = list(range(1, 24)) + [0]
+        # Heures de la grille (01:00 à 00:00)
+        hours = list(range(1, 24)) + [0]
 
-    # Permissions
-    can_edit = tour.band.is_manager(current_user) if tour and tour.band else current_user.is_admin
+        # Permissions
+        can_edit = tour.band.is_manager(current_user) if tour and tour.band else current_user.is_admin
 
-    return render_template(
-        'tours/staff_planning.html',
-        tour=tour,
-        stop=stop,
-        planning_data=planning_data,
-        tabs=tabs,
-        current_category=category,
-        can_edit=can_edit,
-        hours=hours,
-        planning_roles=PLANNING_ROLES,
-        category_colors=CATEGORY_COLORS,
-        total_slots=len(slots)
-    )
+        return render_template(
+            'tours/staff_planning.html',
+            tour=tour,
+            stop=stop,
+            planning_data=planning_data,
+            tabs=tabs,
+            current_category=category,
+            can_edit=can_edit,
+            hours=hours,
+            planning_roles=PLANNING_ROLES,
+            category_colors=CATEGORY_COLORS,
+            total_slots=len(slots)
+        )
+    except Exception as e:
+        current_app.logger.error(f"staff_planning error: {e}\n{traceback.format_exc()}")
+        raise
 
 
 @tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/member/<int:member_id>', methods=['POST'])
