@@ -49,6 +49,77 @@ def check_planning_schema():
         }), 200
 
 
+# Emergency fix route - recreate planning_slots with correct schema
+@tours_bp.route('/fix-planning-schema', methods=['POST'])
+def fix_planning_schema():
+    """Force recreate planning_slots table with correct schema."""
+    from sqlalchemy import inspect, text
+    try:
+        # Check current schema
+        inspector = inspect(db.engine)
+        if 'planning_slots' in inspector.get_table_names():
+            columns = [col['name'] for col in inspector.get_columns('planning_slots')]
+            has_role_name = 'role_name' in columns
+            has_category = 'category' in columns
+
+            if has_role_name and has_category:
+                return jsonify({
+                    'status': 'already_correct',
+                    'message': 'Schema is already correct, no action needed',
+                    'columns': columns
+                })
+
+        # Drop and recreate table
+        with db.engine.connect() as conn:
+            # Drop table
+            conn.execute(text('DROP TABLE IF EXISTS planning_slots CASCADE'))
+            conn.commit()
+
+            # Create table with correct schema
+            conn.execute(text('''
+                CREATE TABLE planning_slots (
+                    id SERIAL PRIMARY KEY,
+                    tour_stop_id INTEGER NOT NULL REFERENCES tour_stops(id) ON DELETE CASCADE,
+                    role_name VARCHAR(100) NOT NULL,
+                    category VARCHAR(50) NOT NULL,
+                    start_time TIME NOT NULL,
+                    end_time TIME NOT NULL,
+                    task_description VARCHAR(200) NOT NULL,
+                    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    created_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    created_at TIMESTAMP,
+                    updated_at TIMESTAMP
+                )
+            '''))
+            conn.commit()
+
+            # Create indexes
+            conn.execute(text('CREATE INDEX ix_planning_slots_tour_stop ON planning_slots(tour_stop_id)'))
+            conn.execute(text('CREATE INDEX ix_planning_slots_category ON planning_slots(category)'))
+            conn.execute(text('CREATE INDEX ix_planning_slots_role ON planning_slots(role_name)'))
+            conn.commit()
+
+        # Verify
+        inspector = inspect(db.engine)
+        new_columns = [col['name'] for col in inspector.get_columns('planning_slots')]
+
+        return jsonify({
+            'status': 'fixed',
+            'message': 'Table recreated with correct schema',
+            'columns': new_columns,
+            'has_role_name': 'role_name' in new_columns,
+            'has_category': 'category' in new_columns
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'trace': traceback.format_exc()
+        }), 500
+
+
 def get_users_by_category(users_list=None, assigned_ids=None):
     """Retourne les utilisateurs groupés par catégorie de métier pour l'assignation.
 
