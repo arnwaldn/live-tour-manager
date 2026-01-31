@@ -24,207 +24,6 @@ from app.utils.geocoding import geocode_address
 from app.blueprints.logistics.routes import get_visible_logistics
 
 
-# Diagnostic route - check planning_slots table schema
-@tours_bp.route('/check-planning-schema')
-def check_planning_schema():
-    """Check if planning_slots table has correct schema."""
-    from sqlalchemy import inspect
-    try:
-        inspector = inspect(db.engine)
-        columns = [col['name'] for col in inspector.get_columns('planning_slots')]
-        has_role_name = 'role_name' in columns
-        has_category = 'category' in columns
-        return jsonify({
-            'status': 'ok' if (has_role_name and has_category) else 'wrong_schema',
-            'columns': columns,
-            'has_role_name': has_role_name,
-            'has_category': has_category
-        })
-    except Exception as e:
-        import traceback
-        return jsonify({
-            'status': 'error',
-            'error': str(e),
-            'trace': traceback.format_exc()
-        }), 200
-
-
-# TEMPORARY TEST ROUTE - approve test user and auto-login
-@tours_bp.route('/test-auto-approve')
-def test_auto_approve():
-    """Auto-approve and login the test user for backtest purposes."""
-    import traceback
-    from flask_login import login_user
-
-    try:
-        test_email = 'testclaudebacktest@test.com'
-        user = User.query.filter_by(email=test_email).first()
-
-        if not user:
-            return jsonify({'status': 'error', 'message': 'Test user not found'}), 404
-
-        # Approve the user and make admin for testing
-        from app.models.user import AccessLevel
-        user.is_active = True
-        user.email_verified = True
-        user.access_level = AccessLevel.ADMIN  # Make admin for testing
-        db.session.commit()
-
-        # Login the user
-        login_user(user, remember=True)
-
-        # Find any existing tour and stop
-        tour = Tour.query.first()
-        if not tour:
-            return jsonify({'status': 'error', 'message': 'No tours found in database'}), 404
-
-        stop = TourStop.query.filter_by(tour_id=tour.id).first()
-        if not stop:
-            return jsonify({'status': 'error', 'message': f'No stops found for tour {tour.id}'}), 404
-
-        # Redirect to planning page with existing tour/stop
-        return redirect(url_for('tours.staff_planning', id=tour.id, stop_id=stop.id))
-
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }), 200
-
-
-# Diagnostic route - list available tours and stops
-@tours_bp.route('/test-list-data')
-def test_list_data():
-    """List all tours and their stops for debugging."""
-    tours = Tour.query.all()
-    result = []
-    for t in tours:
-        stops = TourStop.query.filter_by(tour_id=t.id).all()
-        result.append({
-            'tour_id': t.id,
-            'tour_name': t.name,
-            'stops': [{'stop_id': s.id, 'venue': s.venue.name if s.venue else 'No venue'} for s in stops]
-        })
-    return jsonify({
-        'total_tours': len(tours),
-        'tours': result
-    })
-
-
-# Diagnostic route - test planning page rendering
-@tours_bp.route('/test-planning-debug')
-def test_planning_debug():
-    """Test staff_planning function with detailed error capture."""
-    import traceback
-
-    results = {'steps': []}
-
-    try:
-        results['steps'].append('step1_start')
-
-        # Step 1: Test PlanningSlot import
-        try:
-            from app.models.planning_slot import PlanningSlot, PLANNING_ROLES
-            results['steps'].append('step2_import_ok')
-            results['planning_roles'] = list(PLANNING_ROLES.keys()) if PLANNING_ROLES else None
-        except Exception as e:
-            results['import_error'] = str(e)
-            return jsonify(results), 200
-
-        # Step 2: Get tour and stop
-        tour = Tour.query.first()
-        stop = TourStop.query.filter_by(tour_id=tour.id).first() if tour else None
-        results['tour_id'] = tour.id if tour else None
-        results['stop_id'] = stop.id if stop else None
-        results['steps'].append('step3_data_ok')
-
-        # Step 3: Query slots
-        if stop:
-            slots = PlanningSlot.query.filter_by(tour_stop_id=stop.id).all()
-            results['slots_count'] = len(slots)
-            results['steps'].append('step4_query_ok')
-
-        results['status'] = 'all_ok'
-        return jsonify(results), 200
-
-    except Exception as e:
-        results['error'] = str(e)
-        results['traceback'] = traceback.format_exc()
-        return jsonify(results), 200
-
-
-# Emergency fix route - recreate planning_slots with correct schema
-@tours_bp.route('/fix-planning-schema', methods=['GET', 'POST'])
-def fix_planning_schema():
-    """Force recreate planning_slots table with correct schema."""
-    from sqlalchemy import inspect, text
-    try:
-        # Check current schema
-        inspector = inspect(db.engine)
-        if 'planning_slots' in inspector.get_table_names():
-            columns = [col['name'] for col in inspector.get_columns('planning_slots')]
-            has_role_name = 'role_name' in columns
-            has_category = 'category' in columns
-
-            if has_role_name and has_category:
-                return jsonify({
-                    'status': 'already_correct',
-                    'message': 'Schema is already correct, no action needed',
-                    'columns': columns
-                })
-
-        # Drop and recreate table
-        with db.engine.connect() as conn:
-            # Drop table
-            conn.execute(text('DROP TABLE IF EXISTS planning_slots CASCADE'))
-            conn.commit()
-
-            # Create table with correct schema
-            conn.execute(text('''
-                CREATE TABLE planning_slots (
-                    id SERIAL PRIMARY KEY,
-                    tour_stop_id INTEGER NOT NULL REFERENCES tour_stops(id) ON DELETE CASCADE,
-                    role_name VARCHAR(100) NOT NULL,
-                    category VARCHAR(50) NOT NULL,
-                    start_time TIME NOT NULL,
-                    end_time TIME NOT NULL,
-                    task_description VARCHAR(200) NOT NULL,
-                    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-                    created_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-                    created_at TIMESTAMP,
-                    updated_at TIMESTAMP
-                )
-            '''))
-            conn.commit()
-
-            # Create indexes
-            conn.execute(text('CREATE INDEX ix_planning_slots_tour_stop ON planning_slots(tour_stop_id)'))
-            conn.execute(text('CREATE INDEX ix_planning_slots_category ON planning_slots(category)'))
-            conn.execute(text('CREATE INDEX ix_planning_slots_role ON planning_slots(role_name)'))
-            conn.commit()
-
-        # Verify
-        inspector = inspect(db.engine)
-        new_columns = [col['name'] for col in inspector.get_columns('planning_slots')]
-
-        return jsonify({
-            'status': 'fixed',
-            'message': 'Table recreated with correct schema',
-            'columns': new_columns,
-            'has_role_name': 'role_name' in new_columns,
-            'has_category': 'category' in new_columns
-        })
-
-    except Exception as e:
-        import traceback
-        return jsonify({
-            'status': 'error',
-            'error': str(e),
-            'trace': traceback.format_exc()
-        }), 500
-
-
 def get_users_by_category(users_list=None, assigned_ids=None):
     """Retourne les utilisateurs groupés par catégorie de métier pour l'assignation.
 
@@ -1772,68 +1571,12 @@ def resend_invitation(id, stop_id, inv_id, tour=None):
 # STAFF PLANNING - Planning du Personnel par Utilisateur Assigné
 # ============================================================================
 
-# Debug endpoint for staff_planning
-@tours_bp.route('/debug-staff-planning/<int:tour_id>/<int:stop_id>')
-def debug_staff_planning(tour_id, stop_id):
-    """Debug staff_planning to find errors."""
-    import traceback
-
-    results = {'steps': []}
-    try:
-        results['steps'].append('start')
-
-        from app.models.tour_stop import TourStopMember
-        results['steps'].append('import_TourStopMember')
-
-        from app.models.profession import (
-            Profession, ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
-        )
-        results['steps'].append('import_profession')
-
-        stop = TourStop.query.filter_by(id=stop_id, tour_id=tour_id).first()
-        results['stop_found'] = stop is not None
-        results['steps'].append('stop_query')
-
-        if stop:
-            all_members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
-            results['members_count'] = len(all_members)
-            results['steps'].append('members_query')
-
-            # Test grouping
-            for member in all_members[:3]:  # Only first 3
-                results['steps'].append(f'member_{member.id}')
-                if member.profession:
-                    results['steps'].append(f'profession_{member.profession.name_fr}')
-                if member.user:
-                    results['steps'].append(f'user_{member.user.id}')
-
-        results['status'] = 'all_ok'
-        return jsonify(results), 200
-
-    except Exception as e:
-        results['error'] = str(e)
-        results['traceback'] = traceback.format_exc()
-        return jsonify(results), 200
-
-
 @tours_bp.route('/<int:id>/stops/<int:stop_id>/planning')
 @tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/<category>')
 @login_required
 @tour_access_required
 def staff_planning(id, stop_id, category='tous', tour=None):
     """Planning du personnel - affiche les utilisateurs assignés groupés par profession."""
-    import traceback
-    try:
-        return _staff_planning_impl(id, stop_id, category, tour)
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }), 500
-
-
-def _staff_planning_impl(id, stop_id, category, tour):
-    """Implementation interne de staff_planning."""
     from app.models.tour_stop import TourStopMember
     from app.models.profession import (
         Profession, ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
@@ -1983,7 +1726,12 @@ def update_member_schedule(id, stop_id, member_id, tour=None):
     member.notes = request.form.get('notes', '').strip() or None
 
     db.session.commit()
-    log_update(member, member.user)
+    log_update('TourStopMember', member.id, {
+        'user_id': member.user_id,
+        'call_time': str(member.call_time) if member.call_time else None,
+        'work_start': str(member.work_start) if member.work_start else None,
+        'work_end': str(member.work_end) if member.work_end else None
+    })
 
     flash(f'Planning de {member.user.full_name} mis à jour.', 'success')
 
