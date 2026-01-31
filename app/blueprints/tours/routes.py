@@ -1772,6 +1772,50 @@ def resend_invitation(id, stop_id, inv_id, tour=None):
 # STAFF PLANNING - Planning du Personnel par Utilisateur Assigné
 # ============================================================================
 
+# Debug endpoint for staff_planning
+@tours_bp.route('/debug-staff-planning/<int:tour_id>/<int:stop_id>')
+def debug_staff_planning(tour_id, stop_id):
+    """Debug staff_planning to find errors."""
+    import traceback
+
+    results = {'steps': []}
+    try:
+        results['steps'].append('start')
+
+        from app.models.tour_stop import TourStopMember
+        results['steps'].append('import_TourStopMember')
+
+        from app.models.profession import (
+            Profession, ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
+        )
+        results['steps'].append('import_profession')
+
+        stop = TourStop.query.filter_by(id=stop_id, tour_id=tour_id).first()
+        results['stop_found'] = stop is not None
+        results['steps'].append('stop_query')
+
+        if stop:
+            all_members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
+            results['members_count'] = len(all_members)
+            results['steps'].append('members_query')
+
+            # Test grouping
+            for member in all_members[:3]:  # Only first 3
+                results['steps'].append(f'member_{member.id}')
+                if member.profession:
+                    results['steps'].append(f'profession_{member.profession.name_fr}')
+                if member.user:
+                    results['steps'].append(f'user_{member.user.id}')
+
+        results['status'] = 'all_ok'
+        return jsonify(results), 200
+
+    except Exception as e:
+        results['error'] = str(e)
+        results['traceback'] = traceback.format_exc()
+        return jsonify(results), 200
+
+
 @tours_bp.route('/<int:id>/stops/<int:stop_id>/planning')
 @tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/<category>')
 @login_required
