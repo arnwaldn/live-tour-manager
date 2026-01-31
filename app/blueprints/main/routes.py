@@ -14,7 +14,7 @@ from app.extensions import db
 def ping():
     """Ultra-simple ping - no DB, no templates. For deployment verification."""
     from datetime import datetime
-    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-31-v1", 200, {'Content-Type': 'text/plain'}
+    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-31-v2-planning", 200, {'Content-Type': 'text/plain'}
 
 
 @main_bp.route('/health/stop-debug/<int:tour_id>/<int:stop_id>')
@@ -27,7 +27,7 @@ def stop_debug(tour_id, stop_id):
     from app.models.mission_invitation import MissionInvitation
 
     result = {
-        'version': '2026-01-31-v1',
+        'version': '2026-01-31-v2-planning',
         'tour_id': tour_id,
         'stop_id': stop_id,
         'errors': []
