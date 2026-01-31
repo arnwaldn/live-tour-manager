@@ -1591,14 +1591,36 @@ def staff_planning(id, stop_id, category='tous', tour=None):
     """Planning journée 24h avec grille horaire organisée par RÔLES/POSTES."""
     import traceback
     from flask import current_app
+
+    # DEBUG: Import test
     try:
         from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
+        current_app.logger.info("PlanningSlot import OK")
     except Exception as e:
         current_app.logger.error(f"Import error: {e}\n{traceback.format_exc()}")
-        raise
+        return f"Import error: {e}", 500
 
+    # DEBUG: Stop query test
     try:
         stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+        current_app.logger.info(f"Stop query OK: {stop.id}")
+    except Exception as e:
+        current_app.logger.error(f"Stop query error: {e}\n{traceback.format_exc()}")
+        return f"Stop query error: {e}", 500
+
+    # DEBUG: Slots query test
+    try:
+        all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).all()
+        current_app.logger.info(f"Slots query OK: {len(all_slots)} slots")
+    except Exception as e:
+        current_app.logger.error(f"Slots query error: {e}\n{traceback.format_exc()}")
+        return f"Slots query error: {e}", 500
+
+    try:
+        # Now re-query with ordering for the actual logic
+        all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(
+            PlanningSlot.category, PlanningSlot.role_name, PlanningSlot.start_time
+        ).all()
 
         # Catégories valides
         valid_categories = ['tous', 'musicien', 'technicien', 'securite', 'management', 'style', 'production']
