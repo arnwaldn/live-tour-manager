@@ -36,41 +36,52 @@ def debug_simple():
 def debug_planning_test():
     """Temporary debug route to test planning imports."""
     import traceback
-    results = {'steps': []}
 
-    # Step 1: Test import
+    # Wrap EVERYTHING in try/except
     try:
-        from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
-        results['steps'].append({'step': 'import', 'status': 'ok'})
-        results['roles'] = list(PLANNING_ROLES.keys())
-    except Exception as e:
-        results['steps'].append({'step': 'import', 'status': 'error', 'error': str(e)})
-        return jsonify(results), 500
+        results = {'steps': []}
 
-    # Step 2: Test table existence
-    try:
-        from sqlalchemy import inspect
-        inspector = inspect(db.engine)
-        tables = inspector.get_table_names()
-        has_planning_slots = 'planning_slots' in tables
-        results['steps'].append({'step': 'table_check', 'status': 'ok', 'has_table': has_planning_slots, 'all_tables': tables})
-    except Exception as e:
-        results['steps'].append({'step': 'table_check', 'status': 'error', 'error': str(e)})
-        return jsonify(results), 500
-
-    # Step 3: Test query if table exists
-    if has_planning_slots:
+        # Step 1: Test import
         try:
-            count = PlanningSlot.query.count()
-            results['steps'].append({'step': 'query', 'status': 'ok', 'slot_count': count})
+            from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
+            results['steps'].append({'step': 'import', 'status': 'ok'})
+            results['roles'] = list(PLANNING_ROLES.keys())
         except Exception as e:
-            results['steps'].append({'step': 'query', 'status': 'error', 'error': str(e), 'traceback': traceback.format_exc()})
-            return jsonify(results), 500
-    else:
-        results['steps'].append({'step': 'query', 'status': 'skipped', 'reason': 'table does not exist'})
+            results['steps'].append({'step': 'import', 'status': 'error', 'error': str(e), 'trace': traceback.format_exc()})
+            return jsonify(results), 200  # Return 200 so we can see the error
 
-    results['status'] = 'ok'
-    return jsonify(results)
+        # Step 2: Test table existence
+        try:
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            has_planning_slots = 'planning_slots' in tables
+            results['steps'].append({'step': 'table_check', 'status': 'ok', 'has_table': has_planning_slots})
+        except Exception as e:
+            results['steps'].append({'step': 'table_check', 'status': 'error', 'error': str(e), 'trace': traceback.format_exc()})
+            return jsonify(results), 200
+
+        # Step 3: Test query if table exists
+        if has_planning_slots:
+            try:
+                count = PlanningSlot.query.count()
+                results['steps'].append({'step': 'query', 'status': 'ok', 'slot_count': count})
+            except Exception as e:
+                results['steps'].append({'step': 'query', 'status': 'error', 'error': str(e), 'trace': traceback.format_exc()})
+                return jsonify(results), 200
+        else:
+            results['steps'].append({'step': 'query', 'status': 'skipped', 'reason': 'table does not exist'})
+
+        results['status'] = 'ok'
+        return jsonify(results)
+
+    except Exception as e:
+        # Catch any unexpected error
+        return jsonify({
+            'status': 'fatal_error',
+            'error': str(e),
+            'trace': traceback.format_exc()
+        }), 200
 
 
 def get_users_by_category(users_list=None, assigned_ids=None):
