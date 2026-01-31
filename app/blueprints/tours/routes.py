@@ -28,22 +28,42 @@ from app.blueprints.logistics.routes import get_visible_logistics
 @tours_bp.route('/debug-planning-test')
 def debug_planning_test():
     """Temporary debug route to test planning imports."""
+    import traceback
+    results = {'steps': []}
+
+    # Step 1: Test import
     try:
         from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
-        count = PlanningSlot.query.count()
-        return jsonify({
-            'status': 'ok',
-            'slot_count': count,
-            'roles': list(PLANNING_ROLES.keys()),
-            'labels': CATEGORY_LABELS
-        })
+        results['steps'].append({'step': 'import', 'status': 'ok'})
+        results['roles'] = list(PLANNING_ROLES.keys())
     except Exception as e:
-        import traceback
-        return jsonify({
-            'status': 'error',
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }), 500
+        results['steps'].append({'step': 'import', 'status': 'error', 'error': str(e)})
+        return jsonify(results), 500
+
+    # Step 2: Test table existence
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        has_planning_slots = 'planning_slots' in tables
+        results['steps'].append({'step': 'table_check', 'status': 'ok', 'has_table': has_planning_slots, 'all_tables': tables})
+    except Exception as e:
+        results['steps'].append({'step': 'table_check', 'status': 'error', 'error': str(e)})
+        return jsonify(results), 500
+
+    # Step 3: Test query if table exists
+    if has_planning_slots:
+        try:
+            count = PlanningSlot.query.count()
+            results['steps'].append({'step': 'query', 'status': 'ok', 'slot_count': count})
+        except Exception as e:
+            results['steps'].append({'step': 'query', 'status': 'error', 'error': str(e), 'traceback': traceback.format_exc()})
+            return jsonify(results), 500
+    else:
+        results['steps'].append({'step': 'query', 'status': 'skipped', 'reason': 'table does not exist'})
+
+    results['status'] = 'ok'
+    return jsonify(results)
 
 
 def get_users_by_category(users_list=None, assigned_ids=None):
