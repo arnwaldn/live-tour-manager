@@ -40,6 +40,9 @@ from app.models.crew_schedule import (
     AssignmentStatus,
 )
 
+# Planning Slots (Daily Concert Planning Grid)
+from app.models.planning_slot import PlanningSlot
+
 # Financial module - Enterprise Grade
 from app.models.payments import (
     TeamMemberPayment,
@@ -136,6 +139,8 @@ __all__ = [
     'CrewAssignment',
     'ExternalContact',
     'AssignmentStatus',
+    # === PLANNING SLOTS (Daily Concert Grid) ===
+    'PlanningSlot',
     # === FINANCIAL MODULE ===
     # Payments
     'TeamMemberPayment',

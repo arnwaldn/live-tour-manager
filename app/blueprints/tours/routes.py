@@ -1588,9 +1588,10 @@ CATEGORY_MAPPING = {
 @login_required
 @tour_access_required
 def staff_planning(id, stop_id, category='tous', tour=None):
-    """Planning journée 24h avec vue par catégorie."""
+    """Planning journée 24h avec grille horaire et créneaux par personne."""
     from app.models.tour_stop import TourStopMember
     from app.models.profession import ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
+    from app.models.planning_slot import PlanningSlot
 
     stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
@@ -1601,6 +1602,9 @@ def staff_planning(id, stop_id, category='tous', tour=None):
 
     # Récupérer les membres assignés à ce stop
     members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
+
+    # Charger les planning slots
+    all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).all()
 
     # Filtrer par catégorie si pas "tous"
     if category != 'tous':
@@ -1615,45 +1619,64 @@ def staff_planning(id, stop_id, category='tous', tour=None):
                         break
         members = filtered_members
 
-    # Enrichir les données des membres
+        # Filtrer les slots par catégorie
+        filtered_slots = [s for s in all_slots if s.category == cat_value]
+    else:
+        filtered_slots = all_slots
+
+    # Enrichir les données des membres avec leurs slots
     members_data = []
+    slots_by_user = {}
+    for slot in filtered_slots:
+        if slot.user_id not in slots_by_user:
+            slots_by_user[slot.user_id] = []
+        slots_by_user[slot.user_id].append(slot)
+
     for m in members:
         user = User.query.get(m.user_id)
         if user:
-            # Trouver la profession principale
             profession_name = 'Non défini'
             profession_category = None
             if user.professions:
                 profession_name = user.professions[0].name_fr
                 profession_category = user.professions[0].category
 
+            user_slots = slots_by_user.get(user.id, [])
+            user_slots.sort(key=lambda s: s.start_time)
+
             members_data.append({
                 'member': m,
                 'user': user,
                 'profession_name': profession_name,
                 'profession_category': profession_category,
+                'slots': user_slots,
             })
 
-    # Trier par heure de début puis par nom
+    # Trier par catégorie puis par nom
     members_data.sort(key=lambda x: (
-        x['member'].work_start or x['member'].call_time or '99:99',
+        x['profession_category'].value if x['profession_category'] else 'zzz',
         x['user'].full_name
     ))
 
     # Préparer les données des catégories pour les onglets
     categories = [
-        {'key': 'tous', 'label': 'TOUS', 'icon': 'bi-people', 'color': '#6c757d'},
+        {'key': 'tous', 'label': 'Tout le planning', 'icon': 'bi-calendar2-week', 'color': '#6c757d'},
+        {'key': 'musicien', 'label': 'Artistes', 'icon': 'bi-music-note-beamed', 'color': '#8b5cf6'},
+        {'key': 'technicien', 'label': 'Techniciens', 'icon': 'bi-tools', 'color': '#3b82f6'},
+        {'key': 'securite', 'label': 'Sécurité', 'icon': 'bi-shield-check', 'color': '#ef4444'},
+        {'key': 'management', 'label': 'Managers', 'icon': 'bi-briefcase', 'color': '#22c55e'},
+        {'key': 'style', 'label': 'Style', 'icon': 'bi-brush', 'color': '#ec4899'},
+        {'key': 'production', 'label': 'Production', 'icon': 'bi-clipboard-check', 'color': '#f97316'},
     ]
-    for cat in ProfessionCategory:
-        categories.append({
-            'key': cat.value + 's' if not cat.value.endswith('e') else cat.value,
-            'label': CATEGORY_LABELS.get(cat, cat.value).upper(),
-            'icon': CATEGORY_ICONS.get(cat, 'bi-person'),
-            'color': CATEGORY_COLORS.get(cat, '#6c757d'),
-        })
+
+    # Générer les heures pour la grille (01:00 à 00:00)
+    hours = list(range(1, 24)) + [0]  # 1, 2, ..., 23, 0 (minuit)
 
     # Vérifier si l'utilisateur peut éditer (manager ou admin)
-    can_edit = current_user.is_admin or current_user.is_manager
+    can_edit = tour.band.is_manager(current_user) if tour and tour.band else current_user.is_admin
+
+    # Liste des utilisateurs pour le modal d'ajout
+    available_users = [m['user'] for m in members_data]
 
     return render_template(
         'tours/staff_planning.html',
@@ -1663,6 +1686,8 @@ def staff_planning(id, stop_id, category='tous', tour=None):
         categories=categories,
         current_category=category,
         can_edit=can_edit,
+        hours=hours,
+        available_users=available_users,
         form=MemberScheduleForm()
     )
 
@@ -1698,3 +1723,119 @@ def update_member_schedule(id, stop_id, member_id, tour=None):
     # Rediriger vers la bonne catégorie
     category = request.args.get('category', 'tous')
     return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
+
+
+# ==================== PLANNING SLOTS CRUD ====================
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/add-slot', methods=['POST'])
+@login_required
+@tour_edit_required
+def add_planning_slot(id, stop_id, tour=None):
+    """Ajouter un créneau horaire au planning."""
+    from app.models.planning_slot import PlanningSlot
+    from datetime import datetime
+
+    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+
+    # Récupérer les données du formulaire
+    user_id = request.form.get('user_id', type=int)
+    start_time_str = request.form.get('start_time')
+    end_time_str = request.form.get('end_time')
+    task_description = request.form.get('task_description', '').strip()
+
+    if not all([user_id, start_time_str, end_time_str, task_description]):
+        flash('Tous les champs sont requis.', 'error')
+        return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id))
+
+    try:
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+    except ValueError:
+        flash('Format d\'heure invalide.', 'error')
+        return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id))
+
+    # Récupérer la profession de l'utilisateur si disponible
+    user = User.query.get(user_id)
+    profession_id = None
+    if user and user.professions:
+        profession_id = user.professions[0].id
+
+    # Créer le slot
+    slot = PlanningSlot(
+        tour_stop_id=stop_id,
+        user_id=user_id,
+        profession_id=profession_id,
+        start_time=start_time,
+        end_time=end_time,
+        task_description=task_description,
+        created_by_id=current_user.id
+    )
+    db.session.add(slot)
+    db.session.commit()
+
+    flash('Créneau ajouté avec succès.', 'success')
+    category = request.form.get('category', 'tous')
+    return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/edit-slot/<int:slot_id>', methods=['POST'])
+@login_required
+@tour_edit_required
+def edit_planning_slot(id, stop_id, slot_id, tour=None):
+    """Modifier un créneau horaire."""
+    from app.models.planning_slot import PlanningSlot
+    from datetime import datetime
+
+    slot = PlanningSlot.query.filter_by(id=slot_id, tour_stop_id=stop_id).first_or_404()
+
+    start_time_str = request.form.get('start_time')
+    end_time_str = request.form.get('end_time')
+    task_description = request.form.get('task_description', '').strip()
+
+    if start_time_str:
+        try:
+            slot.start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        except ValueError:
+            pass
+
+    if end_time_str:
+        try:
+            slot.end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        except ValueError:
+            pass
+
+    if task_description:
+        slot.task_description = task_description
+
+    db.session.commit()
+
+    flash('Créneau modifié avec succès.', 'success')
+    category = request.form.get('category', 'tous')
+    return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/delete-slot/<int:slot_id>', methods=['POST'])
+@login_required
+@tour_edit_required
+def delete_planning_slot(id, stop_id, slot_id, tour=None):
+    """Supprimer un créneau horaire."""
+    from app.models.planning_slot import PlanningSlot
+
+    slot = PlanningSlot.query.filter_by(id=slot_id, tour_stop_id=stop_id).first_or_404()
+    db.session.delete(slot)
+    db.session.commit()
+
+    flash('Créneau supprimé.', 'success')
+    category = request.form.get('category', 'tous')
+    return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/slots.json')
+@login_required
+@tour_access_required
+def planning_slots_json(id, stop_id, tour=None):
+    """API JSON pour les créneaux du planning."""
+    from app.models.planning_slot import PlanningSlot
+
+    slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).all()
+    return jsonify([slot.to_dict() for slot in slots])
