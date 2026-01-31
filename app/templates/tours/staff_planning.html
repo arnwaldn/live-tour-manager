@@ -337,13 +337,13 @@
                     {% for hour in hours %}
                     <div class="hour-cell" data-hour="{{ hour }}" data-role="{{ role.name }}" data-category="{{ cat.key }}">
                         {% for slot in role.slots %}
-                            {% if slot.start_time.hour == hour %}
+                            {% if slot.start_time.hour == hour or (slot.start_time.hour == 0 and hour == 0) %}
                             {% set duration_hours = slot.grid_column_span %}
-                            {% set width_percent = duration_hours * 100 %}
+                            {% set minute_offset = (slot.start_time.minute / 60) * 100 %}
                             <div class="slot slot-{{ cat.key }}"
-                                 style="left: 0; width: calc({{ width_percent }}% - 6px);"
+                                 style="left: {{ minute_offset }}%; width: calc({{ duration_hours * 100 }}% - 6px);"
                                  data-slot-id="{{ slot.id }}"
-                                 onclick="editSlot({{ slot.id }}, '{{ slot.start_time.strftime('%H:%M') }}', '{{ slot.end_time.strftime('%H:%M') }}', '{{ slot.task_description }}', '{{ slot.role_name }}', '{{ slot.category }}')"
+                                 onclick="editSlot({{ slot.id }}, '{{ slot.start_time.strftime('%H:%M') }}', '{{ slot.end_time.strftime('%H:%M') }}', '{{ slot.task_description|e }}', '{{ slot.role_name|e }}', '{{ slot.category }}')"
                                  title="{{ slot.task_description }}">
                                 <span class="slot-time">{{ slot.time_range }}</span>
                                 <span class="slot-task">{{ slot.task_description }}</span>
