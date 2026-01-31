@@ -7,8 +7,8 @@ from flask import render_template, redirect, url_for, flash, request, jsonify, R
 from flask_login import login_required, current_user
 
 from app.blueprints.tours import tours_bp
-from app.blueprints.tours.forms import TourForm, TourStopForm, RescheduleStopForm, LineupSlotForm, MemberScheduleForm, PlanningSlotForm
-from app.models.planning_slot import PlanningSlot
+from app.blueprints.tours.forms import TourForm, TourStopForm, RescheduleStopForm, LineupSlotForm, MemberScheduleForm
+# PlanningSlotForm import removed temporarily for deployment testing
 from app.models.tour import Tour, TourStatus
 from app.models.tour_stop import TourStop, TourStopStatus, EventType, tour_stop_members
 from app.models.venue import Venue
