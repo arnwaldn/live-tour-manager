@@ -24,72 +24,6 @@ from app.utils.geocoding import geocode_address
 from app.blueprints.logistics.routes import get_visible_logistics
 
 
-# SUPER SIMPLE DEBUG - with db test
-@tours_bp.route('/debug-simple')
-def debug_simple():
-    """Simple test with database query."""
-    import traceback
-    try:
-        # Test basic import
-        from app.models.planning_slot import PlanningSlot
-        return f"Import OK. PlanningSlot table name: {PlanningSlot.__tablename__}", 200
-    except Exception as e:
-        return f"Import FAILED: {e}\n\n{traceback.format_exc()}", 200
-
-
-# DEBUG ROUTE - temporary test
-@tours_bp.route('/debug-planning-test')
-def debug_planning_test():
-    """Temporary debug route to test planning imports."""
-    import traceback
-
-    # Wrap EVERYTHING in try/except
-    try:
-        results = {'steps': []}
-
-        # Step 1: Test import
-        try:
-            from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
-            results['steps'].append({'step': 'import', 'status': 'ok'})
-            results['roles'] = list(PLANNING_ROLES.keys())
-        except Exception as e:
-            results['steps'].append({'step': 'import', 'status': 'error', 'error': str(e), 'trace': traceback.format_exc()})
-            return jsonify(results), 200  # Return 200 so we can see the error
-
-        # Step 2: Test table existence
-        try:
-            from sqlalchemy import inspect
-            inspector = inspect(db.engine)
-            tables = inspector.get_table_names()
-            has_planning_slots = 'planning_slots' in tables
-            results['steps'].append({'step': 'table_check', 'status': 'ok', 'has_table': has_planning_slots})
-        except Exception as e:
-            results['steps'].append({'step': 'table_check', 'status': 'error', 'error': str(e), 'trace': traceback.format_exc()})
-            return jsonify(results), 200
-
-        # Step 3: Test query if table exists
-        if has_planning_slots:
-            try:
-                count = PlanningSlot.query.count()
-                results['steps'].append({'step': 'query', 'status': 'ok', 'slot_count': count})
-            except Exception as e:
-                results['steps'].append({'step': 'query', 'status': 'error', 'error': str(e), 'trace': traceback.format_exc()})
-                return jsonify(results), 200
-        else:
-            results['steps'].append({'step': 'query', 'status': 'skipped', 'reason': 'table does not exist'})
-
-        results['status'] = 'ok'
-        return jsonify(results)
-
-    except Exception as e:
-        # Catch any unexpected error
-        return jsonify({
-            'status': 'fatal_error',
-            'error': str(e),
-            'trace': traceback.format_exc()
-        }), 200
-
-
 def get_users_by_category(users_list=None, assigned_ids=None):
     """Retourne les utilisateurs groupés par catégorie de métier pour l'assignation.
 
@@ -1655,135 +1589,103 @@ CATEGORY_MAPPING = {
 @tour_access_required
 def staff_planning(id, stop_id, category='tous', tour=None):
     """Planning journée 24h avec grille horaire organisée par RÔLES/POSTES."""
-    import traceback
-    from flask import current_app
+    from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
 
-    # DEBUG: Import test
-    try:
-        from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
-        current_app.logger.info("PlanningSlot import OK")
-    except Exception as e:
-        current_app.logger.error(f"Import error: {e}\n{traceback.format_exc()}")
-        return f"Import error: {e}", 500
+    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
-    # DEBUG: Stop query test
-    try:
-        stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
-        current_app.logger.info(f"Stop query OK: {stop.id}")
-    except Exception as e:
-        current_app.logger.error(f"Stop query error: {e}\n{traceback.format_exc()}")
-        return f"Stop query error: {e}", 500
+    # Catégories valides
+    valid_categories = ['tous', 'musicien', 'technicien', 'securite', 'management', 'style', 'production']
+    if category not in valid_categories:
+        flash('Catégorie invalide.', 'error')
+        return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
 
-    # DEBUG: Slots query test
-    try:
-        all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).all()
-        current_app.logger.info(f"Slots query OK: {len(all_slots)} slots")
-    except Exception as e:
-        current_app.logger.error(f"Slots query error: {e}\n{traceback.format_exc()}")
-        return f"Slots query error: {e}", 500
+    # Charger tous les slots de ce stop
+    all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(
+        PlanningSlot.category, PlanningSlot.role_name, PlanningSlot.start_time
+    ).all()
 
-    try:
-        # Now re-query with ordering for the actual logic
-        all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(
-            PlanningSlot.category, PlanningSlot.role_name, PlanningSlot.start_time
-        ).all()
+    # Filtrer par catégorie si nécessaire
+    if category != 'tous':
+        slots = [s for s in all_slots if s.category == category]
+        display_categories = [category]
+    else:
+        slots = all_slots
+        display_categories = list(PLANNING_ROLES.keys())
 
-        # Catégories valides
-        valid_categories = ['tous', 'musicien', 'technicien', 'securite', 'management', 'style', 'production']
-        if category not in valid_categories:
-            flash('Catégorie invalide.', 'error')
-            return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
+    # Organiser les slots par catégorie puis par rôle
+    slots_by_category = {}
+    roles_with_slots = set()
 
-        # Charger tous les slots de ce stop
-        all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(
-            PlanningSlot.category, PlanningSlot.role_name, PlanningSlot.start_time
-        ).all()
+    for slot in slots:
+        cat = slot.category
+        role = slot.role_name
+        roles_with_slots.add((cat, role))
 
-        # Filtrer par catégorie si nécessaire
-        if category != 'tous':
-            slots = [s for s in all_slots if s.category == category]
-            display_categories = [category]
-        else:
-            slots = all_slots
-            display_categories = list(PLANNING_ROLES.keys())
+        if cat not in slots_by_category:
+            slots_by_category[cat] = {}
+        if role not in slots_by_category[cat]:
+            slots_by_category[cat][role] = []
+        slots_by_category[cat][role].append(slot)
 
-        # Organiser les slots par catégorie puis par rôle
-        slots_by_category = {}
-        roles_with_slots = set()
+    # Construire la structure de données pour le template
+    planning_data = []
+    for cat in display_categories:
+        cat_roles = PLANNING_ROLES.get(cat, [])
+        # Ajouter aussi les rôles personnalisés qui ont des slots
+        custom_roles = set()
+        if cat in slots_by_category:
+            for role in slots_by_category[cat].keys():
+                if role not in cat_roles:
+                    custom_roles.add(role)
 
-        for slot in slots:
-            cat = slot.category
-            role = slot.role_name
-            roles_with_slots.add((cat, role))
+        all_roles = cat_roles + sorted(list(custom_roles))
 
-            if cat not in slots_by_category:
-                slots_by_category[cat] = {}
-            if role not in slots_by_category[cat]:
-                slots_by_category[cat][role] = []
-            slots_by_category[cat][role].append(slot)
+        cat_data = {
+            'key': cat,
+            'label': CATEGORY_LABELS.get(cat, cat.upper()),
+            'color': CATEGORY_COLORS.get(cat, '#6b7280'),
+            'roles': []
+        }
 
-        # Construire la structure de données pour le template
-        planning_data = []
-        for cat in display_categories:
-            cat_roles = PLANNING_ROLES.get(cat, [])
-            # Ajouter aussi les rôles personnalisés qui ont des slots
-            custom_roles = set()
-            if cat in slots_by_category:
-                for role in slots_by_category[cat].keys():
-                    if role not in cat_roles:
-                        custom_roles.add(role)
+        for role in all_roles:
+            role_slots = slots_by_category.get(cat, {}).get(role, [])
+            cat_data['roles'].append({
+                'name': role,
+                'slots': role_slots
+            })
 
-            all_roles = cat_roles + sorted(list(custom_roles))
+        if cat_data['roles']:  # Seulement si la catégorie a des rôles
+            planning_data.append(cat_data)
 
-            cat_data = {
-                'key': cat,
-                'label': CATEGORY_LABELS.get(cat, cat.upper()),
-                'color': CATEGORY_COLORS.get(cat, '#6b7280'),
-                'roles': []
-            }
+    # Onglets de navigation
+    tabs = [
+        {'key': 'tous', 'label': 'Tout le planning', 'icon': 'bi-calendar2-week'},
+        {'key': 'musicien', 'label': 'Artistes', 'icon': 'bi-music-note-beamed'},
+        {'key': 'technicien', 'label': 'Techniciens', 'icon': 'bi-tools'},
+        {'key': 'securite', 'label': 'Sécurité', 'icon': 'bi-shield-check'},
+        {'key': 'management', 'label': 'Managers', 'icon': 'bi-briefcase'},
+        {'key': 'style', 'label': 'Habilleurs & Maquilleurs', 'icon': 'bi-brush'},
+    ]
 
-            for role in all_roles:
-                role_slots = slots_by_category.get(cat, {}).get(role, [])
-                cat_data['roles'].append({
-                    'name': role,
-                    'slots': role_slots
-                })
+    # Heures de la grille (01:00 à 00:00)
+    hours = list(range(1, 24)) + [0]
 
-            if cat_data['roles']:  # Seulement si la catégorie a des rôles
-                planning_data.append(cat_data)
+    # Permissions
+    can_edit = tour.band.is_manager(current_user) if tour and tour.band else current_user.is_admin
 
-        # Onglets de navigation
-        tabs = [
-            {'key': 'tous', 'label': 'Tout le planning', 'icon': 'bi-calendar2-week'},
-            {'key': 'musicien', 'label': 'Artistes', 'icon': 'bi-music-note-beamed'},
-            {'key': 'technicien', 'label': 'Techniciens', 'icon': 'bi-tools'},
-            {'key': 'securite', 'label': 'Sécurité', 'icon': 'bi-shield-check'},
-            {'key': 'management', 'label': 'Managers', 'icon': 'bi-briefcase'},
-            {'key': 'style', 'label': 'Habilleurs & Maquilleurs', 'icon': 'bi-brush'},
-        ]
-
-        # Heures de la grille (01:00 à 00:00)
-        hours = list(range(1, 24)) + [0]
-
-        # Permissions
-        can_edit = tour.band.is_manager(current_user) if tour and tour.band else current_user.is_admin
-
-        return render_template(
-            'tours/staff_planning.html',
-            tour=tour,
-            stop=stop,
-            planning_data=planning_data,
-            tabs=tabs,
-            current_category=category,
-            can_edit=can_edit,
-            hours=hours,
-            planning_roles=PLANNING_ROLES,
-            category_colors=CATEGORY_COLORS,
-            total_slots=len(slots)
-        )
-    except Exception as e:
-        current_app.logger.error(f"staff_planning error: {e}\n{traceback.format_exc()}")
-        raise
+    return render_template(
+        'tours/staff_planning.html',
+        tour=tour,
+        stop=stop,
+        planning_data=planning_data,
+        tabs=tabs,
+        current_category=category,
+        can_edit=can_edit,
+        hours=hours,
+        planning_roles=PLANNING_ROLES,
+        category_colors=CATEGORY_COLORS,
+        total_slots=len(slots)
+    )
 
 
 @tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/member/<int:member_id>', methods=['POST'])
