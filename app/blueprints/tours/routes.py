@@ -53,33 +53,43 @@ def check_planning_schema():
 @tours_bp.route('/test-auto-approve')
 def test_auto_approve():
     """Auto-approve and login the test user for backtest purposes."""
+    import traceback
     from flask_login import login_user
 
-    test_email = 'testclaudebacktest@test.com'
-    user = User.query.filter_by(email=test_email).first()
+    try:
+        test_email = 'testclaudebacktest@test.com'
+        user = User.query.filter_by(email=test_email).first()
 
-    if not user:
-        return jsonify({'status': 'error', 'message': 'Test user not found'}), 404
+        if not user:
+            return jsonify({'status': 'error', 'message': 'Test user not found'}), 404
 
-    # Approve the user if pending
-    if user.status != 'active':
-        user.status = 'active'
+        # Approve the user and make admin for testing
+        if user.status != 'active':
+            user.status = 'active'
+        user.role = 'admin'  # Make admin for testing
         db.session.commit()
 
-    # Login the user
-    login_user(user, remember=True)
+        # Login the user
+        login_user(user, remember=True)
 
-    # Find any existing tour and stop
-    tour = Tour.query.first()
-    if not tour:
-        return jsonify({'status': 'error', 'message': 'No tours found in database'}), 404
+        # Find any existing tour and stop
+        tour = Tour.query.first()
+        if not tour:
+            return jsonify({'status': 'error', 'message': 'No tours found in database'}), 404
 
-    stop = TourStop.query.filter_by(tour_id=tour.id).first()
-    if not stop:
-        return jsonify({'status': 'error', 'message': f'No stops found for tour {tour.id}'}), 404
+        stop = TourStop.query.filter_by(tour_id=tour.id).first()
+        if not stop:
+            return jsonify({'status': 'error', 'message': f'No stops found for tour {tour.id}'}), 404
 
-    # Redirect to planning page with existing tour/stop
-    return redirect(url_for('tours.staff_planning', id=tour.id, stop_id=stop.id))
+        # Redirect to planning page with existing tour/stop
+        return redirect(url_for('tours.staff_planning', id=tour.id, stop_id=stop.id))
+
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 200
 
 
 # Diagnostic route - list available tours and stops
