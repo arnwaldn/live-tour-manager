@@ -154,6 +154,9 @@
         <a href="{{ url_for('tours.day_sheet', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-gold" title="Day Sheet">
             <i class="bi bi-calendar2-day me-1"></i>Day Sheet
         </a>
+        <a href="{{ url_for('tours.staff_planning', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-info" title="Planning Journée">
+            <i class="bi bi-calendar2-week me-1"></i>Planning
+        </a>
         <a href="{{ url_for('tours.export_stop_ical', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary" title="Ajouter au calendrier">
             <i class="bi bi-calendar-plus me-1"></i>Calendrier
         </a>
