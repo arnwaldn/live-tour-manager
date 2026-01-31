@@ -7,7 +7,7 @@ from flask import render_template, redirect, url_for, flash, request, jsonify, R
 from flask_login import login_required, current_user
 
 from app.blueprints.tours import tours_bp
-from app.blueprints.tours.forms import TourForm, TourStopForm, RescheduleStopForm, LineupSlotForm
+from app.blueprints.tours.forms import TourForm, TourStopForm, RescheduleStopForm, LineupSlotForm, MemberScheduleForm
 from app.models.tour import Tour, TourStatus
 from app.models.tour_stop import TourStop, TourStopStatus, EventType, tour_stop_members
 from app.models.venue import Venue
@@ -1565,3 +1565,136 @@ def resend_invitation(id, stop_id, inv_id, tour=None):
         flash(f'Erreur lors de l\'envoi de l\'invitation à {invitation.user.full_name}.', 'error')
 
     return redirect(url_for('tours.assign_members', id=id, stop_id=stop_id))
+
+
+# ============================================================================
+# STAFF PLANNING - Planning Journée 24h par catégorie
+# ============================================================================
+
+# Mapping catégorie URL -> ProfessionCategory
+CATEGORY_MAPPING = {
+    'tous': None,  # Toutes catégories
+    'musiciens': 'musicien',
+    'techniciens': 'technicien',
+    'production': 'production',
+    'style': 'style',
+    'securite': 'securite',
+    'management': 'management',
+}
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning')
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/<category>')
+@login_required
+@tour_access_required
+def staff_planning(id, stop_id, category='tous', tour=None):
+    """Planning journée 24h avec vue par catégorie."""
+    from app.models.tour_stop import TourStopMember
+    from app.models.profession import ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
+
+    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+
+    # Valider la catégorie
+    if category not in CATEGORY_MAPPING:
+        flash('Catégorie invalide.', 'error')
+        return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
+
+    # Récupérer les membres assignés à ce stop
+    members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
+
+    # Filtrer par catégorie si pas "tous"
+    if category != 'tous':
+        cat_value = CATEGORY_MAPPING[category]
+        filtered_members = []
+        for m in members:
+            user = User.query.get(m.user_id)
+            if user and user.professions:
+                for prof in user.professions:
+                    if prof.category.value == cat_value:
+                        filtered_members.append(m)
+                        break
+        members = filtered_members
+
+    # Enrichir les données des membres
+    members_data = []
+    for m in members:
+        user = User.query.get(m.user_id)
+        if user:
+            # Trouver la profession principale
+            profession_name = 'Non défini'
+            profession_category = None
+            if user.professions:
+                profession_name = user.professions[0].name_fr
+                profession_category = user.professions[0].category
+
+            members_data.append({
+                'member': m,
+                'user': user,
+                'profession_name': profession_name,
+                'profession_category': profession_category,
+            })
+
+    # Trier par heure de début puis par nom
+    members_data.sort(key=lambda x: (
+        x['member'].work_start or x['member'].call_time or '99:99',
+        x['user'].full_name
+    ))
+
+    # Préparer les données des catégories pour les onglets
+    categories = [
+        {'key': 'tous', 'label': 'TOUS', 'icon': 'bi-people', 'color': '#6c757d'},
+    ]
+    for cat in ProfessionCategory:
+        categories.append({
+            'key': cat.value + 's' if not cat.value.endswith('e') else cat.value,
+            'label': CATEGORY_LABELS.get(cat, cat.value).upper(),
+            'icon': CATEGORY_ICONS.get(cat, 'bi-person'),
+            'color': CATEGORY_COLORS.get(cat, '#6c757d'),
+        })
+
+    # Vérifier si l'utilisateur peut éditer (manager ou admin)
+    can_edit = current_user.is_admin or current_user.is_manager
+
+    return render_template(
+        'tours/staff_planning.html',
+        tour=tour,
+        stop=stop,
+        members_data=members_data,
+        categories=categories,
+        current_category=category,
+        can_edit=can_edit,
+        form=MemberScheduleForm()
+    )
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/member/<int:member_id>', methods=['POST'])
+@login_required
+@tour_edit_required
+def update_member_schedule(id, stop_id, member_id, tour=None):
+    """Mettre à jour le planning d'un membre."""
+    from app.models.tour_stop import TourStopMember
+
+    member = TourStopMember.query.filter_by(
+        id=member_id,
+        tour_stop_id=stop_id
+    ).first_or_404()
+
+    form = MemberScheduleForm()
+    if form.validate_on_submit():
+        # Note: Les champs work_start, work_end, etc. sont des @property
+        # Ils ne peuvent pas être modifiés directement sans migration DB
+        # Pour l'instant, on met à jour seulement les champs existants
+        member.call_time = form.work_start.data  # Utiliser call_time existant
+        if form.notes.data:
+            member.notes = form.notes.data
+
+        db.session.commit()
+        log_update(member, member.user)
+
+        flash('Planning mis à jour.', 'success')
+    else:
+        flash('Erreur de validation.', 'error')
+
+    # Rediriger vers la bonne catégorie
+    category = request.args.get('category', 'tous')
+    return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category=category))

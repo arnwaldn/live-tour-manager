@@ -223,3 +223,15 @@ class LineupSlotForm(FlaskForm):
     ])
     is_confirmed = BooleanField('Confirmé')
     submit = SubmitField('Enregistrer')
+
+
+class MemberScheduleForm(FlaskForm):
+    """Form for editing a member's schedule on a tour stop."""
+
+    work_start = TimeField('Début de travail', validators=[Optional()])
+    work_end = TimeField('Fin de travail', validators=[Optional()])
+    break_start = TimeField('Début pause', validators=[Optional()])
+    break_end = TimeField('Fin pause', validators=[Optional()])
+    meal_time = TimeField('Heure repas', validators=[Optional()])
+    notes = TextAreaField('Notes', validators=[Length(max=500)])
+    submit = SubmitField('Enregistrer')

@@ -1,0 +1,475 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Planning Journée - {{ stop.date.strftime('%d/%m/%Y') }} - {{ tour.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Planning 24h styles */
+.planning-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Category tabs */
+.category-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem;
+    background: var(--bs-dark);
+    border-radius: 0.5rem;
+}
+
+.category-tab {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    color: var(--bs-gray-400);
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.category-tab:hover {
+    color: var(--bs-white);
+    background: rgba(255,255,255,0.1);
+}
+
+.category-tab.active {
+    background: var(--bs-primary);
+    color: white;
+}
+
+/* Timeline header */
+.timeline-header {
+    display: flex;
+    background: var(--bs-dark);
+    border-radius: 0.5rem 0.5rem 0 0;
+    padding: 0.5rem;
+    overflow-x: auto;
+}
+
+.timeline-hour {
+    flex: 0 0 50px;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--bs-gray-500);
+    border-right: 1px solid var(--bs-gray-700);
+}
+
+.timeline-hour:last-child {
+    border-right: none;
+}
+
+/* Member row */
+.member-row {
+    display: flex;
+    border-bottom: 1px solid var(--bs-gray-800);
+    min-height: 60px;
+}
+
+.member-info {
+    flex: 0 0 200px;
+    padding: 0.75rem;
+    background: var(--bs-gray-900);
+    border-right: 1px solid var(--bs-gray-800);
+}
+
+.member-name {
+    font-weight: 600;
+    color: var(--bs-white);
+    margin-bottom: 0.25rem;
+}
+
+.member-profession {
+    font-size: 0.75rem;
+    color: var(--bs-gray-500);
+}
+
+.member-timeline {
+    flex: 1;
+    display: flex;
+    position: relative;
+    background: var(--bs-gray-900);
+    overflow-x: auto;
+}
+
+/* Schedule bar */
+.schedule-bar {
+    position: absolute;
+    height: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: white;
+    opacity: 0.9;
+}
+
+.schedule-bar.work {
+    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+}
+
+.schedule-bar.break {
+    background: linear-gradient(135deg, #FF9800 0%, #EF6C00 100%);
+}
+
+.schedule-bar.meal {
+    background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%);
+    width: 30px !important;
+}
+
+/* Category colors */
+.cat-musicien { border-left: 4px solid #e74c3c; }
+.cat-technicien { border-left: 4px solid #3498db; }
+.cat-production { border-left: 4px solid #9b59b6; }
+.cat-style { border-left: 4px solid #e91e63; }
+.cat-securite { border-left: 4px solid #ff9800; }
+.cat-management { border-left: 4px solid #2ecc71; }
+
+/* Legend */
+.legend {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1rem;
+    background: var(--bs-gray-900);
+    border-radius: 0 0 0.5rem 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--bs-gray-400);
+}
+
+.legend-color {
+    width: 20px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+/* Empty state */
+.empty-planning {
+    text-align: center;
+    padding: 3rem;
+    color: var(--bs-gray-500);
+}
+
+/* Modal form */
+.schedule-form .form-label {
+    font-weight: 500;
+    color: var(--bs-gray-400);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .member-info {
+        flex: 0 0 120px;
+    }
+    .timeline-hour {
+        flex: 0 0 30px;
+    }
+}
+
+@media print {
+    .no-print { display: none !important; }
+    .planning-wrapper { max-width: 100%; }
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
+        <li class="breadcrumb-item active">Planning</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 no-print">
+    <div class="mb-3 mb-md-0">
+        <h1 class="h2 mb-1">
+            <i class="bi bi-calendar2-week me-2"></i>Planning Journée
+        </h1>
+        <p class="text-muted mb-0">
+            {{ stop.venue.name if stop.venue else stop.location_city or 'Lieu non défini' }} -
+            {{ stop.date.strftime('%A %d %B %Y') }}
+        </p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('tours.day_sheet', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Day Sheet
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-primary">
+            <i class="bi bi-printer me-1"></i>Imprimer
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="planning-wrapper">
+    <!-- Category Tabs -->
+    <div class="category-tabs no-print">
+        {% for cat in categories %}
+        <a href="{{ url_for('tours.staff_planning', id=tour.id, stop_id=stop.id, category=cat.key) }}"
+           class="category-tab {{ 'active' if current_category == cat.key else '' }}">
+            <i class="{{ cat.icon }} me-1"></i>{{ cat.label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    {% if members_data %}
+    <!-- Timeline Container -->
+    <div class="card bg-dark border-0">
+        <div class="card-body p-0">
+            <!-- Timeline Header (01h - 00h) -->
+            <div class="timeline-header">
+                <div style="flex: 0 0 200px; padding: 0.5rem; font-weight: 600; color: var(--bs-gray-400);">
+                    Équipe
+                </div>
+                {% for hour in range(1, 25) %}
+                <div class="timeline-hour">{{ '%02d' % (hour if hour < 24 else 0) }}h</div>
+                {% endfor %}
+            </div>
+
+            <!-- Members -->
+            {% for item in members_data %}
+            {% set member = item.member %}
+            {% set user = item.user %}
+            {% set cat_class = 'cat-' + item.profession_category.value if item.profession_category else '' %}
+
+            <div class="member-row {{ cat_class }}"
+                 {% if can_edit %}data-member-id="{{ member.id }}" data-bs-toggle="modal" data-bs-target="#editModal" style="cursor: pointer;"{% endif %}>
+                <div class="member-info">
+                    <div class="member-name">
+                        {{ user.full_name }}
+                        {% if member.status and member.status.value == 'confirmed' %}
+                        <i class="bi bi-check-circle-fill text-success ms-1" title="Confirmé"></i>
+                        {% endif %}
+                    </div>
+                    <div class="member-profession">{{ item.profession_name }}</div>
+                    {% if member.call_time %}
+                    <div class="member-profession text-primary">
+                        <i class="bi bi-alarm me-1"></i>{{ member.call_time.strftime('%H:%M') }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="member-timeline">
+                    {% if member.work_start and member.work_end %}
+                    {% set start_hour = member.work_start.hour + member.work_start.minute / 60 %}
+                    {% set end_hour = member.work_end.hour + member.work_end.minute / 60 %}
+                    {% set left = (start_hour - 1) * 50 %}
+                    {% set width = (end_hour - start_hour) * 50 %}
+                    <div class="schedule-bar work" style="left: {{ left }}px; width: {{ width }}px;">
+                        {{ member.work_start.strftime('%H:%M') }}-{{ member.work_end.strftime('%H:%M') }}
+                    </div>
+                    {% elif member.call_time %}
+                    {% set start_hour = member.call_time.hour + member.call_time.minute / 60 %}
+                    {% set left = (start_hour - 1) * 50 %}
+                    <div class="schedule-bar work" style="left: {{ left }}px; width: 200px; opacity: 0.5;">
+                        Appel {{ member.call_time.strftime('%H:%M') }}
+                    </div>
+                    {% else %}
+                    <span class="text-muted ps-3 py-2" style="font-size: 0.75rem;">Non planifié</span>
+                    {% endif %}
+
+                    {% if member.meal_time %}
+                    {% set meal_hour = member.meal_time.hour + member.meal_time.minute / 60 %}
+                    {% set meal_left = (meal_hour - 1) * 50 %}
+                    <div class="schedule-bar meal" style="left: {{ meal_left }}px;" title="Repas {{ member.meal_time.strftime('%H:%M') }}">
+                        🍽️
+                    </div>
+                    {% endif %}
+
+                    {% if member.break_start and member.break_end %}
+                    {% set break_start = member.break_start.hour + member.break_start.minute / 60 %}
+                    {% set break_end = member.break_end.hour + member.break_end.minute / 60 %}
+                    {% set break_left = (break_start - 1) * 50 %}
+                    {% set break_width = (break_end - break_start) * 50 %}
+                    <div class="schedule-bar break" style="left: {{ break_left }}px; width: {{ break_width }}px;" title="Pause">
+                        ☕
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);"></div>
+                    Travail
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%);"></div>
+                    🍽️ Repas
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #FF9800 0%, #EF6C00 100%);"></div>
+                    ☕ Pause
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal (Manager/Admin only) -->
+    {% if can_edit %}
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clock me-2"></i>Modifier Planning
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="scheduleForm" method="POST" action="">
+                    {{ form.hidden_tag() }}
+                    <div class="modal-body schedule-form">
+                        <div class="mb-3">
+                            <label class="form-label">TRAVAIL</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label small">Début</label>
+                                    {{ form.work_start(class="form-control bg-dark text-white border-secondary") }}
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Fin</label>
+                                    {{ form.work_end(class="form-control bg-dark text-white border-secondary") }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">PAUSE REPAS</label>
+                            {{ form.meal_time(class="form-control bg-dark text-white border-secondary") }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">PAUSE</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label small">Début</label>
+                                    {{ form.break_start(class="form-control bg-dark text-white border-secondary") }}
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Fin</label>
+                                    {{ form.break_end(class="form-control bg-dark text-white border-secondary") }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">NOTES</label>
+                            {{ form.notes(class="form-control bg-dark text-white border-secondary", rows=2) }}
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check2 me-1"></i>Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="card bg-dark border-0">
+        <div class="empty-planning">
+            <i class="bi bi-calendar-x display-4 mb-3"></i>
+            <h5>Aucun membre assigné</h5>
+            <p class="mb-3">
+                {% if current_category != 'tous' %}
+                Aucun membre de cette catégorie n'est assigné à ce concert.
+                {% else %}
+                Commencez par assigner des membres à ce concert.
+                {% endif %}
+            </p>
+            <a href="{{ url_for('tours.assign_members', id=tour.id, stop_id=stop.id) }}" class="btn btn-primary">
+                <i class="bi bi-person-plus me-1"></i>Assigner des membres
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Stats -->
+    <div class="row g-3 mt-3">
+        <div class="col-md-3">
+            <div class="card bg-dark border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="display-6 text-primary mb-2">{{ members_data|length }}</div>
+                    <div class="text-muted small">Membres affichés</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="display-6 text-success mb-2">
+                        {{ members_data|selectattr('member.call_time')|list|length }}
+                    </div>
+                    <div class="text-muted small">Avec horaire défini</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark border-0 h-100">
+                <div class="card-body text-center">
+                    <div class="display-6 text-warning mb-2">
+                        {{ members_data|rejectattr('member.call_time')|list|length }}
+                    </div>
+                    <div class="text-muted small">Non planifiés</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-dark border-0 h-100">
+                <div class="card-body text-center">
+                    {% set first_call = none %}
+                    {% for item in members_data if item.member.call_time %}
+                        {% if not first_call or item.member.call_time < first_call %}
+                            {% set first_call = item.member.call_time %}
+                        {% endif %}
+                    {% endfor %}
+                    <div class="display-6 text-info mb-2">
+                        {{ first_call.strftime('%H:%M') if first_call else '--:--' }}
+                    </div>
+                    <div class="text-muted small">Premier appel</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if can_edit %}
+// Handle modal population
+document.querySelectorAll('[data-member-id]').forEach(row => {
+    row.addEventListener('click', function() {
+        const memberId = this.dataset.memberId;
+        const form = document.getElementById('scheduleForm');
+        form.action = `{{ url_for('tours.update_member_schedule', id=tour.id, stop_id=stop.id, member_id=0) }}`.replace('/0', '/' + memberId) + '?category={{ current_category }}';
+    });
+});
+{% endif %}
+</script>
+{% endblock %}
