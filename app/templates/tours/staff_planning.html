@@ -1,187 +1,305 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Planning Journée - {{ stop.date.strftime('%d/%m/%Y') }} - {{ tour.name }}{% endblock %}
+{% block title %}Planning Journee - {{ stop.date.strftime('%d/%m/%Y') }} - {{ tour.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
-/* Planning 24h styles */
-.planning-wrapper {
-    max-width: 1400px;
+/* Planning Container */
+.planning-container {
+    max-width: 1600px;
     margin: 0 auto;
 }
 
-/* Category tabs */
+/* Category Tabs */
 .category-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+    padding: 1rem;
+    background: var(--bs-gray-900);
+    border-radius: 0.75rem;
     margin-bottom: 1.5rem;
-    padding: 0.5rem;
-    background: var(--bs-dark);
-    border-radius: 0.5rem;
 }
 
 .category-tab {
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-radius: 0.5rem;
     text-decoration: none;
     color: var(--bs-gray-400);
     font-weight: 500;
     font-size: 0.875rem;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     border: 1px solid transparent;
 }
 
 .category-tab:hover {
     color: var(--bs-white);
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.08);
 }
 
 .category-tab.active {
-    background: var(--bs-primary);
     color: white;
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
 }
 
-/* Timeline header */
-.timeline-header {
-    display: flex;
-    background: var(--bs-dark);
-    border-radius: 0.5rem 0.5rem 0 0;
-    padding: 0.5rem;
-    overflow-x: auto;
+/* Planning Grid */
+.planning-grid {
+    background: var(--bs-gray-900);
+    border-radius: 0.75rem;
+    overflow: hidden;
 }
 
-.timeline-hour {
-    flex: 0 0 50px;
+/* Header Row */
+.grid-header {
+    display: grid;
+    grid-template-columns: 220px repeat(24, 1fr);
+    background: var(--bs-gray-800);
+    border-bottom: 2px solid var(--bs-gray-700);
+}
+
+.grid-header-cell {
+    padding: 0.75rem 0.25rem;
     text-align: center;
     font-size: 0.75rem;
-    color: var(--bs-gray-500);
+    font-weight: 600;
+    color: var(--bs-gray-400);
     border-right: 1px solid var(--bs-gray-700);
 }
 
-.timeline-hour:last-child {
+.grid-header-cell:first-child {
+    text-align: left;
+    padding-left: 1rem;
+    font-size: 0.875rem;
+}
+
+.grid-header-cell:last-child {
     border-right: none;
 }
 
-/* Member row */
-.member-row {
-    display: flex;
+/* User Row */
+.user-row {
+    display: grid;
+    grid-template-columns: 220px repeat(24, 1fr);
     border-bottom: 1px solid var(--bs-gray-800);
-    min-height: 60px;
+    min-height: 70px;
+    position: relative;
 }
 
-.member-info {
-    flex: 0 0 200px;
-    padding: 0.75rem;
+.user-row:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+/* User Info */
+.user-info {
+    padding: 0.75rem 1rem;
     background: var(--bs-gray-900);
-    border-right: 1px solid var(--bs-gray-800);
+    border-right: 2px solid var(--bs-gray-700);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
-.member-name {
+.user-name {
     font-weight: 600;
     color: var(--bs-white);
+    font-size: 0.9rem;
     margin-bottom: 0.25rem;
 }
 
-.member-profession {
+.user-profession {
     font-size: 0.75rem;
     color: var(--bs-gray-500);
 }
 
-.member-timeline {
-    flex: 1;
-    display: flex;
+/* Timeline Area */
+.timeline-area {
+    grid-column: 2 / -1;
     position: relative;
-    background: var(--bs-gray-900);
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
 }
 
-/* Schedule bar */
-.schedule-bar {
+.hour-column {
+    border-right: 1px solid var(--bs-gray-800);
+    min-height: 100%;
+}
+
+.hour-column:last-child {
+    border-right: none;
+}
+
+/* Planning Slot */
+.planning-slot {
     position: absolute;
-    height: 30px;
-    top: 50%;
-    transform: translateY(-50%);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    top: 10px;
+    bottom: 10px;
+    border-radius: 6px;
+    padding: 0.375rem 0.5rem;
     font-size: 0.7rem;
     color: white;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 10;
+}
+
+.planning-slot:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 20;
+}
+
+.slot-time {
+    font-weight: 700;
+    font-size: 0.65rem;
     opacity: 0.9;
 }
 
-.schedule-bar.work {
-    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+.slot-task {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.schedule-bar.break {
-    background: linear-gradient(135deg, #FF9800 0%, #EF6C00 100%);
+/* Category Colors */
+.slot-musicien { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.slot-technicien { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.slot-securite { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.slot-management { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.slot-style { background: linear-gradient(135deg, #ec4899, #db2777); }
+.slot-production { background: linear-gradient(135deg, #f97316, #ea580c); }
+.slot-default { background: linear-gradient(135deg, #6b7280, #4b5563); }
+
+/* Category border indicator on user row */
+.cat-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
 }
 
-.schedule-bar.meal {
-    background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%);
-    width: 30px !important;
+.cat-musicien-border { background: #8b5cf6; }
+.cat-technicien-border { background: #3b82f6; }
+.cat-securite-border { background: #ef4444; }
+.cat-management-border { background: #22c55e; }
+.cat-style-border { background: #ec4899; }
+.cat-production-border { background: #f97316; }
+
+/* Add Slot Button */
+.add-slot-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--bs-primary);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 1000;
 }
 
-/* Category colors */
-.cat-musicien { border-left: 4px solid #e74c3c; }
-.cat-technicien { border-left: 4px solid #3498db; }
-.cat-production { border-left: 4px solid #9b59b6; }
-.cat-style { border-left: 4px solid #e91e63; }
-.cat-securite { border-left: 4px solid #ff9800; }
-.cat-management { border-left: 4px solid #2ecc71; }
-
-/* Legend */
-.legend {
-    display: flex;
-    gap: 1.5rem;
-    padding: 1rem;
-    background: var(--bs-gray-900);
-    border-radius: 0 0 0.5rem 0.5rem;
-    margin-bottom: 1rem;
+.add-slot-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
 }
 
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--bs-gray-400);
-}
-
-.legend-color {
-    width: 20px;
-    height: 12px;
-    border-radius: 2px;
-}
-
-/* Empty state */
-.empty-planning {
+/* Empty State */
+.empty-state {
     text-align: center;
-    padding: 3rem;
+    padding: 4rem 2rem;
     color: var(--bs-gray-500);
 }
 
-/* Modal form */
-.schedule-form .form-label {
-    font-weight: 500;
-    color: var(--bs-gray-400);
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Modal Styles */
+.modal-dark .modal-content {
+    background: var(--bs-gray-900);
+    border: 1px solid var(--bs-gray-700);
+}
+
+.modal-dark .modal-header {
+    border-bottom-color: var(--bs-gray-700);
+}
+
+.modal-dark .modal-footer {
+    border-top-color: var(--bs-gray-700);
+}
+
+.form-dark {
+    background: var(--bs-gray-800);
+    border-color: var(--bs-gray-600);
+    color: var(--bs-white);
+}
+
+.form-dark:focus {
+    background: var(--bs-gray-800);
+    border-color: var(--bs-primary);
+    color: var(--bs-white);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Stats Cards */
+.stat-card {
+    background: var(--bs-gray-900);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--bs-gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-    .member-info {
-        flex: 0 0 120px;
+@media (max-width: 1200px) {
+    .grid-header,
+    .user-row {
+        grid-template-columns: 180px repeat(24, 1fr);
     }
-    .timeline-hour {
-        flex: 0 0 30px;
+}
+
+@media (max-width: 768px) {
+    .planning-grid {
+        overflow-x: auto;
+    }
+
+    .grid-header,
+    .user-row {
+        min-width: 1200px;
     }
 }
 
 @media print {
     .no-print { display: none !important; }
-    .planning-wrapper { max-width: 100%; }
+    .planning-container { max-width: 100%; }
+    .add-slot-btn { display: none; }
 }
 </style>
 {% endblock %}
@@ -189,7 +307,7 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournees</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
         <li class="breadcrumb-item active">Planning</li>
@@ -201,16 +319,16 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 no-print">
     <div class="mb-3 mb-md-0">
         <h1 class="h2 mb-1">
-            <i class="bi bi-calendar2-week me-2"></i>Planning Journée
+            <i class="bi bi-calendar2-week me-2"></i>Planning Journee
         </h1>
         <p class="text-muted mb-0">
-            {{ stop.venue.name if stop.venue else stop.location_city or 'Lieu non défini' }} -
+            {{ stop.venue.name if stop.venue else stop.location_city or 'Lieu non defini' }} -
             {{ stop.date.strftime('%A %d %B %Y') }}
         </p>
     </div>
     <div class="btn-group">
-        <a href="{{ url_for('tours.day_sheet', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Day Sheet
+        <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
         </a>
         <button onclick="window.print()" class="btn btn-outline-primary">
             <i class="bi bi-printer me-1"></i>Imprimer
@@ -220,256 +338,304 @@
 {% endblock %}
 
 {% block content %}
-<div class="planning-wrapper">
+<div class="planning-container">
     <!-- Category Tabs -->
     <div class="category-tabs no-print">
         {% for cat in categories %}
         <a href="{{ url_for('tours.staff_planning', id=tour.id, stop_id=stop.id, category=cat.key) }}"
-           class="category-tab {{ 'active' if current_category == cat.key else '' }}">
-            <i class="{{ cat.icon }} me-1"></i>{{ cat.label }}
+           class="category-tab {{ 'active' if current_category == cat.key else '' }}"
+           style="{{ 'border-left: 3px solid ' + cat.color + ';' if current_category != cat.key else '' }}">
+            <i class="{{ cat.icon }}"></i>
+            <span>{{ cat.label }}</span>
         </a>
         {% endfor %}
     </div>
 
-    {% if members_data %}
-    <!-- Timeline Container -->
-    <div class="card bg-dark border-0">
-        <div class="card-body p-0">
-            <!-- Timeline Header (01h - 00h) -->
-            <div class="timeline-header">
-                <div style="flex: 0 0 200px; padding: 0.5rem; font-weight: 600; color: var(--bs-gray-400);">
-                    Équipe
+    {% if users_data %}
+    <!-- Planning Grid -->
+    <div class="planning-grid">
+        <!-- Header Row -->
+        <div class="grid-header">
+            <div class="grid-header-cell">Equipe</div>
+            {% for hour in hours %}
+            <div class="grid-header-cell">{{ '%02d' % hour }}h</div>
+            {% endfor %}
+        </div>
+
+        <!-- User Rows -->
+        {% for user_data in users_data %}
+        <div class="user-row">
+            <!-- Category Indicator -->
+            <div class="cat-indicator cat-{{ user_data.category or 'default' }}-border"></div>
+
+            <!-- User Info -->
+            <div class="user-info">
+                <div class="user-name">{{ user_data.user.full_name if user_data.user else 'Utilisateur inconnu' }}</div>
+                <div class="user-profession">
+                    {{ user_data.profession.name_fr if user_data.profession else 'Non defini' }}
                 </div>
-                {% for hour in range(1, 25) %}
-                <div class="timeline-hour">{{ '%02d' % (hour if hour < 24 else 0) }}h</div>
+            </div>
+
+            <!-- Timeline Area -->
+            <div class="timeline-area">
+                {% for hour in hours %}
+                <div class="hour-column"></div>
+                {% endfor %}
+
+                <!-- Slots -->
+                {% for slot in user_data.slots %}
+                {% set start_col = slot.grid_start %}
+                {% set end_col = slot.grid_end %}
+                {% set left_pct = ((start_col - 1) / 24) * 100 %}
+                {% set width_pct = ((end_col - start_col) / 24) * 100 %}
+                <div class="planning-slot slot-{{ slot.category_value or 'default' }}"
+                     style="left: {{ left_pct }}%; width: {{ width_pct }}%;"
+                     data-slot-id="{{ slot.id }}"
+                     data-user-id="{{ slot.user_id }}"
+                     data-profession-id="{{ slot.profession_id or 0 }}"
+                     data-start-time="{{ slot.start_time.strftime('%H:%M') }}"
+                     data-end-time="{{ slot.end_time.strftime('%H:%M') }}"
+                     data-task="{{ slot.task_description }}"
+                     {% if can_edit %}onclick="openEditSlotModal(this)"{% endif %}>
+                    <span class="slot-time">{{ slot.time_range }}</span>
+                    <span class="slot-task">{{ slot.task_description }}</span>
+                </div>
                 {% endfor %}
             </div>
+        </div>
+        {% endfor %}
+    </div>
 
-            <!-- Members -->
-            {% for item in members_data %}
-            {% set member = item.member %}
-            {% set user = item.user %}
-            {% set cat_class = 'cat-' + item.profession_category.value if item.profession_category else '' %}
-
-            <div class="member-row {{ cat_class }}"
-                 {% if can_edit %}data-member-id="{{ member.id }}" data-bs-toggle="modal" data-bs-target="#editModal" style="cursor: pointer;"{% endif %}>
-                <div class="member-info">
-                    <div class="member-name">
-                        {{ user.full_name }}
-                        {% if member.status and member.status.value == 'confirmed' %}
-                        <i class="bi bi-check-circle-fill text-success ms-1" title="Confirmé"></i>
-                        {% endif %}
-                    </div>
-                    <div class="member-profession">{{ item.profession_name }}</div>
-                    {% if member.call_time %}
-                    <div class="member-profession text-primary">
-                        <i class="bi bi-alarm me-1"></i>{{ member.call_time.strftime('%H:%M') }}
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="member-timeline">
-                    {% if member.work_start and member.work_end %}
-                    {% set start_hour = member.work_start.hour + member.work_start.minute / 60 %}
-                    {% set end_hour = member.work_end.hour + member.work_end.minute / 60 %}
-                    {% set left = (start_hour - 1) * 50 %}
-                    {% set width = (end_hour - start_hour) * 50 %}
-                    <div class="schedule-bar work" style="left: {{ left }}px; width: {{ width }}px;">
-                        {{ member.work_start.strftime('%H:%M') }}-{{ member.work_end.strftime('%H:%M') }}
-                    </div>
-                    {% elif member.call_time %}
-                    {% set start_hour = member.call_time.hour + member.call_time.minute / 60 %}
-                    {% set left = (start_hour - 1) * 50 %}
-                    <div class="schedule-bar work" style="left: {{ left }}px; width: 200px; opacity: 0.5;">
-                        Appel {{ member.call_time.strftime('%H:%M') }}
-                    </div>
-                    {% else %}
-                    <span class="text-muted ps-3 py-2" style="font-size: 0.75rem;">Non planifié</span>
-                    {% endif %}
-
-                    {% if member.meal_time %}
-                    {% set meal_hour = member.meal_time.hour + member.meal_time.minute / 60 %}
-                    {% set meal_left = (meal_hour - 1) * 50 %}
-                    <div class="schedule-bar meal" style="left: {{ meal_left }}px;" title="Repas {{ member.meal_time.strftime('%H:%M') }}">
-                        🍽️
-                    </div>
-                    {% endif %}
-
-                    {% if member.break_start and member.break_end %}
-                    {% set break_start = member.break_start.hour + member.break_start.minute / 60 %}
-                    {% set break_end = member.break_end.hour + member.break_end.minute / 60 %}
-                    {% set break_left = (break_start - 1) * 50 %}
-                    {% set break_width = (break_end - break_start) * 50 %}
-                    <div class="schedule-bar break" style="left: {{ break_left }}px; width: {{ break_width }}px;" title="Pause">
-                        ☕
-                    </div>
-                    {% endif %}
-                </div>
+    <!-- Stats -->
+    <div class="row g-3 mt-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-value text-primary">{{ users_data|length }}</div>
+                <div class="stat-label">Membres</div>
             </div>
-            {% endfor %}
-
-            <!-- Legend -->
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);"></div>
-                    Travail
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-value text-success">
+                    {% set total_slots = namespace(count=0) %}
+                    {% for ud in users_data %}
+                        {% set total_slots.count = total_slots.count + ud.slots|length %}
+                    {% endfor %}
+                    {{ total_slots.count }}
                 </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%);"></div>
-                    🍽️ Repas
+                <div class="stat-label">Creneaux</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-value text-info">
+                    {% set first_slot = namespace(time=None) %}
+                    {% for ud in users_data %}
+                        {% for slot in ud.slots %}
+                            {% if not first_slot.time or slot.start_time < first_slot.time %}
+                                {% set first_slot.time = slot.start_time %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {{ first_slot.time.strftime('%H:%M') if first_slot.time else '--:--' }}
                 </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(135deg, #FF9800 0%, #EF6C00 100%);"></div>
-                    ☕ Pause
+                <div class="stat-label">Premier creneau</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-value text-warning">
+                    {% set last_slot = namespace(time=None) %}
+                    {% for ud in users_data %}
+                        {% for slot in ud.slots %}
+                            {% if not last_slot.time or slot.end_time > last_slot.time %}
+                                {% set last_slot.time = slot.end_time %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {{ last_slot.time.strftime('%H:%M') if last_slot.time else '--:--' }}
                 </div>
+                <div class="stat-label">Dernier creneau</div>
             </div>
         </div>
     </div>
 
-    <!-- Edit Modal (Manager/Admin only) -->
-    {% if can_edit %}
-    <div class="modal fade" id="editModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title">
-                        <i class="bi bi-clock me-2"></i>Modifier Planning
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="scheduleForm" method="POST" action="">
-                    {{ form.hidden_tag() }}
-                    <div class="modal-body schedule-form">
-                        <div class="mb-3">
-                            <label class="form-label">TRAVAIL</label>
-                            <div class="row">
-                                <div class="col-6">
-                                    <label class="form-label small">Début</label>
-                                    {{ form.work_start(class="form-control bg-dark text-white border-secondary") }}
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label small">Fin</label>
-                                    {{ form.work_end(class="form-control bg-dark text-white border-secondary") }}
-                                </div>
-                            </div>
-                        </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="planning-grid">
+        <div class="empty-state">
+            <i class="bi bi-calendar-x"></i>
+            <h4>Aucun creneau planifie</h4>
+            <p class="mb-4">
+                {% if current_category != 'tous' %}
+                Aucun creneau pour cette categorie.
+                {% else %}
+                Commencez par ajouter des creneaux au planning.
+                {% endif %}
+            </p>
+            {% if can_edit %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSlotModal">
+                <i class="bi bi-plus-lg me-1"></i>Ajouter un creneau
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
 
-                        <div class="mb-3">
-                            <label class="form-label">PAUSE REPAS</label>
-                            {{ form.meal_time(class="form-control bg-dark text-white border-secondary") }}
-                        </div>
+{% if can_edit %}
+<!-- Add Slot FAB -->
+<button type="button" class="add-slot-btn no-print" data-bs-toggle="modal" data-bs-target="#addSlotModal" title="Ajouter un creneau">
+    <i class="bi bi-plus-lg"></i>
+</button>
 
-                        <div class="mb-3">
-                            <label class="form-label">PAUSE</label>
-                            <div class="row">
-                                <div class="col-6">
-                                    <label class="form-label small">Début</label>
-                                    {{ form.break_start(class="form-control bg-dark text-white border-secondary") }}
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label small">Fin</label>
-                                    {{ form.break_end(class="form-control bg-dark text-white border-secondary") }}
-                                </div>
-                            </div>
+<!-- Add Slot Modal -->
+<div class="modal fade modal-dark" id="addSlotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>Ajouter un creneau
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('tours.add_planning_slot', id=tour.id, stop_id=stop.id, category=current_category) }}">
+                {{ form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Membre</label>
+                        {{ form.user_id(class="form-select form-dark") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Profession (optionnel)</label>
+                        {{ form.profession_id(class="form-select form-dark") }}
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Debut</label>
+                            {{ form.start_time(class="form-control form-dark") }}
                         </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">NOTES</label>
-                            {{ form.notes(class="form-control bg-dark text-white border-secondary", rows=2) }}
+                        <div class="col-6">
+                            <label class="form-label">Fin</label>
+                            {{ form.end_time(class="form-control form-dark") }}
                         </div>
                     </div>
-                    <div class="modal-footer border-secondary">
+                    <div class="mb-3">
+                        <label class="form-label">Tache</label>
+                        {{ form.task_description(class="form-control form-dark", placeholder="Ex: Soundcheck, Mise en place...") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check2 me-1"></i>Ajouter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Slot Modal -->
+<div class="modal fade modal-dark" id="editSlotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil me-2"></i>Modifier le creneau
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editSlotForm" method="POST" action="">
+                {{ form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Membre</label>
+                        <select name="user_id" id="edit_user_id" class="form-select form-dark">
+                            <option value="0">-- Selectionner --</option>
+                            {% for choice in form.user_id.choices %}
+                            {% if choice[0] != 0 %}
+                            <option value="{{ choice[0] }}">{{ choice[1] }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Profession (optionnel)</label>
+                        <select name="profession_id" id="edit_profession_id" class="form-select form-dark">
+                            {% for choice in form.profession_id.choices %}
+                            <option value="{{ choice[0] }}">{{ choice[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Debut</label>
+                            <input type="time" name="start_time" id="edit_start_time" class="form-control form-dark" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Fin</label>
+                            <input type="time" name="end_time" id="edit_end_time" class="form-control form-dark" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tache</label>
+                        <input type="text" name="task_description" id="edit_task_description" class="form-control form-dark" required maxlength="200">
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-danger" onclick="deleteSlot()">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                    <div>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-check2 me-1"></i>Enregistrer
                         </button>
                     </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    {% else %}
-    <!-- Empty State -->
-    <div class="card bg-dark border-0">
-        <div class="empty-planning">
-            <i class="bi bi-calendar-x display-4 mb-3"></i>
-            <h5>Aucun membre assigné</h5>
-            <p class="mb-3">
-                {% if current_category != 'tous' %}
-                Aucun membre de cette catégorie n'est assigné à ce concert.
-                {% else %}
-                Commencez par assigner des membres à ce concert.
-                {% endif %}
-            </p>
-            <a href="{{ url_for('tours.assign_members', id=tour.id, stop_id=stop.id) }}" class="btn btn-primary">
-                <i class="bi bi-person-plus me-1"></i>Assigner des membres
-            </a>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Quick Stats -->
-    <div class="row g-3 mt-3">
-        <div class="col-md-3">
-            <div class="card bg-dark border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="display-6 text-primary mb-2">{{ members_data|length }}</div>
-                    <div class="text-muted small">Membres affichés</div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-dark border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="display-6 text-success mb-2">
-                        {{ members_data|selectattr('member.call_time')|list|length }}
-                    </div>
-                    <div class="text-muted small">Avec horaire défini</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-dark border-0 h-100">
-                <div class="card-body text-center">
-                    <div class="display-6 text-warning mb-2">
-                        {{ members_data|rejectattr('member.call_time')|list|length }}
-                    </div>
-                    <div class="text-muted small">Non planifiés</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-dark border-0 h-100">
-                <div class="card-body text-center">
-                    {% set first_call = none %}
-                    {% for item in members_data if item.member.call_time %}
-                        {% if not first_call or item.member.call_time < first_call %}
-                            {% set first_call = item.member.call_time %}
-                        {% endif %}
-                    {% endfor %}
-                    <div class="display-6 text-info mb-2">
-                        {{ first_call.strftime('%H:%M') if first_call else '--:--' }}
-                    </div>
-                    <div class="text-muted small">Premier appel</div>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
+
+<!-- Delete Slot Form (hidden) -->
+<form id="deleteSlotForm" method="POST" action="" style="display: none;">
+    {{ form.hidden_tag() }}
+</form>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
 {% if can_edit %}
-// Handle modal population
-document.querySelectorAll('[data-member-id]').forEach(row => {
-    row.addEventListener('click', function() {
-        const memberId = this.dataset.memberId;
-        const form = document.getElementById('scheduleForm');
-        form.action = `{{ url_for('tours.update_member_schedule', id=tour.id, stop_id=stop.id, member_id=0) }}`.replace('/0', '/' + memberId) + '?category={{ current_category }}';
-    });
-});
+let currentSlotId = null;
+
+function openEditSlotModal(element) {
+    currentSlotId = element.dataset.slotId;
+
+    document.getElementById('edit_user_id').value = element.dataset.userId;
+    document.getElementById('edit_profession_id').value = element.dataset.professionId;
+    document.getElementById('edit_start_time').value = element.dataset.startTime;
+    document.getElementById('edit_end_time').value = element.dataset.endTime;
+    document.getElementById('edit_task_description').value = element.dataset.task;
+
+    const editForm = document.getElementById('editSlotForm');
+    editForm.action = '{{ url_for("tours.edit_planning_slot", id=tour.id, stop_id=stop.id, slot_id=0) }}'.replace('/0', '/' + currentSlotId) + '?category={{ current_category }}';
+
+    const editModal = new bootstrap.Modal(document.getElementById('editSlotModal'));
+    editModal.show();
+}
+
+function deleteSlot() {
+    if (!currentSlotId) return;
+
+    if (confirm('Supprimer ce creneau ?')) {
+        const deleteForm = document.getElementById('deleteSlotForm');
+        deleteForm.action = '{{ url_for("tours.delete_planning_slot", id=tour.id, stop_id=stop.id, slot_id=0) }}'.replace('/0', '/' + currentSlotId) + '?category={{ current_category }}';
+        deleteForm.submit();
+    }
+}
 {% endif %}
 </script>
 {% endblock %}

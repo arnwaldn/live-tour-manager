@@ -31,6 +31,7 @@ from app.models.oauth_token import OAuthToken, OAuthProvider
 from app.models.mission_invitation import MissionInvitation, MissionInvitationStatus
 from app.models.reminder import TourStopReminder
 from app.models.system_settings import SystemSettings
+from app.models.planning_slot import PlanningSlot
 
 # Crew Schedule module
 from app.models.crew_schedule import (
@@ -131,6 +132,8 @@ __all__ = [
     'TourStopReminder',
     # System Settings
     'SystemSettings',
+    # Planning Slots
+    'PlanningSlot',
     # === CREW SCHEDULE MODULE ===
     'CrewScheduleSlot',
     'CrewAssignment',
