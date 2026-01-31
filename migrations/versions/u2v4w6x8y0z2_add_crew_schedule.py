@@ -42,7 +42,7 @@ def upgrade():
         sa.Column('end_time', sa.Time(), nullable=False),
         sa.Column('task_name', sa.String(100), nullable=False),
         sa.Column('task_description', sa.Text(), nullable=True),
-        sa.Column('profession_category', sa.Enum('musicien', 'technicien', 'production', 'style', 'securite', 'management', name='professioncategory', create_type=False), nullable=True),
+        sa.Column('profession_category', sa.Enum('musicien', 'technicien', 'production', 'style', 'securite', 'management', name='professioncategory'), nullable=True),
         sa.Column('color', sa.String(7), nullable=True, default='#3B82F6'),
         sa.Column('order', sa.Integer(), nullable=True, default=0),
         sa.Column('created_at', sa.DateTime(), nullable=True),
@@ -89,3 +89,4 @@ def downgrade():
 
     # Drop enums
     op.execute('DROP TYPE IF EXISTS assignmentstatus')
+    op.execute('DROP TYPE IF EXISTS professioncategory')
