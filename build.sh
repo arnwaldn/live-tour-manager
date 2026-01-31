@@ -34,18 +34,8 @@ echo "Checking current migration status..."
 flask db current || echo "No current migration (fresh database)"
 
 echo "Applying migrations..."
-flask db upgrade || {
-    echo "WARNING: Migration failed - attempting to continue with db.create_all()..."
-    python -c "
-from app import create_app
-from app.extensions import db
-app = create_app()
-with app.app_context():
-    db.create_all()
-    print('Tables created via db.create_all()')
-"
-}
-echo "Migration step completed."
+flask db upgrade
+echo "Migration completed."
 
 echo ""
 echo "=== Step 4: Verifying migration and creating missing tables ==="
