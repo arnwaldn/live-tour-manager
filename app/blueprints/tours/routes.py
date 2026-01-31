@@ -114,7 +114,7 @@ def test_planning_debug():
 
         # Step 1: Test PlanningSlot import
         try:
-            from app.models.planning import PlanningSlot, PLANNING_ROLES
+            from app.models.planning_slot import PlanningSlot, PLANNING_ROLES
             results['steps'].append('step2_import_ok')
             results['planning_roles'] = list(PLANNING_ROLES.keys()) if PLANNING_ROLES else None
         except Exception as e:
