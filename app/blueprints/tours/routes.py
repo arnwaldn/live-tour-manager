@@ -65,8 +65,8 @@ def test_auto_approve():
 
         # Approve the user and make admin for testing
         from app.models.user import AccessLevel
-        if user.status != 'active':
-            user.status = 'active'
+        user.is_active = True
+        user.email_verified = True
         user.access_level = AccessLevel.ADMIN  # Make admin for testing
         db.session.commit()
 
