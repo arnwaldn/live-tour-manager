@@ -50,7 +50,7 @@ def check_planning_schema():
 
 
 # Emergency fix route - recreate planning_slots with correct schema
-@tours_bp.route('/fix-planning-schema', methods=['POST'])
+@tours_bp.route('/fix-planning-schema', methods=['GET', 'POST'])
 def fix_planning_schema():
     """Force recreate planning_slots table with correct schema."""
     from sqlalchemy import inspect, text
