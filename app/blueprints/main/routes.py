@@ -182,17 +182,17 @@ def create_stop_debug(tour_id):
 def create_guest_debug(stop_id):
     """Debug endpoint to create a guestlist entry directly."""
     import traceback
-    from app.models.tour_stop import TourStop
-    from app.models.guestlist import GuestlistEntry, EntryType, GuestlistStatus
 
     result = {
-        'version': '2026-02-01-guest-v2',
+        'version': '2026-02-01-guest-v4',
         'stop_id': stop_id,
         'errors': [],
         'success': False
     }
 
     try:
+        from app.models.tour_stop import TourStop
+        from app.models.guestlist import GuestlistEntry, EntryType, GuestlistStatus
         from app.models.user import User
 
         # Get stop
