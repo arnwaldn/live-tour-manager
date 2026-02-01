@@ -189,7 +189,7 @@ class User(UserMixin, db.Model):
         'UserProfession',
         back_populates='user',
         cascade='all, delete-orphan',
-        lazy='dynamic'
+        lazy='selectin'  # Optimized: loads all professions in 1 query instead of N+1
     )
 
     band_memberships = db.relationship(
