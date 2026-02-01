@@ -227,6 +227,65 @@ def create_guest_debug(stop_id):
     return jsonify(result)
 
 
+@main_bp.route('/health/crew-debug/<int:stop_id>')
+def crew_debug(stop_id):
+    """Debug endpoint for crew schedule errors."""
+    import traceback
+    from app.models.tour_stop import TourStop
+    from app.models.crew_schedule import CrewScheduleSlot
+    from app.models.user import User
+    from app.models.external_contact import ExternalContact
+    from app.models.profession import Profession, ProfessionCategory
+
+    result = {
+        'version': '2026-02-01-crew',
+        'stop_id': stop_id,
+        'errors': [],
+        'success': False
+    }
+
+    try:
+        # Step 1: Get stop
+        tour_stop = TourStop.query.get(stop_id)
+        if not tour_stop:
+            result['errors'].append(f'Stop {stop_id} not found')
+            return jsonify(result)
+        result['stop'] = {'id': tour_stop.id, 'date': str(tour_stop.date)}
+
+        # Step 2: Get slots
+        slots = CrewScheduleSlot.query.filter_by(tour_stop_id=stop_id).all()
+        result['slots_count'] = len(slots)
+
+        # Step 3: Get users
+        users = User.query.filter_by(is_active=True).all()
+        result['users_count'] = len(users)
+
+        # Step 4: Get external contacts
+        external_contacts = ExternalContact.query.all()
+        result['external_contacts_count'] = len(external_contacts)
+
+        # Step 5: Get professions
+        professions = Profession.query.all()
+        result['professions_count'] = len(professions)
+
+        # Step 6: Test forms
+        try:
+            from app.blueprints.crew.forms import CrewSlotForm, CrewAssignmentForm, ExternalContactForm
+            slot_form = CrewSlotForm()
+            result['slot_form'] = 'OK'
+        except Exception as form_err:
+            result['errors'].append(f'CrewSlotForm error: {str(form_err)}')
+            result['form_traceback'] = traceback.format_exc()
+
+        result['success'] = True
+
+    except Exception as e:
+        result['errors'].append(f'Error: {str(e)}')
+        result['traceback'] = traceback.format_exc()
+
+    return jsonify(result)
+
+
 @main_bp.route('/health/stop-debug/<int:tour_id>/<int:stop_id>')
 def stop_debug(tour_id, stop_id):
     """Debug endpoint for stop_detail errors - no auth required."""
