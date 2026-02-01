@@ -306,7 +306,7 @@ def crew_full_debug(stop_id):
     import traceback
 
     result = {
-        'version': '2026-02-01-crew-full-v1',
+        'version': '2026-02-01-crew-full-v2',
         'stop_id': stop_id,
         'errors': [],
         'success': False,
