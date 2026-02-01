@@ -178,6 +178,12 @@ def create_stop_debug(tour_id):
     return jsonify(result)
 
 
+@main_bp.route('/health/test-simple')
+def test_simple():
+    """Simple test endpoint - no imports, no DB."""
+    return jsonify({'status': 'ok', 'version': '2026-02-01-test-v1'})
+
+
 @main_bp.route('/health/create-guest/<int:stop_id>')
 def create_guest_debug(stop_id):
     """Debug endpoint to create a guestlist entry directly."""
