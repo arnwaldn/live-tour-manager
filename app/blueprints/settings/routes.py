@@ -1735,6 +1735,7 @@ def cleanup_all_data(token):
         'notifications',
         'guestlist_entries',
         'team_member_payments',
+        'user_payment_configs',  # Added - FK constraint to users
         'planning_slots',
         'crew_assignments',
         'crew_schedule_slots',
@@ -1749,6 +1750,7 @@ def cleanup_all_data(token):
         'tours',
         'mission_invitations',
         'band_memberships',
+        'travel_cards',  # Added - FK constraint to users
     ]
 
     for table in tables_to_clear:
