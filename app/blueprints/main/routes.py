@@ -248,7 +248,7 @@ def crew_debug(stop_id):
     import traceback
 
     result = {
-        'version': '2026-02-01-crew-v2',
+        'version': '2026-02-01-crew-v3',
         'stop_id': stop_id,
         'errors': [],
         'success': False
@@ -256,9 +256,8 @@ def crew_debug(stop_id):
 
     try:
         from app.models.tour_stop import TourStop
-        from app.models.crew_schedule import CrewScheduleSlot
+        from app.models.crew_schedule import CrewScheduleSlot, ExternalContact
         from app.models.user import User
-        from app.models.external_contact import ExternalContact
         from app.models.profession import Profession, ProfessionCategory
         # Step 1: Get stop
         tour_stop = TourStop.query.get(stop_id)
