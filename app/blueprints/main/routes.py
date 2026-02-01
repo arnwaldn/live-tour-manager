@@ -14,7 +14,15 @@ from app.extensions import db
 def ping():
     """Ultra-simple ping - no DB, no templates. For deployment verification."""
     from datetime import datetime
-    return f"PONG - {datetime.utcnow().isoformat()} - v2026-02-01-v1", 200, {'Content-Type': 'text/plain'}
+    return f"PONG - {datetime.utcnow().isoformat()} - v2026-02-01-v2", 200, {'Content-Type': 'text/plain'}
+
+
+@main_bp.route('/health/tours-list')
+def tours_list_debug():
+    """Debug endpoint to list all tours."""
+    from app.models.tour import Tour
+    tours = Tour.query.all()
+    return jsonify([{'id': t.id, 'name': t.name, 'band_id': t.band_id} for t in tours])
 
 
 @main_bp.route('/health/add-stop-debug/<int:tour_id>')
