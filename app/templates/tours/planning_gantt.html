@@ -334,7 +334,10 @@
             </nav>
             <h2 class="mb-0">
                 <i class="bi bi-calendar2-week text-primary me-2"></i>
-                PLANNING JOURNALIER CONCERT - VUE GLOBALE (01h00 - 00h00)
+                PLANNING JOURNALIER CONCERT - VUE GLOBALE
+                {% if stop.load_in_time or stop.doors_time %}
+                ({{ stop.load_in_time.strftime('%Hh%M') if stop.load_in_time else stop.doors_time.strftime('%Hh%M') if stop.doors_time else '---' }} - {{ stop.show_time.strftime('%Hh%M') if stop.show_time else '---' }})
+                {% endif %}
             </h2>
             <p class="text-muted mb-0">
                 {{ stop.venue.name if stop.venue else 'Lieu non défini' }} -
@@ -384,7 +387,7 @@
             <h4>Aucun membre assigné</h4>
             <p>Assignez des membres à ce concert pour créer leur planning.</p>
             <div class="d-flex gap-2 justify-content-center mt-3">
-                <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-primary">
+                <a href="{{ url_for('tours.assign_members', id=tour.id, stop_id=stop.id) }}" class="btn btn-primary">
                     <i class="bi bi-person-plus me-1"></i> Assigner des membres
                 </a>
             </div>
