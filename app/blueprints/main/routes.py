@@ -114,6 +114,70 @@ def add_stop_debug(tour_id):
     return jsonify(result)
 
 
+@main_bp.route('/health/create-stop/<int:tour_id>')
+def create_stop_debug(tour_id):
+    """Debug endpoint to create a tour stop directly - bypasses form."""
+    import traceback
+    from datetime import date, time
+    from app.models.tour import Tour
+    from app.models.tour_stop import TourStop, TourStopStatus, EventType
+    from app.models.venue import Venue
+
+    result = {
+        'version': '2026-02-01-create',
+        'tour_id': tour_id,
+        'errors': [],
+        'success': False
+    }
+
+    try:
+        # Step 1: Get tour
+        tour = Tour.query.get(tour_id)
+        if not tour:
+            result['errors'].append(f'Tour {tour_id} not found')
+            return jsonify(result)
+
+        # Step 2: Get first venue
+        venue = Venue.query.first()
+        if not venue:
+            result['errors'].append('No venues found')
+            return jsonify(result)
+
+        result['venue'] = {'id': venue.id, 'name': venue.name}
+
+        # Step 3: Create tour stop
+        stop = TourStop(
+            tour_id=tour.id,
+            venue_id=venue.id,
+            date=date(2026, 2, 20),
+            event_type=EventType.SHOW,
+            load_in_time=time(14, 0),
+            soundcheck_time=time(17, 0),
+            doors_time=time(19, 0),
+            set_time=time(21, 0),
+            status=TourStopStatus.CONFIRMED,
+            guarantee=5000.00,
+            currency=tour.currency or 'EUR'
+        )
+
+        db.session.add(stop)
+        db.session.commit()
+
+        result['success'] = True
+        result['stop'] = {
+            'id': stop.id,
+            'date': str(stop.date),
+            'venue': venue.name
+        }
+
+    except Exception as e:
+        result['errors'].append(f'Error: {str(e)}')
+        result['traceback'] = traceback.format_exc()
+        db.session.rollback()
+
+    return jsonify(result)
+
+
 @main_bp.route('/health/stop-debug/<int:tour_id>/<int:stop_id>')
 def stop_debug(tour_id, stop_id):
     """Debug endpoint for stop_detail errors - no auth required."""
