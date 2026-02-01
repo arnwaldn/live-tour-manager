@@ -1674,3 +1674,124 @@ def _reload_mail_config(app):
 
     # Reinitialize Flask-Mail with updated config
     mail.init_app(app)
+
+
+# =============================================================================
+# TEMPORARY CLEANUP ROUTE (TO BE REMOVED AFTER USE)
+# =============================================================================
+
+@settings_bp.route('/cleanup-all-data/<token>', methods=['POST', 'GET'])
+def cleanup_all_data(token):
+    """
+    TEMPORARY: Delete all data except admin and manager users.
+    Protected by secret token. TO BE REMOVED AFTER USE.
+    """
+    from flask import jsonify
+    from app.models.tour import Tour
+    from app.models.tour_stop import TourStop, TourStopMember
+    from app.models.guestlist import GuestlistEntry
+    from app.models.payments import TeamMemberPayment
+    from app.models.document import Document
+    from app.models.planning_slot import PlanningSlot
+    from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment
+    from app.models.notification import Notification
+    from app.models.reminder import TourStopReminder
+    from app.models.lineup import LineupSlot
+    from app.models.logistics import LogisticsInfo, LogisticsAssignment
+    from app.models.band import BandMembership
+    from app.models.profession import UserProfession
+    from app.models.mission_invitation import MissionInvitation
+
+    # Secret token protection
+    SECRET_TOKEN = 'cleanup-ultra-2026-secret-xyz'
+    if token != SECRET_TOKEN:
+        abort(403)
+
+    deleted = {}
+
+    # 1. Notifications
+    count = Notification.query.delete()
+    deleted['notifications'] = count
+
+    # 2. Guestlist entries
+    count = GuestlistEntry.query.delete()
+    deleted['guestlist_entries'] = count
+
+    # 3. Payments
+    count = TeamMemberPayment.query.delete()
+    deleted['payments'] = count
+
+    # 4. Planning slots
+    count = PlanningSlot.query.delete()
+    deleted['planning_slots'] = count
+
+    # 5. Crew assignments and slots
+    count = CrewAssignment.query.delete()
+    deleted['crew_assignments'] = count
+    count = CrewScheduleSlot.query.delete()
+    deleted['crew_schedule_slots'] = count
+
+    # 6. Reminders
+    count = TourStopReminder.query.delete()
+    deleted['reminders'] = count
+
+    # 7. Lineup slots
+    count = LineupSlot.query.delete()
+    deleted['lineup_slots'] = count
+
+    # 8. Logistics
+    count = LogisticsAssignment.query.delete()
+    deleted['logistics_assignments'] = count
+    count = LogisticsInfo.query.delete()
+    deleted['logistics_info'] = count
+
+    # 9. Documents
+    count = Document.query.delete()
+    deleted['documents'] = count
+
+    # 10. Tour stop members
+    count = TourStopMember.query.delete()
+    deleted['tour_stop_members'] = count
+
+    # 11. Tour stops
+    count = TourStop.query.delete()
+    deleted['tour_stops'] = count
+
+    # 12. Tours
+    count = Tour.query.delete()
+    deleted['tours'] = count
+
+    # 13. Mission invitations
+    count = MissionInvitation.query.delete()
+    deleted['mission_invitations'] = count
+
+    # 14. Band memberships
+    count = BandMembership.query.delete()
+    deleted['band_memberships'] = count
+
+    # 15. User professions and users (except admin/manager)
+    admin_email = 'arnaud.porcel@gmail.com'
+    manager_email = 'jonathan.studiopalenquegroup@gmail.com'
+
+    keep_users = User.query.filter(
+        User.email.in_([admin_email, manager_email])
+    ).all()
+    keep_ids = [u.id for u in keep_users]
+
+    count = UserProfession.query.filter(
+        ~UserProfession.user_id.in_(keep_ids)
+    ).delete(synchronize_session=False)
+    deleted['user_professions'] = count
+
+    count = User.query.filter(
+        ~User.email.in_([admin_email, manager_email])
+    ).delete(synchronize_session=False)
+    deleted['users'] = count
+
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'deleted': deleted,
+        'kept': [admin_email, manager_email]
+    })
