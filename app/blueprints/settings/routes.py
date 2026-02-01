@@ -1730,24 +1730,25 @@ def cleanup_all_data(token):
     deleted = {}
 
     # Use raw SQL for reliable deletion order - each in its own transaction
+    # Table names from __tablename__ in models
     tables_to_clear = [
-        'notification',
-        'guestlist_entry',
-        'team_member_payment',
-        'planning_slot',
-        'crew_assignment',
-        'crew_schedule_slot',
-        'tour_stop_reminder',
-        'lineup_slot',
-        'logistics_assignment',
+        'notifications',
+        'guestlist_entries',
+        'team_member_payments',
+        'planning_slots',
+        'crew_assignments',
+        'crew_schedule_slots',
+        'tour_stop_reminders',
+        'lineup_slots',
+        'logistics_assignments',
         'logistics_info',
-        'document_share',
-        'document',
-        'tour_stop_member',
-        'tour_stop',
-        'tour',
-        'mission_invitation',
-        'band_membership',
+        'document_shares',
+        'documents',
+        'tour_stop_members_v2',
+        'tour_stops',
+        'tours',
+        'mission_invitations',
+        'band_memberships',
     ]
 
     for table in tables_to_clear:
@@ -1759,21 +1760,21 @@ def cleanup_all_data(token):
             db.session.rollback()
             deleted[table] = f'skip'
 
-    # Delete user_profession for non-kept users
+    # Delete user_professions for non-kept users
     try:
         result = db.session.execute(
-            text(f'DELETE FROM user_profession WHERE user_id NOT IN ({keep_ids_str})')
+            text(f'DELETE FROM user_professions WHERE user_id NOT IN ({keep_ids_str})')
         )
         db.session.commit()
-        deleted['user_profession'] = result.rowcount
+        deleted['user_professions'] = result.rowcount
     except Exception as e:
         db.session.rollback()
-        deleted['user_profession'] = f'skip'
+        deleted['user_professions'] = f'skip'
 
     # Delete users except admin/manager
     try:
         result = db.session.execute(
-            text(f"DELETE FROM \"user\" WHERE email NOT IN ('{admin_email}', '{manager_email}')")
+            text(f"DELETE FROM users WHERE email NOT IN ('{admin_email}', '{manager_email}')")
         )
         db.session.commit()
         deleted['users'] = result.rowcount
