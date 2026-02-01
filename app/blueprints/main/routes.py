@@ -357,7 +357,7 @@ def crew_full_debug(stop_id):
         result['steps']['external_contacts_count'] = len(external_contacts)
 
         # Step 7: Get professions
-        professions = Profession.query.order_by(Profession.name).all()
+        professions = Profession.query.order_by(Profession.name_fr).all()
         result['steps']['professions_count'] = len(professions)
 
         # Step 8: Test forms

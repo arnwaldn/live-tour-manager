@@ -193,7 +193,7 @@ def schedule(stop_id):
     if can_edit:
         users = User.query.filter_by(is_active=True).order_by(User.first_name).all()
         external_contacts = ExternalContact.query.order_by(ExternalContact.last_name).all()
-        professions = Profession.query.order_by(Profession.name).all()
+        professions = Profession.query.order_by(Profession.name_fr).all()
 
     return render_template(
         'crew/schedule.html',
@@ -483,7 +483,7 @@ def create_contact():
 
     # Populate profession choices
     form.profession_id.choices = [(0, 'Aucune')] + [
-        (p.id, p.name) for p in Profession.query.order_by(Profession.name).all()
+        (p.id, p.name_fr) for p in Profession.query.order_by(Profession.name_fr).all()
     ]
 
     if form.validate_on_submit():
