@@ -818,6 +818,11 @@ def tour_summary(tour_id):
 @login_required
 def api_tour_stops(tour_id):
     """Get tour stops for a tour (AJAX)."""
+    # Security: verify user has access to this tour
+    tour = Tour.query.get_or_404(tour_id)
+    if not tour.can_view(current_user):
+        abort(403)
+
     stops = TourStop.query.filter_by(tour_id=tour_id).order_by(TourStop.date).all()
     return jsonify([
         {
@@ -834,6 +839,10 @@ def api_tour_stops(tour_id):
 @login_required
 def api_user_config(user_id):
     """Get user payment config (AJAX)."""
+    # Security: only allow access to own config or if manager+
+    if user_id != current_user.id and not current_user.is_manager_or_above():
+        abort(403)
+
     config = UserPaymentConfig.query.get(user_id)
     if not config:
         return jsonify({})

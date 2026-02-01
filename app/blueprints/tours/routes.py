@@ -1170,12 +1170,18 @@ def calendar_events(id, tour=None):
     """Return tour stops as JSON for FullCalendar."""
     events = []
     for stop in tour.stops:
+        # Handle stops without venue (DAY_OFF, TRAVEL, etc.)
+        if stop.venue:
+            title = f'{stop.venue.name} - {stop.venue.city}'
+        else:
+            title = stop.location_city or stop.event_label or 'Non défini'
+
         events.append({
             'id': stop.id,
-            'title': f'{stop.venue.name} - {stop.venue.city}',
+            'title': title,
             'start': stop.date.isoformat(),
             'url': url_for('tours.stop_detail', id=id, stop_id=stop.id),
-            'className': f'status-{stop.status.value}'
+            'className': f'status-{stop.status.value}' if stop.status else 'status-pending'
         })
     return jsonify(events)
 
