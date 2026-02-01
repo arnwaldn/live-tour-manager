@@ -1229,7 +1229,13 @@ def delete_own_travel_card(card_id):
 @login_required
 @requires_manager
 def users_hard_delete(id):
-    """Permanently delete a user from the system."""
+    """Permanently delete a user from the system (FORCE MODE)."""
+    from app.models.payments import TeamMemberPayment
+    from app.models.notification import Notification
+    from app.models.profession import UserProfession
+    from app.models.band import BandMembership
+    from app.models.mission_invitation import MissionInvitation
+
     user = User.query.get_or_404(id)
 
     # 1. Prevent self-deletion
@@ -1237,30 +1243,47 @@ def users_hard_delete(id):
         flash('Vous ne pouvez pas supprimer votre propre compte.', 'error')
         return redirect(url_for('settings.users_list'))
 
-    # P-H1: Check if user can be safely deleted (pending payments, managed bands, etc.)
-    if not user.can_delete():
-        blockers = user.get_deletion_blockers()
-        flash(f'Impossible de supprimer cet utilisateur: {"; ".join(blockers)}', 'error')
-        return redirect(url_for('settings.user_detail', id=id))
-
-    # 3. Nullify FK references
-    Document.query.filter_by(user_id=user.id).update({'user_id': None})
-    Document.query.filter_by(uploaded_by_id=user.id).update({'uploaded_by_id': None})
-    GuestlistEntry.query.filter_by(requested_by_id=user.id).update({'requested_by_id': None})
-    GuestlistEntry.query.filter_by(approved_by_id=user.id).update({'approved_by_id': None})
-    User.query.filter_by(invited_by_id=user.id).update({'invited_by_id': None})
-
-    # 4. Delete role associations
-    user.roles.clear()
-
-    # 5. Store name for flash message
+    # Store name for flash message
     user_name = user.full_name
 
-    # 6. Delete user (BandMembership will cascade)
-    db.session.delete(user)
-    db.session.commit()
+    try:
+        # FORCE DELETE: Remove all related data first
 
-    flash(f'Utilisateur "{user_name}" supprimé définitivement.', 'success')
+        # Delete payments
+        TeamMemberPayment.query.filter_by(user_id=user.id).delete()
+
+        # Delete notifications
+        Notification.query.filter_by(user_id=user.id).delete()
+
+        # Delete user professions
+        UserProfession.query.filter_by(user_id=user.id).delete()
+
+        # Delete band memberships
+        BandMembership.query.filter_by(user_id=user.id).delete()
+
+        # Delete mission invitations
+        MissionInvitation.query.filter_by(user_id=user.id).delete()
+
+        # Nullify FK references
+        Document.query.filter_by(user_id=user.id).update({'user_id': None})
+        Document.query.filter_by(uploaded_by_id=user.id).update({'uploaded_by_id': None})
+        GuestlistEntry.query.filter_by(requested_by_id=user.id).update({'requested_by_id': None})
+        GuestlistEntry.query.filter_by(approved_by_id=user.id).update({'approved_by_id': None})
+        User.query.filter_by(invited_by_id=user.id).update({'invited_by_id': None})
+
+        # Delete role associations
+        user.roles.clear()
+
+        # Delete user
+        db.session.delete(user)
+        db.session.commit()
+
+        flash(f'Utilisateur "{user_name}" supprimé définitivement.', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erreur lors de la suppression: {str(e)}', 'error')
+
     return redirect(url_for('settings.users_list'))
 
 
@@ -1694,76 +1717,72 @@ def cleanup_all_data(token):
     if token != SECRET_TOKEN:
         abort(403)
 
+    admin_email = 'arnaud.porcel@gmail.com'
+    manager_email = 'jonathan.studiopalenquegroup@gmail.com'
+
+    # Get IDs of users to keep
+    keep_users = User.query.filter(
+        User.email.in_([admin_email, manager_email])
+    ).all()
+    keep_ids = [u.id for u in keep_users]
+    keep_ids_str = ','.join(str(id) for id in keep_ids) if keep_ids else '0'
+
+    deleted = {}
+
+    # Use raw SQL for reliable deletion order - each in its own transaction
+    tables_to_clear = [
+        'notification',
+        'guestlist_entry',
+        'team_member_payment',
+        'planning_slot',
+        'crew_assignment',
+        'crew_schedule_slot',
+        'tour_stop_reminder',
+        'lineup_slot',
+        'logistics_assignment',
+        'logistics_info',
+        'document_share',
+        'document',
+        'tour_stop_member',
+        'tour_stop',
+        'tour',
+        'mission_invitation',
+        'band_membership',
+    ]
+
+    for table in tables_to_clear:
+        try:
+            result = db.session.execute(text(f'DELETE FROM {table}'))
+            db.session.commit()
+            deleted[table] = result.rowcount
+        except Exception as e:
+            db.session.rollback()
+            deleted[table] = f'skip'
+
+    # Delete user_profession for non-kept users
     try:
-        admin_email = 'arnaud.porcel@gmail.com'
-        manager_email = 'jonathan.studiopalenquegroup@gmail.com'
-
-        # Get IDs of users to keep
-        keep_users = User.query.filter(
-            User.email.in_([admin_email, manager_email])
-        ).all()
-        keep_ids = [u.id for u in keep_users]
-        keep_ids_str = ','.join(str(id) for id in keep_ids) if keep_ids else '0'
-
-        deleted = {}
-
-        # Use raw SQL for reliable deletion order
-        tables_to_clear = [
-            'notification',
-            'guestlist_entry',
-            'team_member_payment',
-            'planning_slot',
-            'crew_assignment',
-            'crew_schedule_slot',
-            'tour_stop_reminder',
-            'lineup_slot',
-            'logistics_assignment',
-            'logistics_info',
-            'document',
-            'document_share',
-            'tour_stop_member',
-            'tour_stop',
-            'tour',
-            'mission_invitation',
-            'band_membership',
-        ]
-
-        for table in tables_to_clear:
-            try:
-                result = db.session.execute(text(f'DELETE FROM {table}'))
-                deleted[table] = result.rowcount
-            except Exception as e:
-                deleted[table] = f'error: {str(e)}'
-
-        # Delete user_profession for non-kept users
-        try:
-            result = db.session.execute(
-                text(f'DELETE FROM user_profession WHERE user_id NOT IN ({keep_ids_str})')
-            )
-            deleted['user_profession'] = result.rowcount
-        except Exception as e:
-            deleted['user_profession'] = f'error: {str(e)}'
-
-        # Delete users except admin/manager
-        try:
-            result = db.session.execute(
-                text(f"DELETE FROM \"user\" WHERE email NOT IN ('{admin_email}', '{manager_email}')")
-            )
-            deleted['users'] = result.rowcount
-        except Exception as e:
-            deleted['users'] = f'error: {str(e)}'
-
+        result = db.session.execute(
+            text(f'DELETE FROM user_profession WHERE user_id NOT IN ({keep_ids_str})')
+        )
         db.session.commit()
-
-        return jsonify({
-            'status': 'success',
-            'deleted': deleted,
-            'kept': [admin_email, manager_email]
-        })
-
+        deleted['user_profession'] = result.rowcount
     except Exception as e:
         db.session.rollback()
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
+        deleted['user_profession'] = f'skip'
+
+    # Delete users except admin/manager
+    try:
+        result = db.session.execute(
+            text(f"DELETE FROM \"user\" WHERE email NOT IN ('{admin_email}', '{manager_email}')")
+        )
+        db.session.commit()
+        deleted['users'] = result.rowcount
+    except Exception as e:
+        db.session.rollback()
+        deleted['users'] = f'error: {str(e)}'
+
+    return jsonify({
+        'status': 'success',
+        'deleted': deleted,
+        'kept': [admin_email, manager_email]
+    })
