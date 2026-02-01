@@ -286,6 +286,53 @@ def crew_debug(stop_id):
     return jsonify(result)
 
 
+@main_bp.route('/health/fix-enums')
+def fix_enums():
+    """Fix PostgreSQL enum types by adding missing values."""
+    import traceback
+    from sqlalchemy import text
+
+    result = {
+        'version': '2026-02-01-fix-enums',
+        'fixed': [],
+        'errors': [],
+        'success': False
+    }
+
+    try:
+        # List of enum values to ensure exist
+        entry_type_values = ['GUEST', 'ARTIST', 'INDUSTRY', 'PRESS', 'VIP', 'COMP', 'WORKING']
+        guestlist_status_values = ['PENDING', 'APPROVED', 'DENIED', 'CHECKED_IN', 'NO_SHOW']
+
+        # Check and add missing entry_type values
+        for value in entry_type_values:
+            try:
+                db.session.execute(text(f"ALTER TYPE entrytype ADD VALUE IF NOT EXISTS '{value}'"))
+                result['fixed'].append(f"entrytype.{value}")
+            except Exception as e:
+                if 'already exists' not in str(e).lower():
+                    result['errors'].append(f"entrytype.{value}: {str(e)}")
+
+        # Check and add missing guestliststatus values
+        for value in guestlist_status_values:
+            try:
+                db.session.execute(text(f"ALTER TYPE guestliststatus ADD VALUE IF NOT EXISTS '{value}'"))
+                result['fixed'].append(f"guestliststatus.{value}")
+            except Exception as e:
+                if 'already exists' not in str(e).lower():
+                    result['errors'].append(f"guestliststatus.{value}: {str(e)}")
+
+        db.session.commit()
+        result['success'] = True
+
+    except Exception as e:
+        result['errors'].append(f'General error: {str(e)}')
+        result['traceback'] = traceback.format_exc()
+        db.session.rollback()
+
+    return jsonify(result)
+
+
 @main_bp.route('/health/stop-debug/<int:tour_id>/<int:stop_id>')
 def stop_debug(tour_id, stop_id):
     """Debug endpoint for stop_detail errors - no auth required."""
