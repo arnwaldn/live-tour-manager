@@ -9,7 +9,7 @@
         {% if tour_stop.tour %}
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour_stop.tour.id) }}">{{ tour_stop.tour.name }}</a></li>
         {% endif %}
-        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour_stop.id) }}">{{ tour_stop.event_label }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour_stop.tour.id, stop_id=tour_stop.id) }}">{{ tour_stop.event_label }}</a></li>
         <li class="breadcrumb-item active">Planning Équipe</li>
     </ol>
 </nav>
