@@ -680,7 +680,7 @@ def health_diagnose():
 
             # Test user_professions relationship
             try:
-                user_profs = user.user_professions.all()
+                user_profs = list(user.user_professions)  # Now a list, not Query
                 user_profs_count = len(user_profs)
             except Exception as up_err:
                 user_profs_count = f'ERROR: {up_err}'

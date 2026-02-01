@@ -315,16 +315,19 @@ class User(UserMixin, db.Model):
     @property
     def professions(self):
         """Get list of Profession objects (filters out deleted professions)."""
-        return [up.profession for up in self.user_professions.all() if up.profession is not None]
+        # user_professions is now a list (lazy='selectin'), not a Query
+        return [up.profession for up in self.user_professions if up.profession is not None]
 
     @property
     def primary_profession(self):
         """Get user's primary profession or first profession (handles deleted professions)."""
-        primary = self.user_professions.filter_by(is_primary=True).first()
-        if primary and primary.profession is not None:
-            return primary.profession
+        # user_professions is now a list (lazy='selectin'), not a Query
+        # Find primary profession
+        for up in self.user_professions:
+            if up.is_primary and up.profession is not None:
+                return up.profession
         # Fallback to first valid profession
-        for up in self.user_professions.all():
+        for up in self.user_professions:
             if up.profession is not None:
                 return up.profession
         return None

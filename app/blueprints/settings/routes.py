@@ -731,9 +731,10 @@ def users_edit(id):
 
     # Get existing profession IDs for this user (for template pre-selection)
     # Defensive handling in case user_professions table/relation has issues
+    # Note: user_professions is now a list (lazy='selectin'), not a Query
     try:
-        selected_profession_ids = [up.profession_id for up in user.user_professions.all()]
-        primary_profession = user.user_professions.filter_by(is_primary=True).first()
+        selected_profession_ids = [up.profession_id for up in user.user_professions]
+        primary_profession = next((up for up in user.user_professions if up.is_primary), None)
         primary_profession_id = primary_profession.profession_id if primary_profession else None
     except Exception as e:
         current_app.logger.warning(f'Could not load user professions for user {id}: {e}')
