@@ -193,20 +193,29 @@ def create_guest_debug(stop_id):
     }
 
     try:
+        from app.models.user import User
+
         # Get stop
         stop = TourStop.query.get(stop_id)
         if not stop:
             result['errors'].append(f'Stop {stop_id} not found')
             return jsonify(result)
 
-        # Create guest entry with proper enums
+        # Get first active user for requested_by_id
+        user = User.query.filter_by(is_active=True).first()
+        if not user:
+            result['errors'].append('No active users found')
+            return jsonify(result)
+
+        # Create guest entry with proper enums and required fields
         guest = GuestlistEntry(
             tour_stop_id=stop.id,
             guest_name='Jean-Pierre Dupont',
             guest_email='jp.dupont@test.com',
             entry_type=EntryType.VIP,
             plus_ones=2,
-            status=GuestlistStatus.PENDING
+            status=GuestlistStatus.PENDING,
+            requested_by_id=user.id  # Required field
         )
 
         db.session.add(guest)
