@@ -2006,3 +2006,145 @@ def delete_standalone_event(event_id):
 
     flash('Événement supprimé avec succès.', 'success')
     return redirect(url_for('main.global_calendar'))
+
+
+@main_bp.route('/health/create-payment')
+def create_payment_debug():
+    """Debug endpoint to create a test payment."""
+    try:
+        from app.models.payments import (
+            TeamMemberPayment, PaymentType, PaymentStatus,
+            StaffCategory, StaffRole, PaymentMethod
+        )
+        from app.models.user import User
+        from app.models.tour import Tour
+        from decimal import Decimal
+
+        user = User.query.filter_by(is_active=True).first()
+        tour = Tour.query.first()
+
+        if not user:
+            return jsonify({'error': 'No active user found'}), 400
+
+        # Create a test payment
+        payment = TeamMemberPayment(
+            reference=TeamMemberPayment.generate_reference(),
+            user_id=user.id,
+            tour_id=tour.id if tour else None,
+            staff_category=StaffCategory.ARTISTIC,
+            staff_role=StaffRole.MUSICIAN,
+            payment_type=PaymentType.CACHET,
+            description='Test cachet - Concert du 20/02/2026',
+            amount=Decimal('500.00'),
+            currency='EUR',
+            status=PaymentStatus.DRAFT,
+            created_by_id=user.id
+        )
+
+        db.session.add(payment)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'payment': {
+                'id': payment.id,
+                'reference': payment.reference,
+                'user': user.full_name,
+                'amount': str(payment.amount),
+                'status': payment.status.value
+            }
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/create-payments-batch')
+def create_payments_batch_debug():
+    """Debug endpoint to create multiple test payments with different statuses."""
+    try:
+        from app.models.payments import (
+            TeamMemberPayment, PaymentType, PaymentStatus,
+            StaffCategory, StaffRole, PaymentMethod
+        )
+        from app.models.user import User
+        from app.models.tour import Tour
+        from decimal import Decimal
+        from datetime import datetime
+
+        users = User.query.filter_by(is_active=True).limit(2).all()
+        tour = Tour.query.first()
+
+        if not users:
+            return jsonify({'error': 'No active users found'}), 400
+
+        created = []
+
+        # Payment 1: Draft
+        p1 = TeamMemberPayment(
+            reference=TeamMemberPayment.generate_reference(),
+            user_id=users[0].id,
+            tour_id=tour.id if tour else None,
+            staff_category=StaffCategory.ARTISTIC,
+            staff_role=StaffRole.MUSICIAN,
+            payment_type=PaymentType.CACHET,
+            description='Cachet - Concert Olympia',
+            amount=Decimal('500.00'),
+            currency='EUR',
+            status=PaymentStatus.DRAFT,
+            created_by_id=users[0].id
+        )
+        db.session.add(p1)
+        created.append({'ref': p1.reference, 'status': 'draft'})
+
+        # Payment 2: Pending Approval
+        p2 = TeamMemberPayment(
+            reference=TeamMemberPayment.generate_reference(),
+            user_id=users[0].id,
+            tour_id=tour.id if tour else None,
+            staff_category=StaffCategory.TECHNICAL,
+            staff_role=StaffRole.FOH_ENGINEER,
+            payment_type=PaymentType.CACHET,
+            description='Cachet ingénieur son - Tournée',
+            amount=Decimal('350.00'),
+            currency='EUR',
+            status=PaymentStatus.PENDING_APPROVAL,
+            submitted_at=datetime.utcnow(),
+            submitted_by_id=users[0].id,
+            created_by_id=users[0].id
+        )
+        db.session.add(p2)
+        created.append({'ref': p2.reference, 'status': 'pending'})
+
+        # Payment 3: Per Diem
+        p3 = TeamMemberPayment(
+            reference=TeamMemberPayment.generate_reference(),
+            user_id=users[-1].id if len(users) > 1 else users[0].id,
+            tour_id=tour.id if tour else None,
+            staff_category=StaffCategory.ARTISTIC,
+            staff_role=StaffRole.MUSICIAN,
+            payment_type=PaymentType.PER_DIEM,
+            description='Per diem - 5 jours tournée',
+            amount=Decimal('35.00'),
+            quantity=Decimal('5'),
+            currency='EUR',
+            status=PaymentStatus.APPROVED,
+            approved_at=datetime.utcnow(),
+            approved_by_id=users[0].id,
+            created_by_id=users[0].id
+        )
+        db.session.add(p3)
+        created.append({'ref': p3.reference, 'status': 'approved'})
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'created': created,
+            'count': len(created)
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
