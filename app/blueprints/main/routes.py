@@ -2285,3 +2285,318 @@ def guestlist_summary_debug(stop_id):
     except Exception as e:
         import traceback
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+# ============================================================
+# CREW/STAFF PLANNING DEBUG ENDPOINTS
+# ============================================================
+
+@main_bp.route('/health/crew-summary/<int:stop_id>')
+def crew_summary_debug(stop_id):
+    """Debug endpoint to get crew schedule summary for a stop."""
+    try:
+        from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment
+        from app.models.tour_stop import TourStop
+
+        stop = TourStop.query.get(stop_id)
+        if not stop:
+            return jsonify({'error': f'Stop {stop_id} not found'}), 404
+
+        slots = CrewScheduleSlot.query.filter_by(tour_stop_id=stop_id).all()
+
+        summary = {
+            'stop_id': stop_id,
+            'stop_date': str(stop.date),
+            'total_slots': len(slots),
+            'slots': []
+        }
+
+        for slot in slots:
+            slot_data = {
+                'id': slot.id,
+                'task_name': slot.task_name,
+                'start_time': str(slot.start_time),
+                'end_time': str(slot.end_time),
+                'category': slot.profession_category.value if slot.profession_category else None,
+                'assignments': []
+            }
+            for a in slot.assignments:
+                slot_data['assignments'].append({
+                    'id': a.id,
+                    'person_name': a.person_name,
+                    'status': a.status.value,
+                    'is_external': a.is_external
+                })
+            summary['slots'].append(slot_data)
+
+        return jsonify(summary)
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/create-crew-slot/<int:stop_id>')
+def create_crew_slot_debug(stop_id):
+    """Debug endpoint to create a crew schedule slot."""
+    try:
+        from app.models.crew_schedule import CrewScheduleSlot
+        from app.models.profession import ProfessionCategory
+        from app.models.tour_stop import TourStop
+        from app.models.user import User
+        from datetime import time
+
+        stop = TourStop.query.get(stop_id)
+        if not stop:
+            return jsonify({'error': f'Stop {stop_id} not found'}), 404
+
+        user = User.query.filter_by(is_active=True).first()
+
+        # Get request args for customization
+        task_name = request.args.get('name', 'Ingénieur son façade')
+        start_h = int(request.args.get('start', 14))
+        end_h = int(request.args.get('end', 23))
+        category = request.args.get('category', 'technical')
+
+        # Map category string to enum
+        cat_map = {
+            'musician': ProfessionCategory.MUSICIAN,
+            'technical': ProfessionCategory.TECHNICIAN,
+            'production': ProfessionCategory.PRODUCTION,
+            'style': ProfessionCategory.STYLE,
+            'security': ProfessionCategory.SECURITY,
+            'management': ProfessionCategory.MANAGEMENT
+        }
+
+        slot = CrewScheduleSlot(
+            tour_stop_id=stop_id,
+            task_name=task_name,
+            task_description=f'Créneau créé via debug pour {task_name}',
+            start_time=time(start_h, 0),
+            end_time=time(end_h, 0),
+            profession_category=cat_map.get(category, ProfessionCategory.TECHNICIAN),
+            color='#3B82F6',
+            created_by_id=user.id
+        )
+
+        db.session.add(slot)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'slot': {
+                'id': slot.id,
+                'task_name': slot.task_name,
+                'start_time': str(slot.start_time),
+                'end_time': str(slot.end_time),
+                'category': slot.profession_category.value
+            }
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/assign-user/<int:slot_id>/<int:user_id>')
+def assign_user_debug(slot_id, user_id):
+    """Debug endpoint to assign a user to a crew slot."""
+    try:
+        from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment, AssignmentStatus
+        from app.models.user import User
+        from datetime import datetime
+
+        slot = CrewScheduleSlot.query.get(slot_id)
+        if not slot:
+            return jsonify({'error': f'Slot {slot_id} not found'}), 404
+
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': f'User {user_id} not found'}), 404
+
+        assigner = User.query.filter_by(is_active=True).first()
+
+        # Check if already assigned
+        existing = CrewAssignment.query.filter_by(slot_id=slot_id, user_id=user_id).first()
+        if existing:
+            return jsonify({'error': 'User already assigned to this slot', 'assignment_id': existing.id}), 400
+
+        assignment = CrewAssignment(
+            slot_id=slot_id,
+            user_id=user_id,
+            status=AssignmentStatus.ASSIGNED,
+            assigned_by_id=assigner.id,
+            assigned_at=datetime.utcnow(),
+            notes='Assigné via debug endpoint'
+        )
+
+        db.session.add(assignment)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'assignment': {
+                'id': assignment.id,
+                'slot_id': slot_id,
+                'user_name': user.full_name,
+                'status': assignment.status.value
+            }
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/confirm-assignment/<int:assignment_id>')
+def confirm_assignment_debug(assignment_id):
+    """Debug endpoint to confirm a crew assignment."""
+    try:
+        from app.models.crew_schedule import CrewAssignment, AssignmentStatus
+        from datetime import datetime
+
+        assignment = CrewAssignment.query.get(assignment_id)
+        if not assignment:
+            return jsonify({'error': f'Assignment {assignment_id} not found'}), 404
+
+        if assignment.status != AssignmentStatus.ASSIGNED:
+            return jsonify({'error': f'Cannot confirm - status is {assignment.status.value}'}), 400
+
+        assignment.status = AssignmentStatus.CONFIRMED
+        assignment.confirmed_at = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'assignment_id': assignment.id,
+            'new_status': 'confirmed',
+            'person_name': assignment.person_name
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/decline-assignment/<int:assignment_id>')
+def decline_assignment_debug(assignment_id):
+    """Debug endpoint to decline a crew assignment."""
+    try:
+        from app.models.crew_schedule import CrewAssignment, AssignmentStatus
+        from datetime import datetime
+
+        assignment = CrewAssignment.query.get(assignment_id)
+        if not assignment:
+            return jsonify({'error': f'Assignment {assignment_id} not found'}), 404
+
+        if assignment.status != AssignmentStatus.ASSIGNED:
+            return jsonify({'error': f'Cannot decline - status is {assignment.status.value}'}), 400
+
+        assignment.status = AssignmentStatus.DECLINED
+        assignment.confirmed_at = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'assignment_id': assignment.id,
+            'new_status': 'declined',
+            'person_name': assignment.person_name
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/create-external-contact')
+def create_external_contact_debug():
+    """Debug endpoint to create an external contact."""
+    try:
+        from app.models.crew_schedule import ExternalContact
+        from app.models.user import User
+
+        user = User.query.filter_by(is_active=True).first()
+
+        # Get request args for customization
+        first_name = request.args.get('first', 'Jean')
+        last_name = request.args.get('last', 'Freelance')
+        email = request.args.get('email', 'jean.freelance@example.com')
+        phone = request.args.get('phone', '+33 6 00 00 00 00')
+        company = request.args.get('company', 'Freelance Services')
+
+        contact = ExternalContact(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            phone=phone,
+            company=company,
+            notes='Contact créé via debug endpoint',
+            created_by_id=user.id
+        )
+
+        db.session.add(contact)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'contact': {
+                'id': contact.id,
+                'full_name': contact.full_name,
+                'email': contact.email,
+                'company': contact.company
+            }
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/assign-external/<int:slot_id>/<int:contact_id>')
+def assign_external_debug(slot_id, contact_id):
+    """Debug endpoint to assign an external contact to a crew slot."""
+    try:
+        from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment, ExternalContact, AssignmentStatus
+        from app.models.user import User
+        from datetime import datetime
+
+        slot = CrewScheduleSlot.query.get(slot_id)
+        if not slot:
+            return jsonify({'error': f'Slot {slot_id} not found'}), 404
+
+        contact = ExternalContact.query.get(contact_id)
+        if not contact:
+            return jsonify({'error': f'Contact {contact_id} not found'}), 404
+
+        assigner = User.query.filter_by(is_active=True).first()
+
+        # Check if already assigned
+        existing = CrewAssignment.query.filter_by(slot_id=slot_id, external_contact_id=contact_id).first()
+        if existing:
+            return jsonify({'error': 'Contact already assigned to this slot', 'assignment_id': existing.id}), 400
+
+        assignment = CrewAssignment(
+            slot_id=slot_id,
+            external_contact_id=contact_id,
+            status=AssignmentStatus.ASSIGNED,
+            assigned_by_id=assigner.id,
+            assigned_at=datetime.utcnow(),
+            notes='Contact externe assigné via debug'
+        )
+
+        db.session.add(assignment)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'assignment': {
+                'id': assignment.id,
+                'slot_id': slot_id,
+                'contact_name': contact.full_name,
+                'status': assignment.status.value,
+                'is_external': True
+            }
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
