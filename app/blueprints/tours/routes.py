@@ -342,9 +342,14 @@ def add_stop(id, tour=None):
     all_users = User.query.filter_by(is_active=True).all()
 
     # Présélectionner les membres du groupe par défaut (modifiable par l'utilisateur)
-    band_member_ids = [m.id for m in tour.band.members] if tour.band else []
-    if tour.band and tour.band.manager:
-        band_member_ids.append(tour.band.manager.id)
+    band_member_ids = []
+    if tour.band:
+        try:
+            band_member_ids = [m.id for m in tour.band.members]
+        except Exception as member_err:
+            current_app.logger.error(f"Error getting band members: {member_err}")
+        if tour.band.manager:
+            band_member_ids.append(tour.band.manager.id)
 
     # Grouper par catégorie de métier pour l'interface d'assignation
     categories_data, users_without_profession = get_users_by_category(all_users, assigned_ids=set(band_member_ids))

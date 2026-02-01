@@ -14,7 +14,96 @@ from app.extensions import db
 def ping():
     """Ultra-simple ping - no DB, no templates. For deployment verification."""
     from datetime import datetime
-    return f"PONG - {datetime.utcnow().isoformat()} - v2026-01-31-v1", 200, {'Content-Type': 'text/plain'}
+    return f"PONG - {datetime.utcnow().isoformat()} - v2026-02-01-v1", 200, {'Content-Type': 'text/plain'}
+
+
+@main_bp.route('/health/add-stop-debug/<int:tour_id>')
+def add_stop_debug(tour_id):
+    """Debug endpoint for add_stop errors - no auth required."""
+    import traceback
+    from app.models.tour import Tour
+    from app.models.venue import Venue
+    from app.models.user import User
+
+    result = {
+        'version': '2026-02-01-debug',
+        'tour_id': tour_id,
+        'errors': [],
+        'steps_completed': []
+    }
+
+    try:
+        # Step 1: Get tour
+        tour = Tour.query.get(tour_id)
+        if not tour:
+            result['errors'].append(f'Tour {tour_id} not found')
+            return jsonify(result)
+        result['tour'] = {'id': tour.id, 'name': tour.name, 'band_id': tour.band_id}
+        result['steps_completed'].append('tour_loaded')
+
+        # Step 2: Check band
+        if tour.band:
+            result['band'] = {'id': tour.band.id, 'name': tour.band.name}
+            result['steps_completed'].append('band_loaded')
+        else:
+            result['band'] = None
+            result['errors'].append('Tour has no band')
+
+        # Step 3: Get venues
+        venues = Venue.query.order_by(Venue.name).all()
+        result['venues_count'] = len(venues)
+        result['steps_completed'].append('venues_loaded')
+
+        # Step 4: Get users
+        all_users = User.query.filter_by(is_active=True).all()
+        result['users_count'] = len(all_users)
+        result['steps_completed'].append('users_loaded')
+
+        # Step 5: Get band members
+        band_member_ids = []
+        if tour.band:
+            try:
+                band_member_ids = [m.id for m in tour.band.members]
+                result['band_members_count'] = len(band_member_ids)
+                result['steps_completed'].append('band_members_loaded')
+            except Exception as member_err:
+                result['errors'].append(f'Error getting band members: {str(member_err)}')
+                result['band_members_traceback'] = traceback.format_exc()
+
+            if tour.band.manager:
+                band_member_ids.append(tour.band.manager.id)
+                result['manager_id'] = tour.band.manager.id
+                result['steps_completed'].append('manager_loaded')
+
+        # Step 6: Test get_users_by_category
+        try:
+            from app.blueprints.tours.routes import get_users_by_category
+            categories_data, users_without_profession = get_users_by_category(
+                all_users,
+                assigned_ids=set(band_member_ids)
+            )
+            result['categories_data_count'] = len(categories_data)
+            result['users_without_profession_count'] = len(users_without_profession)
+            result['categories'] = [{'key': c['key'], 'total_users': c['total_users']} for c in categories_data]
+            result['steps_completed'].append('get_users_by_category_success')
+        except Exception as cat_err:
+            result['errors'].append(f'get_users_by_category error: {str(cat_err)}')
+            result['categories_traceback'] = traceback.format_exc()
+
+        # Step 7: Test TourStopForm
+        try:
+            from app.blueprints.tours.forms import TourStopForm
+            form = TourStopForm()
+            result['steps_completed'].append('form_created')
+        except Exception as form_err:
+            result['errors'].append(f'TourStopForm error: {str(form_err)}')
+            result['form_traceback'] = traceback.format_exc()
+
+    except Exception as e:
+        result['errors'].append(f'General error: {str(e)}')
+        result['general_traceback'] = traceback.format_exc()
+
+    return jsonify(result)
 
 
 @main_bp.route('/health/stop-debug/<int:tour_id>/<int:stop_id>')
