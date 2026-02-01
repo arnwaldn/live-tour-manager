@@ -2357,13 +2357,13 @@ def create_crew_slot_debug(stop_id):
         end_h = int(request.args.get('end', 23))
         category = request.args.get('category', 'technical')
 
-        # Map category string to enum
+        # Map category string to enum (French enum values)
         cat_map = {
-            'musician': ProfessionCategory.MUSICIAN,
-            'technical': ProfessionCategory.TECHNICIAN,
+            'musician': ProfessionCategory.MUSICIEN,
+            'technical': ProfessionCategory.TECHNICIEN,
             'production': ProfessionCategory.PRODUCTION,
             'style': ProfessionCategory.STYLE,
-            'security': ProfessionCategory.SECURITY,
+            'security': ProfessionCategory.SECURITE,
             'management': ProfessionCategory.MANAGEMENT
         }
 
