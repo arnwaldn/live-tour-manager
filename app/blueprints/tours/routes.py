@@ -1576,129 +1576,119 @@ def resend_invitation(id, stop_id, inv_id, tour=None):
 @login_required
 @tour_access_required
 def staff_planning(id, stop_id, category='tous', tour=None):
-    """Planning du personnel - affiche les utilisateurs assignés groupés par profession."""
+    """Planning du personnel - Vue Gantt avec utilisateurs individuels groupés par profession."""
     from app.models.tour_stop import TourStopMember
-    from app.models.profession import (
-        Profession, ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
-    )
+    from app.models.planning_slot import PlanningSlot, CATEGORY_COLORS, CATEGORY_LABELS
+    from app.models.profession import Profession, ProfessionCategory
 
     stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
-    # Catégories valides
-    valid_categories = ['tous', 'musicien', 'technicien', 'securite', 'management', 'style', 'production']
+    # Catégories valides avec leurs métadonnées
+    categories_config = [
+        {'key': 'musicien', 'label': 'ARTISTES', 'color': '#8b5cf6', 'icon': 'music-note-beamed'},
+        {'key': 'technicien', 'label': 'TECHNICIENS', 'color': '#3b82f6', 'icon': 'tools'},
+        {'key': 'production', 'label': 'PRODUCTION', 'color': '#f97316', 'icon': 'clipboard-check'},
+        {'key': 'style', 'label': 'HABILLEURS & MAQUILL.', 'color': '#ec4899', 'icon': 'brush'},
+        {'key': 'securite', 'label': 'SÉCURITÉ', 'color': '#ef4444', 'icon': 'shield-check'},
+        {'key': 'management', 'label': 'MANAGERS', 'color': '#22c55e', 'icon': 'briefcase'},
+    ]
+    valid_categories = ['tous'] + [c['key'] for c in categories_config]
+
     if category not in valid_categories:
         flash('Catégorie invalide.', 'error')
         return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
 
-    # Charger tous les membres assignés à ce concert avec leurs relations
+    # Charger tous les membres assignés à ce concert
     all_members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
 
-    # Grouper les membres par catégorie de profession
-    members_by_category = {}
+    # Charger tous les slots pour ce concert (indexés par user_id)
+    all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(PlanningSlot.start_time).all()
+    slots_by_user = {}
+    for slot in all_slots:
+        if slot.user_id:
+            if slot.user_id not in slots_by_user:
+                slots_by_user[slot.user_id] = []
+            slots_by_user[slot.user_id].append(slot)
 
+    # Grouper les membres par catégorie
+    members_by_category = {}
     for member in all_members:
         # Déterminer la profession et sa catégorie
         if member.profession:
             profession = member.profession
         elif member.user and member.user.professions:
-            profession = member.user.professions[0]  # Profession principale
+            profession = member.user.professions[0]
         else:
             profession = None
 
-        if profession:
-            cat_key = profession.category.value if profession.category else 'autre'
+        if profession and profession.category:
+            cat_key = profession.category.value
         else:
             cat_key = 'autre'
 
-        # Filtrer par catégorie si nécessaire
+        # Filtrer si une catégorie spécifique est demandée
         if category != 'tous' and cat_key != category:
             continue
 
         if cat_key not in members_by_category:
             members_by_category[cat_key] = []
+
+        # Récupérer les slots de ce membre
+        user_slots = slots_by_user.get(member.user_id, []) if member.user_id else []
+
         members_by_category[cat_key].append({
-            'member': member,
-            'user': member.user,
-            'profession': profession,
-            'call_time': member.call_time,
-            'work_start': member.work_start,
-            'work_end': member.work_end,
-            'break_start': member.break_start,
-            'break_end': member.break_end,
-            'meal_time': member.meal_time,
-            'notes': member.notes
+            'id': member.user_id,
+            'member_id': member.id,
+            'name': member.user.full_name if member.user else 'Inconnu',
+            'profession': profession.name_fr if profession else 'Non définie',
+            'slots': user_slots
         })
 
-    # Construire la structure de données pour le template
+    # Construire planning_data avec la structure attendue par le template
     planning_data = []
-    category_order = ['musicien', 'technicien', 'production', 'style', 'securite', 'management', 'autre']
+    total_slots = 0
+    active_categories = 0
 
-    for cat_key in category_order:
+    for cat_config in categories_config:
+        cat_key = cat_config['key']
         if category != 'tous' and cat_key != category:
             continue
 
         members_list = members_by_category.get(cat_key, [])
+        if members_list:
+            active_categories += 1
+            for m in members_list:
+                total_slots += len(m.get('slots', []))
 
-        # Convertir la clé en enum pour obtenir label/couleur
-        try:
-            cat_enum = ProfessionCategory(cat_key)
-            cat_label = CATEGORY_LABELS.get(cat_enum, cat_key.upper())
-            cat_color = CATEGORY_COLORS.get(cat_enum, 'secondary')
-            cat_icon = CATEGORY_ICONS.get(cat_enum, 'person')
-        except ValueError:
-            cat_label = cat_key.upper()
-            cat_color = 'secondary'
-            cat_icon = 'person'
-
-        cat_data = {
+        planning_data.append({
             'key': cat_key,
-            'label': cat_label,
-            'color': cat_color,
-            'icon': cat_icon,
-            'members': members_list,
-            'count': len(members_list)
-        }
+            'label': cat_config['label'],
+            'color': cat_config['color'],
+            'icon': cat_config['icon'],
+            'members': members_list
+        })
 
-        planning_data.append(cat_data)
-
-    # Onglets de navigation
-    tabs = [
-        {'key': 'tous', 'label': 'Tout le personnel', 'icon': 'bi-calendar2-week'},
-        {'key': 'musicien', 'label': 'Musiciens', 'icon': 'bi-music-note-beamed'},
-        {'key': 'technicien', 'label': 'Techniciens', 'icon': 'bi-tools'},
-        {'key': 'production', 'label': 'Production', 'icon': 'bi-clipboard-check'},
-        {'key': 'style', 'label': 'Style & Costumes', 'icon': 'bi-brush'},
-        {'key': 'securite', 'label': 'Sécurité', 'icon': 'bi-shield-check'},
-        {'key': 'management', 'label': 'Management', 'icon': 'bi-briefcase'},
-    ]
-
-    # Heures de la grille (01:00 à 00:00 minuit - journée complète)
-    hours = list(range(1, 24)) + [0]  # 1h à 23h puis minuit (0)
+    # Heures de la grille (01:00 à 00:00 minuit)
+    hours = list(range(1, 24)) + [0]
 
     # Permissions
     can_edit = tour.band.is_manager(current_user) if tour and tour.band else current_user.is_admin()
 
-    # Compter le total de membres
+    # Total des membres assignés
     total_members = sum(len(cat.get('members', [])) for cat in planning_data)
 
-    # Charger les créneaux de planning (slots)
-    from app.models.planning_slot import PlanningSlot
-    slots_query = PlanningSlot.query.filter_by(tour_stop_id=stop_id)
-    if category != 'tous':
-        slots_query = slots_query.filter_by(category=category)
-    planning_slots = slots_query.order_by(PlanningSlot.start_time).all()
-
     return render_template(
-        'tours/staff_planning_v2.html',
+        'tours/planning_gantt.html',
         tour=tour,
         stop=stop,
         planning_data=planning_data,
-        planning_slots=planning_slots,
-        tabs=tabs,
+        categories_config=categories_config,
         current_category=category,
         can_edit=can_edit,
         hours=hours,
-        total_members=total_members
+        total_members=total_members,
+        total_slots=total_slots,
+        active_categories=active_categories
     )
 
 
@@ -1889,75 +1879,216 @@ def planning_slots_json(id, stop_id, tour=None):
     return jsonify([slot.to_dict() for slot in slots])
 
 
+# ==================== PLANNING SLOTS JSON API (for Gantt view) ====================
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/slot/<int:slot_id>/json')
+@login_required
+@tour_access_required
+def get_planning_slot_json(id, stop_id, slot_id, tour=None):
+    """Récupérer un créneau en JSON pour l'édition."""
+    from app.models.planning_slot import PlanningSlot
+
+    slot = PlanningSlot.query.filter_by(id=slot_id, tour_stop_id=stop_id).first_or_404()
+    return jsonify(slot.to_dict())
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/slot/add', methods=['POST'])
+@login_required
+@tour_edit_required
+def add_slot_json(id, stop_id, tour=None):
+    """Ajouter un créneau (API JSON)."""
+    from app.models.planning_slot import PlanningSlot
+    from datetime import datetime
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Données manquantes'}), 400
+
+    member_id = data.get('member_id')
+    category = data.get('category')
+    start_time_str = data.get('start_time')
+    end_time_str = data.get('end_time')
+    task_description = data.get('task_description', '').strip()
+
+    if not all([member_id, category, start_time_str, end_time_str, task_description]):
+        return jsonify({'success': False, 'error': 'Tous les champs sont requis'}), 400
+
+    try:
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Format d\'heure invalide'}), 400
+
+    # Récupérer le nom de l'utilisateur pour role_name
+    user = User.query.get(member_id)
+    role_name = user.full_name if user else 'Membre'
+
+    slot = PlanningSlot(
+        tour_stop_id=stop_id,
+        role_name=role_name,
+        category=category,
+        start_time=start_time,
+        end_time=end_time,
+        task_description=task_description,
+        user_id=int(member_id),
+        created_by_id=current_user.id
+    )
+    db.session.add(slot)
+    db.session.commit()
+
+    return jsonify({'success': True, 'slot': slot.to_dict()})
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/slot/<int:slot_id>', methods=['PUT'])
+@login_required
+@tour_edit_required
+def update_slot_json(id, stop_id, slot_id, tour=None):
+    """Modifier un créneau (API JSON)."""
+    from app.models.planning_slot import PlanningSlot
+    from datetime import datetime
+
+    slot = PlanningSlot.query.filter_by(id=slot_id, tour_stop_id=stop_id).first_or_404()
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Données manquantes'}), 400
+
+    start_time_str = data.get('start_time')
+    end_time_str = data.get('end_time')
+    task_description = data.get('task_description', '').strip()
+
+    if start_time_str:
+        try:
+            slot.start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Format heure début invalide'}), 400
+
+    if end_time_str:
+        try:
+            slot.end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Format heure fin invalide'}), 400
+
+    if task_description:
+        slot.task_description = task_description
+
+    db.session.commit()
+
+    return jsonify({'success': True, 'slot': slot.to_dict()})
+
+
+@tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/slot/<int:slot_id>', methods=['DELETE'])
+@login_required
+@tour_edit_required
+def delete_slot_json(id, stop_id, slot_id, tour=None):
+    """Supprimer un créneau (API JSON)."""
+    from app.models.planning_slot import PlanningSlot
+
+    slot = PlanningSlot.query.filter_by(id=slot_id, tour_stop_id=stop_id).first_or_404()
+    db.session.delete(slot)
+    db.session.commit()
+
+    return jsonify({'success': True})
+
+
 @tours_bp.route('/<int:id>/stops/<int:stop_id>/planning/seed-demo')
 @login_required
 @tour_edit_required
 def seed_demo_planning(id, stop_id, tour=None):
-    """Créer des données de démonstration pour le planning.
+    """Créer des données de démonstration pour le planning Gantt.
 
-    Cette route ajoute des utilisateurs avec des professions au concert
-    et leur assigne des horaires de travail pour tester la grille visuelle.
+    Ajoute des utilisateurs avec professions et crée des PlanningSlot
+    (barres de tâches) pour chacun avec des horaires variés.
     """
     from datetime import time
     from app.models.tour_stop import TourStopMember
+    from app.models.planning_slot import PlanningSlot
     from app.models.profession import Profession, ProfessionCategory
 
     stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
-    # Récupérer des utilisateurs avec des professions
-    users_with_profession = User.query.join(User.professions).distinct().limit(10).all()
+    # Récupérer des utilisateurs avec des professions (utiliser user_professions relation)
+    from app.models.profession import UserProfession
+    users_with_profession = User.query.join(UserProfession).distinct().limit(10).all()
 
     if not users_with_profession:
-        # Si aucun utilisateur n'a de profession, en prendre quelques-uns
         users_with_profession = User.query.limit(5).all()
 
-    # Horaires de démonstration variés
-    demo_schedules = [
-        {'call': time(8, 0), 'start': time(9, 0), 'end': time(18, 0), 'break_start': time(12, 0), 'break_end': time(13, 0), 'meal': time(12, 30)},
-        {'call': time(7, 30), 'start': time(8, 0), 'end': time(17, 0), 'break_start': time(12, 30), 'break_end': time(13, 30), 'meal': time(13, 0)},
-        {'call': time(14, 0), 'start': time(15, 0), 'end': time(23, 0), 'break_start': time(19, 0), 'break_end': time(19, 30), 'meal': time(19, 15)},
-        {'call': time(10, 0), 'start': time(11, 0), 'end': time(20, 0), 'break_start': time(15, 0), 'break_end': time(15, 30), 'meal': time(15, 15)},
-        {'call': time(6, 0), 'start': time(7, 0), 'end': time(16, 0), 'break_start': time(11, 30), 'break_end': time(12, 30), 'meal': time(12, 0)},
-    ]
+    # Tâches de démonstration par catégorie de profession
+    demo_tasks = {
+        'musicien': [
+            {'start': time(14, 0), 'end': time(16, 0), 'task': 'Balances'},
+            {'start': time(20, 0), 'end': time(22, 30), 'task': 'Performance'},
+        ],
+        'technicien': [
+            {'start': time(8, 0), 'end': time(12, 0), 'task': 'Montage/Câblage'},
+            {'start': time(14, 0), 'end': time(16, 0), 'task': 'Balances son'},
+            {'start': time(18, 0), 'end': time(23, 0), 'task': 'Show'},
+        ],
+        'securite': [
+            {'start': time(17, 0), 'end': time(19, 0), 'task': 'Briefing sécurité'},
+            {'start': time(19, 0), 'end': time(23, 30), 'task': 'Contrôle accès'},
+        ],
+        'management': [
+            {'start': time(10, 0), 'end': time(12, 0), 'task': 'Coordination'},
+            {'start': time(16, 0), 'end': time(18, 0), 'task': 'Meet & Greet'},
+            {'start': time(20, 0), 'end': time(22, 0), 'task': 'Suivi show'},
+        ],
+        'style': [
+            {'start': time(15, 0), 'end': time(17, 0), 'task': 'Préparation costumes'},
+            {'start': time(18, 0), 'end': time(20, 0), 'task': 'Habillage artistes'},
+        ],
+        'production': [
+            {'start': time(7, 0), 'end': time(10, 0), 'task': 'Accueil fournisseurs'},
+            {'start': time(10, 0), 'end': time(14, 0), 'task': 'Coordination montage'},
+            {'start': time(22, 0), 'end': time(23, 59), 'task': 'Démontage'},
+        ],
+    }
 
-    added_count = 0
+    added_members = 0
+    added_slots = 0
+
     for i, user in enumerate(users_with_profession):
-        # Vérifier si déjà assigné
-        existing = TourStopMember.query.filter_by(
+        profession = user.professions[0] if user.professions else None
+        cat_key = profession.category.value if profession and profession.category else 'autre'
+
+        # Créer ou récupérer le TourStopMember
+        member = TourStopMember.query.filter_by(
             tour_stop_id=stop_id,
             user_id=user.id
         ).first()
 
-        if existing:
-            # Mettre à jour les horaires
-            schedule = demo_schedules[i % len(demo_schedules)]
-            existing.call_time = schedule['call']
-            existing.work_start = schedule['start']
-            existing.work_end = schedule['end']
-            existing.break_start = schedule['break_start']
-            existing.break_end = schedule['break_end']
-            existing.meal_time = schedule['meal']
-            existing.notes = f"Horaires de démonstration #{i+1}"
-        else:
-            # Créer un nouveau membre assigné
-            schedule = demo_schedules[i % len(demo_schedules)]
-            profession = user.professions[0] if user.professions else None
-
+        if not member:
             member = TourStopMember(
                 tour_stop_id=stop_id,
                 user_id=user.id,
-                profession_id=profession.id if profession else None,
-                call_time=schedule['call'],
-                work_start=schedule['start'],
-                work_end=schedule['end'],
-                break_start=schedule['break_start'],
-                break_end=schedule['break_end'],
-                meal_time=schedule['meal'],
-                notes=f"Horaires de démonstration #{i+1}"
+                profession_id=profession.id if profession else None
             )
             db.session.add(member)
-            added_count += 1
+            added_members += 1
+
+        # Supprimer les anciens slots de démo pour cet utilisateur
+        PlanningSlot.query.filter_by(
+            tour_stop_id=stop_id,
+            user_id=user.id
+        ).delete()
+
+        # Créer les PlanningSlot pour cet utilisateur
+        tasks = demo_tasks.get(cat_key, demo_tasks.get('production', []))
+        for task_data in tasks:
+            slot = PlanningSlot(
+                tour_stop_id=stop_id,
+                role_name=user.full_name,
+                category=cat_key,
+                start_time=task_data['start'],
+                end_time=task_data['end'],
+                task_description=task_data['task'],
+                user_id=user.id,
+                created_by_id=current_user.id
+            )
+            db.session.add(slot)
+            added_slots += 1
 
     db.session.commit()
-    flash(f'{added_count} membres ajoutés avec des horaires de démonstration.', 'success')
+    flash(f'{added_members} membres et {added_slots} créneaux ajoutés pour la démo.', 'success')
     return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id))

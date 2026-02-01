@@ -1,0 +1,657 @@
+{% extends "layouts/base.html" %}
+{% block title %}Planning - {{ stop.venue.name if stop.venue else 'Concert' }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ================================================================
+   PLANNING GANTT - Style inspiré du modèle professionnel
+   Structure: Flexbox + CSS Grid interne pour timeline
+   ================================================================ */
+
+.planning-container {
+    overflow-x: auto;
+    background: #1a1a2e;
+    border-radius: 12px;
+    padding: 0;
+}
+
+/* Grille principale: Structure flexbox verticale */
+.planning-grid {
+    min-width: 1600px;
+    background: #16213e;
+}
+
+/* En-tête avec heures - ligne flex */
+.planning-header {
+    display: flex;
+    background: #0f3460;
+    border-bottom: 2px solid #1a1a2e;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.planning-header > div {
+    padding: 12px 4px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #e2e8f0;
+}
+
+.planning-header > div:first-child {
+    width: 200px;
+    min-width: 200px;
+    text-align: left;
+    padding-left: 16px;
+}
+
+.planning-header .hour-cell {
+    flex: 1;
+    min-width: 55px;
+    border-left: 1px solid #1a1a2e;
+}
+
+/* ================================================================
+   CATÉGORIES - En-têtes colorés
+   ================================================================ */
+.category-header {
+    grid-column: 1 / -1;
+    padding: 10px 16px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Couleurs exactes du modèle */
+.cat-musicien { background: #8b5cf6; }      /* Violet - ARTISTES */
+.cat-technicien { background: #3b82f6; }    /* Bleu - TECHNICIENS */
+.cat-securite { background: #ef4444; }      /* Rouge - SÉCURITÉ */
+.cat-management { background: #22c55e; }    /* Vert - MANAGERS */
+.cat-style { background: #ec4899; }         /* Rose - HABILLEURS */
+.cat-production { background: #f97316; }    /* Orange - PRODUCTION */
+
+/* ================================================================
+   LIGNES UTILISATEURS - Structure flex
+   ================================================================ */
+.member-row {
+    display: flex;
+    border-bottom: 1px solid #334155;
+}
+
+.member-row .user-cell {
+    width: 200px;
+    min-width: 200px;
+    background: #1e293b;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.member-row:hover .user-cell {
+    background: #273549;
+}
+
+.member-row .user-cell .user-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.member-row .user-cell .user-name {
+    font-weight: 500;
+    color: #f1f5f9;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.member-row .user-cell .user-profession {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.member-row .user-cell .add-slot-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.member-row:hover .user-cell .add-slot-btn {
+    opacity: 1;
+}
+
+/* ================================================================
+   CELLULES TIMELINE - Grille interne
+   ================================================================ */
+.member-row .timeline-wrapper {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    position: relative;
+    background: #1e293b;
+    min-height: 48px;
+}
+
+.member-row:hover .timeline-wrapper {
+    background: #273549;
+}
+
+.member-row .hour-cell {
+    border-left: 1px solid #334155;
+    min-height: 48px;
+}
+
+.member-row .hour-cell:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* ================================================================
+   BARRES DE TÂCHES
+   ================================================================ */
+.task-bar {
+    position: absolute;
+    top: 6px;
+    height: calc(100% - 12px);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 10;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.task-bar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    z-index: 15;
+}
+
+.task-bar .task-time {
+    font-size: 0.7rem;
+    opacity: 0.9;
+}
+
+.task-bar .task-name {
+    font-weight: 600;
+}
+
+/* Couleurs des barres par catégorie */
+.task-bar.cat-musicien { background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); }
+.task-bar.cat-technicien { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); }
+.task-bar.cat-securite { background: linear-gradient(135deg, #ef4444 0%, #f87171 100%); }
+.task-bar.cat-management { background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%); }
+.task-bar.cat-style { background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%); }
+.task-bar.cat-production { background: linear-gradient(135deg, #f97316 0%, #fb923c 100%); }
+
+/* ================================================================
+   ONGLETS DE FILTRAGE
+   ================================================================ */
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-tab.active {
+    color: white;
+}
+
+.filter-tab:not(.active) {
+    background: #374151;
+    color: #9ca3af;
+}
+
+.filter-tab:not(.active):hover {
+    background: #4b5563;
+}
+
+.filter-tab.all { background: #4b5563; }
+.filter-tab.all.active { background: #6b7280; }
+.filter-tab.musicien.active { background: #8b5cf6; }
+.filter-tab.technicien.active { background: #3b82f6; }
+.filter-tab.securite.active { background: #ef4444; }
+.filter-tab.management.active { background: #22c55e; }
+.filter-tab.style.active { background: #ec4899; }
+.filter-tab.production.active { background: #f97316; }
+
+/* ================================================================
+   LÉGENDE
+   ================================================================ */
+.legend {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    padding: 16px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+.legend-item .color-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+/* ================================================================
+   STATISTIQUES
+   ================================================================ */
+.stats-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    padding: 16px 24px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 150px;
+}
+
+.stat-card h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.stat-card small {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+/* ================================================================
+   MESSAGE VIDE
+   ================================================================ */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #94a3b8;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .planning-grid {
+        grid-template-columns: 160px repeat(24, minmax(45px, 1fr));
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m') }}</a></li>
+                    <li class="breadcrumb-item active">Planning</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">
+                <i class="bi bi-calendar2-week text-primary me-2"></i>
+                PLANNING JOURNALIER CONCERT - VUE GLOBALE (01h00 - 00h00)
+            </h2>
+            <p class="text-muted mb-0">
+                {{ stop.venue.name if stop.venue else 'Lieu non défini' }} -
+                {{ stop.date.strftime('%A %d %B %Y') | capitalize }}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Onglets de filtrage -->
+    <div class="filter-tabs">
+        <button class="filter-tab all {% if current_category == 'tous' %}active{% endif %}" data-category="tous">
+            <i class="bi bi-grid-3x3"></i> Tout le planning
+        </button>
+        {% for cat in categories_config %}
+        <button class="filter-tab {{ cat.key }} {% if current_category == cat.key %}active{% endif %}" data-category="{{ cat.key }}">
+            <i class="bi bi-{{ cat.icon }}"></i> {{ cat.label }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Statistiques -->
+    <div class="stats-row">
+        <div class="stat-card" style="background: #3b82f6; color: white;">
+            <h3>{{ total_members }}</h3>
+            <small>Membres assignés</small>
+        </div>
+        <div class="stat-card" style="background: #22c55e; color: white;">
+            <h3>{{ active_categories }}</h3>
+            <small>Catégories actives</small>
+        </div>
+        <div class="stat-card" style="background: #8b5cf6; color: white;">
+            <h3>{{ total_slots }}</h3>
+            <small>Créneaux planifiés</small>
+        </div>
+    </div>
+
+    {% if total_members == 0 %}
+    <!-- État vide -->
+    <div class="planning-container">
+        <div class="empty-state">
+            <i class="bi bi-calendar-x"></i>
+            <h4>Aucun membre assigné</h4>
+            <p>Assignez des membres à ce concert pour créer leur planning.</p>
+            <div class="d-flex gap-2 justify-content-center mt-3">
+                <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-primary">
+                    <i class="bi bi-person-plus me-1"></i> Assigner des membres
+                </a>
+                {% if can_edit %}
+                <a href="{{ url_for('tours.seed_demo_planning', id=tour.id, stop_id=stop.id) }}" class="btn btn-warning">
+                    <i class="bi bi-lightning-fill me-1"></i> Charger démo
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Grille de Planning -->
+    <div class="planning-container">
+        <div class="planning-grid">
+            <!-- En-tête avec heures -->
+            <div class="planning-header">
+                <div></div>
+                {% for hour in hours %}
+                <div class="hour-cell">{{ '%02d' | format(hour) }}:00</div>
+                {% endfor %}
+            </div>
+
+            <!-- Contenu par catégorie -->
+            {% for category in planning_data %}
+            {% if category.members and (current_category == 'tous' or current_category == category.key) %}
+            <!-- En-tête de catégorie -->
+            <div class="category-header cat-{{ category.key }}">
+                <i class="bi bi-{{ category.icon }}"></i>
+                {{ category.label }}
+                <span class="badge bg-light text-dark ms-2">{{ category.members | length }}</span>
+            </div>
+
+            <!-- Lignes membres -->
+            {% for member in category.members %}
+            <div class="member-row" data-member-id="{{ member.id }}" data-category="{{ category.key }}">
+                <div class="user-cell">
+                    <div class="user-info">
+                        <div class="user-name">{{ member.name }}</div>
+                        <div class="user-profession">{{ member.profession }}</div>
+                    </div>
+                    {% if can_edit %}
+                    <button class="btn btn-sm btn-outline-primary add-slot-btn"
+                            onclick="openAddSlotModal({{ member.id }}, '{{ member.name }}', '{{ category.key }}')"
+                            title="Ajouter un créneau">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="timeline-wrapper">
+                    {% for hour in hours %}
+                    <div class="hour-cell" data-hour="{{ hour }}"></div>
+                    {% endfor %}
+
+                    <!-- Barres de tâches pour ce membre -->
+                    {% for slot in member.slots %}
+                    {% set start_hour = slot.start_time.hour %}
+                    {% set start_minute = slot.start_time.minute %}
+                    {% set end_hour = slot.end_time.hour %}
+                    {% set end_minute = slot.end_time.minute %}
+
+                    {# Calcul position: heure 1 = 0%, heure 24 (00h) = 95.83% #}
+                    {% set start_pos = ((start_hour - 1) if start_hour > 0 else 23) * (100/24) + (start_minute/60) * (100/24) %}
+                    {% set end_pos = ((end_hour - 1) if end_hour > 0 else 23) * (100/24) + (end_minute/60) * (100/24) %}
+                    {% if end_pos <= start_pos %}{% set end_pos = end_pos + 100 %}{% endif %}
+                    {% set width = end_pos - start_pos %}
+
+                    <div class="task-bar cat-{{ category.key }}"
+                         style="left: {{ start_pos }}%; width: {{ width }}%;"
+                         onclick="openEditSlotModal({{ slot.id }})"
+                         title="{{ slot.task_description }} ({{ slot.start_time.strftime('%H:%M') }}-{{ slot.end_time.strftime('%H:%M') }})">
+                        <span class="task-time">{{ slot.start_time.strftime('%H:%M') }}-{{ slot.end_time.strftime('%H:%M') }}</span>
+                        <span class="task-name">{{ slot.task_description }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Légende -->
+        <div class="legend">
+            {% for cat in categories_config %}
+            <div class="legend-item">
+                <div class="color-box" style="background: {{ cat.color }};"></div>
+                {{ cat.label }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if can_edit %}
+<!-- Modal Ajouter/Éditer Créneau -->
+<div class="modal fade" id="slotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="slotModalTitle">
+                    <i class="bi bi-calendar-plus me-2"></i>
+                    Ajouter un créneau
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="slotForm">
+                <div class="modal-body">
+                    <input type="hidden" id="slot_id" name="slot_id">
+                    <input type="hidden" id="member_id" name="member_id">
+                    <input type="hidden" id="slot_category" name="category">
+
+                    <div class="mb-3">
+                        <label class="form-label">Membre</label>
+                        <p class="form-control-plaintext text-light" id="memberDisplay"></p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label for="start_time" class="form-label">Heure début *</label>
+                            <input type="time" class="form-control" id="start_time" name="start_time" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label for="end_time" class="form-label">Heure fin *</label>
+                            <input type="time" class="form-control" id="end_time" name="end_time" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="task_description" class="form-label">Description de la tâche *</label>
+                        <input type="text" class="form-control" id="task_description" name="task_description"
+                               placeholder="Ex: Montage/Câblage, Balances, Performance..." required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger d-none" id="deleteSlotBtn" onclick="deleteSlot()">
+                        <i class="bi bi-trash me-1"></i> Supprimer
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i> Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const tourId = {{ tour.id }};
+const stopId = {{ stop.id }};
+let slotModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    slotModal = new bootstrap.Modal(document.getElementById('slotModal'));
+
+    // Gestion des onglets de filtrage
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const category = this.dataset.category;
+            window.location.href = `/tours/${tourId}/stops/${stopId}/planning/${category}`;
+        });
+    });
+
+    // Formulaire de créneau
+    document.getElementById('slotForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveSlot();
+    });
+});
+
+function openAddSlotModal(memberId, memberName, category) {
+    document.getElementById('slotModalTitle').innerHTML = '<i class="bi bi-calendar-plus me-2"></i>Ajouter un créneau';
+    document.getElementById('slot_id').value = '';
+    document.getElementById('member_id').value = memberId;
+    document.getElementById('slot_category').value = category;
+    document.getElementById('memberDisplay').textContent = memberName;
+    document.getElementById('start_time').value = '';
+    document.getElementById('end_time').value = '';
+    document.getElementById('task_description').value = '';
+    document.getElementById('deleteSlotBtn').classList.add('d-none');
+    slotModal.show();
+}
+
+function openEditSlotModal(slotId) {
+    fetch(`/tours/${tourId}/stops/${stopId}/planning/slot/${slotId}/json`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('slotModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Modifier le créneau';
+            document.getElementById('slot_id').value = data.id;
+            document.getElementById('member_id').value = data.user_id || '';
+            document.getElementById('slot_category').value = data.category;
+            document.getElementById('memberDisplay').textContent = data.user_name || data.role_name;
+            document.getElementById('start_time').value = data.start_time;
+            document.getElementById('end_time').value = data.end_time;
+            document.getElementById('task_description').value = data.task_description;
+            document.getElementById('deleteSlotBtn').classList.remove('d-none');
+            slotModal.show();
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors du chargement du créneau');
+        });
+}
+
+function saveSlot() {
+    const slotId = document.getElementById('slot_id').value;
+    const data = {
+        member_id: document.getElementById('member_id').value,
+        category: document.getElementById('slot_category').value,
+        start_time: document.getElementById('start_time').value,
+        end_time: document.getElementById('end_time').value,
+        task_description: document.getElementById('task_description').value
+    };
+
+    const url = slotId
+        ? `/tours/${tourId}/stops/${stopId}/planning/slot/${slotId}`
+        : `/tours/${tourId}/stops/${stopId}/planning/slot/add`;
+    const method = slotId ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            slotModal.hide();
+            location.reload();
+        } else {
+            alert(result.error || 'Erreur lors de la sauvegarde');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la sauvegarde');
+    });
+}
+
+function deleteSlot() {
+    const slotId = document.getElementById('slot_id').value;
+    if (!slotId) return;
+
+    if (!confirm('Supprimer ce créneau ?')) return;
+
+    fetch(`/tours/${tourId}/stops/${stopId}/planning/slot/${slotId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            slotModal.hide();
+            location.reload();
+        } else {
+            alert(result.error || 'Erreur lors de la suppression');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la suppression');
+    });
+}
+</script>
+{% endblock %}
