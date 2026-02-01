@@ -562,6 +562,139 @@ def register_cli_commands(app):
         print(f"Manager: {manager_email}")
         print("="*60)
 
+    @app.cli.command('cleanup-all')
+    @click.option('--confirm', is_flag=True, help='Confirm deletion without prompt')
+    def cleanup_all(confirm):
+        """Delete ALL data except admin and manager users.
+
+        Deletes: All users (except admin/manager), Tours, TourStops, Guestlists, etc.
+        Keeps: Admin user, Manager user, Venues, Professions, Roles.
+        """
+        from app.models.user import User, AccessLevel
+        from app.models.tour import Tour
+        from app.models.tour_stop import TourStop, TourStopMember
+        from app.models.guestlist import GuestlistEntry
+        from app.models.payments import TeamMemberPayment
+        from app.models.document import Document
+        from app.models.planning_slot import PlanningSlot
+        from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment
+        from app.models.notification import Notification
+        from app.models.reminder import TourStopReminder
+        from app.models.lineup import LineupSlot
+        from app.models.logistics import LogisticsInfo, LogisticsAssignment
+        from app.models.band import BandMembership
+        from app.models.profession import UserProfession
+        from app.models.mission_invitation import MissionInvitation
+        from app.extensions import db
+
+        if not confirm:
+            print("WARNING: This will DELETE almost ALL data!")
+            print("Only admin@... and manager@... users will be kept.")
+            print("Run with --confirm to proceed.")
+            return
+
+        print("="*60)
+        print("CLEANUP ALL DATA")
+        print("="*60)
+
+        deleted = {}
+
+        # 1. Notifications
+        count = Notification.query.delete()
+        deleted['notifications'] = count
+
+        # 2. Guestlist entries
+        count = GuestlistEntry.query.delete()
+        deleted['guestlist_entries'] = count
+
+        # 3. Payments
+        count = TeamMemberPayment.query.delete()
+        deleted['payments'] = count
+
+        # 4. Planning slots
+        count = PlanningSlot.query.delete()
+        deleted['planning_slots'] = count
+
+        # 5. Crew assignments and slots
+        count = CrewAssignment.query.delete()
+        deleted['crew_assignments'] = count
+        count = CrewScheduleSlot.query.delete()
+        deleted['crew_schedule_slots'] = count
+
+        # 6. Reminders
+        count = TourStopReminder.query.delete()
+        deleted['reminders'] = count
+
+        # 7. Lineup slots
+        count = LineupSlot.query.delete()
+        deleted['lineup_slots'] = count
+
+        # 8. Logistics
+        count = LogisticsAssignment.query.delete()
+        deleted['logistics_assignments'] = count
+        count = LogisticsInfo.query.delete()
+        deleted['logistics_info'] = count
+
+        # 9. Documents
+        count = Document.query.delete()
+        deleted['documents'] = count
+
+        # 10. Tour stop members
+        count = TourStopMember.query.delete()
+        deleted['tour_stop_members'] = count
+
+        # 11. Tour stops
+        count = TourStop.query.delete()
+        deleted['tour_stops'] = count
+
+        # 12. Tours
+        count = Tour.query.delete()
+        deleted['tours'] = count
+
+        # 13. Mission invitations
+        count = MissionInvitation.query.delete()
+        deleted['mission_invitations'] = count
+
+        # 14. Band memberships (keep bands but remove user links)
+        count = BandMembership.query.delete()
+        deleted['band_memberships'] = count
+
+        # 15. User professions (for users to be deleted)
+        admin_email = 'arnaud.porcel@gmail.com'
+        manager_email = 'jonathan.studiopalenquegroup@gmail.com'
+
+        # Get IDs of users to keep
+        keep_users = User.query.filter(
+            User.email.in_([admin_email, manager_email])
+        ).all()
+        keep_ids = [u.id for u in keep_users]
+
+        # Delete UserProfessions for users NOT in keep list
+        count = UserProfession.query.filter(
+            ~UserProfession.user_id.in_(keep_ids)
+        ).delete(synchronize_session=False)
+        deleted['user_professions'] = count
+
+        # 16. Delete users except admin and manager
+        count = User.query.filter(
+            ~User.email.in_([admin_email, manager_email])
+        ).delete(synchronize_session=False)
+        deleted['users'] = count
+
+        db.session.commit()
+
+        print("\nDeleted:")
+        for table, count in deleted.items():
+            if count > 0:
+                print(f"  - {table}: {count}")
+
+        print("\n" + "="*60)
+        print("KEPT:")
+        print(f"  - Admin: {admin_email}")
+        print(f"  - Manager: {manager_email}")
+        print("  - Venues, Professions, Roles, Bands (empty)")
+        print("="*60)
+
 
 def register_context_processors(app):
     """Register template context processors."""
