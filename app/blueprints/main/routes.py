@@ -2216,3 +2216,72 @@ def create_payments_batch_debug():
         import traceback
         db.session.rollback()
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/deny-guest/<int:guest_id>')
+def deny_guest_debug(guest_id):
+    """Debug endpoint to deny a guestlist entry."""
+    try:
+        from app.models.guestlist import GuestlistEntry, GuestlistStatus
+        from app.models.user import User
+        from datetime import datetime
+
+        entry = GuestlistEntry.query.get(guest_id)
+        if not entry:
+            return jsonify({'error': f'Guest entry {guest_id} not found'}), 404
+
+        user = User.query.filter_by(is_active=True).first()
+
+        if entry.status == GuestlistStatus.PENDING:
+            entry.deny(user, notes='Refusé via test debug')
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'guest_id': entry.id,
+                'guest_name': entry.guest_name,
+                'new_status': 'denied'
+            })
+        else:
+            return jsonify({
+                'error': f'Guest is not pending (current: {entry.status.value})'
+            }), 400
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/guestlist-summary/<int:stop_id>')
+def guestlist_summary_debug(stop_id):
+    """Debug endpoint to get guestlist summary for a stop."""
+    try:
+        from app.models.guestlist import GuestlistEntry, GuestlistStatus
+        from app.models.tour_stop import TourStop
+
+        stop = TourStop.query.get(stop_id)
+        if not stop:
+            return jsonify({'error': f'Stop {stop_id} not found'}), 404
+
+        entries = GuestlistEntry.query.filter_by(tour_stop_id=stop_id).all()
+
+        summary = {
+            'stop_id': stop_id,
+            'total': len(entries),
+            'by_status': {},
+            'entries': []
+        }
+
+        for entry in entries:
+            status = entry.status.value
+            summary['by_status'][status] = summary['by_status'].get(status, 0) + 1
+            summary['entries'].append({
+                'id': entry.id,
+                'name': entry.guest_name,
+                'status': status,
+                'type': entry.entry_type.value
+            })
+
+        return jsonify(summary)
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
