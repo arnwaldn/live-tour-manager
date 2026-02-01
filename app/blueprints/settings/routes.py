@@ -1230,11 +1230,12 @@ def delete_own_travel_card(card_id):
 @requires_manager
 def users_hard_delete(id):
     """Permanently delete a user from the system (FORCE MODE)."""
-    from app.models.payments import TeamMemberPayment
+    from app.models.payments import TeamMemberPayment, UserPaymentConfig
     from app.models.notification import Notification
     from app.models.profession import UserProfession
     from app.models.band import BandMembership
     from app.models.mission_invitation import MissionInvitation
+    from app.models.user import TravelCard
 
     user = User.query.get_or_404(id)
 
@@ -1248,6 +1249,12 @@ def users_hard_delete(id):
 
     try:
         # FORCE DELETE: Remove all related data first
+
+        # Delete payment configs (FK constraint)
+        UserPaymentConfig.query.filter_by(user_id=user.id).delete()
+
+        # Delete travel cards (FK constraint)
+        TravelCard.query.filter_by(user_id=user.id).delete()
 
         # Delete payments
         TeamMemberPayment.query.filter_by(user_id=user.id).delete()
