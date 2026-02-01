@@ -183,10 +183,10 @@ def create_guest_debug(stop_id):
     """Debug endpoint to create a guestlist entry directly."""
     import traceback
     from app.models.tour_stop import TourStop
-    from app.models.guestlist import GuestlistEntry
+    from app.models.guestlist import GuestlistEntry, EntryType, GuestlistStatus
 
     result = {
-        'version': '2026-02-01-guest',
+        'version': '2026-02-01-guest-v2',
         'stop_id': stop_id,
         'errors': [],
         'success': False
@@ -199,14 +199,14 @@ def create_guest_debug(stop_id):
             result['errors'].append(f'Stop {stop_id} not found')
             return jsonify(result)
 
-        # Create guest entry
+        # Create guest entry with proper enums
         guest = GuestlistEntry(
             tour_stop_id=stop.id,
             guest_name='Jean-Pierre Dupont',
             guest_email='jp.dupont@test.com',
-            entry_type='vip',
+            entry_type=EntryType.VIP,
             plus_ones=2,
-            status='pending'
+            status=GuestlistStatus.PENDING
         )
 
         db.session.add(guest)
