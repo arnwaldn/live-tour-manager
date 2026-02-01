@@ -2060,6 +2060,74 @@ def create_payment_debug():
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
+@main_bp.route('/health/approve-payment/<int:payment_id>')
+def approve_payment_debug(payment_id):
+    """Debug endpoint to approve a payment."""
+    try:
+        from app.models.payments import TeamMemberPayment, PaymentStatus
+        from app.models.user import User
+        from datetime import datetime
+
+        payment = TeamMemberPayment.query.get(payment_id)
+        if not payment:
+            return jsonify({'error': f'Payment {payment_id} not found'}), 404
+
+        user = User.query.filter_by(is_active=True).first()
+
+        if payment.status == PaymentStatus.PENDING_APPROVAL:
+            payment.status = PaymentStatus.APPROVED
+            payment.approved_at = datetime.utcnow()
+            payment.approved_by_id = user.id
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'payment_id': payment.id,
+                'reference': payment.reference,
+                'new_status': 'approved'
+            })
+        else:
+            return jsonify({
+                'error': f'Payment is not pending approval (current: {payment.status.value})'
+            }), 400
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/mark-paid/<int:payment_id>')
+def mark_paid_debug(payment_id):
+    """Debug endpoint to mark a payment as paid."""
+    try:
+        from app.models.payments import TeamMemberPayment, PaymentStatus, PaymentMethod
+        from datetime import datetime
+
+        payment = TeamMemberPayment.query.get(payment_id)
+        if not payment:
+            return jsonify({'error': f'Payment {payment_id} not found'}), 404
+
+        if payment.status in [PaymentStatus.APPROVED, PaymentStatus.SCHEDULED]:
+            payment.status = PaymentStatus.PAID
+            payment.paid_date = datetime.utcnow().date()
+            payment.payment_method = PaymentMethod.BANK_TRANSFER
+            payment.bank_reference = f'SEPA-{payment.reference}'
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'payment_id': payment.id,
+                'reference': payment.reference,
+                'new_status': 'paid'
+            })
+        else:
+            return jsonify({
+                'error': f'Payment cannot be marked as paid (current: {payment.status.value})'
+            }), 400
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
 @main_bp.route('/health/create-payments-batch')
 def create_payments_batch_debug():
     """Debug endpoint to create multiple test payments with different statuses."""
