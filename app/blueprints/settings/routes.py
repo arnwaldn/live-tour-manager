@@ -1687,111 +1687,83 @@ def cleanup_all_data(token):
     Protected by secret token. TO BE REMOVED AFTER USE.
     """
     from flask import jsonify
-    from app.models.tour import Tour
-    from app.models.tour_stop import TourStop, TourStopMember
-    from app.models.guestlist import GuestlistEntry
-    from app.models.payments import TeamMemberPayment
-    from app.models.document import Document
-    from app.models.planning_slot import PlanningSlot
-    from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment
-    from app.models.notification import Notification
-    from app.models.reminder import TourStopReminder
-    from app.models.lineup import LineupSlot
-    from app.models.logistics import LogisticsInfo, LogisticsAssignment
-    from app.models.band import BandMembership
-    from app.models.profession import UserProfession
-    from app.models.mission_invitation import MissionInvitation
+    from sqlalchemy import text
 
     # Secret token protection
     SECRET_TOKEN = 'cleanup-ultra-2026-secret-xyz'
     if token != SECRET_TOKEN:
         abort(403)
 
-    deleted = {}
+    try:
+        admin_email = 'arnaud.porcel@gmail.com'
+        manager_email = 'jonathan.studiopalenquegroup@gmail.com'
 
-    # 1. Notifications
-    count = Notification.query.delete()
-    deleted['notifications'] = count
+        # Get IDs of users to keep
+        keep_users = User.query.filter(
+            User.email.in_([admin_email, manager_email])
+        ).all()
+        keep_ids = [u.id for u in keep_users]
+        keep_ids_str = ','.join(str(id) for id in keep_ids) if keep_ids else '0'
 
-    # 2. Guestlist entries
-    count = GuestlistEntry.query.delete()
-    deleted['guestlist_entries'] = count
+        deleted = {}
 
-    # 3. Payments
-    count = TeamMemberPayment.query.delete()
-    deleted['payments'] = count
+        # Use raw SQL for reliable deletion order
+        tables_to_clear = [
+            'notification',
+            'guestlist_entry',
+            'team_member_payment',
+            'planning_slot',
+            'crew_assignment',
+            'crew_schedule_slot',
+            'tour_stop_reminder',
+            'lineup_slot',
+            'logistics_assignment',
+            'logistics_info',
+            'document',
+            'document_share',
+            'tour_stop_member',
+            'tour_stop',
+            'tour',
+            'mission_invitation',
+            'band_membership',
+        ]
 
-    # 4. Planning slots
-    count = PlanningSlot.query.delete()
-    deleted['planning_slots'] = count
+        for table in tables_to_clear:
+            try:
+                result = db.session.execute(text(f'DELETE FROM {table}'))
+                deleted[table] = result.rowcount
+            except Exception as e:
+                deleted[table] = f'error: {str(e)}'
 
-    # 5. Crew assignments and slots
-    count = CrewAssignment.query.delete()
-    deleted['crew_assignments'] = count
-    count = CrewScheduleSlot.query.delete()
-    deleted['crew_schedule_slots'] = count
+        # Delete user_profession for non-kept users
+        try:
+            result = db.session.execute(
+                text(f'DELETE FROM user_profession WHERE user_id NOT IN ({keep_ids_str})')
+            )
+            deleted['user_profession'] = result.rowcount
+        except Exception as e:
+            deleted['user_profession'] = f'error: {str(e)}'
 
-    # 6. Reminders
-    count = TourStopReminder.query.delete()
-    deleted['reminders'] = count
+        # Delete users except admin/manager
+        try:
+            result = db.session.execute(
+                text(f"DELETE FROM \"user\" WHERE email NOT IN ('{admin_email}', '{manager_email}')")
+            )
+            deleted['users'] = result.rowcount
+        except Exception as e:
+            deleted['users'] = f'error: {str(e)}'
 
-    # 7. Lineup slots
-    count = LineupSlot.query.delete()
-    deleted['lineup_slots'] = count
+        db.session.commit()
 
-    # 8. Logistics
-    count = LogisticsAssignment.query.delete()
-    deleted['logistics_assignments'] = count
-    count = LogisticsInfo.query.delete()
-    deleted['logistics_info'] = count
+        return jsonify({
+            'status': 'success',
+            'deleted': deleted,
+            'kept': [admin_email, manager_email]
+        })
 
-    # 9. Documents
-    count = Document.query.delete()
-    deleted['documents'] = count
-
-    # 10. Tour stop members
-    count = TourStopMember.query.delete()
-    deleted['tour_stop_members'] = count
-
-    # 11. Tour stops
-    count = TourStop.query.delete()
-    deleted['tour_stops'] = count
-
-    # 12. Tours
-    count = Tour.query.delete()
-    deleted['tours'] = count
-
-    # 13. Mission invitations
-    count = MissionInvitation.query.delete()
-    deleted['mission_invitations'] = count
-
-    # 14. Band memberships
-    count = BandMembership.query.delete()
-    deleted['band_memberships'] = count
-
-    # 15. User professions and users (except admin/manager)
-    admin_email = 'arnaud.porcel@gmail.com'
-    manager_email = 'jonathan.studiopalenquegroup@gmail.com'
-
-    keep_users = User.query.filter(
-        User.email.in_([admin_email, manager_email])
-    ).all()
-    keep_ids = [u.id for u in keep_users]
-
-    count = UserProfession.query.filter(
-        ~UserProfession.user_id.in_(keep_ids)
-    ).delete(synchronize_session=False)
-    deleted['user_professions'] = count
-
-    count = User.query.filter(
-        ~User.email.in_([admin_email, manager_email])
-    ).delete(synchronize_session=False)
-    deleted['users'] = count
-
-    db.session.commit()
-
-    return jsonify({
-        'status': 'success',
-        'deleted': deleted,
-        'kept': [admin_email, manager_email]
-    })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
