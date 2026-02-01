@@ -1598,8 +1598,17 @@ def staff_planning(id, stop_id, category='tous', tour=None):
         flash('Catégorie invalide.', 'error')
         return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
 
-    # Charger tous les membres assignés à ce concert
-    all_members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
+    # Charger les membres assignés avec statuts valides (En attente, Confirmé, Provisoire)
+    from app.models.tour_stop import MemberAssignmentStatus
+    valid_statuses = [
+        MemberAssignmentStatus.ASSIGNED,
+        MemberAssignmentStatus.CONFIRMED,
+        MemberAssignmentStatus.TENTATIVE
+    ]
+    all_members = TourStopMember.query.filter(
+        TourStopMember.tour_stop_id == stop_id,
+        TourStopMember.status.in_(valid_statuses)
+    ).all()
 
     # Charger tous les slots pour ce concert (indexés par user_id)
     all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(PlanningSlot.start_time).all()
