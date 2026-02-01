@@ -421,6 +421,73 @@ def register_cli_commands(app):
         print(f"Done! {new_count} professions available.")
         print("Categories: MUSICIEN, TECHNICIEN, PRODUCTION, STYLE, SECURITE, MANAGEMENT")
 
+    @app.cli.command('clean-demo-data')
+    @click.option('--confirm', is_flag=True, help='Confirm deletion without prompt')
+    def clean_demo_data(confirm):
+        """Clean all demo data for production delivery.
+
+        Deletes: Tours, TourStops, GuestlistEntries, Payments, Documents, PlanningSlots, CrewScheduleSlots.
+        Keeps: Users, Venues, Professions, Bands.
+        """
+        from app.models.tour import Tour
+        from app.models.tour_stop import TourStop
+        from app.models.guestlist import GuestlistEntry
+        from app.models.payments import TeamMemberPayment
+        from app.models.document import Document
+        from app.models.planning_slot import PlanningSlot
+        from app.models.crew_schedule import CrewScheduleSlot
+        from app.models.notification import Notification
+        from app.extensions import db
+
+        if not confirm:
+            print("WARNING: This will DELETE all tours and associated data!")
+            print("Run with --confirm to proceed.")
+            return
+
+        print("Cleaning demo data...")
+
+        # Delete in order of dependencies
+        deleted = {}
+
+        # Notifications
+        count = Notification.query.delete()
+        deleted['notifications'] = count
+
+        # Guestlist entries
+        count = GuestlistEntry.query.delete()
+        deleted['guestlist_entries'] = count
+
+        # Payments
+        count = TeamMemberPayment.query.delete()
+        deleted['payments'] = count
+
+        # Planning slots
+        count = PlanningSlot.query.delete()
+        deleted['planning_slots'] = count
+
+        # Crew schedule slots
+        count = CrewScheduleSlot.query.delete()
+        deleted['crew_schedule_slots'] = count
+
+        # Documents
+        count = Document.query.delete()
+        deleted['documents'] = count
+
+        # Tour stops
+        count = TourStop.query.delete()
+        deleted['tour_stops'] = count
+
+        # Tours
+        count = Tour.query.delete()
+        deleted['tours'] = count
+
+        db.session.commit()
+
+        print("Done! Deleted:")
+        for table, count in deleted.items():
+            print(f"  - {table}: {count}")
+        print("\nKept: Users, Venues, Professions, Bands")
+
 
 def register_context_processors(app):
     """Register template context processors."""
