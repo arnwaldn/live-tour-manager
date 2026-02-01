@@ -178,6 +178,55 @@ def create_stop_debug(tour_id):
     return jsonify(result)
 
 
+@main_bp.route('/health/create-guest/<int:stop_id>')
+def create_guest_debug(stop_id):
+    """Debug endpoint to create a guestlist entry directly."""
+    import traceback
+    from app.models.tour_stop import TourStop
+    from app.models.guestlist import GuestlistEntry
+
+    result = {
+        'version': '2026-02-01-guest',
+        'stop_id': stop_id,
+        'errors': [],
+        'success': False
+    }
+
+    try:
+        # Get stop
+        stop = TourStop.query.get(stop_id)
+        if not stop:
+            result['errors'].append(f'Stop {stop_id} not found')
+            return jsonify(result)
+
+        # Create guest entry
+        guest = GuestlistEntry(
+            tour_stop_id=stop.id,
+            guest_name='Jean-Pierre Dupont',
+            guest_email='jp.dupont@test.com',
+            entry_type='vip',
+            plus_ones=2,
+            status='pending'
+        )
+
+        db.session.add(guest)
+        db.session.commit()
+
+        result['success'] = True
+        result['guest'] = {
+            'id': guest.id,
+            'name': guest.guest_name,
+            'type': guest.entry_type
+        }
+
+    except Exception as e:
+        result['errors'].append(f'Error: {str(e)}')
+        result['traceback'] = traceback.format_exc()
+        db.session.rollback()
+
+    return jsonify(result)
+
+
 @main_bp.route('/health/stop-debug/<int:tour_id>/<int:stop_id>')
 def stop_debug(tour_id, stop_id):
     """Debug endpoint for stop_detail errors - no auth required."""
