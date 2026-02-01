@@ -300,6 +300,118 @@ def crew_debug(stop_id):
     return jsonify(result)
 
 
+@main_bp.route('/health/crew-full-debug/<int:stop_id>')
+def crew_full_debug(stop_id):
+    """Full debug of crew schedule view - simulates the actual route."""
+    import traceback
+
+    result = {
+        'version': '2026-02-01-crew-full-v1',
+        'stop_id': stop_id,
+        'errors': [],
+        'success': False,
+        'steps': {}
+    }
+
+    try:
+        # Step 1: Basic imports
+        from app.models.tour_stop import TourStop
+        from app.models.crew_schedule import CrewScheduleSlot, ExternalContact, AssignmentStatus
+        from app.models.profession import Profession, ProfessionCategory
+        from app.models.user import User
+        result['steps']['imports'] = 'OK'
+
+        # Step 2: Get tour stop
+        tour_stop = TourStop.query.get(stop_id)
+        if not tour_stop:
+            result['errors'].append(f'Stop {stop_id} not found')
+            return jsonify(result)
+        result['steps']['tour_stop'] = {'id': tour_stop.id, 'date': str(tour_stop.date)}
+
+        # Step 3: Get slots
+        slots = CrewScheduleSlot.query.filter_by(tour_stop_id=stop_id).order_by(
+            CrewScheduleSlot.profession_category,
+            CrewScheduleSlot.start_time,
+            CrewScheduleSlot.order
+        ).all()
+        result['steps']['slots_count'] = len(slots)
+
+        # Step 4: Group by category
+        slots_by_category = {}
+        for slot in slots:
+            cat = slot.profession_category.value if slot.profession_category else 'general'
+            if cat not in slots_by_category:
+                slots_by_category[cat] = []
+            slots_by_category[cat].append({
+                'id': slot.id,
+                'title': slot.title
+            })
+        result['steps']['slots_by_category'] = {k: len(v) for k, v in slots_by_category.items()}
+
+        # Step 5: Get users
+        users = User.query.filter_by(is_active=True).order_by(User.first_name).all()
+        result['steps']['users_count'] = len(users)
+
+        # Step 6: Get external contacts
+        external_contacts = ExternalContact.query.order_by(ExternalContact.last_name).all()
+        result['steps']['external_contacts_count'] = len(external_contacts)
+
+        # Step 7: Get professions
+        professions = Profession.query.order_by(Profession.name).all()
+        result['steps']['professions_count'] = len(professions)
+
+        # Step 8: Test forms
+        try:
+            from app.blueprints.crew.forms import CrewSlotForm, CrewAssignmentForm, ExternalContactForm
+            slot_form = CrewSlotForm()
+            assignment_form = CrewAssignmentForm()
+            contact_form = ExternalContactForm()
+            result['steps']['forms'] = 'OK'
+        except Exception as e:
+            result['steps']['forms_error'] = str(e)
+            result['steps']['forms_traceback'] = traceback.format_exc()
+
+        # Step 9: Test template exists
+        try:
+            from flask import current_app
+            template_path = 'crew/schedule.html'
+            current_app.jinja_env.get_template(template_path)
+            result['steps']['template'] = 'OK'
+        except Exception as e:
+            result['steps']['template_error'] = str(e)
+
+        # Step 10: Try to render template
+        try:
+            from flask import render_template
+            html = render_template(
+                'crew/schedule.html',
+                tour_stop=tour_stop,
+                slots_by_category=slots_by_category,
+                categories=ProfessionCategory,
+                can_edit=True,
+                users=users,
+                external_contacts=external_contacts,
+                professions=professions,
+                slot_form=slot_form,
+                assignment_form=assignment_form,
+                contact_form=contact_form,
+                AssignmentStatus=AssignmentStatus
+            )
+            result['steps']['render'] = 'OK'
+            result['steps']['render_length'] = len(html)
+        except Exception as e:
+            result['steps']['render_error'] = str(e)
+            result['steps']['render_traceback'] = traceback.format_exc()
+
+        result['success'] = True
+
+    except Exception as e:
+        result['errors'].append(f'Error: {str(e)}')
+        result['traceback'] = traceback.format_exc()
+
+    return jsonify(result)
+
+
 @main_bp.route('/health/fix-enums')
 def fix_enums():
     """Fix PostgreSQL enum types by adding missing values."""
