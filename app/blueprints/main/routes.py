@@ -225,7 +225,7 @@ def create_guest_debug(stop_id):
         result['guest'] = {
             'id': guest.id,
             'name': guest.guest_name,
-            'type': guest.entry_type
+            'type': guest.entry_type.value
         }
 
     except Exception as e:
