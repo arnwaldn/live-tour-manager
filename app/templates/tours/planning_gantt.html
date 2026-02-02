@@ -537,6 +537,7 @@
 <script>
 const tourId = {{ tour.id }};
 const stopId = {{ stop.id }};
+const csrfToken = "{{ csrf_token() }}";
 let slotModal;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -610,6 +611,7 @@ function saveSlot() {
         method: method,
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
         },
         body: JSON.stringify(data)
     })
@@ -635,7 +637,10 @@ function deleteSlot() {
     if (!confirm('Supprimer ce créneau ?')) return;
 
     fetch(`/tours/${tourId}/stops/${stopId}/planning/slot/${slotId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': csrfToken,
+        }
     })
     .then(response => response.json())
     .then(result => {
