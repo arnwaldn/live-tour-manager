@@ -40,26 +40,16 @@
         <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
             <i class="bi bi-x-lg me-1"></i>Rejeter
         </button>
-        <form action="{{ url_for('payments.cancel', payment_id=payment.id) }}" method="POST" class="d-inline"
-              onsubmit="return confirm('Êtes-vous sûr de vouloir annuler ce paiement?');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="reason" value="Annulation manuelle">
-            <button type="submit" class="btn btn-outline-warning">
-                <i class="bi bi-x-circle me-1"></i>Annuler
-            </button>
-        </form>
+        <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
+            <i class="bi bi-x-circle me-1"></i>Annuler
+        </button>
         {% elif payment.status.value in ['approved', 'scheduled'] %}
         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#markPaidModal">
             <i class="bi bi-check-circle me-1"></i>Marquer payé
         </button>
-        <form action="{{ url_for('payments.cancel', payment_id=payment.id) }}" method="POST" class="d-inline"
-              onsubmit="return confirm('Êtes-vous sûr de vouloir annuler ce paiement?');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="reason" value="Annulation manuelle">
-            <button type="submit" class="btn btn-outline-warning">
-                <i class="bi bi-x-circle me-1"></i>Annuler
-            </button>
-        </form>
+        <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
+            <i class="bi bi-x-circle me-1"></i>Annuler
+        </button>
         {% endif %}
     </div>
 </div>
@@ -334,6 +324,37 @@
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
                     <button type="submit" class="btn btn-danger">
                         <i class="bi bi-trash me-1"></i>Supprimer définitivement
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('payments.cancel', payment_id=payment.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="reason" value="Annulation manuelle">
+                <div class="modal-header border-warning">
+                    <h5 class="modal-title text-warning"><i class="bi bi-x-circle me-2"></i>Annuler le paiement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Êtes-vous sûr de vouloir annuler ce paiement ?</p>
+                    <div class="alert alert-info">
+                        <strong>{{ payment.reference }}</strong><br>
+                        {{ payment.description or 'Sans description' }}<br>
+                        <strong>{{ "{:,.2f}".format(payment.amount) }} {{ payment.currency }}</strong>
+                    </div>
+                    <p class="text-muted small mb-0">Le paiement passera au statut "Annulé" et ne bloquera plus la suppression du groupe.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-x-circle me-1"></i>Confirmer l'annulation
                     </button>
                 </div>
             </form>
