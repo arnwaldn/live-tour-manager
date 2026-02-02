@@ -2600,3 +2600,74 @@ def assign_external_debug(slot_id, contact_id):
         import traceback
         db.session.rollback()
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/debug-my-schedule/<int:stop_id>')
+def debug_my_schedule(stop_id):
+    """Debug endpoint to test my_schedule logic."""
+    from flask_login import current_user
+    from app.models.tour_stop import TourStop
+    from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment, AssignmentStatus
+
+    try:
+        tour_stop = TourStop.query.get_or_404(stop_id)
+
+        # Check if user is authenticated
+        if not current_user.is_authenticated:
+            return jsonify({
+                'error': 'User not authenticated',
+                'stop_id': stop_id,
+                'tour_stop': tour_stop.event_label if tour_stop else None
+            })
+
+        # Get user's assignments
+        assignments = CrewAssignment.query.join(CrewScheduleSlot).filter(
+            CrewScheduleSlot.tour_stop_id == stop_id,
+            CrewAssignment.user_id == current_user.id
+        ).all()
+
+        # Check assignments details
+        assignment_details = []
+        for a in assignments:
+            try:
+                detail = {
+                    'id': a.id,
+                    'slot_id': a.slot_id,
+                    'slot_task_name': a.slot.task_name if a.slot else None,
+                    'slot_time_range': a.slot.time_range if a.slot else None,
+                    'slot_color': a.slot.color if a.slot else None,
+                    'status': a.status.value if a.status else None,
+                    'status_label': a.status_label,
+                    'status_color': a.status_color,
+                    'status_icon': a.status_icon,
+                    'is_pending': a.is_pending,
+                    'is_confirmed': a.is_confirmed,
+                    'call_time': str(a.call_time) if a.call_time else None,
+                    'confirmed_at': str(a.confirmed_at) if a.confirmed_at else None,
+                    'notes': a.notes
+                }
+                assignment_details.append(detail)
+            except Exception as prop_error:
+                assignment_details.append({
+                    'id': a.id,
+                    'error': str(prop_error)
+                })
+
+        return jsonify({
+            'success': True,
+            'current_user_id': current_user.id,
+            'current_user_name': current_user.full_name if hasattr(current_user, 'full_name') else str(current_user),
+            'tour_stop_id': stop_id,
+            'tour_stop_label': tour_stop.event_label,
+            'tour_stop_venue': tour_stop.venue.name if tour_stop.venue else None,
+            'tour_stop_location_city': tour_stop.location_city if hasattr(tour_stop, 'location_city') else None,
+            'assignments_count': len(assignments),
+            'assignments': assignment_details
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
