@@ -226,7 +226,7 @@ def my_schedule(stop_id):
 
         if not assignments:
             flash("Vous n'avez pas d'assignation pour cette date.", 'info')
-            return redirect(url_for('tours.stop_detail', stop_id=stop_id))
+            return redirect(url_for('tours.stop_detail', id=tour_stop.tour_id, stop_id=stop_id))
 
         return render_template(
             'crew/my_schedule.html',
