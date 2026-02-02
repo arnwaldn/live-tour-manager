@@ -2373,7 +2373,7 @@ def create_crew_slot_debug(stop_id):
             task_description=f'Créneau créé via debug pour {task_name}',
             start_time=time(start_h, 0),
             end_time=time(end_h, 0),
-            profession_category=cat_map.get(category, ProfessionCategory.TECHNICIAN),
+            profession_category=cat_map.get(category, ProfessionCategory.TECHNICIEN),
             color='#3B82F6',
             created_by_id=user.id
         )
