@@ -40,6 +40,7 @@
         </button>
         <form action="{{ url_for('payments.cancel', payment_id=payment.id) }}" method="POST" class="d-inline"
               onsubmit="return confirm('Êtes-vous sûr de vouloir annuler ce paiement?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="reason" value="Annulation manuelle">
             <button type="submit" class="btn btn-outline-warning">
                 <i class="bi bi-x-circle me-1"></i>Annuler
@@ -51,6 +52,7 @@
         </button>
         <form action="{{ url_for('payments.cancel', payment_id=payment.id) }}" method="POST" class="d-inline"
               onsubmit="return confirm('Êtes-vous sûr de vouloir annuler ce paiement?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="reason" value="Annulation manuelle">
             <button type="submit" class="btn btn-outline-warning">
                 <i class="bi bi-x-circle me-1"></i>Annuler
