@@ -186,13 +186,20 @@ def edit(id):
     form = VenueForm(obj=venue)
 
     if form.validate_on_submit():
-        form.populate_obj(venue)
-        # BUG FIX: Normalise casse ville
-        if venue.city:
-            venue.city = venue.city.title()
-        # Handle empty strings for optional fields
-        if not venue.venue_type:
-            venue.venue_type = None
+        # Mapping explicite (ne pas utiliser populate_obj car mismatch state_province/state)
+        venue.name = form.name.data
+        venue.address = form.address.data
+        venue.city = form.city.data.title() if form.city.data else None
+        venue.state = form.state_province.data
+        venue.country = form.country.data
+        venue.postal_code = form.postal_code.data
+        venue.capacity = form.capacity.data
+        venue.venue_type = form.venue_type.data or None
+        venue.website = form.website.data
+        venue.phone = form.phone.data
+        venue.email = form.email.data
+        venue.notes = form.notes.data
+        venue.technical_specs = form.technical_specs.data
 
         # Utiliser les coordonnees de l'autocompletion si fournies
         if form.latitude.data and form.longitude.data:
