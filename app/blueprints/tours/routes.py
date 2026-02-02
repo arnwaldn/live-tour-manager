@@ -1344,19 +1344,21 @@ def assign_members(id, stop_id, tour=None):
         # Récupérer les IDs des membres sélectionnés
         member_ids = request.form.getlist('member_ids', type=int)
 
-        # T-H1: Validate that all member_ids are actual band members
-        valid_member_ids = {m.id for m in band_members}
+        # Valider que tous les member_ids sont des utilisateurs actifs
+        # (permet d'assigner n'importe quel utilisateur actif, pas seulement les membres du band)
+        all_active_users = User.query.filter_by(is_active=True).all()
+        valid_member_ids = {u.id for u in all_active_users}
         invalid_ids = [mid for mid in member_ids if mid not in valid_member_ids]
         if invalid_ids:
-            flash(f'Certains utilisateurs ne sont pas membres du groupe: {invalid_ids}', 'error')
+            flash(f'Certains utilisateurs sont invalides ou inactifs: {invalid_ids}', 'error')
             return redirect(url_for('tours.assign_members', id=id, stop_id=stop_id))
 
         # Identifier les membres déjà assignés vs nouveaux
         currently_assigned_ids = {m.id for m in stop.assigned_members}
         newly_assigned_ids = set(member_ids) - currently_assigned_ids
 
-        # Mettre à jour les membres assignés (only valid band members)
-        selected_members = [m for m in band_members if m.id in member_ids] if member_ids else []
+        # Mettre à jour les membres assignés (tous les utilisateurs actifs sélectionnés)
+        selected_members = [u for u in all_active_users if u.id in member_ids] if member_ids else []
         stop.assigned_members = selected_members
 
         db.session.commit()
