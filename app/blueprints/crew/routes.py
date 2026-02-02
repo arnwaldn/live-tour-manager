@@ -215,24 +215,31 @@ def schedule(stop_id):
 @login_required
 def my_schedule(stop_id):
     """Personal view showing only user's assignments."""
-    tour_stop = TourStop.query.get_or_404(stop_id)
+    try:
+        tour_stop = TourStop.query.get_or_404(stop_id)
 
-    # Get user's assignments
-    assignments = CrewAssignment.query.join(CrewScheduleSlot).filter(
-        CrewScheduleSlot.tour_stop_id == stop_id,
-        CrewAssignment.user_id == current_user.id
-    ).all()
+        # Get user's assignments
+        assignments = CrewAssignment.query.join(CrewScheduleSlot).filter(
+            CrewScheduleSlot.tour_stop_id == stop_id,
+            CrewAssignment.user_id == current_user.id
+        ).all()
 
-    if not assignments:
-        flash("Vous n'avez pas d'assignation pour cette date.", 'info')
-        return redirect(url_for('tours.stop_detail', stop_id=stop_id))
+        if not assignments:
+            flash("Vous n'avez pas d'assignation pour cette date.", 'info')
+            return redirect(url_for('tours.stop_detail', stop_id=stop_id))
 
-    return render_template(
-        'crew/my_schedule.html',
-        tour_stop=tour_stop,
-        assignments=assignments,
-        AssignmentStatus=AssignmentStatus
-    )
+        return render_template(
+            'crew/my_schedule.html',
+            tour_stop=tour_stop,
+            assignments=assignments,
+            AssignmentStatus=AssignmentStatus
+        )
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 
 # =============================================================================
