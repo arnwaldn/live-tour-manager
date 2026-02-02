@@ -22,6 +22,7 @@
             <i class="bi bi-pencil me-1"></i>Modifier
         </a>
         <form action="{{ url_for('payments.submit_for_approval', payment_id=payment.id) }}" method="POST" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-send me-1"></i>Soumettre
             </button>
@@ -31,6 +32,7 @@
         </button>
         {% elif payment.status.value == 'pending' %}
         <form action="{{ url_for('payments.approve', payment_id=payment.id) }}" method="POST" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-success">
                 <i class="bi bi-check-lg me-1"></i>Approuver
             </button>
@@ -263,6 +265,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{{ url_for('payments.reject', payment_id=payment.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Rejeter le paiement</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -287,6 +290,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{{ url_for('payments.mark_paid', payment_id=payment.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Marquer comme payé</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
