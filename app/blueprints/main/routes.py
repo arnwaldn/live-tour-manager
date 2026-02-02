@@ -2864,41 +2864,60 @@ def planning_summary_debug(stop_id):
 
 @main_bp.route('/health/fix-venue/<int:venue_id>')
 def fix_venue_geocode(venue_id):
-    """Fix venue data and trigger geocoding."""
+    """Fix venue data and trigger geocoding. Use ?force=1 to re-geocode even if coordinates exist."""
     from app.models.venue import Venue
 
     try:
         venue = Venue.query.get_or_404(venue_id)
+        force = request.args.get('force', '0') == '1'
 
         # Fix "FranceFrance" bug
         if venue.country and 'FranceFrance' in venue.country:
             venue.country = 'France'
             db.session.commit()
 
-        # Trigger geocoding if no coordinates
-        if not venue.has_coordinates:
+        # Allow updating venue data via query params
+        if request.args.get('address'):
+            venue.address = request.args.get('address')
+        if request.args.get('city'):
+            venue.city = request.args.get('city')
+        if request.args.get('country'):
+            venue.country = request.args.get('country')
+        if request.args.get('postal_code'):
+            venue.postal_code = request.args.get('postal_code')
+        db.session.commit()
+
+        # Trigger geocoding if no coordinates OR force=1
+        if not venue.has_coordinates or force:
+            # Clear old coordinates if forcing
+            if force:
+                venue.latitude = None
+                venue.longitude = None
+
             lat, lon = venue.geocode()
             if lat and lon:
                 db.session.commit()
                 return jsonify({
                     'success': True,
                     'venue': venue.name,
-                    'address': f"{venue.address}, {venue.city}, {venue.country}",
-                    'coordinates': {'lat': lat, 'lon': lon}
+                    'address': f"{venue.address}, {venue.postal_code} {venue.city}, {venue.country}",
+                    'coordinates': {'lat': lat, 'lon': lon},
+                    'forced': force
                 })
             else:
                 return jsonify({
                     'success': False,
                     'error': 'Geocoding failed',
                     'venue': venue.name,
-                    'address': f"{venue.address}, {venue.city}, {venue.country}"
+                    'address': f"{venue.address}, {venue.postal_code} {venue.city}, {venue.country}"
                 })
 
         return jsonify({
             'success': True,
             'venue': venue.name,
             'already_has_coordinates': True,
-            'coordinates': {'lat': venue.latitude, 'lon': venue.longitude}
+            'coordinates': {'lat': venue.latitude, 'lon': venue.longitude},
+            'hint': 'Add ?force=1 to re-geocode'
         })
     except Exception as e:
         import traceback
