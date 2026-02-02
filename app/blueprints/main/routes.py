@@ -2770,10 +2770,11 @@ def create_planning_slot_debug(stop_id, user_id):
         user = User.query.get_or_404(user_id)
 
         # Get params
-        title = request.args.get('title', 'Créneau test')
+        role_name = request.args.get('role', 'Équipe Son')
+        task = request.args.get('task', 'Balance et préparation')
         start = request.args.get('start', '14:00')
         end = request.args.get('end', '18:00')
-        category = request.args.get('category', 'production')
+        category = request.args.get('category', 'technicien')
 
         start_time = time.fromisoformat(start)
         end_time = time.fromisoformat(end)
@@ -2781,11 +2782,11 @@ def create_planning_slot_debug(stop_id, user_id):
         slot = PlanningSlot(
             tour_stop_id=stop_id,
             user_id=user_id,
-            title=title,
+            role_name=role_name,
+            task_description=task,
             start_time=start_time,
             end_time=end_time,
-            category=category,
-            notes='Créneau créé via debug'
+            category=category
         )
 
         db.session.add(slot)
@@ -2795,7 +2796,8 @@ def create_planning_slot_debug(stop_id, user_id):
             'success': True,
             'slot': {
                 'id': slot.id,
-                'title': slot.title,
+                'role_name': slot.role_name,
+                'task_description': slot.task_description,
                 'user_name': user.full_name,
                 'start_time': str(slot.start_time),
                 'end_time': str(slot.end_time),
@@ -2827,7 +2829,8 @@ def planning_summary_debug(stop_id):
             'slots_count': len(slots),
             'slots': [{
                 'id': s.id,
-                'title': s.title,
+                'role_name': s.role_name,
+                'task_description': s.task_description,
                 'user_id': s.user_id,
                 'user_name': s.user.full_name if s.user else None,
                 'start_time': str(s.start_time),
