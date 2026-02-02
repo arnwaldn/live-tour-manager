@@ -2731,26 +2731,45 @@ def assign_stop_member_debug(stop_id, user_id):
 
 @main_bp.route('/health/stop-members/<int:stop_id>')
 def stop_members_debug(stop_id):
-    """Debug endpoint to list all members assigned to a tour stop."""
+    """Debug endpoint to list all members assigned to a tour stop (both tables)."""
     from app.models.tour_stop import TourStop, TourStopMember
 
     try:
         stop = TourStop.query.get_or_404(stop_id)
 
-        members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
+        # V2 table (tour_stop_members_v2)
+        members_v2 = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
+
+        # Legacy table (tour_stop_members) via assigned_members relation
+        members_legacy = stop.assigned_members  # List of User objects
 
         return jsonify({
             'stop_id': stop_id,
             'stop_label': stop.event_label,
-            'members_count': len(members),
-            'members': [{
-                'id': m.id,
-                'user_id': m.user_id,
-                'user_name': m.user.full_name if m.user else None,
-                'profession': m.profession.name_fr if m.profession else None,
-                'category': m.profession.category.value if m.profession and m.profession.category else None,
-                'status': m.status.value if m.status else None
-            } for m in members]
+            'v2_table': {
+                'table_name': 'tour_stop_members_v2',
+                'count': len(members_v2),
+                'members': [{
+                    'id': m.id,
+                    'user_id': m.user_id,
+                    'user_name': m.user.full_name if m.user else None,
+                    'profession': m.profession.name_fr if m.profession else None,
+                    'category': m.profession.category.value if m.profession and m.profession.category else None,
+                    'status': m.status.value if m.status else None
+                } for m in members_v2]
+            },
+            'legacy_table': {
+                'table_name': 'tour_stop_members',
+                'relation': 'stop.assigned_members',
+                'count': len(members_legacy),
+                'members': [{
+                    'user_id': u.id,
+                    'user_name': u.full_name,
+                    'professions': [p.name_fr for p in u.professions] if u.professions else [],
+                    'categories': [p.category.value for p in u.professions if p.category] if u.professions else []
+                } for u in members_legacy]
+            },
+            'planning_uses': 'legacy_table (stop.assigned_members)'
         })
     except Exception as e:
         import traceback
