@@ -2671,3 +2671,170 @@ def debug_my_schedule(stop_id):
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
+
+
+# ============================================================================
+# PLANNING PRODUCTION DEBUG ENDPOINTS
+# ============================================================================
+
+@main_bp.route('/health/assign-stop-member/<int:stop_id>/<int:user_id>')
+def assign_stop_member_debug(stop_id, user_id):
+    """Debug endpoint to assign a user as member to a tour stop."""
+    from app.models.tour_stop import TourStop, TourStopMember, MemberAssignmentStatus
+    from app.models.user import User
+
+    try:
+        stop = TourStop.query.get_or_404(stop_id)
+        user = User.query.get_or_404(user_id)
+
+        # Check if already assigned
+        existing = TourStopMember.query.filter_by(
+            tour_stop_id=stop_id,
+            user_id=user_id
+        ).first()
+
+        if existing:
+            return jsonify({
+                'error': 'User already assigned to this stop',
+                'member_id': existing.id,
+                'status': existing.status.value if existing.status else None
+            }), 400
+
+        # Get user's profession
+        profession = user.professions[0] if user.professions else None
+
+        # Create assignment
+        member = TourStopMember(
+            tour_stop_id=stop_id,
+            user_id=user_id,
+            profession_id=profession.id if profession else None,
+            status=MemberAssignmentStatus.CONFIRMED
+        )
+
+        db.session.add(member)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'member': {
+                'id': member.id,
+                'user_name': user.full_name,
+                'profession': profession.name_fr if profession else None,
+                'status': member.status.value
+            }
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/stop-members/<int:stop_id>')
+def stop_members_debug(stop_id):
+    """Debug endpoint to list all members assigned to a tour stop."""
+    from app.models.tour_stop import TourStop, TourStopMember
+
+    try:
+        stop = TourStop.query.get_or_404(stop_id)
+
+        members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
+
+        return jsonify({
+            'stop_id': stop_id,
+            'stop_label': stop.event_label,
+            'members_count': len(members),
+            'members': [{
+                'id': m.id,
+                'user_id': m.user_id,
+                'user_name': m.user.full_name if m.user else None,
+                'profession': m.profession.name_fr if m.profession else None,
+                'category': m.profession.category.value if m.profession and m.profession.category else None,
+                'status': m.status.value if m.status else None
+            } for m in members]
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/create-planning-slot/<int:stop_id>/<int:user_id>')
+def create_planning_slot_debug(stop_id, user_id):
+    """Debug endpoint to create a planning slot for a user."""
+    from app.models.tour_stop import TourStop
+    from app.models.planning_slot import PlanningSlot
+    from app.models.user import User
+    from datetime import time
+
+    try:
+        stop = TourStop.query.get_or_404(stop_id)
+        user = User.query.get_or_404(user_id)
+
+        # Get params
+        title = request.args.get('title', 'Créneau test')
+        start = request.args.get('start', '14:00')
+        end = request.args.get('end', '18:00')
+        category = request.args.get('category', 'production')
+
+        start_time = time.fromisoformat(start)
+        end_time = time.fromisoformat(end)
+
+        slot = PlanningSlot(
+            tour_stop_id=stop_id,
+            user_id=user_id,
+            title=title,
+            start_time=start_time,
+            end_time=end_time,
+            category=category,
+            notes='Créneau créé via debug'
+        )
+
+        db.session.add(slot)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'slot': {
+                'id': slot.id,
+                'title': slot.title,
+                'user_name': user.full_name,
+                'start_time': str(slot.start_time),
+                'end_time': str(slot.end_time),
+                'category': slot.category
+            }
+        })
+    except Exception as e:
+        import traceback
+        db.session.rollback()
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/planning-summary/<int:stop_id>')
+def planning_summary_debug(stop_id):
+    """Debug endpoint to get planning summary for a tour stop."""
+    from app.models.tour_stop import TourStop, TourStopMember
+    from app.models.planning_slot import PlanningSlot
+
+    try:
+        stop = TourStop.query.get_or_404(stop_id)
+
+        members = TourStopMember.query.filter_by(tour_stop_id=stop_id).all()
+        slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).all()
+
+        return jsonify({
+            'stop_id': stop_id,
+            'stop_label': stop.event_label,
+            'members_count': len(members),
+            'slots_count': len(slots),
+            'slots': [{
+                'id': s.id,
+                'title': s.title,
+                'user_id': s.user_id,
+                'user_name': s.user.full_name if s.user else None,
+                'start_time': str(s.start_time),
+                'end_time': str(s.end_time),
+                'category': s.category
+            } for s in slots]
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
