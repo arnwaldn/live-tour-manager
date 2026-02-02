@@ -2860,3 +2860,77 @@ def planning_summary_debug(stop_id):
     except Exception as e:
         import traceback
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/fix-venue/<int:venue_id>')
+def fix_venue_geocode(venue_id):
+    """Fix venue data and trigger geocoding."""
+    from app.models.venue import Venue
+
+    try:
+        venue = Venue.query.get_or_404(venue_id)
+
+        # Fix "FranceFrance" bug
+        if venue.country and 'FranceFrance' in venue.country:
+            venue.country = 'France'
+            db.session.commit()
+
+        # Trigger geocoding if no coordinates
+        if not venue.has_coordinates:
+            lat, lon = venue.geocode()
+            if lat and lon:
+                db.session.commit()
+                return jsonify({
+                    'success': True,
+                    'venue': venue.name,
+                    'address': f"{venue.address}, {venue.city}, {venue.country}",
+                    'coordinates': {'lat': lat, 'lon': lon}
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Geocoding failed',
+                    'venue': venue.name,
+                    'address': f"{venue.address}, {venue.city}, {venue.country}"
+                })
+
+        return jsonify({
+            'success': True,
+            'venue': venue.name,
+            'already_has_coordinates': True,
+            'coordinates': {'lat': venue.latitude, 'lon': venue.longitude}
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+@main_bp.route('/health/geocode-all-venues')
+def geocode_all_venues():
+    """Geocode all venues that don't have coordinates."""
+    from app.models.venue import Venue
+    from app.utils.geocoding import batch_geocode_venues
+
+    try:
+        venues = Venue.query.filter(
+            (Venue.latitude.is_(None)) | (Venue.longitude.is_(None))
+        ).all()
+
+        # Fix "FranceFrance" bug for all venues
+        for venue in venues:
+            if venue.country and 'FranceFrance' in venue.country:
+                venue.country = 'France'
+
+        db.session.commit()
+
+        # Geocode
+        stats = batch_geocode_venues(venues, commit_callback=db.session.commit)
+
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'venues_processed': [v.name for v in venues]
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
