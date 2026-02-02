@@ -205,7 +205,8 @@
     </div>
     <div class="card-body">
         <p class="mb-3">Supprimer ce groupe supprimera également toutes les tournées associées.</p>
-        <form action="{{ url_for('bands.delete', id=band.id) }}" method="POST" id="deleteBandForm">
+        <form action="{{ url_for('bands.delete', id=band.id) }}" method="POST"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce groupe? Cette action est irréversible.');">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-danger">
                 <i class="bi bi-trash me-1"></i>Supprimer le groupe
