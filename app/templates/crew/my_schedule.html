@@ -6,7 +6,7 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
-        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour_stop.id) }}">{{ tour_stop.event_label }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', stop_id=tour_stop.id) }}">{{ tour_stop.event_label }}</a></li>
         <li class="breadcrumb-item active">Mon Planning</li>
     </ol>
 </nav>
@@ -24,7 +24,7 @@
         </p>
     </div>
     <div class="btn-group mt-3 mt-md-0">
-        <a href="{{ url_for('tours.stop_detail', id=tour_stop.id) }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('tours.stop_detail', stop_id=tour_stop.id) }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Retour
         </a>
         <a href="{{ url_for('crew.export_ical', stop_id=tour_stop.id) }}" class="btn btn-outline-secondary">
