@@ -122,20 +122,17 @@ class Band(db.Model):
                 tour_names += f' (+{len(active_tours) - 3} autres)'
             blockers.append(f"{len(active_tours)} tournée(s) active(s): {tour_names}")
 
-        # Check for pending payments
+        # Check for pending payments (only PENDING_APPROVAL blocks deletion)
+        # APPROVED/SCHEDULED/PAID payments can be cancelled and don't block
         from app.models.payments import TeamMemberPayment, PaymentStatus
         pending_payments = TeamMemberPayment.query.join(
             TeamMemberPayment.tour
         ).filter(
             TeamMemberPayment.tour.has(band_id=self.id),
-            TeamMemberPayment.status.in_([
-                PaymentStatus.PENDING_APPROVAL,
-                PaymentStatus.APPROVED,
-                PaymentStatus.SCHEDULED
-            ])
+            TeamMemberPayment.status == PaymentStatus.PENDING_APPROVAL
         ).count()
         if pending_payments > 0:
-            blockers.append(f"{pending_payments} paiement(s) en attente")
+            blockers.append(f"{pending_payments} paiement(s) en attente d'approbation")
 
         # Check for future standalone events
         from datetime import date

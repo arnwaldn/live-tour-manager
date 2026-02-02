@@ -38,10 +38,24 @@
         <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
             <i class="bi bi-x-lg me-1"></i>Rejeter
         </button>
+        <form action="{{ url_for('payments.cancel', payment_id=payment.id) }}" method="POST" class="d-inline"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir annuler ce paiement?');">
+            <input type="hidden" name="reason" value="Annulation manuelle">
+            <button type="submit" class="btn btn-outline-warning">
+                <i class="bi bi-x-circle me-1"></i>Annuler
+            </button>
+        </form>
         {% elif payment.status.value in ['approved', 'scheduled'] %}
         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#markPaidModal">
             <i class="bi bi-check-circle me-1"></i>Marquer payé
         </button>
+        <form action="{{ url_for('payments.cancel', payment_id=payment.id) }}" method="POST" class="d-inline"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir annuler ce paiement?');">
+            <input type="hidden" name="reason" value="Annulation manuelle">
+            <button type="submit" class="btn btn-outline-warning">
+                <i class="bi bi-x-circle me-1"></i>Annuler
+            </button>
+        </form>
         {% endif %}
     </div>
 </div>

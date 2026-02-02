@@ -421,6 +421,40 @@ def mark_paid(payment_id):
     return redirect(url_for('payments.detail', payment_id=payment_id))
 
 
+@payments_bp.route('/<int:payment_id>/cancel', methods=['POST'])
+@login_required
+@manager_required
+def cancel(payment_id):
+    """Annuler un paiement approuve ou programme."""
+    payment = TeamMemberPayment.query.get_or_404(payment_id)
+
+    # Autoriser l'annulation pour: PENDING_APPROVAL, APPROVED, SCHEDULED
+    cancellable_statuses = [
+        PaymentStatus.PENDING_APPROVAL,
+        PaymentStatus.APPROVED,
+        PaymentStatus.SCHEDULED
+    ]
+
+    if payment.status not in cancellable_statuses:
+        flash('Ce paiement ne peut pas etre annule.', 'warning')
+        return redirect(url_for('payments.detail', payment_id=payment_id))
+
+    previous_status = payment.status.value
+    reason = request.form.get('reason', 'Annulation manuelle')
+    payment.status = PaymentStatus.CANCELLED
+    payment.rejection_reason = reason
+    db.session.commit()
+
+    log_action('CANCEL', 'TeamMemberPayment', payment.id, {
+        'reference': payment.reference,
+        'previous_status': previous_status,
+        'reason': reason
+    })
+
+    flash(f'Paiement {payment.reference} annule.', 'success')
+    return redirect(url_for('payments.index'))
+
+
 # ============================================================================
 # BATCH OPERATIONS
 # ============================================================================
