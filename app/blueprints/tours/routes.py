@@ -1609,17 +1609,9 @@ def staff_planning(id, stop_id, category='tous', tour=None):
         flash('Catégorie invalide.', 'error')
         return redirect(url_for('tours.staff_planning', id=id, stop_id=stop_id, category='tous'))
 
-    # Charger les membres assignés avec statuts valides (En attente, Confirmé, Provisoire)
-    from app.models.tour_stop import MemberAssignmentStatus
-    valid_statuses = [
-        MemberAssignmentStatus.ASSIGNED,
-        MemberAssignmentStatus.CONFIRMED,
-        MemberAssignmentStatus.TENTATIVE
-    ]
-    all_members = TourStopMember.query.filter(
-        TourStopMember.tour_stop_id == stop_id,
-        TourStopMember.status.in_(valid_statuses)
-    ).all()
+    # Charger les membres assignés via la relation existante (table tour_stop_members)
+    # Utilise stop.assigned_members au lieu de TourStopMember (table V2 non synchronisée)
+    all_members = stop.assigned_members  # Liste d'objets User
 
     # Charger tous les slots pour ce concert (indexés par user_id)
     all_slots = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(PlanningSlot.start_time).all()
@@ -1632,14 +1624,9 @@ def staff_planning(id, stop_id, category='tous', tour=None):
 
     # Grouper les membres par catégorie
     members_by_category = {}
-    for member in all_members:
-        # Déterminer la profession et sa catégorie
-        if member.profession:
-            profession = member.profession
-        elif member.user and member.user.professions:
-            profession = member.user.professions[0]
-        else:
-            profession = None
+    for user in all_members:
+        # Déterminer la profession et sa catégorie (User a une liste professions)
+        profession = user.professions[0] if user.professions else None
 
         if profession and profession.category:
             cat_key = profession.category.value
@@ -1654,12 +1641,12 @@ def staff_planning(id, stop_id, category='tous', tour=None):
             members_by_category[cat_key] = []
 
         # Récupérer les slots de ce membre
-        user_slots = slots_by_user.get(member.user_id, []) if member.user_id else []
+        user_slots = slots_by_user.get(user.id, [])
 
         members_by_category[cat_key].append({
-            'id': member.user_id,
-            'member_id': member.id,
-            'name': member.user.full_name if member.user else 'Inconnu',
+            'id': user.id,
+            'member_id': user.id,  # Même ID car c'est un User directement
+            'name': user.full_name,
             'profession': profession.name_fr if profession else 'Non définie',
             'slots': user_slots
         })
