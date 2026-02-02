@@ -1602,6 +1602,7 @@ def staff_planning(id, stop_id, category='tous', tour=None):
         {'key': 'style', 'label': 'HABILLEURS & MAQUILL.', 'color': '#ec4899', 'icon': 'brush'},
         {'key': 'securite', 'label': 'SÉCURITÉ', 'color': '#ef4444', 'icon': 'shield-check'},
         {'key': 'management', 'label': 'MANAGERS', 'color': '#22c55e', 'icon': 'briefcase'},
+        {'key': 'autre', 'label': 'AUTRES', 'color': '#6b7280', 'icon': 'people'},
     ]
     valid_categories = ['tous'] + [c['key'] for c in categories_config]
 
