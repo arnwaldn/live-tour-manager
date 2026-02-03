@@ -319,7 +319,7 @@ def _get_event_status(tour_stop):
     """Get iCal status based on tour stop status."""
     from app.models.tour_stop import TourStopStatus
 
-    if tour_stop.status == TourStopStatus.CANCELLED:
+    if tour_stop.status == TourStopStatus.CANCELED:
         return 'CANCELLED'
     elif tour_stop.status == TourStopStatus.CONFIRMED:
         return 'CONFIRMED'
