@@ -160,22 +160,22 @@ def build_description(tour_stop, tour=None):
     # Tour info
     if tour:
         band_name = tour.band.name if tour.band else 'N/A'
-        lines.append(f"🎤 Tournée: {tour.name}")
-        lines.append(f"🎸 Groupe: {band_name}")
+        lines.append(f"Tournee: {tour.name}")
+        lines.append(f"Groupe: {band_name}")
     elif tour_stop.band:
-        lines.append(f"🎸 Groupe: {tour_stop.band.name}")
+        lines.append(f"Groupe: {tour_stop.band.name}")
 
     lines.append("")
 
     # Venue info
     if tour_stop.venue:
-        lines.append(f"📍 Lieu: {tour_stop.venue.name}")
+        lines.append(f"Lieu: {tour_stop.venue.name}")
         if tour_stop.venue.address:
             lines.append(f"   {tour_stop.venue.address}")
         if tour_stop.venue.city:
             lines.append(f"   {tour_stop.venue.city}, {tour_stop.venue.country or ''}")
         if tour_stop.venue.capacity:
-            lines.append(f"   Capacité: {tour_stop.venue.capacity}")
+            lines.append(f"   Capacite: {tour_stop.venue.capacity}")
         lines.append("")
 
     # Only show times for actual shows/events (not DAY_OFF, TRAVEL)
@@ -183,40 +183,40 @@ def build_description(tour_stop, tour=None):
         # Call times
         times_section = []
         if tour_stop.load_in_time:
-            times_section.append(f"🚚 Load-in: {_format_time(tour_stop.load_in_time)}")
+            times_section.append(f"Load-in: {_format_time(tour_stop.load_in_time)}")
         if tour_stop.crew_call_time:
-            times_section.append(f"👷 Crew call: {_format_time(tour_stop.crew_call_time)}")
+            times_section.append(f"Crew call: {_format_time(tour_stop.crew_call_time)}")
         if tour_stop.artist_call_time:
-            times_section.append(f"🎤 Artiste call: {_format_time(tour_stop.artist_call_time)}")
+            times_section.append(f"Artiste call: {_format_time(tour_stop.artist_call_time)}")
         if tour_stop.soundcheck_time:
-            times_section.append(f"🔊 Soundcheck: {_format_time(tour_stop.soundcheck_time)}")
+            times_section.append(f"Soundcheck: {_format_time(tour_stop.soundcheck_time)}")
         if tour_stop.catering_time:
-            times_section.append(f"🍽️ Catering: {_format_time(tour_stop.catering_time)}")
+            times_section.append(f"Catering: {_format_time(tour_stop.catering_time)}")
         if tour_stop.meet_greet_time:
-            times_section.append(f"🤝 Meet & Greet: {_format_time(tour_stop.meet_greet_time)}")
+            times_section.append(f"Meet & Greet: {_format_time(tour_stop.meet_greet_time)}")
         if tour_stop.doors_time:
-            times_section.append(f"🚪 Portes: {_format_time(tour_stop.doors_time)}")
+            times_section.append(f"Portes: {_format_time(tour_stop.doors_time)}")
         if tour_stop.set_time:
-            times_section.append(f"🎵 Début concert: {_format_time(tour_stop.set_time)}")
+            times_section.append(f"Debut concert: {_format_time(tour_stop.set_time)}")
         if tour_stop.curfew_time:
-            times_section.append(f"⏰ Couvre-feu: {_format_time(tour_stop.curfew_time)}")
+            times_section.append(f"Couvre-feu: {_format_time(tour_stop.curfew_time)}")
 
         if times_section:
-            lines.append("⏱️ HORAIRES:")
+            lines.append("HORAIRES:")
             lines.extend(times_section)
             lines.append("")
 
         # Show details
         if tour_stop.set_length_minutes:
-            lines.append(f"⏱️ Durée set: {tour_stop.set_length_minutes} minutes")
+            lines.append(f"Duree set: {tour_stop.set_length_minutes} minutes")
 
         if tour_stop.age_restriction:
-            lines.append(f"🔞 Restriction d'âge: {tour_stop.age_restriction}")
+            lines.append(f"Restriction d'age: {tour_stop.age_restriction}")
 
     # Notes
     if tour_stop.notes:
         lines.append("")
-        lines.append(f"📝 Notes: {tour_stop.notes}")
+        lines.append(f"Notes: {tour_stop.notes}")
 
     return '\n'.join(lines)
 
@@ -228,18 +228,18 @@ def _build_summary(tour_stop, tour=None):
     # Get event type label
     event_type = tour_stop.event_type
     type_labels = {
-        EventType.SHOW: '🎤 Concert',
-        EventType.REHEARSAL: '🎸 Répétition',
-        EventType.STUDIO: '🎙️ Enregistrement',
-        EventType.PRESS: '🎤 Interview',
-        EventType.PROMO: '📢 Promo',
-        EventType.PHOTO_VIDEO: '📸 Photoshoot',
-        EventType.MEET_GREET: '🤝 Meet & Greet',
-        EventType.DAY_OFF: '😴 Jour off',
-        EventType.TRAVEL: '✈️ Voyage',
-        EventType.OTHER: '📅 Événement',
+        EventType.SHOW: 'Concert',
+        EventType.REHEARSAL: 'Repetition',
+        EventType.STUDIO: 'Enregistrement',
+        EventType.PRESS: 'Interview',
+        EventType.PROMO: 'Promo',
+        EventType.PHOTO_VIDEO: 'Photoshoot',
+        EventType.MEET_GREET: 'Meet & Greet',
+        EventType.DAY_OFF: 'Jour off',
+        EventType.TRAVEL: 'Voyage',
+        EventType.OTHER: 'Evenement',
     }
-    type_label = type_labels.get(event_type, '📅')
+    type_label = type_labels.get(event_type, 'Evenement')
 
     # Build location part
     if tour_stop.venue:
