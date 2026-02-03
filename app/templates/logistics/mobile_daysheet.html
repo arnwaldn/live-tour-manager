@@ -316,7 +316,7 @@
             <div class="call-times">
                 {% for call in call_times %}
                 <div class="call-item {% if call.is_highlight %}highlight{% endif %}">
-                    <span class="call-time">{{ call.time.strftime('%H:%M') }}</span>
+                    <span class="call-time">{{ call.time }}</span>
                     <span class="call-label">{{ call.label }}</span>
                 </div>
                 {% endfor %}
