@@ -19,7 +19,8 @@
     'use strict';
 
     // APIs Endpoints
-    const API_ADRESSE_FR = 'https://api-adresse.data.gouv.fr/search/';
+    // Note: API Adresse migrated to data.geopf.fr in 2025
+    const API_ADRESSE_FR = 'https://data.geopf.fr/geocodage/search/';
     const GEOAPIFY_API = 'https://api.geoapify.com/v1/geocode/autocomplete';
 
     // Debounce delay for API requests (ms)
