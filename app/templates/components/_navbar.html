@@ -17,10 +17,10 @@
         </a>
 
         <!-- Search (Desktop) -->
-        <form class="d-none d-lg-flex mx-auto search-form" action="{{ url_for('main.search') }}" method="GET" style="width: 400px;" data-no-loading="true">
+        <form class="d-none d-lg-flex mx-auto search-form" action="{{ url_for('main.search') }}" method="GET" style="width: 400px;" data-no-loading="true" id="navbar-search-form">
             <div class="input-group">
                 <input type="search" class="form-control" name="q" placeholder="Rechercher..."
-                       value="{{ request.args.get('q', '') }}" aria-label="Rechercher">
+                       value="{{ request.args.get('q', '') }}" aria-label="Rechercher" id="navbar-search-input">
                 <button class="btn btn-outline-gold" type="submit">
                     <i class="bi bi-search"></i>
                 </button>
@@ -134,6 +134,29 @@
 
 <!-- Spacer for fixed navbar -->
 <div class="navbar-spacer" style="height: var(--sp-navbar-height, 60px);"></div>
+
+<!-- Search Form Protection: Prevent accidental submissions from other forms -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const navbarSearchForm = document.getElementById('navbar-search-form');
+    const navbarSearchInput = document.getElementById('navbar-search-input');
+
+    if (navbarSearchForm) {
+        navbarSearchForm.addEventListener('submit', function(e) {
+            // Only allow submission if the search input has focus and content
+            if (document.activeElement !== navbarSearchInput) {
+                e.preventDefault();
+                return false;
+            }
+            // Also prevent empty searches from navbar
+            if (!navbarSearchInput.value.trim()) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+});
+</script>
 
 <!-- Notifications JavaScript -->
 <script>

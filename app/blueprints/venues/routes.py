@@ -126,12 +126,21 @@ def create():
     form = VenueForm()
 
     if form.validate_on_submit():
+        # BUG FIX: Nettoyer le pays pour éviter "FranceFrance"
+        country = form.country.data
+        if country:
+            country = country.strip()
+            # Vérifier si le pays est doublé (ex: "FranceFrance" -> "France")
+            half = len(country) // 2
+            if len(country) % 2 == 0 and country[:half] == country[half:]:
+                country = country[:half]
+
         venue = Venue(
             name=form.name.data,
             address=form.address.data,
             city=form.city.data.title() if form.city.data else None,  # BUG FIX: Normalise casse ville
             state=form.state_province.data,
-            country=form.country.data,
+            country=country,
             postal_code=form.postal_code.data,
             capacity=form.capacity.data,
             venue_type=form.venue_type.data or None,
@@ -186,12 +195,21 @@ def edit(id):
     form = VenueForm(obj=venue)
 
     if form.validate_on_submit():
+        # BUG FIX: Nettoyer le pays pour éviter "FranceFrance"
+        country = form.country.data
+        if country:
+            country = country.strip()
+            # Vérifier si le pays est doublé (ex: "FranceFrance" -> "France")
+            half = len(country) // 2
+            if len(country) % 2 == 0 and country[:half] == country[half:]:
+                country = country[:half]
+
         # Mapping explicite (ne pas utiliser populate_obj car mismatch state_province/state)
         venue.name = form.name.data
         venue.address = form.address.data
         venue.city = form.city.data.title() if form.city.data else None
         venue.state = form.state_province.data
-        venue.country = form.country.data
+        venue.country = country
         venue.postal_code = form.postal_code.data
         venue.capacity = form.capacity.data
         venue.venue_type = form.venue_type.data or None
