@@ -782,6 +782,19 @@ def register_context_processors(app):
         else:
             return dt.strftime('%d/%m/%Y')
 
+    @app.template_filter('clean_country')
+    def clean_country_filter(country):
+        """Fix duplicated country names like 'FranceFrance' -> 'France'."""
+        if not country:
+            return ''
+        country = str(country).strip()
+        # Check if the country name is duplicated
+        if len(country) >= 2 and len(country) % 2 == 0:
+            half = len(country) // 2
+            if country[:half] == country[half:]:
+                return country[:half]
+        return country
+
 
 def configure_logging(app):
     """Configure application logging."""

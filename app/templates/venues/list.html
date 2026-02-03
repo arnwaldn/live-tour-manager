@@ -79,7 +79,7 @@
                         <h5 class="card-title mb-1">{{ venue.name }}</h5>
                         <p class="text-muted small mb-0">
                             <i class="bi bi-geo-alt me-1"></i>
-                            {{ venue.city }}, {{ venue.country }}
+                            {{ venue.city }}, {{ venue.country|clean_country }}
                         </p>
                     </div>
                     {% if venue.venue_type %}
