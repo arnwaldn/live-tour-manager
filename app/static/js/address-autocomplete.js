@@ -18,9 +18,12 @@
 (function() {
     'use strict';
 
+    console.log('[AddressAutocomplete] Script loaded v20260203b');
+
     // APIs Endpoints
     // Note: API Adresse migrated to data.geopf.fr in 2025
     const API_ADRESSE_FR = 'https://data.geopf.fr/geocodage/search/';
+    console.log('[AddressAutocomplete] Using API:', API_ADRESSE_FR);
     const GEOAPIFY_API = 'https://api.geoapify.com/v1/geocode/autocomplete';
 
     // Debounce delay for API requests (ms)
@@ -38,11 +41,13 @@
      * @param {Object} options - Configuration options
      */
     window.initAddressAutocomplete = function(inputSelector, options = {}) {
+        console.log('[AddressAutocomplete] Initializing for:', inputSelector);
         const input = document.querySelector(inputSelector);
         if (!input) {
             console.warn('Address autocomplete: Input not found:', inputSelector);
             return;
         }
+        console.log('[AddressAutocomplete] Input found:', input);
 
         // Store Geoapify key if provided
         GEOAPIFY_KEY = options.geoapifyKey || null;
@@ -213,13 +218,17 @@
      * https://api-adresse.data.gouv.fr/
      */
     async function fetchFromAPIAdresse(query, config) {
+        console.log('[AddressAutocomplete] Fetching for query:', query);
         const params = new URLSearchParams({
             q: query,
             limit: config.limit,
             autocomplete: 1
         });
 
-        const response = await fetch(`${API_ADRESSE_FR}?${params}`);
+        const url = `${API_ADRESSE_FR}?${params}`;
+        console.log('[AddressAutocomplete] Fetch URL:', url);
+        const response = await fetch(url);
+        console.log('[AddressAutocomplete] Response status:', response.status);
         if (!response.ok) {
             throw new Error(`API Adresse error: ${response.status}`);
         }
