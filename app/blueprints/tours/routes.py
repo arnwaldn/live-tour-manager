@@ -399,8 +399,13 @@ def add_stop(id, tour=None):
             internal_notes=form.internal_notes.data
         )
 
-        # Géocoder l'adresse directe si fournie (pour affichage sur carte)
-        if stop.location_city or stop.location_address:
+        # Coordonnées GPS : utiliser celles du formulaire (autocomplétion) si fournies
+        if form.location_latitude.data and form.location_longitude.data:
+            stop.location_latitude = form.location_latitude.data
+            stop.location_longitude = form.location_longitude.data
+            current_app.logger.info(f"Coordonnées GPS depuis autocomplétion: {stop.location_latitude}, {stop.location_longitude}")
+        # Sinon, géocoder l'adresse directe si fournie (pour affichage sur carte)
+        elif stop.location_city or stop.location_address:
             try:
                 lat, lon = geocode_address(
                     stop.location_address or '',
@@ -618,8 +623,13 @@ def edit_stop(id, stop_id, tour=None):
         stop.notes = form.notes.data
         stop.internal_notes = form.internal_notes.data
 
-        # Géocoder l'adresse directe si fournie ou modifiée
-        if stop.location_city or stop.location_address:
+        # Coordonnées GPS : utiliser celles du formulaire (autocomplétion) si fournies
+        if form.location_latitude.data and form.location_longitude.data:
+            stop.location_latitude = form.location_latitude.data
+            stop.location_longitude = form.location_longitude.data
+            current_app.logger.info(f"Coordonnées GPS depuis autocomplétion: {stop.location_latitude}, {stop.location_longitude}")
+        # Sinon, géocoder l'adresse directe si fournie ou modifiée
+        elif stop.location_city or stop.location_address:
             try:
                 lat, lon = geocode_address(
                     stop.location_address or '',

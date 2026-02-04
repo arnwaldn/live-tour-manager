@@ -181,18 +181,27 @@
                             <i class="bi bi-info-circle me-1"></i>
                             Utilisez cette section si l'événement a lieu à une adresse différente de la salle (ex: interview radio, repas, conférence de presse...).
                         </p>
+                        <!-- Champs cachés pour les coordonnées GPS -->
+                        {{ form.location_latitude(id="location_latitude", type="hidden") }}
+                        {{ form.location_longitude(id="location_longitude", type="hidden") }}
+
                         <div class="row g-3 mb-4">
                             <div class="col-12 col-md-6">
-                                <label for="location_address" class="form-label">Adresse</label>
-                                {{ form.location_address(class="form-control", placeholder="123 rue Example...") }}
+                                <label for="location_address" class="form-label">
+                                    Adresse
+                                    <small class="text-muted fw-normal ms-2">
+                                        <i class="bi bi-magic"></i> Autocomplétion
+                                    </small>
+                                </label>
+                                {{ form.location_address(class="form-control", placeholder="Tapez une adresse...", id="location_address", autocomplete="off") }}
                             </div>
                             <div class="col-12 col-md-3">
                                 <label for="location_city" class="form-label">Ville</label>
-                                {{ form.location_city(class="form-control", placeholder="Paris") }}
+                                {{ form.location_city(class="form-control", placeholder="Paris", id="location_city") }}
                             </div>
                             <div class="col-12 col-md-3">
                                 <label for="location_country" class="form-label">Pays</label>
-                                {{ form.location_country(class="form-control", placeholder="France, USA, Japon...") }}
+                                {{ form.location_country(class="form-control", placeholder="France", id="location_country") }}
                             </div>
                             <div class="col-12">
                                 <label for="location_notes" class="form-label">Notes sur le lieu</label>
@@ -942,5 +951,25 @@ function copyPreviousCrew() {
     form.submit();
 }
 {% endif %}
+</script>
+<!-- Autocomplétion d'adresses -->
+<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}?v=20260204"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser l'autocomplétion pour le champ d'adresse externe
+    if (typeof initAddressAutocomplete === 'function') {
+        initAddressAutocomplete('#location_address', {
+            latField: '#location_latitude',
+            lngField: '#location_longitude',
+            cityField: '#location_city',
+            countryField: '#location_country',
+            country: 'FR',
+            geoapifyKey: '{{ config.GEOAPIFY_API_KEY or "" }}',
+            onSelect: function(suggestion) {
+                console.log('Adresse sélectionnée, coordonnées:', suggestion.latitude, suggestion.longitude);
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

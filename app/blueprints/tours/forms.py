@@ -87,6 +87,9 @@ class TourStopForm(FlaskForm):
     location_notes = TextAreaField('Notes sur le lieu', validators=[
         Length(max=500)
     ])
+    # Coordonnées GPS (remplies automatiquement par l'autocomplétion)
+    location_latitude = DecimalField('Latitude', validators=[Optional()], places=7)
+    location_longitude = DecimalField('Longitude', validators=[Optional()], places=7)
 
     date = DateField('Date', validators=[
         DataRequired(message='La date est requise')
