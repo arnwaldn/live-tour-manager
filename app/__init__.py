@@ -848,7 +848,7 @@ def register_security_headers(app):
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com; "
                 "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
                 "img-src 'self' data: https: blob:; "
-                "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://api-adresse.data.gouv.fr https://api.geoapify.com; "
+                "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://api-adresse.data.gouv.fr https://data.geopf.fr https://api.geoapify.com;"
                 "frame-ancestors 'self';"
             )
 
