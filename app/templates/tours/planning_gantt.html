@@ -310,21 +310,118 @@
     opacity: 0.5;
 }
 
-/* Responsive */
+/* Responsive - Tablet */
 @media (max-width: 1200px) {
     .planning-grid {
         grid-template-columns: 160px repeat(24, minmax(45px, 1fr));
+    }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+    /* Header mobile */
+    .page-header-mobile {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+
+    .page-header-mobile h2 {
+        font-size: 1.1rem !important;
+        line-height: 1.3;
+    }
+
+    .page-header-mobile .breadcrumb {
+        font-size: 0.75rem;
+    }
+
+    .page-header-mobile .btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+
+    /* Filter tabs mobile - scroll horizontal */
+    .filter-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    .filter-tab {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .filter-tab i {
+        font-size: 0.9rem;
+    }
+
+    /* Stats cards mobile - horizontal scroll */
+    .stats-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .stat-card {
+        min-width: 120px;
+        padding: 12px 16px;
+        flex-shrink: 0;
+    }
+
+    .stat-card h3 {
+        font-size: 1.5rem;
+    }
+
+    .stat-card small {
+        font-size: 0.7rem;
+    }
+
+    /* Planning grid mobile */
+    .planning-grid {
+        min-width: 1200px;
+    }
+
+    .planning-header > div:first-child,
+    .member-row .user-cell {
+        width: 140px;
+        min-width: 140px;
+    }
+
+    .planning-header .hour-cell {
+        min-width: 45px;
+    }
+
+    /* Legend mobile */
+    .legend {
+        justify-content: center;
+        padding: 12px 8px;
+        gap: 8px;
+    }
+
+    .legend-item {
+        font-size: 0.7rem;
+    }
+
+    .legend-item .color-box {
+        width: 12px;
+        height: 12px;
     }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-3 py-md-4">
     <!-- En-tête -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <nav aria-label="breadcrumb">
+    <div class="d-flex justify-content-between align-items-start mb-3 mb-md-4 page-header-mobile">
+        <div class="flex-grow-1">
+            <nav aria-label="breadcrumb" class="d-none d-md-block">
                 <ol class="breadcrumb mb-1">
                     <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
                     <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
@@ -332,23 +429,26 @@
                     <li class="breadcrumb-item active">Planning</li>
                 </ol>
             </nav>
-            <h2 class="mb-0">
-                <i class="bi bi-calendar2-week text-primary me-2"></i>
-                PLANNING JOURNALIER CONCERT - VUE GLOBALE
+            <h2 class="mb-1">
+                <i class="bi bi-calendar2-week text-primary me-2 d-none d-md-inline"></i>
+                <span class="d-none d-md-inline">PLANNING JOURNALIER CONCERT - VUE GLOBALE</span>
+                <span class="d-md-none">Planning</span>
                 {% if stop.load_in_time or stop.doors_time %}
+                <span class="d-none d-lg-inline">
                 ({{ stop.load_in_time.strftime('%Hh%M') if stop.load_in_time else stop.doors_time.strftime('%Hh%M') if stop.doors_time else '---' }} - {{ stop.show_time.strftime('%Hh%M') if stop.show_time else '---' }})
+                </span>
                 {% endif %}
             </h2>
-            <p class="text-muted mb-0">
+            <p class="text-muted mb-0 small">
                 {{ stop.venue.name if stop.venue else 'Lieu non défini' }} -
-                {{ stop.date.strftime('%A %d %B %Y') | capitalize }}
+                <span class="d-none d-sm-inline">{{ stop.date.strftime('%A %d %B %Y') | capitalize }}</span>
+                <span class="d-sm-none">{{ stop.date.strftime('%d/%m/%Y') }}</span>
             </p>
         </div>
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1"></i> Retour
-            </a>
-        </div>
+        <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary flex-shrink-0">
+            <i class="bi bi-arrow-left"></i>
+            <span class="d-none d-sm-inline ms-1">Retour</span>
+        </a>
     </div>
 
     <!-- Onglets de filtrage -->
