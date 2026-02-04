@@ -466,7 +466,7 @@ def add_stop(id, tour=None):
             current_app.logger.error(f'In-app notification tour stop créé échoué: {e}')
 
         flash('La date a été ajoutée à la tournée.', 'success')
-        return redirect(url_for('tours.detail', id=id))
+        return redirect(url_for('tours.stop_detail', id=id, stop_id=stop.id))
 
     return render_template(
         'tours/stop_form.html',
