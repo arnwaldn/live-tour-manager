@@ -16,8 +16,8 @@
     <div class="mb-3 mb-md-0">
         <div class="d-flex align-items-center">
             <h1 class="h2 mb-1">{{ tour.name }}</h1>
-            {% set tour_status_labels = {'planning': 'Planification', 'confirmed': 'Confirmée', 'active': 'En cours', 'completed': 'Terminée', 'cancelled': 'Annulée', 'archived': 'Archivée'} %}
-            <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'secondary' }} ms-3">
+            {% set tour_status_labels = {'draft': 'Brouillon', 'planning': 'Planification', 'confirmed': 'Confirmée', 'active': 'En cours', 'completed': 'Terminée', 'cancelled': 'Annulée', 'archived': 'Archivée'} %}
+            <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'info' if tour.status.value == 'draft' else 'secondary' }} ms-3">
                 {{ tour_status_labels.get(tour.status.value, tour.status.value) }}
             </span>
         </div>

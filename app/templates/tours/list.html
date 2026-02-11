@@ -26,6 +26,7 @@
                 <label for="status" class="form-label">Statut</label>
                 <select name="status" id="status" class="form-select">
                     <option value="">Tous les statuts</option>
+                    <option value="draft" {{ 'selected' if request.args.get('status') == 'draft' }}>Brouillon</option>
                     <option value="planning" {{ 'selected' if request.args.get('status') == 'planning' }}>Planification</option>
                     <option value="confirmed" {{ 'selected' if request.args.get('status') == 'confirmed' }}>Confirmée</option>
                     <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
@@ -68,8 +69,9 @@
                         <h5 class="card-title mb-1">{{ tour.name }}</h5>
                         <p class="text-muted small mb-0">{{ tour.band_name }}</p>
                     </div>
-                    <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'secondary' }}">
-                        {{ tour.status.value }}
+                    {% set tour_status_labels = {'draft': 'Brouillon', 'planning': 'Planification', 'confirmed': 'Confirmée', 'active': 'En cours', 'completed': 'Terminée', 'cancelled': 'Annulée', 'archived': 'Archivée'} %}
+                    <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'info' if tour.status.value == 'draft' else 'secondary' }}">
+                        {{ tour_status_labels.get(tour.status.value, tour.status.value) }}
                     </span>
                 </div>
 
