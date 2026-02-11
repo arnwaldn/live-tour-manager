@@ -350,8 +350,9 @@
                 <div class="tour-dates">
                     <i class="bi bi-calendar-range me-2"></i>
                     {{ tour.start_date.strftime('%d %B %Y') }} → {{ tour.end_date.strftime('%d %B %Y') }}
+                    {% set tour_status_labels = {'draft': 'Brouillon', 'planning': 'Planification', 'confirmed': 'Confirmée', 'active': 'En cours', 'completed': 'Terminée', 'cancelled': 'Annulée', 'archived': 'Archivée'} %}
                     <span class="ms-3 badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'secondary' }}">
-                        {{ tour.status.value }}
+                        {{ tour_status_labels.get(tour.status.value, tour.status.value) }}
                     </span>
                 </div>
             </div>

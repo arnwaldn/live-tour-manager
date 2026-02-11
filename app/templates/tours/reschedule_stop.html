@@ -56,8 +56,9 @@
                         </p>
                         {% endif %}
                     </div>
-                    <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'secondary' }}">
-                        {{ stop.status.value|capitalize }}
+                    {% set stop_status_labels = {'draft': 'Brouillon', 'hold': 'En attente', 'pending': 'En négo', 'confirmed': 'Confirmé', 'advanced': 'Avancé', 'completed': 'Terminé', 'cancelled': 'Annulé'} %}
+                    <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'warning' if stop.status.value == 'pending' else 'info' if stop.status.value == 'advanced' else 'danger' if stop.status.value == 'cancelled' else 'secondary' }}">
+                        {{ stop_status_labels.get(stop.status.value, stop.status.value) }}
                     </span>
                 </div>
                 {% if stop.is_rescheduled %}

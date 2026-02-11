@@ -199,8 +199,9 @@
                         <td class="text-center">{{ ns.tour_guests }}</td>
                         <td class="text-center">{{ ns.tour_checkins }}</td>
                         <td>
-                            <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'secondary' }}">
-                                {{ tour.status.value }}
+                            {% set tour_status_labels = {'draft': 'Brouillon', 'planning': 'Planification', 'confirmed': 'Confirmée', 'active': 'En cours', 'completed': 'Terminée', 'cancelled': 'Annulée', 'archived': 'Archivée'} %}
+                            <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'secondary' }}">
+                                {{ tour_status_labels.get(tour.status.value, tour.status.value) }}
                             </span>
                         </td>
                     </tr>

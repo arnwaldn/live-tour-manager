@@ -16,8 +16,9 @@
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">{{ tour.name }}</h5>
-                <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'secondary' }}">
-                    {{ tour.status.value }}
+                {% set tour_status_labels = {'draft': 'Brouillon', 'planning': 'Planification', 'confirmed': 'Confirmée', 'active': 'En cours', 'completed': 'Terminée', 'cancelled': 'Annulée', 'archived': 'Archivée'} %}
+                <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'secondary' }}">
+                    {{ tour_status_labels.get(tour.status.value, tour.status.value) }}
                 </span>
             </div>
             <div class="card-body">
