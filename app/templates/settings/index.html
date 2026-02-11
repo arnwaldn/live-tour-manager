@@ -57,9 +57,15 @@
                     </li>
                     <li class="mb-2">
                         <strong>Rôle(s):</strong>
+                        {% if current_user.access_level %}
+                        <span class="badge bg-primary">{{ current_user.access_level_label }}</span>
+                        {% endif %}
                         {% for role in current_user.roles %}
                         <span class="badge bg-secondary">{{ role.name }}</span>
                         {% endfor %}
+                        {% if not current_user.access_level and not current_user.roles %}
+                        <span class="text-muted">Non défini</span>
+                        {% endif %}
                     </li>
                     <li class="mb-2">
                         <strong>Membre depuis:</strong>

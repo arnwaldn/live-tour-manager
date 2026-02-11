@@ -12,6 +12,7 @@
         <span class="badge bg-danger ms-2">{{ unread_count }}</span>
         {% endif %}
     </h1>
+    {% if notifications.items %}
     <div class="btn-group">
         {% if unread_count > 0 %}
         <form action="{{ url_for('notifications.mark_all_read') }}" method="POST" class="d-inline">
@@ -28,7 +29,7 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                    <form action="{{ url_for('notifications.delete_read_notifications') }}" method="POST" 
+                    <form action="{{ url_for('notifications.delete_read_notifications') }}" method="POST"
                           onsubmit="return confirm('Supprimer toutes les notifications lues ?');">
                         <button type="submit" class="dropdown-item">
                             <i class="bi bi-check-circle me-2"></i>
@@ -48,6 +49,7 @@
             </ul>
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
 

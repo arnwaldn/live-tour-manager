@@ -1103,7 +1103,7 @@ def export_tour_pdf(tour_id):
     from app.utils.pdf_generator import generate_tour_pdf, PDF_AVAILABLE
 
     if not PDF_AVAILABLE:
-        flash('Module xhtml2pdf non installe. Executez: pip install xhtml2pdf', 'error')
+        flash('Module reportlab non installe. Executez: pip install reportlab', 'error')
         return redirect(url_for('tours.detail', id=tour_id))
 
     tour = Tour.query.get_or_404(tour_id)
@@ -1136,7 +1136,7 @@ def export_stop_pdf(stop_id):
     from app.utils.pdf_generator import generate_daysheet_pdf, PDF_AVAILABLE
 
     if not PDF_AVAILABLE:
-        flash('Module xhtml2pdf non installe. Executez: pip install xhtml2pdf', 'error')
+        flash('Module reportlab non installe. Executez: pip install reportlab', 'error')
         return redirect(url_for('logistics.day_sheet', stop_id=stop_id))
 
     stop = TourStop.query.get_or_404(stop_id)

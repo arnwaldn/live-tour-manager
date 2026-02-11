@@ -12,6 +12,7 @@ from wtforms.validators import (
     DataRequired, Email, Length, Optional, EqualTo, ValidationError, NumberRange
 )
 
+from app.extensions import db
 from app.models.user import User, AccessLevel, ACCESS_LEVEL_LABELS
 from app.models.profession import Profession, ProfessionCategory, CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_COLORS
 from app.models.payments import ContractType, PaymentFrequency
@@ -184,6 +185,19 @@ class UserCreateForm(FlaskForm):
         """Check if email is already registered."""
         if User.query.filter_by(email=field.data.lower()).first():
             raise ValidationError('Cette adresse email est déjà utilisée.')
+
+    def validate_last_name(self, field):
+        """Warn if a user with the same first+last name already exists."""
+        if self.first_name.data and field.data:
+            existing = User.query.filter(
+                db.func.lower(User.first_name) == self.first_name.data.lower(),
+                db.func.lower(User.last_name) == field.data.lower()
+            ).first()
+            if existing:
+                raise ValidationError(
+                    f'Un utilisateur "{existing.first_name} {existing.last_name}" existe déjà ({existing.email}). '
+                    'Vérifiez qu\'il ne s\'agit pas d\'un doublon.'
+                )
 
 
 class UserEditForm(FlaskForm):

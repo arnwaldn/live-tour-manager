@@ -1,6 +1,6 @@
 """
 PDF Generator utility for Tour Manager.
-Uses xhtml2pdf for cloud-compatible PDF generation.
+Uses reportlab for cloud-compatible PDF generation.
 Production-ready: works on all cloud platforms (Heroku, Railway, Render, Vercel, etc.)
 No system dependencies required (pure Python).
 """
@@ -9,13 +9,32 @@ from datetime import datetime
 from typing import Dict, Any
 
 try:
-    from xhtml2pdf import pisa
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import cm, mm
+    from reportlab.lib.colors import HexColor, white, black
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
     PDF_AVAILABLE = True
 except ImportError:
     PDF_AVAILABLE = False
 
 # Alias for backwards compatibility with existing code
 WEASYPRINT_AVAILABLE = PDF_AVAILABLE
+
+# Color palette
+GOLD = HexColor('#C9A962')
+DARK_BG = HexColor('#1a1a1a')
+BLUE = HexColor('#0d6efd')
+GREEN = HexColor('#198754')
+RED = HexColor('#dc3545')
+YELLOW = HexColor('#ffc107')
+GRAY = HexColor('#6c757d')
+LIGHT_GRAY = HexColor('#f8f9fa')
+LIGHT_GREEN = HexColor('#d4edda')
+LIGHT_BLUE = HexColor('#e8f4f8')
+WHITE = white
+BLACK = black
 
 
 def format_currency(amount: float, currency: str = 'EUR') -> str:
@@ -30,574 +49,8 @@ def format_currency(amount: float, currency: str = 'EUR') -> str:
     return f"{symbol}{amount:,.2f}"
 
 
-def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
-    """
-    Generate a professional PDF settlement report using xhtml2pdf.
-    Works on all cloud platforms without system dependencies.
-
-    Args:
-        settlement: Settlement data dictionary from calculate_settlement()
-
-    Returns:
-        PDF file as bytes
-    """
-    if not PDF_AVAILABLE:
-        raise ImportError("xhtml2pdf is required for PDF generation. Install with: pip install xhtml2pdf")
-
-    currency = settlement.get('currency', 'EUR')
-    html_content = _build_settlement_html(settlement, currency)
-
-    # Convert HTML to PDF
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html_content.encode('utf-8')), result)
-
-    if pdf.err:
-        raise Exception(f"PDF generation error: {pdf.err}")
-
-    return result.getvalue()
-
-
-def _build_settlement_html(s: Dict[str, Any], currency: str) -> str:
-    """Build xhtml2pdf-compatible HTML for settlement report."""
-
-    # Format date
-    date_str = s['date'].strftime('%d/%m/%Y') if s['date'] else 'N/A'
-    date_full = s['date'].strftime('%A %d %B %Y') if s['date'] else 'N/A'
-
-    # R2: NBOR calculation values
-    nbor = s.get('nbor', s['gross_revenue'])
-    ticketing_fees = s.get('ticketing_fees', 0)
-    ticketing_fee_pct = s.get('ticketing_fee_percentage', 5)
-
-    # R4: Promoter expenses
-    promoter_expenses = s.get('promoter_expenses', {})
-    promoter_total = promoter_expenses.get('total', 0) if promoter_expenses else 0
-
-    # R5: Split point values
-    split_point = s.get('split_point', 0)
-    backend_base = s.get('backend_base', 0)
-
-    # Door deal section (conditional)
-    door_deal_html = ""
-    if s['door_deal_percentage'] > 0:
-        door_deal_html = f'''
-                        <tr>
-                            <td class="label">Pourcentage Door Deal</td>
-                            <td class="value">{s['door_deal_percentage']}%</td>
-                        </tr>
-                        <tr class="highlight">
-                            <td class="label">Seuil de rentabilite (Break-even)</td>
-                            <td class="value">{s['break_even_tickets']} billets</td>
-                        </tr>'''
-
-    # R4: Promoter expenses section (conditional)
-    promoter_expenses_html = ""
-    if promoter_total > 0:
-        expense_rows = ""
-        if promoter_expenses.get('venue_fee', 0) > 0:
-            expense_rows += f'<tr><td class="label">Location salle</td><td class="value">{format_currency(promoter_expenses["venue_fee"], currency)}</td></tr>'
-        if promoter_expenses.get('production_cost', 0) > 0:
-            expense_rows += f'<tr><td class="label">Couts de production</td><td class="value">{format_currency(promoter_expenses["production_cost"], currency)}</td></tr>'
-        if promoter_expenses.get('marketing_cost', 0) > 0:
-            expense_rows += f'<tr><td class="label">Marketing/Promo</td><td class="value">{format_currency(promoter_expenses["marketing_cost"], currency)}</td></tr>'
-        if promoter_expenses.get('insurance', 0) > 0:
-            expense_rows += f'<tr><td class="label">Assurance</td><td class="value">{format_currency(promoter_expenses["insurance"], currency)}</td></tr>'
-        if promoter_expenses.get('security', 0) > 0:
-            expense_rows += f'<tr><td class="label">Securite</td><td class="value">{format_currency(promoter_expenses["security"], currency)}</td></tr>'
-        if promoter_expenses.get('catering', 0) > 0:
-            expense_rows += f'<tr><td class="label">Catering</td><td class="value">{format_currency(promoter_expenses["catering"], currency)}</td></tr>'
-        if promoter_expenses.get('other', 0) > 0:
-            other_desc = f' ({promoter_expenses.get("other_description", "")})' if promoter_expenses.get('other_description') else ''
-            expense_rows += f'<tr><td class="label">Autres{other_desc}</td><td class="value">{format_currency(promoter_expenses["other"], currency)}</td></tr>'
-
-        promoter_expenses_html = f'''
-    <div class="section">
-        <div class="section-header">DEPENSES PROMOTEUR</div>
-        <div class="section-content">
-            <table class="data">
-                {expense_rows}
-                <tr class="total">
-                    <td class="label">TOTAL DEPENSES</td>
-                    <td class="value negative">{format_currency(promoter_total, currency)}</td>
-                </tr>
-            </table>
-        </div>
-    </div>'''
-
-    # Payment calculation rows - depends on whether we have split point
-    if promoter_total > 0:
-        # R5: Split Point mode
-        door_deal_amount_html = f'''
-                        <tr>
-                            <td class="label">Recettes nettes (NBOR)</td>
-                            <td class="value">{format_currency(nbor, currency)}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Split Point (Depenses + Guarantee)</td>
-                            <td class="value">{format_currency(split_point, currency)}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Base pour Backend (NBOR - Split Point)</td>
-                            <td class="value">{format_currency(backend_base, currency)}</td>
-                        </tr>'''
-        if s['door_deal_percentage'] > 0:
-            door_deal_amount_html += f'''
-                        <tr>
-                            <td class="label">Backend artiste ({s['door_deal_percentage']}%)</td>
-                            <td class="value positive">{format_currency(s['door_deal_amount'], currency)}</td>
-                        </tr>'''
-    else:
-        # Legacy versus deal
-        door_deal_amount_html = f'''
-                        <tr>
-                            <td class="label">Recettes nettes (NBOR)</td>
-                            <td class="value">{format_currency(nbor, currency)}</td>
-                        </tr>'''
-        if s['door_deal_percentage'] > 0:
-            door_deal_amount_html += f'''
-                        <tr>
-                            <td class="label">Part artiste ({s['door_deal_percentage']}%)</td>
-                            <td class="value">{format_currency(s['door_deal_amount'], currency)}</td>
-                        </tr>'''
-
-    # Profit above guarantee (conditional)
-    profit_html = ""
-    if s.get('profit_above_guarantee', 0) > 0:
-        profit_html = f'''
-                        <tr>
-                            <td class="label">Bonus au-dessus du guarantee</td>
-                            <td class="value positive">+{format_currency(s['profit_above_guarantee'], currency)}</td>
-                        </tr>'''
-
-    # Payment type badge - includes split_point type now
-    if s['payment_type'] == 'split_point':
-        payment_type_text = 'Split Point (standard industrie)'
-    elif s['payment_type'] == 'door_deal':
-        payment_type_text = 'Door Deal (plus avantageux)'
-    else:
-        payment_type_text = 'Guarantee (protege)'
-
-    # Fill rate styling
-    fill_rate_class = _get_fill_rate_class(s['fill_rate'])
-    fill_rate_badge = _get_fill_rate_badge(s['fill_rate'])
-
-    # Deal type
-    deal_type = _get_deal_type(s)
-
-    # Status badge color
-    status_bg = '#198754' if s['status'] == 'confirmed' else '#ffc107'
-    status_color = 'white' if s['status'] == 'confirmed' else '#333'
-
-    return f'''<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Settlement - {s['venue_name']}</title>
-    <style>
-        @page {{
-            size: A4;
-            margin: 1.5cm;
-        }}
-
-        body {{
-            font-family: Helvetica, Arial, sans-serif;
-            font-size: 10pt;
-            line-height: 1.4;
-            color: #333;
-        }}
-
-        .header {{
-            background-color: #0d6efd;
-            color: white;
-            padding: 15px;
-            margin-bottom: 15px;
-        }}
-
-        .header h1 {{
-            font-size: 16pt;
-            margin: 0 0 5px 0;
-        }}
-
-        .header-info {{
-            font-size: 9pt;
-            opacity: 0.9;
-        }}
-
-        .badge {{
-            display: inline-block;
-            padding: 2px 8px;
-            font-size: 8pt;
-            font-weight: 600;
-            margin-right: 5px;
-        }}
-
-        .badge-secondary {{
-            background-color: #6c757d;
-            color: white;
-        }}
-
-        .section {{
-            border: 1px solid #dee2e6;
-            margin-bottom: 12px;
-        }}
-
-        .section-header {{
-            background-color: #f8f9fa;
-            padding: 8px 12px;
-            font-weight: bold;
-            border-bottom: 1px solid #dee2e6;
-            font-size: 11pt;
-        }}
-
-        .section-content {{
-            padding: 10px 12px;
-        }}
-
-        table.data {{
-            width: 100%;
-            border-collapse: collapse;
-        }}
-
-        table.data td {{
-            padding: 6px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }}
-
-        table.data td.label {{
-            color: #666;
-            width: 60%;
-        }}
-
-        table.data td.value {{
-            text-align: right;
-            font-weight: 500;
-            width: 40%;
-        }}
-
-        table.data tr.highlight td {{
-            background-color: #f8f9fa;
-            padding: 6px 8px;
-        }}
-
-        table.data tr.total td {{
-            background-color: #e8f4f8;
-            font-weight: bold;
-            padding: 8px;
-        }}
-
-        table.data tr.artist-payment td {{
-            background-color: #d4edda;
-            font-weight: bold;
-            font-size: 11pt;
-            padding: 10px 8px;
-        }}
-
-        .positive {{
-            color: #198754;
-        }}
-
-        .negative {{
-            color: #dc3545;
-        }}
-
-        .fill-rate-excellent {{ color: #198754; }}
-        .fill-rate-good {{ color: #0d6efd; }}
-        .fill-rate-medium {{ color: #ffc107; }}
-        .fill-rate-low {{ color: #dc3545; }}
-
-        table.two-col {{
-            width: 100%;
-            border-collapse: collapse;
-        }}
-
-        table.two-col > tbody > tr > td {{
-            width: 50%;
-            vertical-align: top;
-            padding: 0 5px;
-        }}
-
-        .summary {{
-            background-color: #f8f9fa;
-            padding: 15px;
-            margin-bottom: 15px;
-        }}
-
-        table.summary-grid {{
-            width: 100%;
-        }}
-
-        table.summary-grid td {{
-            text-align: center;
-            padding: 10px;
-            width: 25%;
-        }}
-
-        .summary-label {{
-            color: #6c757d;
-            font-size: 9pt;
-            margin-bottom: 5px;
-        }}
-
-        .summary-value {{
-            font-size: 14pt;
-            font-weight: 700;
-        }}
-
-        .signature-box {{
-            border: 1px dashed #ccc;
-            padding: 10px;
-            margin-top: 10px;
-        }}
-
-        .signature-title {{
-            font-weight: bold;
-            margin-bottom: 5px;
-        }}
-
-        .signature-line {{
-            border-bottom: 1px solid #333;
-            margin: 40px 0 5px 0;
-        }}
-
-        .signature-fields {{
-            font-size: 8pt;
-            color: #6c757d;
-        }}
-
-        .footer {{
-            text-align: center;
-            color: #6c757d;
-            font-size: 8pt;
-            margin-top: 20px;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
-        }}
-    </style>
-</head>
-<body>
-    <!-- Header -->
-    <div class="header">
-        <h1>{s['band_name']}</h1>
-        <div class="header-info">
-            <strong>{s['venue_name']}</strong> - {s['venue_city']}, {s['venue_country']}<br/>
-            {date_full}
-        </div>
-        <div style="margin-top: 10px;">
-            <span class="badge badge-secondary">{s['tour_name']}</span>
-            <span class="badge" style="background-color: {status_bg}; color: {status_color};">
-                {s['status'].capitalize() if s['status'] else 'N/A'}
-            </span>
-        </div>
-    </div>
-
-    <!-- Two columns: Box Office + Deal Structure -->
-    <table class="two-col">
-        <tr>
-            <td>
-                <div class="section">
-                    <div class="section-header">BOX OFFICE (GBOR)</div>
-                    <div class="section-content">
-                        <table class="data">
-                            <tr>
-                                <td class="label">Capacite salle</td>
-                                <td class="value">{s['capacity']:,} places</td>
-                            </tr>
-                            <tr>
-                                <td class="label">Billets vendus</td>
-                                <td class="value">{s['sold_tickets']:,}</td>
-                            </tr>
-                            <tr class="highlight">
-                                <td class="label">Taux de remplissage</td>
-                                <td class="value {fill_rate_class}">{s['fill_rate']}% ({fill_rate_badge})</td>
-                            </tr>
-                            <tr>
-                                <td class="label">Prix du billet</td>
-                                <td class="value">{format_currency(s['ticket_price'], currency)}</td>
-                            </tr>
-                            <tr class="total">
-                                <td class="label">RECETTES BRUTES (GBOR)</td>
-                                <td class="value positive">{format_currency(s['gross_revenue'], currency)}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </td>
-            <td>
-                <div class="section">
-                    <div class="section-header">STRUCTURE DU DEAL</div>
-                    <div class="section-content">
-                        <table class="data">
-                            <tr>
-                                <td class="label">Type de deal</td>
-                                <td class="value">{deal_type}</td>
-                            </tr>
-                            <tr>
-                                <td class="label">Cachet garanti</td>
-                                <td class="value">{format_currency(s['guarantee'], currency)}</td>
-                            </tr>
-                            {door_deal_html}
-                        </table>
-                    </div>
-                </div>
-            </td>
-        </tr>
-    </table>
-
-    <!-- R2: NBOR Section - Net Box Office Receipts -->
-    <div class="section">
-        <div class="section-header">RECETTES NETTES (NBOR)</div>
-        <div class="section-content">
-            <table class="data">
-                <tr>
-                    <td class="label">Recettes brutes (GBOR)</td>
-                    <td class="value">{format_currency(s['gross_revenue'], currency)}</td>
-                </tr>
-                <tr>
-                    <td class="label">Frais de billetterie ({ticketing_fee_pct}%)</td>
-                    <td class="value negative">-{format_currency(ticketing_fees, currency)}</td>
-                </tr>
-                <tr class="total">
-                    <td class="label">RECETTES NETTES (NBOR)</td>
-                    <td class="value positive">{format_currency(nbor, currency)}</td>
-                </tr>
-            </table>
-        </div>
-    </div>
-
-    {promoter_expenses_html}
-
-    <!-- Payment Calculation Section -->
-    <div class="section">
-        <div class="section-header">CALCUL DU PAIEMENT ARTISTE</div>
-        <div class="section-content">
-            <table class="data">
-                <tr>
-                    <td class="label">Recettes nettes (NBOR)</td>
-                    <td class="value">{format_currency(nbor, currency)}</td>
-                </tr>
-                {door_deal_amount_html}
-                <tr>
-                    <td class="label">vs. Cachet garanti</td>
-                    <td class="value">{format_currency(s['guarantee'], currency)}</td>
-                </tr>
-                <tr class="highlight">
-                    <td class="label">Methode de paiement retenue</td>
-                    <td class="value">{payment_type_text}</td>
-                </tr>
-                {profit_html}
-                <tr class="artist-payment">
-                    <td class="label">PAIEMENT ARTISTE</td>
-                    <td class="value positive">{format_currency(s['artist_payment'], currency)}</td>
-                </tr>
-            </table>
-        </div>
-    </div>
-
-    <!-- Venue Share Section -->
-    <div class="section">
-        <div class="section-header">PART PROMOTEUR / SALLE</div>
-        <div class="section-content">
-            <table class="data">
-                <tr>
-                    <td class="label">Recettes nettes (NBOR)</td>
-                    <td class="value">{format_currency(nbor, currency)}</td>
-                </tr>
-                <tr>
-                    <td class="label">- Paiement artiste</td>
-                    <td class="value negative">-{format_currency(s['artist_payment'], currency)}</td>
-                </tr>
-                <tr class="total">
-                    <td class="label">PART PROMOTEUR</td>
-                    <td class="value">{format_currency(s['venue_share'], currency)}</td>
-                </tr>
-            </table>
-        </div>
-    </div>
-
-    <!-- Summary - 6 colonnes -->
-    <div class="summary">
-        <table class="summary-grid">
-            <tr>
-                <td style="width: 16.66%;">
-                    <div class="summary-label">GBOR</div>
-                    <div class="summary-value" style="color: #0d6efd; font-size: 11pt;">{format_currency(s['gross_revenue'], currency)}</div>
-                </td>
-                <td style="width: 16.66%;">
-                    <div class="summary-label">NBOR</div>
-                    <div class="summary-value" style="color: #17a2b8; font-size: 11pt;">{format_currency(nbor, currency)}</div>
-                </td>
-                <td style="width: 16.66%;">
-                    <div class="summary-label">Artiste</div>
-                    <div class="summary-value" style="color: #198754; font-size: 11pt;">{format_currency(s['artist_payment'], currency)}</div>
-                </td>
-                <td style="width: 16.66%;">
-                    <div class="summary-label">Promoteur</div>
-                    <div class="summary-value" style="color: #6c757d; font-size: 11pt;">{format_currency(s['venue_share'], currency)}</div>
-                </td>
-                <td style="width: 16.66%;">
-                    <div class="summary-label">Remplissage</div>
-                    <div class="summary-value {fill_rate_class}" style="font-size: 11pt;">{s['fill_rate']}%</div>
-                </td>
-                <td style="width: 16.66%;">
-                    <div class="summary-label">Type</div>
-                    <div class="summary-value" style="color: #6c757d; font-size: 9pt;">{deal_type}</div>
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- Signatures Section -->
-    <div class="section">
-        <div class="section-header">SIGNATURES</div>
-        <div class="section-content">
-            <table class="two-col">
-                <tr>
-                    <td>
-                        <div class="signature-box">
-                            <div class="signature-title">Representant de l'artiste / Tour Manager</div>
-                            <div class="signature-line"></div>
-                            <div class="signature-fields">
-                                Nom: _______________________ &nbsp;&nbsp;&nbsp; Date: _______________________
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="signature-box">
-                            <div class="signature-title">Promoteur / Responsable salle</div>
-                            <div class="signature-line"></div>
-                            <div class="signature-fields">
-                                Nom: _______________________ &nbsp;&nbsp;&nbsp; Date: _______________________
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </table>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <p>Ce document est une feuille de reglement generee par Tour Manager.</p>
-        <p>Genere le {datetime.now().strftime('%d/%m/%Y a %H:%M')} - Reference: SETTLEMENT-{s['stop_id']}-{date_str.replace('/', '')}</p>
-    </div>
-</body>
-</html>'''
-
-
 def _get_fill_rate_class(fill_rate: float) -> str:
-    """Get CSS class for fill rate coloring."""
-    if fill_rate >= 90:
-        return 'fill-rate-excellent'
-    elif fill_rate >= 75:
-        return 'fill-rate-good'
-    elif fill_rate >= 50:
-        return 'fill-rate-medium'
-    else:
-        return 'fill-rate-low'
-
-
-def _get_fill_rate_badge(fill_rate: float) -> str:
-    """Get badge text for fill rate."""
+    """Get color for fill rate."""
     if fill_rate >= 90:
         return 'Excellent'
     elif fill_rate >= 75:
@@ -608,6 +61,20 @@ def _get_fill_rate_badge(fill_rate: float) -> str:
         return 'Faible'
 
 
+def _get_fill_rate_color(fill_rate: float) -> HexColor:
+    """Get color for fill rate."""
+    if not PDF_AVAILABLE:
+        return None
+    if fill_rate >= 90:
+        return GREEN
+    elif fill_rate >= 75:
+        return BLUE
+    elif fill_rate >= 50:
+        return YELLOW
+    else:
+        return RED
+
+
 def _get_deal_type(settlement: Dict[str, Any]) -> str:
     """Get deal type description."""
     if settlement['door_deal_percentage'] > 0 and settlement['guarantee'] > 0:
@@ -616,6 +83,240 @@ def _get_deal_type(settlement: Dict[str, Any]) -> str:
         return 'Door Deal'
     else:
         return 'Guarantee'
+
+
+def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
+    """
+    Generate a professional PDF settlement report using reportlab.
+
+    Args:
+        settlement: Settlement data dictionary from calculate_settlement()
+
+    Returns:
+        PDF file as bytes
+    """
+    if not PDF_AVAILABLE:
+        raise ImportError("reportlab is required for PDF generation. Install with: pip install reportlab")
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm,
+                            leftMargin=1.5*cm, rightMargin=1.5*cm)
+
+    styles = getSampleStyleSheet()
+    elements = []
+    s = settlement
+    currency = s.get('currency', 'EUR')
+
+    # Custom styles
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, textColor=WHITE,
+                                  spaceAfter=6)
+    subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=10, textColor=WHITE)
+    section_header_style = ParagraphStyle('SectionHeader', parent=styles['Heading2'], fontSize=11,
+                                           textColor=BLACK, spaceBefore=12, spaceAfter=6,
+                                           backColor=LIGHT_GRAY)
+    normal_style = ParagraphStyle('NormalCustom', parent=styles['Normal'], fontSize=9)
+    label_style = ParagraphStyle('Label', parent=styles['Normal'], fontSize=9, textColor=GRAY)
+    value_style = ParagraphStyle('Value', parent=styles['Normal'], fontSize=9, alignment=TA_RIGHT)
+    bold_value = ParagraphStyle('BoldValue', parent=styles['Normal'], fontSize=10, alignment=TA_RIGHT,
+                                 fontName='Helvetica-Bold')
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=GRAY,
+                                   alignment=TA_CENTER)
+
+    # Format date
+    date_str = s['date'].strftime('%d/%m/%Y') if s['date'] else 'N/A'
+    date_full = s['date'].strftime('%A %d %B %Y') if s['date'] else 'N/A'
+
+    # Header table (simulated colored header)
+    header_data = [
+        [Paragraph(f"<b>{s['band_name']}</b>", title_style)],
+        [Paragraph(f"<b>{s['venue_name']}</b> - {s.get('venue_city', '')}, {s.get('venue_country', '')}", subtitle_style)],
+        [Paragraph(f"{date_full}", subtitle_style)],
+    ]
+    header_table = Table(header_data, colWidths=[doc.width])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), BLUE),
+        ('TEXTCOLOR', (0, 0), (-1, -1), WHITE),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ('TOPPADDING', (0, 0), (0, 0), 12),
+        ('BOTTOMPADDING', (-1, -1), (-1, -1), 12),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 12))
+
+    # R2: NBOR values
+    nbor = s.get('nbor', s['gross_revenue'])
+    ticketing_fees = s.get('ticketing_fees', 0)
+    ticketing_fee_pct = s.get('ticketing_fee_percentage', 5)
+
+    # Box Office Section
+    elements.append(Paragraph("BOX OFFICE (GBOR)", section_header_style))
+    fill_badge = _get_fill_rate_class(s['fill_rate'])
+    box_data = [
+        [Paragraph("Capacite salle", label_style), Paragraph(f"{s['capacity']:,} places", value_style)],
+        [Paragraph("Billets vendus", label_style), Paragraph(f"{s['sold_tickets']:,}", value_style)],
+        [Paragraph("Taux de remplissage", label_style), Paragraph(f"{s['fill_rate']}% ({fill_badge})", value_style)],
+        [Paragraph("Prix du billet", label_style), Paragraph(format_currency(s['ticket_price'], currency), value_style)],
+        [Paragraph("<b>RECETTES BRUTES (GBOR)</b>", normal_style), Paragraph(f"<b>{format_currency(s['gross_revenue'], currency)}</b>", bold_value)],
+    ]
+    box_table = Table(box_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
+    box_table.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -2), 0.5, LIGHT_GRAY),
+        ('BACKGROUND', (0, -1), (-1, -1), LIGHT_BLUE),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(box_table)
+    elements.append(Spacer(1, 8))
+
+    # NBOR Section
+    elements.append(Paragraph("RECETTES NETTES (NBOR)", section_header_style))
+    nbor_data = [
+        [Paragraph("Recettes brutes (GBOR)", label_style), Paragraph(format_currency(s['gross_revenue'], currency), value_style)],
+        [Paragraph(f"Frais de billetterie ({ticketing_fee_pct}%)", label_style), Paragraph(f"-{format_currency(ticketing_fees, currency)}", value_style)],
+        [Paragraph("<b>RECETTES NETTES (NBOR)</b>", normal_style), Paragraph(f"<b>{format_currency(nbor, currency)}</b>", bold_value)],
+    ]
+    nbor_table = Table(nbor_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
+    nbor_table.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -2), 0.5, LIGHT_GRAY),
+        ('BACKGROUND', (0, -1), (-1, -1), LIGHT_BLUE),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(nbor_table)
+    elements.append(Spacer(1, 8))
+
+    # Deal Structure
+    elements.append(Paragraph("STRUCTURE DU DEAL", section_header_style))
+    deal_type = _get_deal_type(s)
+    deal_data = [
+        [Paragraph("Type de deal", label_style), Paragraph(deal_type, value_style)],
+        [Paragraph("Cachet garanti", label_style), Paragraph(format_currency(s['guarantee'], currency), value_style)],
+    ]
+    if s['door_deal_percentage'] > 0:
+        deal_data.append([Paragraph("Pourcentage Door Deal", label_style), Paragraph(f"{s['door_deal_percentage']}%", value_style)])
+        deal_data.append([Paragraph("Seuil de rentabilite", label_style), Paragraph(f"{s['break_even_tickets']} billets", value_style)])
+    deal_table = Table(deal_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
+    deal_table.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(deal_table)
+    elements.append(Spacer(1, 8))
+
+    # Promoter Expenses (conditional)
+    promoter_expenses = s.get('promoter_expenses', {})
+    promoter_total = promoter_expenses.get('total', 0) if promoter_expenses else 0
+    if promoter_total > 0:
+        elements.append(Paragraph("DEPENSES PROMOTEUR", section_header_style))
+        exp_data = []
+        expense_map = [
+            ('venue_fee', 'Location salle'), ('production_cost', 'Couts de production'),
+            ('marketing_cost', 'Marketing/Promo'), ('insurance', 'Assurance'),
+            ('security', 'Securite'), ('catering', 'Catering'),
+        ]
+        for key, label in expense_map:
+            val = promoter_expenses.get(key, 0)
+            if val > 0:
+                exp_data.append([Paragraph(label, label_style), Paragraph(format_currency(val, currency), value_style)])
+        if promoter_expenses.get('other', 0) > 0:
+            other_desc = f" ({promoter_expenses.get('other_description', '')})" if promoter_expenses.get('other_description') else ''
+            exp_data.append([Paragraph(f"Autres{other_desc}", label_style), Paragraph(format_currency(promoter_expenses['other'], currency), value_style)])
+        exp_data.append([Paragraph("<b>TOTAL DEPENSES</b>", normal_style), Paragraph(f"<b>{format_currency(promoter_total, currency)}</b>", bold_value)])
+        exp_table = Table(exp_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
+        exp_table.setStyle(TableStyle([
+            ('LINEBELOW', (0, 0), (-1, -2), 0.5, LIGHT_GRAY),
+            ('BACKGROUND', (0, -1), (-1, -1), LIGHT_BLUE),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(exp_table)
+        elements.append(Spacer(1, 8))
+
+    # Payment Calculation
+    elements.append(Paragraph("CALCUL DU PAIEMENT ARTISTE", section_header_style))
+
+    # Payment type text
+    if s['payment_type'] == 'split_point':
+        payment_type_text = 'Split Point (standard industrie)'
+    elif s['payment_type'] == 'door_deal':
+        payment_type_text = 'Door Deal (plus avantageux)'
+    else:
+        payment_type_text = 'Guarantee (protege)'
+
+    pay_data = [
+        [Paragraph("Recettes nettes (NBOR)", label_style), Paragraph(format_currency(nbor, currency), value_style)],
+        [Paragraph("vs. Cachet garanti", label_style), Paragraph(format_currency(s['guarantee'], currency), value_style)],
+        [Paragraph("Methode de paiement retenue", label_style), Paragraph(payment_type_text, value_style)],
+    ]
+
+    if s.get('profit_above_guarantee', 0) > 0:
+        pay_data.append([Paragraph("Bonus au-dessus du guarantee", label_style),
+                         Paragraph(f"+{format_currency(s['profit_above_guarantee'], currency)}", value_style)])
+
+    pay_data.append([Paragraph("<b>PAIEMENT ARTISTE</b>", normal_style),
+                     Paragraph(f"<b>{format_currency(s['artist_payment'], currency)}</b>", bold_value)])
+
+    pay_table = Table(pay_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
+    pay_table.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -2), 0.5, LIGHT_GRAY),
+        ('BACKGROUND', (0, -1), (-1, -1), LIGHT_GREEN),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(pay_table)
+    elements.append(Spacer(1, 8))
+
+    # Venue Share
+    elements.append(Paragraph("PART PROMOTEUR / SALLE", section_header_style))
+    venue_data = [
+        [Paragraph("Recettes nettes (NBOR)", label_style), Paragraph(format_currency(nbor, currency), value_style)],
+        [Paragraph("- Paiement artiste", label_style), Paragraph(f"-{format_currency(s['artist_payment'], currency)}", value_style)],
+        [Paragraph("<b>PART PROMOTEUR</b>", normal_style), Paragraph(f"<b>{format_currency(s['venue_share'], currency)}</b>", bold_value)],
+    ]
+    venue_table = Table(venue_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
+    venue_table.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -2), 0.5, LIGHT_GRAY),
+        ('BACKGROUND', (0, -1), (-1, -1), LIGHT_BLUE),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(venue_table)
+    elements.append(Spacer(1, 16))
+
+    # Signatures
+    elements.append(Paragraph("SIGNATURES", section_header_style))
+    sig_data = [
+        [Paragraph("<b>Representant artiste / Tour Manager</b>", normal_style),
+         Paragraph("<b>Promoteur / Responsable salle</b>", normal_style)],
+        [Paragraph("", normal_style), Paragraph("", normal_style)],
+        [Paragraph("Nom: _________________________", normal_style),
+         Paragraph("Nom: _________________________", normal_style)],
+        [Paragraph("Date: _________________________", normal_style),
+         Paragraph("Date: _________________________", normal_style)],
+    ]
+    sig_table = Table(sig_data, colWidths=[doc.width * 0.5, doc.width * 0.5])
+    sig_table.setStyle(TableStyle([
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LINEBELOW', (0, 1), (0, 1), 1, GRAY),
+        ('LINEBELOW', (1, 1), (1, 1), 1, GRAY),
+    ]))
+    elements.append(sig_table)
+    elements.append(Spacer(1, 20))
+
+    # Footer
+    elements.append(Paragraph(
+        f"Ce document est une feuille de reglement generee par Tour Manager. "
+        f"Genere le {datetime.now().strftime('%d/%m/%Y a %H:%M')} - "
+        f"Reference: SETTLEMENT-{s['stop_id']}-{date_str.replace('/', '')}",
+        footer_style
+    ))
+
+    doc.build(elements)
+    return buffer.getvalue()
 
 
 def generate_tour_pdf(tour) -> bytes:
@@ -629,196 +330,124 @@ def generate_tour_pdf(tour) -> bytes:
         PDF file as bytes
     """
     if not PDF_AVAILABLE:
-        raise ImportError("xhtml2pdf is required for PDF generation. Install with: pip install xhtml2pdf")
+        raise ImportError("reportlab is required for PDF generation. Install with: pip install reportlab")
 
-    html_content = _build_tour_html(tour)
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=1.5*cm, bottomMargin=1.5*cm,
+                            leftMargin=1.5*cm, rightMargin=1.5*cm)
 
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html_content.encode('utf-8')), result)
+    styles = getSampleStyleSheet()
+    elements = []
 
-    if pdf.err:
-        raise Exception(f"PDF generation error: {pdf.err}")
+    # Custom styles
+    title_style = ParagraphStyle('TourTitle', parent=styles['Heading1'], fontSize=20,
+                                  textColor=GOLD, alignment=TA_CENTER, spaceAfter=4)
+    subtitle_style = ParagraphStyle('TourSubtitle', parent=styles['Normal'], fontSize=12,
+                                     textColor=WHITE, alignment=TA_CENTER)
+    date_style = ParagraphStyle('TourDates', parent=styles['Normal'], fontSize=10,
+                                 textColor=HexColor('#aaaaaa'), alignment=TA_CENTER)
+    cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=9)
+    cell_bold = ParagraphStyle('CellBold', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold')
+    cell_small = ParagraphStyle('CellSmall', parent=styles['Normal'], fontSize=8, textColor=GRAY)
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=GRAY,
+                                   alignment=TA_CENTER)
 
-    return result.getvalue()
-
-
-def _build_tour_html(tour) -> str:
-    """Build xhtml2pdf-compatible HTML for tour schedule."""
-
-    # Get tour dates
+    # Tour dates
     start_date = tour.start_date.strftime('%d/%m/%Y') if tour.start_date else 'TBA'
     end_date = tour.end_date.strftime('%d/%m/%Y') if tour.end_date else 'TBA'
     band_name = tour.band.name if tour.band else 'TBA'
 
+    # Header
+    header_data = [
+        [Paragraph(f"<b>{band_name}</b>", title_style)],
+        [Paragraph(tour.name, subtitle_style)],
+        [Paragraph(f"{start_date} - {end_date}", date_style)],
+    ]
+    header_table = Table(header_data, colWidths=[doc.width])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), DARK_BG),
+        ('TOPPADDING', (0, 0), (0, 0), 16),
+        ('BOTTOMPADDING', (-1, -1), (-1, -1), 16),
+        ('LEFTPADDING', (0, 0), (-1, -1), 20),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 20),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 12))
+
     # Sort stops by date
     stops = sorted(tour.stops, key=lambda s: s.date if s.date else datetime.max.date())
 
-    # Build stops table rows
-    stops_html = ""
+    # Table header
+    table_data = [
+        [Paragraph("<b>Date</b>", cell_bold),
+         Paragraph("<b>Venue</b>", cell_bold),
+         Paragraph("<b>Location</b>", cell_bold),
+         Paragraph("<b>Doors</b>", cell_bold),
+         Paragraph("<b>Show</b>", cell_bold),
+         Paragraph("<b>Status</b>", cell_bold)]
+    ]
+
+    status_labels = {
+        'hold': 'En attente', 'pending': 'En nego', 'confirmed': 'Confirme',
+        'advanced': 'Avance', 'completed': 'Termine', 'cancelled': 'Annule'
+    }
+
     for stop in stops:
         date_str = stop.date.strftime('%a %d/%m/%Y') if stop.date else 'TBA'
         venue_name = stop.venue.name if stop.venue else 'TBA'
         city = stop.venue.city if stop.venue else ''
         country = stop.venue.country if stop.venue else ''
         location = f"{city}, {country}" if city else ''
-
         doors = stop.doors_time.strftime('%H:%M') if stop.doors_time else '-'
         show = stop.set_time.strftime('%H:%M') if stop.set_time else '-'
-
         status = stop.status.value if stop.status else '-'
-        status_class = 'confirmed' if status == 'confirmed' else 'pending' if status == 'pending' else ''
+        status_label = status_labels.get(status, status)
 
-        stops_html += f'''
-            <tr>
-                <td class="date">{date_str}</td>
-                <td class="venue">{venue_name}</td>
-                <td class="location">{location}</td>
-                <td class="time">{doors}</td>
-                <td class="time">{show}</td>
-                <td class="status {status_class}">{status}</td>
-            </tr>'''
+        table_data.append([
+            Paragraph(f"<b>{date_str}</b>", cell_bold),
+            Paragraph(f"<b>{venue_name}</b>", cell_bold),
+            Paragraph(location, cell_small),
+            Paragraph(doors, cell_style),
+            Paragraph(show, cell_style),
+            Paragraph(status_label, cell_style),
+        ])
 
+    # Create table
+    col_widths = [doc.width * 0.18, doc.width * 0.25, doc.width * 0.22,
+                  doc.width * 0.1, doc.width * 0.1, doc.width * 0.15]
+    schedule_table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    schedule_table.setStyle(TableStyle([
+        # Header row
+        ('BACKGROUND', (0, 0), (-1, 0), GOLD),
+        ('TEXTCOLOR', (0, 0), (-1, 0), DARK_BG),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        # Alternating rows
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, LIGHT_GRAY]),
+        # Grid
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, HexColor('#dddddd')),
+        # Padding
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    elements.append(schedule_table)
+    elements.append(Spacer(1, 12))
+
+    # Total stops
+    total_style = ParagraphStyle('Total', parent=styles['Normal'], fontSize=10, textColor=GRAY,
+                                  alignment=TA_RIGHT)
+    elements.append(Paragraph(f"Total: {len(stops)} date(s)", total_style))
+    elements.append(Spacer(1, 16))
+
+    # Footer
     generation_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+    elements.append(Paragraph(f"Studio Palenque Tour - Genere le {generation_date}", footer_style))
 
-    html = f'''<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        @page {{
-            size: A4 landscape;
-            margin: 1.5cm;
-        }}
-        body {{
-            font-family: Helvetica, Arial, sans-serif;
-            font-size: 10pt;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }}
-        .header {{
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: #C9A962;
-            padding: 20px;
-            margin: -1.5cm -1.5cm 20px -1.5cm;
-            text-align: center;
-        }}
-        .header h1 {{
-            margin: 0 0 5px 0;
-            font-size: 24pt;
-            color: #C9A962;
-        }}
-        .header h2 {{
-            margin: 0;
-            font-size: 14pt;
-            color: #fff;
-            font-weight: normal;
-        }}
-        .header .dates {{
-            margin-top: 10px;
-            font-size: 11pt;
-            color: #aaa;
-        }}
-        .schedule-table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }}
-        .schedule-table th {{
-            background: #C9A962;
-            color: #1a1a1a;
-            padding: 10px 8px;
-            text-align: left;
-            font-weight: bold;
-            font-size: 9pt;
-            text-transform: uppercase;
-        }}
-        .schedule-table td {{
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-            vertical-align: middle;
-        }}
-        .schedule-table tr:nth-child(even) {{
-            background: #f9f9f9;
-        }}
-        .schedule-table .date {{
-            font-weight: bold;
-            white-space: nowrap;
-        }}
-        .schedule-table .venue {{
-            font-weight: bold;
-        }}
-        .schedule-table .location {{
-            color: #666;
-            font-size: 9pt;
-        }}
-        .schedule-table .time {{
-            text-align: center;
-            font-family: monospace;
-        }}
-        .schedule-table .status {{
-            text-align: center;
-            font-size: 8pt;
-            text-transform: uppercase;
-            padding: 3px 8px;
-            border-radius: 3px;
-        }}
-        .schedule-table .status.confirmed {{
-            background: #d4edda;
-            color: #155724;
-        }}
-        .schedule-table .status.pending {{
-            background: #fff3cd;
-            color: #856404;
-        }}
-        .footer {{
-            margin-top: 20px;
-            text-align: center;
-            font-size: 8pt;
-            color: #999;
-        }}
-        .total-stops {{
-            margin-top: 15px;
-            text-align: right;
-            font-size: 10pt;
-            color: #666;
-        }}
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>{band_name}</h1>
-        <h2>{tour.name}</h2>
-        <div class="dates">{start_date} - {end_date}</div>
-    </div>
-
-    <table class="schedule-table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Venue</th>
-                <th>Location</th>
-                <th>Doors</th>
-                <th>Show</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {stops_html}
-        </tbody>
-    </table>
-
-    <div class="total-stops">
-        Total: {len(stops)} date(s)
-    </div>
-
-    <div class="footer">
-        Studio Palenque Tour - Generated on {generation_date}
-    </div>
-</body>
-</html>'''
-
-    return html
+    doc.build(elements)
+    return buffer.getvalue()
 
 
 def generate_daysheet_pdf(stop) -> bytes:
@@ -832,26 +461,37 @@ def generate_daysheet_pdf(stop) -> bytes:
         PDF file as bytes
     """
     if not PDF_AVAILABLE:
-        raise ImportError("xhtml2pdf is required for PDF generation. Install with: pip install xhtml2pdf")
+        raise ImportError("reportlab is required for PDF generation. Install with: pip install reportlab")
 
-    html_content = _build_daysheet_html(stop)
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm,
+                            leftMargin=1.5*cm, rightMargin=1.5*cm)
 
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html_content.encode('utf-8')), result)
+    styles = getSampleStyleSheet()
+    elements = []
 
-    if pdf.err:
-        raise Exception(f"PDF generation error: {pdf.err}")
-
-    return result.getvalue()
-
-
-def _build_daysheet_html(stop) -> str:
-    """Build xhtml2pdf-compatible HTML for day sheet."""
+    # Custom styles
+    title_style = ParagraphStyle('DayTitle', parent=styles['Heading1'], fontSize=20,
+                                  textColor=GOLD, alignment=TA_CENTER, spaceAfter=4)
+    subtitle_style = ParagraphStyle('DaySub', parent=styles['Normal'], fontSize=12,
+                                     textColor=WHITE, alignment=TA_CENTER)
+    info_style = ParagraphStyle('DayInfo', parent=styles['Normal'], fontSize=10,
+                                 textColor=HexColor('#aaaaaa'), alignment=TA_CENTER)
+    section_header_style = ParagraphStyle('SecHeader', parent=styles['Heading2'], fontSize=11,
+                                           textColor=DARK_BG, backColor=GOLD, spaceBefore=10, spaceAfter=4)
+    cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=9)
+    cell_bold = ParagraphStyle('CellBold', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold')
+    time_style = ParagraphStyle('TimeStyle', parent=styles['Normal'], fontSize=10,
+                                 textColor=BLUE, fontName='Helvetica-Bold')
+    highlight_time_style = ParagraphStyle('HighlightTime', parent=styles['Normal'], fontSize=12,
+                                           textColor=GREEN, fontName='Helvetica-Bold')
+    cell_small = ParagraphStyle('CellSmall', parent=styles['Normal'], fontSize=8, textColor=GRAY)
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=GRAY,
+                                   alignment=TA_CENTER)
 
     # Get basic info
     tour = stop.tour
     band_name = tour.band.name if tour.band else 'TBA'
-    tour_name = tour.name
     date_str = stop.date.strftime('%d/%m/%Y') if stop.date else 'TBA'
     date_full = stop.date.strftime('%A %d %B %Y') if stop.date else 'TBA'
 
@@ -867,293 +507,127 @@ def _build_daysheet_html(stop) -> str:
     # Event type
     event_type = stop.event_type.value if stop.event_type else 'show'
     event_labels = {
-        'show': 'Concert',
-        'day_off': 'Jour off',
-        'travel': 'Voyage',
-        'studio': 'Studio',
-        'promo': 'Promo',
-        'rehearsal': 'Repetition',
-        'press': 'Presse',
-        'meet_greet': 'Meet & Greet',
-        'photo_video': 'Photo/Video',
-        'other': 'Autre'
+        'show': 'Concert', 'day_off': 'Jour off', 'travel': 'Voyage',
+        'studio': 'Studio', 'promo': 'Promo', 'rehearsal': 'Repetition',
+        'press': 'Presse', 'meet_greet': 'Meet & Greet',
+        'photo_video': 'Photo/Video', 'other': 'Autre'
     }
     event_label = event_labels.get(event_type, 'Concert')
 
     # Status
     status = stop.status.value if stop.status else '-'
     status_labels = {
-        'hold': 'En attente',
-        'pending': 'En negociation',
-        'confirmed': 'Confirme',
-        'advanced': 'Avance',
-        'completed': 'Termine',
-        'cancelled': 'Annule'
+        'hold': 'En attente', 'pending': 'En negociation', 'confirmed': 'Confirme',
+        'advanced': 'Avance', 'completed': 'Termine', 'cancelled': 'Annule'
     }
     status_label = status_labels.get(status, status)
 
-    # Build schedule HTML
-    schedule_html = ""
+    # Header
+    header_data = [
+        [Paragraph(f"<i>{event_label}</i>", info_style)],
+        [Paragraph(f"<b>{band_name}</b>", title_style)],
+        [Paragraph(tour.name, subtitle_style)],
+        [Paragraph(f"{date_full} - {venue_city}, {venue_country}", info_style)],
+    ]
+    header_table = Table(header_data, colWidths=[doc.width])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), DARK_BG),
+        ('TOPPADDING', (0, 0), (0, 0), 12),
+        ('BOTTOMPADDING', (-1, -1), (-1, -1), 12),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 10))
+
+    # Venue Section
+    elements.append(Paragraph("SALLE / VENUE", section_header_style))
+    venue_info = f"<b>{venue_name}</b><br/>{venue_address}<br/>{venue_postal} {venue_city}<br/>{venue_country}"
+    if venue_phone:
+        venue_info += f"<br/>Tel: {venue_phone}"
+    if venue_capacity:
+        venue_info += f"<br/>Capacite: {venue_capacity} places"
+    venue_info += f"<br/><b>Statut:</b> {status_label}"
+    elements.append(Paragraph(venue_info, cell_style))
+    elements.append(Spacer(1, 8))
+
+    # Schedule Section
+    elements.append(Paragraph("HORAIRES / SCHEDULE", section_header_style))
     schedule_items = [
-        ('load_in_time', 'Load-In', 'bi-truck'),
-        ('crew_call_time', 'Appel Equipe', 'bi-tools'),
-        ('artist_call_time', 'Appel Artistes', 'bi-person-badge'),
-        ('catering_time', 'Repas / Catering', 'bi-cup-hot'),
-        ('soundcheck_time', 'Soundcheck', 'bi-soundwave'),
-        ('press_time', 'Presse / Interviews', 'bi-newspaper'),
-        ('meet_greet_time', 'Meet & Greet', 'bi-people'),
-        ('doors_time', 'Ouverture Portes', 'bi-door-open'),
-        ('set_time', 'SET TIME', 'bi-music-note-beamed'),
-        ('curfew_time', 'Couvre-feu', 'bi-moon'),
+        ('load_in_time', 'Load-In'), ('crew_call_time', 'Appel Equipe'),
+        ('artist_call_time', 'Appel Artistes'), ('catering_time', 'Repas / Catering'),
+        ('soundcheck_time', 'Soundcheck'), ('press_time', 'Presse / Interviews'),
+        ('meet_greet_time', 'Meet & Greet'), ('doors_time', 'Ouverture Portes'),
+        ('set_time', 'SET TIME'), ('curfew_time', 'Couvre-feu'),
     ]
 
-    for attr, label, icon in schedule_items:
+    schedule_data = []
+    for attr, label in schedule_items:
         time_val = getattr(stop, attr, None)
         if time_val:
-            is_set_time = attr == 'set_time'
-            row_style = 'background-color: #d4edda; font-weight: bold;' if is_set_time else ''
-            time_style = 'color: #198754; font-size: 14pt;' if is_set_time else 'color: #0d6efd;'
-            schedule_html += f'''
-                <tr style="{row_style}">
-                    <td style="{time_style} font-weight: bold; width: 80px;">{time_val.strftime('%H:%M')}</td>
-                    <td>{label}</td>
-                </tr>'''
+            is_set = attr == 'set_time'
+            ts = highlight_time_style if is_set else time_style
+            schedule_data.append([
+                Paragraph(time_val.strftime('%H:%M'), ts),
+                Paragraph(f"<b>{label}</b>" if is_set else label, cell_bold if is_set else cell_style)
+            ])
 
-    if not schedule_html:
-        schedule_html = '<tr><td colspan="2" style="color: #6c757d; text-align: center; padding: 20px;">Aucun horaire defini</td></tr>'
+    if schedule_data:
+        sched_table = Table(schedule_data, colWidths=[doc.width * 0.2, doc.width * 0.8])
+        sched_table.setStyle(TableStyle([
+            ('LINEBELOW', (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        elements.append(sched_table)
+    else:
+        elements.append(Paragraph("Aucun horaire defini", cell_small))
 
-    # Build logistics HTML (transport)
-    transport_html = ""
-    hotel_html = ""
+    elements.append(Spacer(1, 8))
 
-    if hasattr(stop, 'logistics') and stop.logistics:
-        for item in stop.logistics:
-            if item.logistics_type.value in ['flight', 'ground_transport', 'train', 'bus']:
-                provider = item.provider or 'Transport'
-                conf = f" (Ref: {item.confirmation_number})" if item.confirmation_number else ''
-                time_info = ''
-                if item.start_datetime:
-                    time_info = item.start_datetime.strftime('%H:%M')
-                    if item.end_datetime:
-                        time_info += f" - {item.end_datetime.strftime('%H:%M')}"
-                transport_html += f'''
-                    <tr>
-                        <td style="font-weight: bold;">{provider}{conf}</td>
-                        <td style="text-align: right;">{time_info}</td>
-                    </tr>'''
-                if item.details:
-                    transport_html += f'<tr><td colspan="2" style="color: #6c757d; font-size: 9pt; padding-left: 10px;">{item.details}</td></tr>'
-
-            elif item.logistics_type.value == 'hotel':
-                provider = item.provider or 'Hotel'
-                conf = f"Reservation: {item.confirmation_number}" if item.confirmation_number else ''
-                hotel_html += f'''
-                    <tr>
-                        <td style="font-weight: bold;">{provider}</td>
-                    </tr>'''
-                if conf:
-                    hotel_html += f'<tr><td style="color: #6c757d; font-size: 9pt;">{conf}</td></tr>'
-                if item.details:
-                    hotel_html += f'<tr><td style="color: #6c757d; font-size: 9pt;">{item.details}</td></tr>'
-
-    # Build contacts HTML
-    contacts_html = ""
-    if stop.venue and hasattr(stop.venue, 'contacts') and stop.venue.contacts:
-        for contact in stop.venue.contacts:
-            name = contact.name
-            role = f" ({contact.role})" if contact.role else ''
-            phone = contact.phone or ''
-            contacts_html += f'''
-                <tr>
-                    <td style="font-weight: bold;">{name}{role}</td>
-                    <td style="text-align: right;">{phone}</td>
-                </tr>'''
-
+    # Contacts Section
+    elements.append(Paragraph("CONTACTS", section_header_style))
+    contacts_data = []
     if hasattr(stop, 'local_contacts') and stop.local_contacts:
         for contact in stop.local_contacts:
-            name = contact.name
-            role = f" ({contact.role})" if contact.role else ''
-            phone = contact.phone or ''
-            contacts_html += f'''
-                <tr>
-                    <td style="font-weight: bold;">{name}{role}</td>
-                    <td style="text-align: right;">{phone}</td>
-                </tr>'''
+            role_text = f" ({contact.role})" if contact.role else ''
+            contacts_data.append([
+                Paragraph(f"<b>{contact.name}{role_text}</b>", cell_bold),
+                Paragraph(contact.phone or '', cell_style)
+            ])
+    if stop.venue and hasattr(stop.venue, 'contacts') and stop.venue.contacts:
+        for contact in stop.venue.contacts:
+            role_text = f" ({contact.role})" if contact.role else ''
+            contacts_data.append([
+                Paragraph(f"<b>{contact.name}{role_text}</b>", cell_bold),
+                Paragraph(contact.phone or '', cell_style)
+            ])
 
-    if not contacts_html:
-        contacts_html = '<tr><td colspan="2" style="color: #6c757d; text-align: center;">Aucun contact</td></tr>'
+    if contacts_data:
+        contact_table = Table(contacts_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
+        contact_table.setStyle(TableStyle([
+            ('LINEBELOW', (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(contact_table)
+    else:
+        elements.append(Paragraph("Aucun contact", cell_small))
 
     # Notes
-    notes_html = ""
     if stop.notes:
-        notes_html = f'''
-        <div class="section">
-            <div class="section-header">NOTES</div>
-            <div class="section-content">
-                <p>{stop.notes}</p>
-            </div>
-        </div>'''
+        elements.append(Spacer(1, 8))
+        elements.append(Paragraph("NOTES", section_header_style))
+        elements.append(Paragraph(stop.notes, cell_style))
 
+    elements.append(Spacer(1, 20))
+
+    # Footer
     generation_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+    elements.append(Paragraph(
+        f"Day Sheet genere le {generation_date} - Studio Palenque Tour Manager - "
+        f"Reference: DAYSHEET-{stop.id}-{date_str.replace('/', '')}",
+        footer_style
+    ))
 
-    html = f'''<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        @page {{
-            size: A4;
-            margin: 1.5cm;
-        }}
-        body {{
-            font-family: Helvetica, Arial, sans-serif;
-            font-size: 10pt;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }}
-        .header {{
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: #C9A962;
-            padding: 20px;
-            margin: -1.5cm -1.5cm 20px -1.5cm;
-            text-align: center;
-        }}
-        .header h1 {{
-            margin: 0 0 5px 0;
-            font-size: 24pt;
-            color: #C9A962;
-        }}
-        .header h2 {{
-            margin: 0;
-            font-size: 14pt;
-            color: #fff;
-            font-weight: normal;
-        }}
-        .header .info {{
-            margin-top: 10px;
-            font-size: 11pt;
-            color: #aaa;
-        }}
-        .badge {{
-            display: inline-block;
-            padding: 3px 10px;
-            font-size: 9pt;
-            font-weight: 600;
-            background: rgba(255,255,255,0.2);
-            border-radius: 4px;
-            margin: 5px;
-        }}
-        .section {{
-            border: 1px solid #dee2e6;
-            margin-bottom: 15px;
-        }}
-        .section-header {{
-            background: #C9A962;
-            color: #1a1a1a;
-            padding: 8px 12px;
-            font-weight: bold;
-            font-size: 11pt;
-            text-transform: uppercase;
-        }}
-        .section-content {{
-            padding: 10px 12px;
-        }}
-        table.data {{
-            width: 100%;
-            border-collapse: collapse;
-        }}
-        table.data td {{
-            padding: 6px 4px;
-            border-bottom: 1px solid #f0f0f0;
-        }}
-        table.two-col {{
-            width: 100%;
-            border-collapse: collapse;
-        }}
-        table.two-col > tbody > tr > td {{
-            width: 50%;
-            vertical-align: top;
-            padding: 0 8px;
-        }}
-        .venue-info p {{
-            margin: 3px 0;
-        }}
-        .footer {{
-            margin-top: 20px;
-            text-align: center;
-            font-size: 8pt;
-            color: #999;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
-        }}
-    </style>
-</head>
-<body>
-    <div class="header">
-        <span class="badge">{event_label}</span>
-        <h1>{band_name}</h1>
-        <h2>{tour_name}</h2>
-        <div class="info">
-            {date_full}<br/>
-            {venue_city}, {venue_country}
-        </div>
-    </div>
-
-    <table class="two-col">
-        <tr>
-            <td>
-                <!-- Venue -->
-                <div class="section">
-                    <div class="section-header">SALLE / VENUE</div>
-                    <div class="section-content venue-info">
-                        <p><strong>{venue_name}</strong></p>
-                        <p>{venue_address}</p>
-                        <p>{venue_postal} {venue_city}</p>
-                        <p>{venue_country}</p>
-                        {'<p>Tel: ' + venue_phone + '</p>' if venue_phone else ''}
-                        {'<p>Capacite: ' + str(venue_capacity) + ' places</p>' if venue_capacity else ''}
-                        <p><strong>Statut:</strong> {status_label}</p>
-                    </div>
-                </div>
-
-                <!-- Contacts -->
-                <div class="section">
-                    <div class="section-header">CONTACTS</div>
-                    <div class="section-content">
-                        <table class="data">
-                            {contacts_html}
-                        </table>
-                    </div>
-                </div>
-            </td>
-            <td>
-                <!-- Schedule -->
-                <div class="section">
-                    <div class="section-header">HORAIRES / SCHEDULE</div>
-                    <div class="section-content">
-                        <table class="data">
-                            {schedule_html}
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Transport -->
-                {'<div class="section"><div class="section-header">TRANSPORT</div><div class="section-content"><table class="data">' + transport_html + '</table></div></div>' if transport_html else ''}
-
-                <!-- Hotel -->
-                {'<div class="section"><div class="section-header">HEBERGEMENT</div><div class="section-content"><table class="data">' + hotel_html + '</table></div></div>' if hotel_html else ''}
-            </td>
-        </tr>
-    </table>
-
-    {notes_html}
-
-    <div class="footer">
-        <p>Day Sheet genere le {generation_date} - Studio Palenque Tour Manager</p>
-        <p>Reference: DAYSHEET-{stop.id}-{date_str.replace('/', '')}</p>
-    </div>
-</body>
-</html>'''
-
-    return html
+    doc.build(elements)
+    return buffer.getvalue()

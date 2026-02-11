@@ -43,9 +43,8 @@ python-dotenv==1.0.0
 # Utilities
 python-dateutil==2.8.2
 
-# PDF Generation - DISABLED for Render deployment (pycairo compilation issues)
-# TODO: Re-enable after demo or use alternative PDF library
-# xhtml2pdf>=0.2.11  # Commenté: dépendances complexes cassent le build Render
+# PDF Generation - Using reportlab (pure Python, no system dependencies)
+reportlab>=4.0.0
 
 # Calendar Integrations (OAuth2 + iCal export)
 google-api-python-client>=2.111.0

@@ -44,7 +44,7 @@ with app.app_context():
         {'name': 'Le Krakatoa', 'city': 'Bordeaux', 'country': 'France', 'address': '3 Avenue Victor Hugo', 'postal_code': '33700', 'latitude': 44.8629, 'longitude': -0.5261, 'capacity': 1000},
         {'name': 'Le Bikini', 'city': 'Toulouse', 'country': 'France', 'address': 'Rue Theodore Monod', 'postal_code': '31200', 'latitude': 43.6144, 'longitude': 1.3943, 'capacity': 1500},
         {'name': 'Le Cargo', 'city': 'Caen', 'country': 'France', 'address': '9 Cours Caffarelli', 'postal_code': '14000', 'latitude': 49.1867, 'longitude': -0.3567, 'capacity': 800},
-        {'name': 'LAeronef', 'city': 'Lille', 'country': 'France', 'address': '168 Avenue Willy Brandt', 'postal_code': '59000', 'latitude': 50.6364, 'longitude': 3.0733, 'capacity': 2500},
+        {'name': "L'Aeronef", 'city': 'Lille', 'country': 'France', 'address': '168 Avenue Willy Brandt', 'postal_code': '59000', 'latitude': 50.6364, 'longitude': 3.0733, 'capacity': 2500},
         {'name': 'Le Transbordeur', 'city': 'Lyon', 'country': 'France', 'address': '3 Boulevard Stalingrad', 'postal_code': '69100', 'latitude': 45.7562, 'longitude': 4.8696, 'capacity': 1800},
         {'name': 'Le Rockstore', 'city': 'Montpellier', 'country': 'France', 'address': '20 Rue de Verdun', 'postal_code': '34000', 'latitude': 43.6095, 'longitude': 3.8767, 'capacity': 900},
     ]

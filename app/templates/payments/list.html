@@ -165,13 +165,14 @@
                         {{ "{:,.2f}".format(payment.amount) }} {{ payment.currency }}
                     </td>
                     <td>
+                        {% set status_labels = {'draft': 'Brouillon', 'pending': 'En attente', 'approved': 'Approuvé', 'scheduled': 'Programmé', 'processing': 'En cours', 'paid': 'Payé', 'cancelled': 'Annulé', 'rejected': 'Rejeté'} %}
                         <span class="badge bg-{{ 'secondary' if payment.status.value == 'draft' else 'warning' if payment.status.value == 'pending' else 'info' if payment.status.value == 'approved' else 'primary' if payment.status.value == 'scheduled' else 'success' if payment.status.value == 'paid' else 'danger' }}">
-                            {{ payment.status.value }}
+                            {{ status_labels.get(payment.status.value, payment.status.value) }}
                         </span>
                     </td>
                     <td>
                         <small class="text-muted">
-                            {{ payment.work_date.strftime('%d/%m/%Y') if payment.work_date else '-' }}
+                            {{ payment.paid_date.strftime('%d/%m/%Y') if payment.paid_date else (payment.work_date.strftime('%d/%m/%Y') if payment.work_date else '-') }}
                         </small>
                     </td>
                     <td class="text-end">

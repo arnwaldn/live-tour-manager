@@ -16,8 +16,9 @@
     <div class="mb-3 mb-md-0">
         <div class="d-flex align-items-center">
             <h1 class="h2 mb-1">{{ tour.name }}</h1>
+            {% set tour_status_labels = {'planning': 'Planification', 'confirmed': 'Confirmée', 'active': 'En cours', 'completed': 'Terminée', 'cancelled': 'Annulée', 'archived': 'Archivée'} %}
             <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'secondary' }} ms-3">
-                {{ tour.status.value }}
+                {{ tour_status_labels.get(tour.status.value, tour.status.value) }}
             </span>
         </div>
         <p class="text-muted mb-0">
@@ -243,8 +244,9 @@
                                     </a>
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'warning' if stop.status.value == 'pending' else 'secondary' }}">
-                                        {{ stop.status.value }}
+                                    {% set stop_status_labels = {'hold': 'En attente', 'pending': 'En négo', 'confirmed': 'Confirmé', 'advanced': 'Avancé', 'completed': 'Terminé', 'cancelled': 'Annulé'} %}
+                                    <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'warning' if stop.status.value == 'pending' else 'info' if stop.status.value == 'advanced' else 'danger' if stop.status.value == 'cancelled' else 'secondary' }}">
+                                        {{ stop_status_labels.get(stop.status.value, stop.status.value) }}
                                     </span>
                                 </td>
                                 <td>
