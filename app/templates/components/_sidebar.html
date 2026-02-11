@@ -54,17 +54,6 @@
                 </a>
             </li>
 
-            <!-- Logistics -->
-            {% if current_user.is_staff_or_above() %}
-            <li class="nav-item">
-                <a class="nav-link {{ 'active' if 'logistics' in request.endpoint else '' }}"
-                   href="{{ url_for('tours.index') }}?view=logistics">
-                    <i class="bi bi-truck me-2"></i>
-                    Logistique
-                </a>
-            </li>
-            {% endif %}
-
             <!-- Global Calendar -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if request.endpoint == 'main.global_calendar' else '' }}"
