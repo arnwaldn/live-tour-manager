@@ -519,12 +519,22 @@ def do_check_in(id):
 
     log_update('GuestlistEntry', entry.id, {'status': 'checked_in', 'plus_ones_arrived': plus_ones})
 
-    # Send check-in confirmation email
+    # Send check-in confirmation email (non-blocking)
     if entry.guest_email:
-        try:
-            send_guestlist_notification(entry, 'checked_in')
-        except Exception as e:
-            current_app.logger.error(f'Email check-in guestlist échoué: {e}')
+        import threading
+        app = current_app._get_current_object()
+        entry_id = entry.id
+
+        def send_email_async():
+            with app.app_context():
+                try:
+                    e = GuestlistEntry.query.get(entry_id)
+                    if e:
+                        send_guestlist_notification(e, 'checked_in')
+                except Exception as ex:
+                    app.logger.error(f'Email check-in guestlist échoué: {ex}')
+
+        threading.Thread(target=send_email_async, daemon=True).start()
 
     # Return JSON for AJAX requests
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

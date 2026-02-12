@@ -313,7 +313,7 @@ def submit_for_approval(payment_id):
         flash('Ce paiement ne peut pas etre soumis.', 'warning')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
-    payment.submit_for_approval()
+    payment.submit_for_approval(current_user.id)
     db.session.commit()
 
     log_action('SUBMIT', 'TeamMemberPayment', payment.id, {
@@ -384,7 +384,7 @@ def reject(payment_id):
         flash('Ce paiement ne peut pas etre rejete.', 'warning')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
-    payment.reject(current_user, reason)
+    payment.reject(current_user.id, reason)
     db.session.commit()
 
     log_action('REJECT', 'TeamMemberPayment', payment.id, {
@@ -408,7 +408,8 @@ def mark_paid(payment_id):
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     bank_reference = request.form.get('bank_reference', '')
-    payment.mark_as_paid(bank_reference)
+    payment_method = request.form.get('payment_method', 'bank_transfer')
+    payment.mark_as_paid(payment_method, bank_reference)
     db.session.commit()
 
     log_action('PAY', 'TeamMemberPayment', payment.id, {
