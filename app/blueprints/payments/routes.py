@@ -408,7 +408,11 @@ def mark_paid(payment_id):
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     bank_reference = request.form.get('bank_reference', '')
-    payment_method = request.form.get('payment_method', 'bank_transfer')
+    payment_method_str = request.form.get('payment_method', 'bank_transfer')
+    try:
+        payment_method = PaymentMethod(payment_method_str)
+    except ValueError:
+        payment_method = PaymentMethod.BANK_TRANSFER
     payment.mark_as_paid(payment_method, bank_reference)
     db.session.commit()
 
