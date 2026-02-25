@@ -56,8 +56,8 @@ def create_app(config_name=None):
                 app.config['MAIL_PASSWORD'] = db_config['MAIL_PASSWORD']
             if db_config.get('MAIL_DEFAULT_SENDER'):
                 app.config['MAIL_DEFAULT_SENDER'] = db_config['MAIL_DEFAULT_SENDER']
-        except Exception:
-            pass  # Table may not exist yet during initial migration
+        except Exception as e:
+            app.logger.debug(f'Mail config from DB not available (expected during initial migration): {e}')
 
     # Register blueprints
     register_blueprints(app)
@@ -92,8 +92,8 @@ def create_app(config_name=None):
             if Profession.query.count() == 0:
                 seed_professions()
                 app.logger.info('Auto-seeded professions table with default data')
-        except Exception:
-            pass  # Table may not exist yet during initial migration
+        except Exception as e:
+            app.logger.debug(f'Profession auto-seed not available (expected during initial migration): {e}')
 
     return app
 
