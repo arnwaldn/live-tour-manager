@@ -50,6 +50,10 @@ def init_extensions(app):
     mail.init_app(app)
     cache.init_app(app)
 
+    # Exempt API blueprint from CSRF (uses JWT, not cookies)
+    from app.blueprints.api import api_bp
+    csrf.exempt(api_bp)
+
     # User loader for Flask-Login
     from app.models.user import User
 
