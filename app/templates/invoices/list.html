@@ -1,0 +1,221 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Factures - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">
+            <i class="bi bi-receipt me-2"></i>
+            Factures
+        </h1>
+        <p class="text-muted mb-0">Gestion des factures et avoirs - Factur-X</p>
+    </div>
+    <div class="mt-3 mt-md-0">
+        <a href="{{ url_for('invoices.add') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>
+            Nouvelle facture
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm bg-primary text-white">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-1 small">Total TTC</h6>
+                        <h4 class="mb-0">{{ "{:,.2f}".format(total_ttc) }} EUR</h4>
+                    </div>
+                    <i class="bi bi-cash-stack fs-2 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm bg-success text-white">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-1 small">Encaisse</h6>
+                        <h4 class="mb-0">{{ "{:,.2f}".format(total_paid) }} EUR</h4>
+                    </div>
+                    <i class="bi bi-check-circle fs-2 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm bg-warning text-dark">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-dark-50 mb-1 small">Reste du</h6>
+                        <h4 class="mb-0">{{ "{:,.2f}".format(total_due) }} EUR</h4>
+                    </div>
+                    <i class="bi bi-hourglass-split fs-2 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm {{ 'bg-danger text-white' if overdue_count > 0 else 'bg-light' }}">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="{{ 'text-white-50' if overdue_count > 0 else 'text-muted' }} mb-1 small">En retard</h6>
+                        <h4 class="mb-0">{{ overdue_count }}</h4>
+                    </div>
+                    <i class="bi bi-exclamation-triangle fs-2 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form action="{{ url_for('invoices.index') }}" method="GET" class="row g-3">
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.tour_id(class="form-select form-select-sm", id="tour_id") }}
+                <label class="form-label small text-muted">Tournee</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.status(class="form-select form-select-sm", id="status") }}
+                <label class="form-label small text-muted">Statut</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.invoice_type(class="form-select form-select-sm", id="invoice_type") }}
+                <label class="form-label small text-muted">Type</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.date_from(class="form-control form-control-sm", id="date_from", type="date") }}
+                <label class="form-label small text-muted">Du</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                {{ form.date_to(class="form-control form-control-sm", id="date_to", type="date") }}
+                <label class="form-label small text-muted">Au</label>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary btn-sm me-2">
+                    <i class="bi bi-funnel me-1"></i>Filtrer
+                </button>
+                <a href="{{ url_for('invoices.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Invoices Table -->
+{% if invoices %}
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Numero</th>
+                    <th>Destinataire</th>
+                    <th>Type</th>
+                    <th>Tournee</th>
+                    <th class="text-end">Total TTC</th>
+                    <th class="text-end">Reste du</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="text-decoration-none fw-medium">
+                            {{ invoice.number }}
+                        </a>
+                    </td>
+                    <td>
+                        <div class="fw-medium">{{ invoice.recipient_name }}</div>
+                        {% if invoice.recipient_email %}
+                        <small class="text-muted">{{ invoice.recipient_email }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set type_labels = {'invoice': 'Facture', 'credit': 'Avoir', 'proforma': 'Proforma', 'deposit': 'Acompte', 'final': 'Solde'} %}
+                        <span class="badge bg-{{ 'primary' if invoice.type.value == 'invoice' else 'danger' if invoice.type.value == 'credit' else 'info' if invoice.type.value == 'proforma' else 'secondary' }}">
+                            {{ type_labels.get(invoice.type.value, invoice.type.value) }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if invoice.tour %}
+                        <small>{{ invoice.tour.name }}</small>
+                        {% else %}
+                        <small class="text-muted">-</small>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-medium">
+                        {{ "{:,.2f}".format(invoice.total_ttc) }} {{ invoice.currency }}
+                    </td>
+                    <td class="text-end {{ 'text-danger fw-bold' if invoice.is_overdue else '' }}">
+                        {{ "{:,.2f}".format(invoice.amount_due) }} {{ invoice.currency }}
+                    </td>
+                    <td>
+                        {% set status_labels = {'draft': 'Brouillon', 'validated': 'Validee', 'sent': 'Envoyee', 'paid': 'Payee', 'partial': 'Partiel', 'overdue': 'En retard', 'disputed': 'Contestee', 'cancelled': 'Annulee', 'credited': 'Avoir'} %}
+                        {% set status_colors = {'draft': 'secondary', 'validated': 'info', 'sent': 'primary', 'paid': 'success', 'partial': 'warning', 'overdue': 'danger', 'disputed': 'dark', 'cancelled': 'secondary', 'credited': 'secondary'} %}
+                        <span class="badge bg-{{ status_colors.get(invoice.status.value, 'secondary') }}">
+                            {{ status_labels.get(invoice.status.value, invoice.status.value) }}
+                        </span>
+                        {% if invoice.is_overdue and invoice.status.value != 'overdue' %}
+                        <span class="badge bg-danger ms-1" title="{{ invoice.days_overdue }} jours de retard">
+                            <i class="bi bi-exclamation-triangle"></i> {{ invoice.days_overdue }}j
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            {{ invoice.issue_date.strftime('%d/%m/%Y') if invoice.issue_date else '-' }}
+                        </small>
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-outline-primary" title="Voir">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if invoice.status.value == 'draft' %}
+                            <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-outline-secondary" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<!-- Empty State -->
+<div class="text-center py-5">
+    <i class="bi bi-receipt text-muted" style="font-size: 4rem;"></i>
+    <h3 class="mt-3">Aucune facture</h3>
+    <p class="text-muted">
+        {% if request.args %}
+        Aucune facture ne correspond aux filtres selectionnes.
+        {% else %}
+        Creez votre premiere facture pour commencer.
+        {% endif %}
+    </p>
+    <a href="{{ url_for('invoices.add') }}" class="btn btn-primary mt-2">
+        <i class="bi bi-plus-lg me-1"></i>
+        Nouvelle facture
+    </a>
+</div>
+{% endif %}
+{% endblock %}

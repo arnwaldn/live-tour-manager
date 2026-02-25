@@ -1,0 +1,638 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ invoice.number }} - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('invoices.index') }}">Factures</a></li>
+                <li class="breadcrumb-item active">{{ invoice.number }}</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0">
+            <i class="bi bi-receipt me-2"></i>
+            {{ invoice.number }}
+        </h1>
+    </div>
+    <div class="btn-group mt-3 mt-md-0">
+        {% if invoice.status.value == 'draft' %}
+        <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i>Modifier
+        </a>
+        <form action="{{ url_for('invoices.validate_invoice', invoice_id=invoice.id) }}" method="POST" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-lg me-1"></i>Valider
+            </button>
+        </form>
+        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+            <i class="bi bi-trash me-1"></i>Supprimer
+        </button>
+        {% elif invoice.status.value == 'validated' %}
+        <form action="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}" method="POST" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send me-1"></i>Marquer envoyee
+            </button>
+        </form>
+        <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
+            <i class="bi bi-x-circle me-1"></i>Annuler
+        </button>
+        {% elif invoice.status.value in ['sent', 'partial', 'overdue'] %}
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#paymentModal">
+            <i class="bi bi-cash me-1"></i>Enregistrer paiement
+        </button>
+        <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
+            <i class="bi bi-x-circle me-1"></i>Annuler
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Status Banner -->
+        {% set status_labels = {'draft': 'Brouillon', 'validated': 'Validee', 'sent': 'Envoyee', 'paid': 'Payee', 'partial': 'Partiellement payee', 'overdue': 'En retard', 'disputed': 'Contestee', 'cancelled': 'Annulee', 'credited': 'Avoir emis'} %}
+        {% set status_colors = {'draft': 'secondary', 'validated': 'info', 'sent': 'primary', 'paid': 'success', 'partial': 'warning', 'overdue': 'danger', 'disputed': 'dark', 'cancelled': 'secondary', 'credited': 'secondary'} %}
+        <div class="alert alert-{{ status_colors.get(invoice.status.value, 'secondary') }} d-flex align-items-center mb-4">
+            <i class="bi bi-{{ 'pencil' if invoice.status.value == 'draft' else 'check-circle' if invoice.status.value == 'validated' else 'send' if invoice.status.value == 'sent' else 'check2-all' if invoice.status.value == 'paid' else 'hourglass-split' if invoice.status.value == 'partial' else 'exclamation-triangle' if invoice.status.value == 'overdue' else 'x-circle' }} fs-4 me-3"></i>
+            <div>
+                <strong>Statut : {{ status_labels.get(invoice.status.value, invoice.status.value) }}</strong>
+                {% if invoice.status.value == 'draft' %}
+                <p class="mb-0 small">Ajoutez des lignes puis validez pour obtenir un numero definitif.</p>
+                {% elif invoice.status.value == 'overdue' or invoice.is_overdue %}
+                <p class="mb-0 small text-danger">{{ invoice.days_overdue }} jours de retard. Penalites : {{ "{:,.2f}".format(invoice.late_penalty_amount) }} EUR</p>
+                {% elif invoice.status.value == 'paid' %}
+                <p class="mb-0 small">Payee le {{ invoice.paid_date.strftime('%d/%m/%Y') if invoice.paid_date else '' }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Parties (Issuer + Recipient) -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-transparent">
+                        <h6 class="mb-0"><i class="bi bi-building me-2"></i>Emetteur</h6>
+                    </div>
+                    <div class="card-body small">
+                        <strong>{{ invoice.issuer_name }}</strong>
+                        {% if invoice.issuer_legal_form %} ({{ invoice.issuer_legal_form }}){% endif %}<br>
+                        {{ invoice.issuer_address_line1 }}<br>
+                        {% if invoice.issuer_address_line2 %}{{ invoice.issuer_address_line2 }}<br>{% endif %}
+                        {{ invoice.issuer_postal_code }} {{ invoice.issuer_city }}<br>
+                        {% if invoice.issuer_siret %}<span class="text-muted">SIRET :</span> {{ invoice.issuer_siret }}<br>{% endif %}
+                        {% if invoice.issuer_vat %}<span class="text-muted">TVA :</span> {{ invoice.issuer_vat }}<br>{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-transparent">
+                        <h6 class="mb-0"><i class="bi bi-person me-2"></i>Destinataire</h6>
+                    </div>
+                    <div class="card-body small">
+                        <strong>{{ invoice.recipient_name }}</strong>
+                        {% if invoice.recipient_legal_form %} ({{ invoice.recipient_legal_form }}){% endif %}<br>
+                        {{ invoice.recipient_address_line1 }}<br>
+                        {% if invoice.recipient_address_line2 %}{{ invoice.recipient_address_line2 }}<br>{% endif %}
+                        {{ invoice.recipient_postal_code }} {{ invoice.recipient_city }}<br>
+                        {% if invoice.recipient_siret %}<span class="text-muted">SIRET :</span> {{ invoice.recipient_siret }}<br>{% endif %}
+                        {% if invoice.recipient_email %}<span class="text-muted">Email :</span> {{ invoice.recipient_email }}<br>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Lines -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-list-ol me-2"></i>Lignes de facture</h5>
+                {% if invoice.status.value == 'draft' %}
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addLineModal">
+                    <i class="bi bi-plus-lg me-1"></i>Ajouter
+                </button>
+                {% endif %}
+            </div>
+            {% if invoice.lines %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 5%">#</th>
+                            <th style="width: 30%">Description</th>
+                            <th class="text-center">Qte</th>
+                            <th class="text-end">P.U. HT</th>
+                            <th class="text-center">TVA</th>
+                            <th class="text-end">Total HT</th>
+                            {% if invoice.status.value == 'draft' %}
+                            <th style="width: 5%"></th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line in invoice.lines %}
+                        <tr>
+                            <td class="text-muted">{{ line.line_number }}</td>
+                            <td>
+                                <strong>{{ line.description }}</strong>
+                                {% if line.reference %}<br><small class="text-muted">Ref: {{ line.reference }}</small>{% endif %}
+                                {% if line.detail %}<br><small class="text-muted">{{ line.detail }}</small>{% endif %}
+                            </td>
+                            <td class="text-center">{{ line.quantity }} {{ line.unit }}</td>
+                            <td class="text-end">{{ "{:,.2f}".format(line.unit_price_ht) }} EUR</td>
+                            <td class="text-center">{{ line.vat_rate }}%</td>
+                            <td class="text-end fw-medium">{{ "{:,.2f}".format(line.total_ht) }} EUR</td>
+                            {% if invoice.status.value == 'draft' %}
+                            <td>
+                                <form action="{{ url_for('invoices.delete_line', invoice_id=invoice.id, line_id=line.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="{{ 5 if invoice.status.value == 'draft' else 4 }}"></td>
+                            <td class="text-end"><strong>Total HT</strong></td>
+                            <td class="text-end fw-medium">{{ "{:,.2f}".format(invoice.subtotal_ht) }} EUR</td>
+                        </tr>
+                        {% if invoice.discount_amount and invoice.discount_amount > 0 %}
+                        <tr>
+                            <td colspan="{{ 5 if invoice.status.value == 'draft' else 4 }}"></td>
+                            <td class="text-end text-muted">Remise</td>
+                            <td class="text-end text-muted">-{{ "{:,.2f}".format(invoice.discount_amount) }} EUR</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td colspan="{{ 5 if invoice.status.value == 'draft' else 4 }}"></td>
+                            <td class="text-end"><strong>TVA</strong></td>
+                            <td class="text-end">{{ "{:,.2f}".format(invoice.vat_amount) }} EUR</td>
+                        </tr>
+                        <tr class="fw-bold fs-5">
+                            <td colspan="{{ 5 if invoice.status.value == 'draft' else 4 }}"></td>
+                            <td class="text-end">Total TTC</td>
+                            <td class="text-end text-primary">{{ "{:,.2f}".format(invoice.total_ttc) }} EUR</td>
+                        </tr>
+                        {% if invoice.amount_paid and invoice.amount_paid > 0 %}
+                        <tr class="text-success">
+                            <td colspan="{{ 5 if invoice.status.value == 'draft' else 4 }}"></td>
+                            <td class="text-end">Deja paye</td>
+                            <td class="text-end">-{{ "{:,.2f}".format(invoice.amount_paid) }} EUR</td>
+                        </tr>
+                        <tr class="fw-bold {{ 'text-danger' if invoice.is_overdue else '' }}">
+                            <td colspan="{{ 5 if invoice.status.value == 'draft' else 4 }}"></td>
+                            <td class="text-end">Reste du</td>
+                            <td class="text-end">{{ "{:,.2f}".format(invoice.amount_due) }} EUR</td>
+                        </tr>
+                        {% endif %}
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="card-body text-center py-4">
+                <i class="bi bi-list-ul text-muted fs-1"></i>
+                <p class="text-muted mt-2 mb-0">Aucune ligne de facture.</p>
+                {% if invoice.status.value == 'draft' %}
+                <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addLineModal">
+                    <i class="bi bi-plus-lg me-1"></i>Ajouter une ligne
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Payment History -->
+        {% if invoice.payments %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Historique des paiements</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Montant</th>
+                            <th>Mode</th>
+                            <th>Reference</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in invoice.payments %}
+                        <tr>
+                            <td>{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="fw-medium text-success">{{ "{:,.2f}".format(p.amount) }} EUR</td>
+                            <td>{{ p.payment_method or '-' }}</td>
+                            <td><small>{{ p.reference or p.bank_reference or '-' }}</small></td>
+                            <td><small class="text-muted">{{ p.notes or '' }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Legal Mentions -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>Mentions legales</h5>
+            </div>
+            <div class="card-body small text-muted">
+                <p class="mb-1"><strong>Conditions :</strong> {{ invoice.payment_terms or 'Paiement a 30 jours' }}</p>
+                <p class="mb-1"><strong>Mode de paiement :</strong> {{ invoice.payment_method_accepted or 'Virement bancaire' }}</p>
+                {% if invoice.no_discount_mention %}
+                <p class="mb-1">Pas d'escompte pour paiement anticipe.</p>
+                {% endif %}
+                <p class="mb-1">En cas de retard de paiement, une penalite de {{ invoice.late_penalty_rate }}% par an sera appliquee, ainsi qu'une indemnite forfaitaire de {{ "{:,.2f}".format(invoice.recovery_fee) }} EUR pour frais de recouvrement (art. L.441-10 et D.441-5 du Code de commerce).</p>
+                {% if invoice.vat_mention %}
+                <p class="mb-1"><strong>TVA :</strong> {{ invoice.vat_mention }}</p>
+                {% endif %}
+                {% if invoice.special_mentions %}
+                <p class="mb-0">{{ invoice.special_mentions }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if invoice.public_notes %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-chat-text me-2"></i>Notes</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ invoice.public_notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Summary Card -->
+        <div class="card border-0 shadow-sm mb-4 bg-primary text-white">
+            <div class="card-body text-center py-4">
+                <h6 class="text-white-50">Total TTC</h6>
+                <h2 class="mb-1">{{ "{:,.2f}".format(invoice.total_ttc) }} EUR</h2>
+                {% if invoice.amount_due and invoice.amount_due > 0 and invoice.amount_due != invoice.total_ttc %}
+                <p class="mb-0 small text-white-50">Reste du : {{ "{:,.2f}".format(invoice.amount_due) }} EUR</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informations</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    {% set type_labels = {'invoice': 'Facture', 'credit': 'Avoir', 'proforma': 'Proforma', 'deposit': 'Acompte', 'final': 'Solde'} %}
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-0">Type</label>
+                        <p class="mb-2">{{ type_labels.get(invoice.type.value, invoice.type.value) }}</p>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-0">Devise</label>
+                        <p class="mb-2">{{ invoice.currency }}</p>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-0">Emission</label>
+                        <p class="mb-2">{{ invoice.issue_date.strftime('%d/%m/%Y') if invoice.issue_date else '-' }}</p>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-0">Echeance</label>
+                        <p class="mb-2 {{ 'text-danger fw-bold' if invoice.is_overdue else '' }}">{{ invoice.due_date.strftime('%d/%m/%Y') if invoice.due_date else '-' }}</p>
+                    </div>
+                    {% if invoice.tour %}
+                    <div class="col-12">
+                        <label class="form-label text-muted small mb-0">Tournee</label>
+                        <p class="mb-2">
+                            <a href="{{ url_for('tours.detail', id=invoice.tour.id) }}">{{ invoice.tour.name }}</a>
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- IBAN -->
+        {% if invoice.issuer_iban %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-bank me-2"></i>Coordonnees bancaires</h6>
+            </div>
+            <div class="card-body small">
+                <p class="mb-1"><strong>IBAN :</strong> {{ invoice.issuer_iban }}</p>
+                {% if invoice.issuer_bic %}
+                <p class="mb-0"><strong>BIC :</strong> {{ invoice.issuer_bic }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Audit Trail -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historique</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0 small">
+                    <li class="mb-2">
+                        <small class="text-muted">Creee le</small><br>
+                        {{ invoice.created_at.strftime('%d/%m/%Y a %H:%M') if invoice.created_at else '-' }}
+                        {% if invoice.created_by %} par {{ invoice.created_by.full_name }}{% endif %}
+                    </li>
+                    {% if invoice.validated_at %}
+                    <li class="mb-2">
+                        <small class="text-muted">Validee le</small><br>
+                        {{ invoice.validated_at.strftime('%d/%m/%Y a %H:%M') }}
+                        {% if invoice.validated_by %} par {{ invoice.validated_by.full_name }}{% endif %}
+                    </li>
+                    {% endif %}
+                    {% if invoice.sent_date %}
+                    <li class="mb-2">
+                        <small class="text-muted">Envoyee le</small><br>
+                        {{ invoice.sent_date.strftime('%d/%m/%Y') }}
+                    </li>
+                    {% endif %}
+                    {% if invoice.paid_date %}
+                    <li>
+                        <small class="text-muted">Payee le</small><br>
+                        {{ invoice.paid_date.strftime('%d/%m/%Y') }}
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        {% if invoice.internal_notes %}
+        <div class="card border-0 shadow-sm mt-4 border-warning">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-lock me-2"></i>Notes internes</h6>
+            </div>
+            <div class="card-body small">
+                {{ invoice.internal_notes }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Line Modal -->
+{% if invoice.status.value == 'draft' %}
+<div class="modal fade" id="addLineModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('invoices.add_line', invoice_id=invoice.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter une ligne</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Description *</label>
+                            <input type="text" name="description" class="form-control" required placeholder="Ex: Cachet concert Paris - 15/03/2026">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Reference</label>
+                            <input type="text" name="reference" class="form-control" placeholder="Ref. article/service">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Details</label>
+                            <input type="text" name="detail" class="form-control" placeholder="Details supplementaires">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Quantite *</label>
+                            <input type="number" name="quantity" class="form-control" value="1" step="0.001" min="0" required id="lineQty">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Unite</label>
+                            <select name="unit" class="form-select">
+                                <option value="unite">Unite</option>
+                                <option value="jour">Jour</option>
+                                <option value="heure">Heure</option>
+                                <option value="forfait">Forfait</option>
+                                <option value="concert">Concert</option>
+                                <option value="mois">Mois</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Prix unitaire HT *</label>
+                            <input type="number" name="unit_price_ht" class="form-control" step="0.01" min="0" required id="linePrice">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Taux TVA</label>
+                            <select name="vat_rate" class="form-select" id="lineVat">
+                                <option value="20.00">20% (Normal)</option>
+                                <option value="10.00">10% (Intermediaire)</option>
+                                <option value="5.50">5.5% (Reduit)</option>
+                                <option value="2.10">2.1% (Super-reduit)</option>
+                                <option value="0.00">0% (Exonere)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Remise (%)</label>
+                            <input type="number" name="discount_percent" class="form-control" value="0" step="0.01" min="0" max="100" id="lineDiscount">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Debut prestation</label>
+                            <input type="date" name="service_date_start" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fin prestation</label>
+                            <input type="date" name="service_date_end" class="form-control">
+                        </div>
+                        <!-- Preview -->
+                        <div class="col-12">
+                            <div class="alert alert-light mb-0">
+                                <div class="d-flex justify-content-between">
+                                    <span>Total HT :</span>
+                                    <strong id="linePreviewHT">0.00 EUR</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>TVA :</span>
+                                    <span id="linePreviewVAT">0.00 EUR</span>
+                                </div>
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>Total TTC :</span>
+                                    <span id="linePreviewTTC">0.00 EUR</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Delete Modal (DRAFT only) -->
+{% if invoice.status.value == 'draft' %}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('invoices.delete', invoice_id=invoice.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header border-danger">
+                    <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Supprimer la facture</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Etes-vous sur de vouloir supprimer cette facture ?</p>
+                    <div class="alert alert-warning">
+                        <strong>{{ invoice.number }}</strong><br>
+                        {{ invoice.recipient_name }}<br>
+                        <strong>{{ "{:,.2f}".format(invoice.total_ttc) }} EUR</strong>
+                    </div>
+                    <p class="text-muted small mb-0">Cette action est irreversible.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer definitivement
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Cancel Modal -->
+{% if invoice.status.value not in ['draft', 'paid', 'cancelled', 'credited'] %}
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('invoices.cancel', invoice_id=invoice.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header border-warning">
+                    <h5 class="modal-title text-warning"><i class="bi bi-x-circle me-2"></i>Annuler la facture</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Etes-vous sur de vouloir annuler cette facture ?</p>
+                    <div class="alert alert-info">
+                        <strong>{{ invoice.number }}</strong> - {{ invoice.recipient_name }}<br>
+                        <strong>{{ "{:,.2f}".format(invoice.total_ttc) }} EUR</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-x-circle me-1"></i>Confirmer l'annulation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Payment Modal -->
+{% if invoice.status.value in ['sent', 'partial', 'overdue'] %}
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('invoices.record_payment', invoice_id=invoice.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-cash me-2"></i>Enregistrer un paiement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        Reste du : <strong>{{ "{:,.2f}".format(invoice.amount_due) }} EUR</strong>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pay_amount" class="form-label">Montant *</label>
+                        <div class="input-group">
+                            {{ payment_form.amount(class="form-control", id="pay_amount", step="0.01", min="0.01") }}
+                            <span class="input-group-text">EUR</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pay_date" class="form-label">Date *</label>
+                        {{ payment_form.payment_date(class="form-control", id="pay_date", type="date") }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="pay_method" class="form-label">Mode</label>
+                        {{ payment_form.payment_method(class="form-select", id="pay_method") }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="pay_ref" class="form-label">Reference</label>
+                        {{ payment_form.reference(class="form-control", id="pay_ref", placeholder="Ex: VIR-2026-001234") }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="pay_notes" class="form-label">Notes</label>
+                        {{ payment_form.notes(class="form-control", id="pay_notes", rows="2") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-lg me-1"></i>Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Line preview calculation
+    const qtyInput = document.getElementById('lineQty');
+    const priceInput = document.getElementById('linePrice');
+    const vatInput = document.getElementById('lineVat');
+    const discountInput = document.getElementById('lineDiscount');
+
+    function updateLinePreview() {
+        if (!qtyInput || !priceInput) return;
+        const qty = parseFloat(qtyInput.value) || 0;
+        const price = parseFloat(priceInput.value) || 0;
+        const vat = parseFloat(vatInput.value) || 0;
+        const discount = parseFloat(discountInput.value) || 0;
+
+        const grossHT = qty * price;
+        const discountAmt = grossHT * discount / 100;
+        const totalHT = grossHT - discountAmt;
+        const vatAmt = totalHT * vat / 100;
+        const totalTTC = totalHT + vatAmt;
+
+        document.getElementById('linePreviewHT').textContent = totalHT.toFixed(2) + ' EUR';
+        document.getElementById('linePreviewVAT').textContent = vatAmt.toFixed(2) + ' EUR';
+        document.getElementById('linePreviewTTC').textContent = totalTTC.toFixed(2) + ' EUR';
+    }
+
+    if (qtyInput) {
+        [qtyInput, priceInput, vatInput, discountInput].forEach(el => {
+            el.addEventListener('input', updateLinePreview);
+        });
+    }
+});
+</script>
+{% endblock %}
