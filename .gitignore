@@ -76,7 +76,23 @@ Thumbs.db
 # Docker
 .docker/
 
+# Claude Code temp files
+tmpclaude-*
+
+# Debug artifacts
+debug-*
+*.screenshot.png
+
+# pip install artifacts
+=*
+
+# Test results
+test-results/
+
 # Misc
 *.bak
 *.tmp
 nul
+
+# ATUM Audit
+audit_store/
