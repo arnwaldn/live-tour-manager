@@ -2,12 +2,21 @@
 Main blueprint routes - Dashboard and home.
 """
 from datetime import date, timedelta
-from flask import render_template, request, jsonify, redirect, url_for, flash
+from flask import render_template, request, jsonify, redirect, url_for, flash, current_app, abort
 from flask_login import login_required, current_user
 
 from app.blueprints.main import main_bp
 from app.blueprints.main.forms import StandaloneEventForm
 from app.extensions import db
+
+
+@main_bp.before_request
+def block_debug_endpoints_in_production():
+    """Block all /health/* debug endpoints in production. Only /ping and /health are allowed."""
+    if not current_app.debug:
+        path = request.path
+        if path.startswith('/health/'):
+            abort(404)
 
 
 @main_bp.route('/ping')
