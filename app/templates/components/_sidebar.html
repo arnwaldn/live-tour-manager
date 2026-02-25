@@ -112,6 +112,15 @@
                 </a>
             </li>
 
+            <!-- Invoices -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'invoices' in request.endpoint else '' }}"
+                   href="{{ url_for('invoices.index') }}">
+                    <i class="bi bi-receipt me-2"></i>
+                    Factures
+                </a>
+            </li>
+
             <li class="nav-item mt-3">
                 <span class="nav-link text-muted small text-uppercase">Administration</span>
             </li>

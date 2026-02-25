@@ -1,0 +1,388 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}{{ title }} - Tour Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('invoices.index') }}">Factures</a></li>
+                <li class="breadcrumb-item active">{{ title }}</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0">
+            <i class="bi bi-receipt me-2"></i>
+            {{ title }}
+        </h1>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST" class="needs-validation" novalidate>
+            {{ form.hidden_tag() }}
+
+            <!-- Type & Context -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-tag me-2"></i>Type et contexte</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="type" class="form-label">Type de facture *</label>
+                            {{ form.type(class="form-select" + (" is-invalid" if form.type.errors else ""), id="type") }}
+                            {% for error in form.type.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tour_id" class="form-label">Tournee</label>
+                            {{ form.tour_id(class="form-select", id="tour_id") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tour_stop_id" class="form-label">Concert/Date</label>
+                            {{ form.tour_stop_id(class="form-select", id="tour_stop_id") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emetteur -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-building me-2"></i>Emetteur</h5>
+                    <small class="text-muted">Votre societe</small>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="issuer_name" class="form-label">Raison sociale *</label>
+                            {{ form.issuer_name(class="form-control" + (" is-invalid" if form.issuer_name.errors else ""), id="issuer_name") }}
+                            {% for error in form.issuer_name.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="issuer_legal_form" class="form-label">Forme juridique</label>
+                            {{ form.issuer_legal_form(class="form-control", id="issuer_legal_form", placeholder="SARL, SAS...") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="issuer_siret" class="form-label">SIRET *</label>
+                            {{ form.issuer_siret(class="form-control" + (" is-invalid" if form.issuer_siret.errors else ""), id="issuer_siret", maxlength="14") }}
+                            {% for error in form.issuer_siret.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="issuer_vat" class="form-label">TVA intracommunautaire</label>
+                            {{ form.issuer_vat(class="form-control", id="issuer_vat", placeholder="FR12345678901") }}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="issuer_address_line1" class="form-label">Adresse *</label>
+                            {{ form.issuer_address_line1(class="form-control" + (" is-invalid" if form.issuer_address_line1.errors else ""), id="issuer_address_line1") }}
+                            {% for error in form.issuer_address_line1.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="issuer_postal_code" class="form-label">Code postal *</label>
+                            {{ form.issuer_postal_code(class="form-control", id="issuer_postal_code") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="issuer_city" class="form-label">Ville *</label>
+                            {{ form.issuer_city(class="form-control", id="issuer_city") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="issuer_country" class="form-label">Pays</label>
+                            {{ form.issuer_country(class="form-control", id="issuer_country") }}
+                        </div>
+                        <!-- Coordonnees bancaires (collapsible) -->
+                        <div class="col-12">
+                            <a class="text-decoration-none small" data-bs-toggle="collapse" href="#issuerBankInfo">
+                                <i class="bi bi-bank me-1"></i>Coordonnees bancaires et contact
+                            </a>
+                        </div>
+                        <div class="collapse" id="issuerBankInfo">
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6">
+                                    <label for="issuer_iban" class="form-label">IBAN</label>
+                                    {{ form.issuer_iban(class="form-control", id="issuer_iban") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="issuer_bic" class="form-label">BIC</label>
+                                    {{ form.issuer_bic(class="form-control", id="issuer_bic") }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="issuer_phone" class="form-label">Telephone</label>
+                                    {{ form.issuer_phone(class="form-control", id="issuer_phone") }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="issuer_email" class="form-label">Email</label>
+                                    {{ form.issuer_email(class="form-control", id="issuer_email") }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="issuer_rcs" class="form-label">RCS</label>
+                                    {{ form.issuer_rcs(class="form-control", id="issuer_rcs") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Destinataire -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-person me-2"></i>Destinataire</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label for="recipient_id" class="form-label">Utilisateur existant</label>
+                            {{ form.recipient_id(class="form-select", id="recipient_id") }}
+                            <small class="text-muted">Optionnel - remplira automatiquement les champs ci-dessous</small>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="recipient_name" class="form-label">Nom / Raison sociale *</label>
+                            {{ form.recipient_name(class="form-control" + (" is-invalid" if form.recipient_name.errors else ""), id="recipient_name") }}
+                            {% for error in form.recipient_name.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="recipient_legal_form" class="form-label">Forme juridique</label>
+                            {{ form.recipient_legal_form(class="form-control", id="recipient_legal_form") }}
+                        </div>
+                        <div class="col-md-12">
+                            <label for="recipient_address_line1" class="form-label">Adresse *</label>
+                            {{ form.recipient_address_line1(class="form-control" + (" is-invalid" if form.recipient_address_line1.errors else ""), id="recipient_address_line1") }}
+                            {% for error in form.recipient_address_line1.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="recipient_postal_code" class="form-label">Code postal *</label>
+                            {{ form.recipient_postal_code(class="form-control", id="recipient_postal_code") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="recipient_city" class="form-label">Ville *</label>
+                            {{ form.recipient_city(class="form-control", id="recipient_city") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="recipient_country" class="form-label">Pays</label>
+                            {{ form.recipient_country(class="form-control", id="recipient_country") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="recipient_siret" class="form-label">SIRET</label>
+                            {{ form.recipient_siret(class="form-control", id="recipient_siret") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="recipient_email" class="form-label">Email</label>
+                            {{ form.recipient_email(class="form-control", id="recipient_email") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dates -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Dates</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="issue_date" class="form-label">Date d'emission *</label>
+                            {{ form.issue_date(class="form-control" + (" is-invalid" if form.issue_date.errors else ""), id="issue_date", type="date") }}
+                            {% for error in form.issue_date.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="due_date" class="form-label">Date d'echeance *</label>
+                            {{ form.due_date(class="form-control" + (" is-invalid" if form.due_date.errors else ""), id="due_date", type="date") }}
+                            {% for error in form.due_date.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="delivery_date" class="form-label">Date de prestation</label>
+                            {{ form.delivery_date(class="form-control", id="delivery_date", type="date") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conditions de paiement -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>Conditions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="payment_terms" class="form-label">Conditions de paiement</label>
+                            {{ form.payment_terms(class="form-control", id="payment_terms") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label for="payment_terms_days" class="form-label">Delai (jours)</label>
+                            {{ form.payment_terms_days(class="form-control", id="payment_terms_days", type="number") }}
+                        </div>
+                        <div class="col-md-3">
+                            <label for="payment_method_accepted" class="form-label">Mode paiement</label>
+                            {{ form.payment_method_accepted(class="form-control", id="payment_method_accepted") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="discount_amount" class="form-label">Remise globale (EUR)</label>
+                            {{ form.discount_amount(class="form-control", id="discount_amount", step="0.01") }}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="vat_mention" class="form-label">Mention TVA</label>
+                            {{ form.vat_mention(class="form-control", id="vat_mention", placeholder="Art. 293 B du CGI...") }}
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check mb-3">
+                                {{ form.reverse_charge(class="form-check-input", id="reverse_charge") }}
+                                <label class="form-check-label" for="reverse_charge">Autoliquidation TVA</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0"><i class="bi bi-chat-text me-2"></i>Notes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="public_notes" class="form-label">Notes visibles sur la facture</label>
+                            {{ form.public_notes(class="form-control", id="public_notes", rows="3") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="internal_notes" class="form-label">Notes internes</label>
+                            {{ form.internal_notes(class="form-control", id="internal_notes", rows="3") }}
+                        </div>
+                        <div class="col-12">
+                            <label for="special_mentions" class="form-label">Mentions particulieres</label>
+                            {{ form.special_mentions(class="form-control", id="special_mentions", rows="2") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex justify-content-between mb-5">
+                <a href="{{ url_for('invoices.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Annuler
+                </a>
+                <div>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar Help -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Aide</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">
+                    <strong>Brouillon :</strong> La facture est creee sans numero officiel. Vous pourrez ajouter des lignes et la valider ensuite.
+                </p>
+                <p class="small text-muted mb-2">
+                    <strong>Validation :</strong> Attribue un numero definitif (FACT-YYYY-NNNNN). La facture ne pourra plus etre modifiee.
+                </p>
+                <p class="small text-muted mb-0">
+                    <strong>Factur-X :</strong> Format e-invoicing obligatoire a partir de sept. 2026 pour les entreprises francaises.
+                </p>
+            </div>
+        </div>
+
+        {% if action == 'edit' and invoice %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historique</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0 small">
+                    <li class="mb-2">
+                        <span class="text-muted">Creee le</span><br>
+                        {{ invoice.created_at.strftime('%d/%m/%Y a %H:%M') if invoice.created_at else '-' }}
+                    </li>
+                    {% if invoice.updated_at %}
+                    <li>
+                        <span class="text-muted">Modifiee le</span><br>
+                        {{ invoice.updated_at.strftime('%d/%m/%Y a %H:%M') }}
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load tour stops when tour changes
+    var tourSelect = document.getElementById('tour_id');
+    var stopSelect = document.getElementById('tour_stop_id');
+
+    tourSelect.addEventListener('change', function() {
+        var tourId = this.value;
+        if (tourId && tourId !== '0') {
+            fetch('/invoices/api/tour-stops/' + tourId)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    stopSelect.textContent = '';
+                    var defaultOpt = document.createElement('option');
+                    defaultOpt.value = '0';
+                    defaultOpt.textContent = '-- Optionnel --';
+                    stopSelect.appendChild(defaultOpt);
+                    data.forEach(function(stop) {
+                        var option = document.createElement('option');
+                        option.value = stop.id;
+                        option.textContent = stop.date + ' - ' + stop.venue;
+                        stopSelect.appendChild(option);
+                    });
+                });
+        } else {
+            stopSelect.textContent = '';
+            var defaultOpt = document.createElement('option');
+            defaultOpt.value = '0';
+            defaultOpt.textContent = '-- Optionnel --';
+            stopSelect.appendChild(defaultOpt);
+        }
+    });
+
+    // Auto-set due date from payment terms days
+    var issueDateInput = document.getElementById('issue_date');
+    var dueDateInput = document.getElementById('due_date');
+    var termsInput = document.getElementById('payment_terms_days');
+
+    function updateDueDate() {
+        if (issueDateInput.value && termsInput.value) {
+            var issueDate = new Date(issueDateInput.value);
+            issueDate.setDate(issueDate.getDate() + parseInt(termsInput.value));
+            dueDateInput.value = issueDate.toISOString().split('T')[0];
+        }
+    }
+
+    issueDateInput.addEventListener('change', updateDueDate);
+    termsInput.addEventListener('change', updateDueDate);
+});
+</script>
+{% endblock %}
