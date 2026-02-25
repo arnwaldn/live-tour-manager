@@ -83,29 +83,29 @@
         <form action="{{ url_for('invoices.index') }}" method="GET" class="row g-3">
             <div class="col-6 col-md-4 col-lg-2">
                 {{ form.tour_id(class="form-select form-select-sm", id="tour_id") }}
-                <label class="form-label small text-muted">Tournee</label>
+                <label class="form-label small text-muted" for="tour_id">Tournee</label>
             </div>
             <div class="col-6 col-md-4 col-lg-2">
                 {{ form.status(class="form-select form-select-sm", id="status") }}
-                <label class="form-label small text-muted">Statut</label>
+                <label class="form-label small text-muted" for="status">Statut</label>
             </div>
             <div class="col-6 col-md-4 col-lg-2">
                 {{ form.invoice_type(class="form-select form-select-sm", id="invoice_type") }}
-                <label class="form-label small text-muted">Type</label>
+                <label class="form-label small text-muted" for="invoice_type">Type</label>
             </div>
             <div class="col-6 col-md-4 col-lg-2">
                 {{ form.date_from(class="form-control form-control-sm", id="date_from", type="date") }}
-                <label class="form-label small text-muted">Du</label>
+                <label class="form-label small text-muted" for="date_from">Du</label>
             </div>
             <div class="col-6 col-md-4 col-lg-2">
                 {{ form.date_to(class="form-control form-control-sm", id="date_to", type="date") }}
-                <label class="form-label small text-muted">Au</label>
+                <label class="form-label small text-muted" for="date_to">Au</label>
             </div>
             <div class="col-6 col-md-4 col-lg-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-outline-primary btn-sm me-2">
                     <i class="bi bi-funnel me-1"></i>Filtrer
                 </button>
-                <a href="{{ url_for('invoices.index') }}" class="btn btn-outline-secondary btn-sm">
+                <a href="{{ url_for('invoices.index') }}" class="btn btn-outline-secondary btn-sm" aria-label="Réinitialiser les filtres">
                     <i class="bi bi-x-lg"></i>
                 </a>
             </div>
@@ -183,11 +183,11 @@
                     </td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
-                            <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-outline-primary" title="Voir">
+                            <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-outline-primary" title="Voir" aria-label="Voir">
                                 <i class="bi bi-eye"></i>
                             </a>
                             {% if invoice.status.value == 'draft' %}
-                            <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-outline-secondary" title="Modifier">
+                            <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-outline-secondary" title="Modifier" aria-label="Modifier">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             {% endif %}

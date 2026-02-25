@@ -889,13 +889,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const userId = {{ user.id }};
     const csrfToken = '{{ csrf_token() }}';
 
-    // Supprimer une carte via AJAX
-    document.querySelectorAll('.delete-card-btn').forEach(btn => {
-        btn.addEventListener('click', async function() {
-            if (!confirm('Supprimer cette carte ?')) return;
+    // Supprimer une carte via AJAX (avec modal de confirmation)
+    let pendingDeleteCardId = null;
+    let pendingDeleteElement = null;
 
-            const cardId = this.dataset.cardId;
-            const cardElement = this.closest('.card.bg-dark');
+    document.querySelectorAll('.delete-card-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            pendingDeleteCardId = this.dataset.cardId;
+            pendingDeleteElement = this.closest('.card.bg-dark');
+            new bootstrap.Modal(document.getElementById('deleteCardModal')).show();
+        });
+    });
+
+    document.getElementById('deleteCardConfirmBtn').addEventListener('click', async function() {
+            bootstrap.Modal.getInstance(document.getElementById('deleteCardModal')).hide();
+            const cardId = pendingDeleteCardId;
+            const cardElement = pendingDeleteElement;
 
             try {
                 const response = await fetch(`/settings/users/${userId}/travel-cards/${cardId}/delete`, {
@@ -975,4 +984,29 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 </script>
+
+{% if user %}
+<!-- Delete Card Modal -->
+<div class="modal fade" id="deleteCardModal" tabindex="-1" aria-labelledby="deleteCardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="deleteCardModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Supprimer cette carte voyageur ?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" id="deleteCardConfirmBtn">
+                    <i class="bi bi-trash me-1"></i>Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

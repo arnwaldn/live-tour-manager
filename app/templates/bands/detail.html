@@ -83,7 +83,7 @@
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Membres ({{ band.memberships|length }})</h5>
                 {% if band.is_manager(current_user) or current_user.is_admin() %}
-                <a href="{{ url_for('bands.invite_member', id=band.id) }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ url_for('bands.invite_member', id=band.id) }}" class="btn btn-sm btn-outline-primary" aria-label="Inviter un membre">
                     <i class="bi bi-person-plus"></i>
                 </a>
                 {% endif %}
@@ -102,7 +102,7 @@
                     </div>
                     {% if band.is_manager(current_user) or current_user.is_admin() %}
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown">
+                        <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown" aria-label="Actions membre">
                             <i class="bi bi-three-dots-vertical"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
@@ -112,13 +112,10 @@
                                 </a>
                             </li>
                             <li>
-                                <form action="{{ url_for('bands.remove_member', id=band.id, member_id=membership.id) }}" method="POST">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="dropdown-item text-danger"
-                                            onclick="return confirm('Retirer ce membre?')">
-                                        <i class="bi bi-person-x me-2"></i>Retirer
-                                    </button>
-                                </form>
+                                <button type="button" class="dropdown-item text-danger"
+                                        onclick="showConfirmModal('{{ url_for('bands.remove_member', id=band.id, member_id=membership.id) }}', 'Retirer {{ membership.user.full_name }} du groupe ? Cette personne n\'aura plus accès au groupe ni à ses tournées.', 'Retirer')">
+                                    <i class="bi bi-person-x me-2"></i>Retirer
+                                </button>
                             </li>
                         </ul>
                     </div>
@@ -172,7 +169,7 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('tours.detail', id=tour.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ url_for('tours.detail', id=tour.id) }}" class="btn btn-sm btn-outline-primary" aria-label="Voir la tournée">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                 </td>
@@ -205,14 +202,78 @@
     </div>
     <div class="card-body">
         <p class="mb-3">Supprimer ce groupe supprimera également toutes les tournées associées.</p>
-        <form action="{{ url_for('bands.delete', id=band.id) }}" method="POST"
-              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce groupe? Cette action est irréversible.');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger">
-                <i class="bi bi-trash me-1"></i>Supprimer le groupe
-            </button>
-        </form>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteBandModal">
+            <i class="bi bi-trash me-1"></i>Supprimer le groupe
+        </button>
+    </div>
+</div>
+<!-- Delete Band Modal -->
+<div class="modal fade" id="deleteBandModal" tabindex="-1" aria-labelledby="deleteBandModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="deleteBandModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Supprimer le groupe
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le groupe <strong>{{ band.name }}</strong> ?</p>
+                <div class="alert alert-danger py-2 mb-0">
+                    <small>
+                        <i class="bi bi-exclamation-circle me-1"></i>
+                        Cette action est <strong>irréversible</strong> et supprimera toutes les tournées, événements et données associées.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ url_for('bands.delete', id=band.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}
+
+<!-- Confirmation Modal (dynamic) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-check-lg me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
+</script>
+{% endblock %}
 {% endblock %}

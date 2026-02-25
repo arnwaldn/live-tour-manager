@@ -222,6 +222,53 @@
         </div>
     </div>
 </div>
+<!-- Disconnect Google Modal -->
+<div class="modal fade" id="disconnectGoogleModal" tabindex="-1" aria-labelledby="disconnectGoogleLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="disconnectGoogleLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Déconnecter Google Calendar
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Déconnecter Google Calendar ?</p>
+                <p class="text-muted small mb-0">Vous perdrez la synchronisation de vos tournées avec votre calendrier Google.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" onclick="doDisconnectGoogle()">
+                    <i class="bi bi-x-circle me-1"></i>Déconnecter
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disconnect Outlook Modal -->
+<div class="modal fade" id="disconnectOutlookModal" tabindex="-1" aria-labelledby="disconnectOutlookLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="disconnectOutlookLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Déconnecter Outlook
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Déconnecter Outlook ?</p>
+                <p class="text-muted small mb-0">Vous perdrez la synchronisation de vos tournées avec votre calendrier Outlook.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" onclick="doDisconnectOutlook()">
+                    <i class="bi bi-x-circle me-1"></i>Déconnecter
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -257,8 +304,12 @@ function syncGoogle() {
 }
 
 function disconnectGoogle() {
-    if (!confirm('Voulez-vous vraiment déconnecter Google Calendar ?')) return;
+    var modal = new bootstrap.Modal(document.getElementById('disconnectGoogleModal'));
+    modal.show();
+}
 
+function doDisconnectGoogle() {
+    bootstrap.Modal.getInstance(document.getElementById('disconnectGoogleModal')).hide();
     fetch('{{ url_for("integrations.google_disconnect") }}', {
         method: 'POST',
         headers: {
@@ -310,8 +361,12 @@ function syncOutlook() {
 }
 
 function disconnectOutlook() {
-    if (!confirm('Voulez-vous vraiment déconnecter Outlook ?')) return;
+    var modal = new bootstrap.Modal(document.getElementById('disconnectOutlookModal'));
+    modal.show();
+}
 
+function doDisconnectOutlook() {
+    bootstrap.Modal.getInstance(document.getElementById('disconnectOutlookModal')).hide();
     fetch('{{ url_for("integrations.outlook_disconnect") }}', {
         method: 'POST',
         headers: {

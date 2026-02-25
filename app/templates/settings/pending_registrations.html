@@ -70,22 +70,14 @@
                         </td>
                         <td class="text-end">
                             <div class="btn-group">
-                                <form action="{{ url_for('settings.approve_user', id=user.id) }}"
-                                      method="POST" class="d-inline">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-success"
-                                            onclick="return confirm('Approuver l\'inscription de {{ user.full_name }} ?');">
-                                        <i class="bi bi-check-lg me-1"></i>Approuver
-                                    </button>
-                                </form>
-                                <form action="{{ url_for('settings.reject_user', id=user.id) }}"
-                                      method="POST" class="d-inline">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-danger"
-                                            onclick="return confirm('⚠️ Refuser l\'inscription de {{ user.full_name }} ?\n\nCette action supprimera définitivement sa demande.');">
-                                        <i class="bi bi-x-lg me-1"></i>Refuser
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-success"
+                                        onclick="showConfirmModal('{{ url_for('settings.approve_user', id=user.id) }}', 'Approuver l\'inscription de {{ user.full_name }} ({{ user.email }}) ? Un email de confirmation sera envoyé.', 'Approuver', 'success')">
+                                    <i class="bi bi-check-lg me-1"></i>Approuver
+                                </button>
+                                <button type="button" class="btn btn-danger"
+                                        onclick="showConfirmModal('{{ url_for('settings.reject_user', id=user.id) }}', 'Refuser l\'inscription de {{ user.full_name }} ({{ user.email }}) ? Cette action supprimera définitivement sa demande.', 'Refuser', 'danger')">
+                                    <i class="bi bi-x-lg me-1"></i>Refuser
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -110,6 +102,32 @@
 </div>
 {% endif %}
 
+<!-- Confirmation Modal (dynamic) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" id="confirmModalHeader">
+                <h5 class="modal-title" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn" id="confirmModalSubmitBtn">
+                        <i class="bi bi-check-lg me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .avatar-circle {
     width: 40px;
@@ -122,4 +140,24 @@
     font-size: 14px;
 }
 </style>
+
+<script>
+function showConfirmModal(url, message, btnText, variant) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    var header = document.getElementById('confirmModalHeader');
+    var submitBtn = document.getElementById('confirmModalSubmitBtn');
+    if (variant === 'success') {
+        header.className = 'modal-header bg-success bg-opacity-10';
+        document.getElementById('confirmModalLabel').className = 'modal-title text-success';
+        submitBtn.className = 'btn btn-success';
+    } else {
+        header.className = 'modal-header bg-danger bg-opacity-10';
+        document.getElementById('confirmModalLabel').className = 'modal-title text-danger';
+        submitBtn.className = 'btn btn-danger';
+    }
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
+</script>
 {% endblock %}

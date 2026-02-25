@@ -130,12 +130,10 @@
                         <i class="bi bi-check-all me-1"></i>Assigner tout le groupe
                     </button>
                 </form>
-                <form action="{{ url_for('tours.unassign_all_members', id=tour.id, stop_id=stop.id) }}" method="POST" class="d-inline">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Retirer tous les membres?')">
-                        <i class="bi bi-x-lg me-1"></i>Retirer tous
-                    </button>
-                </form>
+                <button type="button" class="btn btn-outline-danger"
+                        onclick="showConfirmModal('{{ url_for('tours.unassign_all_members', id=tour.id, stop_id=stop.id) }}', 'Retirer tous les membres de cette date ?', 'Retirer tous')">
+                    <i class="bi bi-x-lg me-1"></i>Retirer tous
+                </button>
             </div>
         </div>
 
@@ -586,7 +584,41 @@ function deselectAllMembers() {
     });
     document.getElementById('selected-count').textContent = '0';
     document.getElementById('summary-count').textContent = '0 membre';
+    // Note: innerHTML used here with static trusted content only (no user input)
     document.getElementById('selected-avatars').innerHTML = '<span class="text-muted small">Aucun membre sélectionné</span>';
 }
+
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
 </script>
+
+<!-- Dynamic Confirm Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

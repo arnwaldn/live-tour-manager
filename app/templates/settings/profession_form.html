@@ -199,14 +199,9 @@
                 </div>
                 <div class="card-body">
                     <p class="small text-muted">La suppression d'une profession est irréversible et n'est possible que si aucun utilisateur ne l'utilise.</p>
-                    <form action="{{ url_for('settings.professions_delete', id=profession.id) }}"
-                          method="POST"
-                          onsubmit="return confirm('Supprimer définitivement la profession {{ profession.name_fr }}?\n\nCette action est IRRÉVERSIBLE.');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-outline-danger w-100">
-                            <i class="bi bi-trash me-2"></i>Supprimer cette profession
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteProfessionModal">
+                        <i class="bi bi-trash me-2"></i>Supprimer cette profession
+                    </button>
                 </div>
             </div>
             {% endif %}
@@ -214,6 +209,37 @@
     </div>
 </form>
 {% endblock %}
+
+{% if profession %}
+<!-- Delete Profession Modal -->
+<div class="modal fade" id="deleteProfessionModal" tabindex="-1" aria-labelledby="deleteProfessionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="deleteProfessionModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Supprimer la profession
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Supprimer définitivement la profession <strong>{{ profession.name_fr }}</strong> ?</p>
+                <div class="alert alert-warning py-2 mb-0">
+                    <small><i class="bi bi-exclamation-triangle me-1"></i>Cette action est IRRÉVERSIBLE et n'est possible que si aucun utilisateur ne l'utilise.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ url_for('settings.professions_delete', id=profession.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 {% block extra_js %}
 <script>

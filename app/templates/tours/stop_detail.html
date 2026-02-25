@@ -151,8 +151,8 @@
         {% endif %}
     </div>
     <div class="btn-group">
-        <a href="{{ url_for('tours.day_sheet', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-gold" title="Day Sheet">
-            <i class="bi bi-calendar2-day me-1"></i>Day Sheet
+        <a href="{{ url_for('tours.day_sheet', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-gold" title="Feuille de route">
+            <i class="bi bi-calendar2-day me-1"></i>Feuille de route
         </a>
         <a href="{{ url_for('tours.staff_planning', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-info" title="Planning Journée">
             <i class="bi bi-calendar2-week me-1"></i>Planning
@@ -859,13 +859,38 @@
     </div>
     <div class="card-body">
         <p class="mb-3">Supprimer cette date supprimera également la guestlist et les informations logistiques associées.</p>
-        <form action="{{ url_for('tours.delete_stop', id=tour.id, stop_id=stop.id) }}" method="POST"
-              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette date? Cette action est irréversible.');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger">
-                <i class="bi bi-trash me-1"></i>Supprimer cette date
-            </button>
-        </form>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteStopModal">
+            <i class="bi bi-trash me-1"></i>Supprimer cette date
+        </button>
+    </div>
+</div>
+
+<!-- Delete Stop Modal -->
+<div class="modal fade" id="deleteStopModal" tabindex="-1" aria-labelledby="deleteStopModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="deleteStopModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Supprimer cette date
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Supprimer définitivement cette date ?</p>
+                <div class="alert alert-warning py-2 mb-0">
+                    <small><i class="bi bi-exclamation-triangle me-1"></i>La guestlist et les informations logistiques associées seront également supprimées. Cette action est irréversible.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ url_for('tours.delete_stop', tour_id=stop.tour_id, stop_id=stop.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}

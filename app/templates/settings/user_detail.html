@@ -276,14 +276,9 @@
             <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Utilisateur désactivé</h6>
             <p class="mb-2 small">Cet utilisateur est désactivé et n'a plus accès à l'application.</p>
             <hr class="my-2">
-            <form action="{{ url_for('settings.users_hard_delete', id=user.id) }}"
-                  method="POST" class="d-inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-danger btn-sm"
-                        onclick="return confirm('⚠️ ATTENTION: Cette action est IRRÉVERSIBLE!\n\nSupprimer définitivement cet utilisateur?\nToutes ses données seront perdues.');">
-                    <i class="bi bi-trash3-fill me-1"></i>Supprimer définitivement
-                </button>
-            </form>
+            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hardDeleteUserModal">
+                <i class="bi bi-trash3-fill me-1"></i>Supprimer définitivement
+            </button>
         </div>
         {% endif %}
     </div>
@@ -359,15 +354,11 @@
                                            class="btn btn-outline-secondary" title="Voir">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <form action="{{ url_for('documents.delete', id=doc.id) }}"
-                                              method="POST" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-danger"
-                                                    title="Supprimer"
-                                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce document ?')">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-outline-danger"
+                                                title="Supprimer"
+                                                onclick="showConfirmModal('{{ url_for('documents.delete', id=doc.id) }}', 'Supprimer le document {{ doc.original_filename }} ?', 'Supprimer')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -389,6 +380,61 @@
         </div>
     </div>
 </div>
+
+<!-- Hard Delete User Modal -->
+<div class="modal fade" id="hardDeleteUserModal" tabindex="-1" aria-labelledby="hardDeleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="hardDeleteUserModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Suppression définitive
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Supprimer définitivement <strong>{{ user.full_name }}</strong> ?</p>
+                <div class="alert alert-danger py-2 mb-0">
+                    <small><i class="bi bi-exclamation-triangle me-1"></i>Toutes les données de cet utilisateur seront supprimées de manière irréversible.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ url_for('settings.hard_delete_user', id=user.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash3-fill me-1"></i>Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Confirm Modal (for documents) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -396,6 +442,13 @@
 // Helper function for template
 function now() {
     return new Date();
+}
+
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
 }
 </script>
 {% endblock %}

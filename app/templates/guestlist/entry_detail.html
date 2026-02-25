@@ -271,17 +271,42 @@
                     <a href="{{ url_for('guestlist.edit_entry', id=entry.id) }}" class="btn btn-outline-primary">
                         <i class="bi bi-pencil me-1"></i>Modifier
                     </a>
-                    <form action="{{ url_for('guestlist.delete_entry', id=entry.id) }}" method="POST">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-outline-danger w-100"
-                                onclick="return confirm('Supprimer cet invité de la guestlist?')">
-                            <i class="bi bi-trash me-1"></i>Supprimer
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteEntryModal">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
                 </div>
             </div>
         </div>
         {% endif %}
     </div>
 </div>
+
+<!-- Delete Entry Modal -->
+{% if entry.tour_stop.tour.band_is_manager(current_user) or current_user.is_staff_or_above() %}
+<div class="modal fade" id="deleteEntryModal" tabindex="-1" aria-labelledby="deleteEntryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="deleteEntryModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Supprimer l'invité
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Supprimer <strong>{{ entry.guest_name }}</strong> de la guestlist ?</p>
+                <p class="text-muted small mb-0">Cette action ne peut pas être annulée.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ url_for('guestlist.delete_entry', id=entry.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

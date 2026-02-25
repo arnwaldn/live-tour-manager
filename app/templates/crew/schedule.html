@@ -87,7 +87,7 @@
                                 </div>
                                 {% if can_edit %}
                                 <div class="dropdown">
-                                    <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                                    <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown" aria-label="Actions créneau">
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
@@ -98,12 +98,10 @@
                                         </li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
-                                            <form action="{{ url_for('crew.delete_slot', slot_id=slot.id) }}" method="POST">
-                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Supprimer ce créneau?')">
-                                                    <i class="bi bi-trash me-2"></i>Supprimer
-                                                </button>
-                                            </form>
+                                            <button type="button" class="dropdown-item text-danger"
+                                                    onclick="showConfirmModal('{{ url_for('crew.delete_slot', slot_id=slot.id) }}', 'Supprimer le créneau « {{ slot.task_name }} » ? Les assignations associées seront aussi supprimées.', 'Supprimer')">
+                                                <i class="bi bi-trash me-2"></i>Supprimer
+                                            </button>
                                         </li>
                                     </ul>
                                 </div>
@@ -133,12 +131,11 @@
                                         </div>
                                     </div>
                                     {% if can_edit %}
-                                    <form action="{{ url_for('crew.delete_assignment', id=assignment.id) }}" method="POST" class="m-0">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('Retirer cette personne?')">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-sm btn-link text-danger p-0"
+                                            onclick="showConfirmModal('{{ url_for('crew.delete_assignment', id=assignment.id) }}', 'Retirer {{ assignment.person_name }} de ce créneau ?', 'Retirer')"
+                                            aria-label="Retirer du créneau">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
                                     {% endif %}
                                 </div>
                                 {% endfor %}
@@ -181,7 +178,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
                     <h5 class="modal-title" id="slotModalTitle">Nouveau créneau</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -235,7 +232,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Assigner à <span id="assignSlotName"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -295,7 +292,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Nouveau contact externe</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row">
@@ -376,6 +373,39 @@ document.getElementById('slotModal').addEventListener('hidden.bs.modal', functio
     document.getElementById('slotForm').reset();
     document.getElementById('slotColor').value = '#3B82F6';
 });
+
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
 </script>
+
+<!-- Confirmation Modal (dynamic) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-check-lg me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endif %}
 {% endblock %}

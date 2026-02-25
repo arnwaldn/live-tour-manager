@@ -292,16 +292,41 @@
     </div>
     <div class="card-body">
         <p class="mb-3">Supprimer cette tournée supprimera également toutes les dates et guestlists associées.</p>
-        <form action="{{ url_for('tours.delete', id=tour.id) }}" method="POST"
-              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette tournée? Cette action est irréversible.');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger">
-                <i class="bi bi-trash me-1"></i>Supprimer la tournée
-            </button>
-        </form>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTourModal">
+            <i class="bi bi-trash me-1"></i>Supprimer la tournée
+        </button>
     </div>
 </div>
 {% endif %}
+
+<!-- Delete Tour Modal -->
+<div class="modal fade" id="deleteTourModal" tabindex="-1" aria-labelledby="deleteTourModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="deleteTourModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Supprimer la tournée
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Supprimer définitivement la tournée <strong>{{ tour.name }}</strong> ?</p>
+                <div class="alert alert-warning py-2 mb-0">
+                    <small><i class="bi bi-exclamation-triangle me-1"></i>Cette action supprimera également toutes les dates et guestlists associées. Cette action est irréversible.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ url_for('tours.delete', id=tour.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal Abonnement Calendrier -->
 <div class="modal fade" id="calendarSubscriptionModal" tabindex="-1" aria-labelledby="calendarSubscriptionModalLabel" aria-hidden="true">

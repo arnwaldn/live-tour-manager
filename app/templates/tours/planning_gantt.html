@@ -734,8 +734,19 @@ function deleteSlot() {
     const slotId = document.getElementById('slot_id').value;
     if (!slotId) return;
 
-    if (!confirm('Supprimer ce créneau ?')) return;
+    showDeleteSlotModal(slotId);
+    return;
+}
 
+function showDeleteSlotModal(slotId) {
+    document.getElementById('deleteSlotConfirmBtn').onclick = function() {
+        doDeleteSlot(slotId);
+        bootstrap.Modal.getInstance(document.getElementById('deleteSlotModal')).hide();
+    };
+    new bootstrap.Modal(document.getElementById('deleteSlotModal')).show();
+}
+
+function doDeleteSlot(slotId) {
     fetch(`/tours/${tourId}/stops/${stopId}/planning/slot/${slotId}`, {
         method: 'DELETE',
         headers: {
@@ -757,4 +768,27 @@ function deleteSlot() {
     });
 }
 </script>
+
+<!-- Delete Slot Modal -->
+<div class="modal fade" id="deleteSlotModal" tabindex="-1" aria-labelledby="deleteSlotModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="deleteSlotModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Supprimer ce créneau ?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" id="deleteSlotConfirmBtn">
+                    <i class="bi bi-trash me-1"></i>Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
