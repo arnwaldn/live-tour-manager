@@ -135,7 +135,7 @@
                         <label class="form-label text-muted small">Concert/Date</label>
                         <p class="mb-0">
                             {% if payment.tour_stop %}
-                            <a href="{{ url_for('tours.stop_detail', tour_id=payment.tour.id, stop_id=payment.tour_stop.id) }}">
+                            <a href="{{ url_for('tours.stop_detail', id=payment.tour.id, stop_id=payment.tour_stop.id) }}">
                                 {{ payment.tour_stop.date.strftime('%d/%m/%Y') }} - {{ payment.tour_stop.venue.name if payment.tour_stop.venue else payment.tour_stop.location_city }}
                             </a>
                             {% else %}

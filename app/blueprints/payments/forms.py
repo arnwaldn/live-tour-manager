@@ -30,8 +30,8 @@ class PaymentForm(FlaskForm):
     tour_stop_id = SelectField('Concert/Date', coerce=int, validators=[Optional()])
 
     # Classification
-    staff_category = SelectField('Categorie', choices=[
-        ('', '-- Selectionner --'),
+    staff_category = SelectField('Catégorie', choices=[
+        ('', '-- Sélectionner --'),
         (StaffCategory.ARTISTIC.value, 'Artistique (Musiciens, Choristes)'),
         (StaffCategory.TECHNICAL.value, 'Technique (Son, Lumiere, Backline)'),
         (StaffCategory.MANAGEMENT.value, 'Management (TM, PM)'),
@@ -40,7 +40,7 @@ class PaymentForm(FlaskForm):
     ], validators=[DataRequired(message='La categorie est requise')])
 
     staff_role = SelectField('Role', choices=[
-        ('', '-- Selectionner --'),
+        ('', '-- Sélectionner --'),
         # ARTISTIC
         ('LEAD_MUSICIAN', 'Musicien principal'),
         ('MUSICIAN', 'Musicien'),
@@ -93,8 +93,8 @@ class PaymentForm(FlaskForm):
         (PaymentType.MEAL_ALLOWANCE.value, 'Indemnite repas')
     ], validators=[DataRequired()])
 
-    payment_frequency = SelectField('Frequence', choices=[
-        ('', '-- Selectionner --'),
+    payment_frequency = SelectField('Fréquence', choices=[
+        ('', '-- Sélectionner --'),
         (PaymentFrequency.PER_SHOW.value, 'Par concert'),
         (PaymentFrequency.DAILY.value, 'Journalier'),
         (PaymentFrequency.WEEKLY.value, 'Hebdomadaire'),
@@ -136,7 +136,7 @@ class PaymentForm(FlaskForm):
 
     # Methode de paiement
     payment_method = SelectField('Methode de paiement', choices=[
-        ('', '-- Selectionner --'),
+        ('', '-- Sélectionner --'),
         (PaymentMethod.BANK_TRANSFER.value, 'Virement bancaire'),
         (PaymentMethod.SEPA.value, 'Virement SEPA'),
         (PaymentMethod.CHECK.value, 'Cheque'),
@@ -177,8 +177,8 @@ class UserPaymentConfigForm(FlaskForm):
     """Form for configuring a team member's payment defaults."""
 
     # Classification
-    staff_category = SelectField('Categorie', choices=[
-        ('', '-- Selectionner --'),
+    staff_category = SelectField('Catégorie', choices=[
+        ('', '-- Sélectionner --'),
         (StaffCategory.ARTISTIC.value, 'Artistique'),
         (StaffCategory.TECHNICAL.value, 'Technique'),
         (StaffCategory.MANAGEMENT.value, 'Management'),
@@ -187,12 +187,12 @@ class UserPaymentConfigForm(FlaskForm):
     ], validators=[DataRequired()])
 
     staff_role = SelectField('Role principal', choices=[
-        ('', '-- Selectionner --'),
+        ('', '-- Sélectionner --'),
         # Options dynamiquement chargees selon categorie
     ], validators=[Optional()])
 
     contract_type = SelectField('Type de contrat', choices=[
-        ('', '-- Selectionner --'),
+        ('', '-- Sélectionner --'),
         (ContractType.CDDU.value, 'CDDU (Intermittent)'),
         (ContractType.CDD.value, 'CDD'),
         (ContractType.CDI.value, 'CDI'),
@@ -202,7 +202,7 @@ class UserPaymentConfigForm(FlaskForm):
     ], validators=[Optional()])
 
     payment_frequency = SelectField('Frequence de paiement', choices=[
-        ('', '-- Selectionner --'),
+        ('', '-- Sélectionner --'),
         (PaymentFrequency.PER_SHOW.value, 'Par concert'),
         (PaymentFrequency.DAILY.value, 'Journalier'),
         (PaymentFrequency.WEEKLY.value, 'Hebdomadaire'),
@@ -327,10 +327,10 @@ class PaymentFilterForm(FlaskForm):
         ('', 'Tous'),
         (PaymentStatus.DRAFT.value, 'Brouillon'),
         (PaymentStatus.PENDING_APPROVAL.value, 'En attente'),
-        (PaymentStatus.APPROVED.value, 'Approuve'),
-        (PaymentStatus.SCHEDULED.value, 'Programme'),
-        (PaymentStatus.PAID.value, 'Paye'),
-        (PaymentStatus.CANCELLED.value, 'Annule')
+        (PaymentStatus.APPROVED.value, 'Approuvé'),
+        (PaymentStatus.SCHEDULED.value, 'Programmé'),
+        (PaymentStatus.PAID.value, 'Payé'),
+        (PaymentStatus.CANCELLED.value, 'Annulé')
     ], validators=[Optional()])
 
     payment_type = SelectField('Type', choices=[
@@ -343,7 +343,7 @@ class PaymentFilterForm(FlaskForm):
         (PaymentType.ADVANCE.value, 'Avances')
     ], validators=[Optional()])
 
-    staff_category = SelectField('Categorie', choices=[
+    staff_category = SelectField('Catégorie', choices=[
         ('', 'Toutes'),
         (StaffCategory.ARTISTIC.value, 'Artistique'),
         (StaffCategory.TECHNICAL.value, 'Technique'),

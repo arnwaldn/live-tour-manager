@@ -41,7 +41,7 @@ def manager_required(f):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login'))
         if not current_user.is_manager_or_above():
-            flash('Acces reserve aux managers.', 'danger')
+            flash('Accès réservé aux managers.', 'danger')
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
@@ -164,7 +164,7 @@ def add():
     form = PaymentForm()
 
     # Populate select fields
-    form.user_id.choices = [(0, '-- Selectionner --')] + [
+    form.user_id.choices = [(0, '-- Sélectionner --')] + [
         (u.id, f"{u.full_name} ({u.email})") for u in User.query.filter_by(is_active=True).order_by(User.last_name).all()
     ]
     form.tour_id.choices = [(0, '-- Optionnel --')] + [
@@ -205,7 +205,7 @@ def add():
             'type': payment.payment_type.value
         })
 
-        flash(f'Paiement {payment.reference} cree avec succes.', 'success')
+        flash(f'Paiement {payment.reference} créé avec succès.', 'success')
         return redirect(url_for('payments.detail', payment_id=payment.id))
 
     return render_template('payments/form.html', form=form, title='Nouveau paiement')
@@ -229,13 +229,13 @@ def edit(payment_id):
 
     # Cannot edit paid or cancelled payments
     if payment.status in [PaymentStatus.PAID, PaymentStatus.CANCELLED]:
-        flash('Ce paiement ne peut plus etre modifie.', 'warning')
+        flash('Ce paiement ne peut plus être modifié.', 'warning')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     form = PaymentForm(obj=payment)
 
     # Populate select fields
-    form.user_id.choices = [(0, '-- Selectionner --')] + [
+    form.user_id.choices = [(0, '-- Sélectionner --')] + [
         (u.id, f"{u.full_name} ({u.email})") for u in User.query.filter_by(is_active=True).order_by(User.last_name).all()
     ]
     form.tour_id.choices = [(0, '-- Optionnel --')] + [
@@ -279,7 +279,7 @@ def edit(payment_id):
             'new_amount': str(payment.amount)
         })
 
-        flash('Paiement mis a jour avec succes.', 'success')
+        flash('Paiement mis à jour avec succès.', 'success')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     return render_template('payments/form.html', form=form, payment=payment, title='Modifier le paiement')
@@ -293,7 +293,7 @@ def delete(payment_id):
     payment = TeamMemberPayment.query.get_or_404(payment_id)
 
     if payment.status != PaymentStatus.DRAFT:
-        flash('Seuls les paiements en brouillon peuvent etre supprimes.', 'warning')
+        flash('Seuls les paiements en brouillon peuvent être supprimés.', 'warning')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     reference = payment.reference
@@ -302,7 +302,7 @@ def delete(payment_id):
 
     log_action('DELETE', 'TeamMemberPayment', payment_id, {'reference': reference})
 
-    flash(f'Paiement {reference} supprime.', 'success')
+    flash(f'Paiement {reference} supprimé.', 'success')
     return redirect(url_for('payments.index'))
 
 
@@ -318,7 +318,7 @@ def submit_for_approval(payment_id):
     payment = TeamMemberPayment.query.get_or_404(payment_id)
 
     if payment.status != PaymentStatus.DRAFT:
-        flash('Ce paiement ne peut pas etre soumis.', 'warning')
+        flash('Ce paiement ne peut pas être soumis.', 'warning')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     payment.submit_for_approval(current_user.id)
@@ -362,7 +362,7 @@ def approve(payment_id):
     payment = TeamMemberPayment.query.get_or_404(payment_id)
 
     if payment.status != PaymentStatus.PENDING_APPROVAL:
-        flash('Ce paiement ne peut pas etre approuve.', 'warning')
+        flash('Ce paiement ne peut pas être approuvé.', 'warning')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     payment.approve(current_user.id)  # P-C2 fix: pass user_id, not user object
@@ -374,7 +374,7 @@ def approve(payment_id):
         'approved_by': current_user.id
     })
 
-    flash(f'Paiement {payment.reference} approuve.', 'success')
+    flash(f'Paiement {payment.reference} approuvé.', 'success')
 
     # Return to queue if there are more
     if TeamMemberPayment.query.filter_by(status=PaymentStatus.PENDING_APPROVAL).count() > 0:
@@ -392,7 +392,7 @@ def reject(payment_id):
     reason = request.form.get('reason', '')
 
     if payment.status != PaymentStatus.PENDING_APPROVAL:
-        flash('Ce paiement ne peut pas etre rejete.', 'warning')
+        flash('Ce paiement ne peut pas être rejeté.', 'warning')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     payment.reject(current_user.id, reason)
@@ -403,7 +403,7 @@ def reject(payment_id):
         'reason': reason
     })
 
-    flash(f'Paiement {payment.reference} rejete.', 'warning')
+    flash(f'Paiement {payment.reference} rejeté.', 'warning')
     return redirect(url_for('payments.approval_queue'))
 
 
@@ -415,7 +415,7 @@ def mark_paid(payment_id):
     payment = TeamMemberPayment.query.get_or_404(payment_id)
 
     if payment.status not in [PaymentStatus.APPROVED, PaymentStatus.SCHEDULED]:
-        flash('Ce paiement ne peut pas etre marque comme paye.', 'warning')
+        flash('Ce paiement ne peut pas être marqué comme payé.', 'warning')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     bank_reference = request.form.get('bank_reference', '')
@@ -433,7 +433,7 @@ def mark_paid(payment_id):
         'bank_reference': bank_reference
     })
 
-    flash(f'Paiement {payment.reference} marque comme paye.', 'success')
+    flash(f'Paiement {payment.reference} marqué comme payé.', 'success')
     return redirect(url_for('payments.detail', payment_id=payment_id))
 
 
@@ -452,7 +452,7 @@ def cancel(payment_id):
     ]
 
     if payment.status not in cancellable_statuses:
-        flash('Ce paiement ne peut pas etre annule.', 'warning')
+        flash('Ce paiement ne peut pas être annulé.', 'warning')
         return redirect(url_for('payments.detail', payment_id=payment_id))
 
     previous_status = payment.status.value
@@ -467,7 +467,7 @@ def cancel(payment_id):
         'reason': reason
     })
 
-    flash(f'Paiement {payment.reference} annule.', 'success')
+    flash(f'Paiement {payment.reference} annulé.', 'success')
     return redirect(url_for('payments.index'))
 
 
@@ -482,7 +482,7 @@ def batch_per_diems():
     """Generate per diems for a tour."""
     form = PerDiemBatchForm()
 
-    form.tour_id.choices = [(0, '-- Selectionner --')] + [
+    form.tour_id.choices = [(0, '-- Sélectionner --')] + [
         (t.id, f"{t.name} ({t.start_date.strftime('%d/%m/%Y')} - {t.end_date.strftime('%d/%m/%Y') if t.end_date else '?'})")
         for t in Tour.query.order_by(Tour.start_date.desc()).all()
     ]
@@ -494,7 +494,7 @@ def batch_per_diems():
         tour_stops = TourStop.query.filter_by(tour_id=tour.id).order_by(TourStop.date).all()
 
         if not tour_stops:
-            flash('Cette tournee n\'a pas de dates.', 'warning')
+            flash('Cette tournée n\'a pas de dates.', 'warning')
             return redirect(url_for('payments.batch_per_diems'))
 
         # Get team members with payment config (those who get per diems)
@@ -556,7 +556,7 @@ def batch_per_diems():
             'amount_each': str(per_diem_amount)
         })
 
-        flash(f'{created_count} per diems generes pour la tournee {tour.name}.', 'success')
+        flash(f'{created_count} per diems générés pour la tournée {tour.name}.', 'success')
         return redirect(url_for('payments.index', tour_id=tour.id))
 
     return render_template('payments/batch_per_diems.html', form=form)
@@ -570,7 +570,7 @@ def batch_approve():
     payment_ids = request.form.getlist('payment_ids')
 
     if not payment_ids:
-        flash('Aucun paiement selectionne.', 'warning')
+        flash('Aucun paiement sélectionné.', 'warning')
         return redirect(url_for('payments.approval_queue'))
 
     approved_count = 0
@@ -588,7 +588,7 @@ def batch_approve():
         'approved_by': current_user.id
     })
 
-    flash(f'{approved_count} paiement(s) approuve(s).', 'success')
+    flash(f'{approved_count} paiement(s) approuvé(s).', 'success')
     return redirect(url_for('payments.approval_queue'))
 
 
@@ -630,8 +630,8 @@ def export_csv():
 
     # Header
     writer.writerow([
-        'Reference', 'Date travail', 'Beneficiaire', 'Email',
-        'Categorie', 'Role', 'Type', 'Description',
+        'Référence', 'Date travail', 'Bénéficiaire', 'Email',
+        'Catégorie', 'Rôle', 'Type', 'Description',
         'Montant', 'Devise', 'Statut', 'Date paiement',
         'Tournée', 'Concert'
     ])
@@ -681,11 +681,11 @@ def export_sepa():
     ).all()
 
     if not payments:
-        flash('Aucun paiement SEPA a exporter.', 'warning')
+        flash('Aucun paiement SEPA à exporter.', 'warning')
         return redirect(url_for('payments.index'))
 
     # For now, return a simple message - full SEPA XML generation would be in a service
-    flash(f'{len(payments)} paiements prets pour export SEPA. Fonctionnalite complete a venir.', 'info')
+    flash(f'{len(payments)} paiements prêts pour export SEPA. Fonctionnalité complète à venir.', 'info')
 
     log_action('EXPORT_SEPA', 'TeamMemberPayment', None, {
         'count': len(payments),
@@ -776,7 +776,7 @@ def config_edit(user_id):
 
         log_update('UserPaymentConfig', user_id, {'updated': True})
 
-        flash(f'Configuration de paiement pour {user.full_name} mise a jour.', 'success')
+        flash(f'Configuration de paiement pour {user.full_name} mise à jour.', 'success')
         return redirect(url_for('payments.config_list'))
 
     return render_template(
@@ -803,9 +803,9 @@ def config_apply_defaults(user_id):
         config.per_diem = defaults.get('per_diem', 35)
 
         db.session.commit()
-        flash('Taux par defaut appliques.', 'success')
+        flash('Taux par défaut appliqués.', 'success')
     else:
-        flash('Aucun taux par defaut disponible pour ce role.', 'warning')
+        flash('Aucun taux par défaut disponible pour ce rôle.', 'warning')
 
     return redirect(url_for('payments.config_edit', user_id=user_id))
 
