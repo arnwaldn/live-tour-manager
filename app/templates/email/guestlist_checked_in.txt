@@ -6,29 +6,29 @@ CONFIRMATION DE CHECK-IN
 
 Bonjour,
 
-Nous vous confirmons que votre check-in a ete enregistre avec succes.
+Nous vous confirmons que votre check-in a été enregistré avec succès.
 
 ---
-DETAILS DE L'EVENEMENT
+DÉTAILS DE L'ÉVÉNEMENT
 ---
 Artiste: {{ band.name }}
-{% if tour %}Tournee: {{ tour.name }}{% endif %}
+{% if tour %}Tournée : {{ tour.name }}{% endif %}
 Lieu: {{ venue.name }}
 Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
 
 ---
-VOTRE ENTREE
+VOTRE ENTRÉE
 ---
 Nom: {{ entry.guest_name }}
-Type d'acces: {{ entry.entry_type.value|replace('_', ' ')|title }}
+Type d'accès : {{ entry.entry_type.value|replace('_', ' ')|title }}
 {% if entry.plus_ones > 0 %}Accompagnants: +{{ entry.plus_ones }}{% endif %}
-Statut: CHECK-IN EFFECTUE
+Statut : CHECK-IN EFFECTUÉ
 
-Passez une excellente soiree!
+Passez une excellente soirée !
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.

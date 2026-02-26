@@ -41,7 +41,7 @@
             <div class="card-body py-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="text-white-50 mb-1 small">Encaisse</h6>
+                        <h6 class="text-white-50 mb-1 small">Encaissé</h6>
                         <h4 class="mb-0">{{ "{:,.2f}".format(total_paid) }} EUR</h4>
                     </div>
                     <i class="bi bi-check-circle fs-2 opacity-50"></i>
@@ -54,7 +54,7 @@
             <div class="card-body py-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="text-dark-50 mb-1 small">Reste du</h6>
+                        <h6 class="text-dark-50 mb-1 small">Reste dû</h6>
                         <h4 class="mb-0">{{ "{:,.2f}".format(total_due) }} EUR</h4>
                     </div>
                     <i class="bi bi-hourglass-split fs-2 opacity-50"></i>
@@ -83,7 +83,7 @@
         <form action="{{ url_for('invoices.index') }}" method="GET" class="row g-3">
             <div class="col-6 col-md-4 col-lg-2">
                 {{ form.tour_id(class="form-select form-select-sm", id="tour_id") }}
-                <label class="form-label small text-muted" for="tour_id">Tournee</label>
+                <label class="form-label small text-muted" for="tour_id">Tournée</label>
             </div>
             <div class="col-6 col-md-4 col-lg-2">
                 {{ form.status(class="form-select form-select-sm", id="status") }}
@@ -123,9 +123,9 @@
                     <th>Numero</th>
                     <th>Destinataire</th>
                     <th>Type</th>
-                    <th>Tournee</th>
+                    <th>Tournée</th>
                     <th class="text-end">Total TTC</th>
-                    <th class="text-end">Reste du</th>
+                    <th class="text-end">Reste dû</th>
                     <th>Statut</th>
                     <th>Date</th>
                     <th class="text-end">Actions</th>
@@ -207,9 +207,9 @@
     <h3 class="mt-3">Aucune facture</h3>
     <p class="text-muted">
         {% if request.args %}
-        Aucune facture ne correspond aux filtres selectionnes.
+        Aucune facture ne correspond aux filtres sélectionnés.
         {% else %}
-        Creez votre premiere facture pour commencer.
+        Créez votre première facture pour commencer.
         {% endif %}
     </p>
     <a href="{{ url_for('invoices.add') }}" class="btn btn-primary mt-2">

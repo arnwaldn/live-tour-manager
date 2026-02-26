@@ -2,17 +2,17 @@
 GIGROUTE
 ==============================
 
-VOTRE DEMANDE GUESTLIST A ETE APPROUVEE
+VOTRE DEMANDE GUESTLIST A ÉTÉ APPROUVÉE
 
 Bonjour,
 
-Nous avons le plaisir de vous confirmer que votre demande d'acces guestlist a ete APPROUVEE.
+Nous avons le plaisir de vous confirmer que votre demande d'accès guestlist a été APPROUVÉE.
 
 ---
-DETAILS DE L'EVENEMENT
+DÉTAILS DE L'ÉVÉNEMENT
 ---
 Artiste: {{ band.name }}
-{% if tour %}Tournee: {{ tour.name }}{% endif %}
+{% if tour %}Tournée : {{ tour.name }}{% endif %}
 Lieu: {{ venue.name }}
 Adresse: {{ venue.address }}, {{ venue.city }}
 Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
@@ -22,16 +22,16 @@ Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
 VOTRE INVITATION
 ---
 Nom: {{ entry.guest_name }}
-Type d'acces: {{ entry.entry_type.value|replace('_', ' ')|title }}
+Type d'accès : {{ entry.entry_type.value|replace('_', ' ')|title }}
 {% if entry.plus_ones > 0 %}Accompagnants: +{{ entry.plus_ones }}{% endif %}
 
-IMPORTANT: Presentez-vous a l'entree guestlist avec une piece d'identite. Mentionnez votre nom a l'accueil.
+IMPORTANT : Présentez-vous à l'entrée guestlist avec une pièce d'identité. Mentionnez votre nom à l'accueil.
 
 Nous vous souhaitons un excellent concert!
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.

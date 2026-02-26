@@ -14,9 +14,9 @@
 <p>Bonjour {{ user.first_name }},</p>
 
 {% if reminder_type == 'j7' %}
-<p>Ceci est un rappel pour votre evenement dans <strong>7 jours</strong>.</p>
+<p>Ceci est un rappel pour votre événement dans <strong>7 jours</strong>.</p>
 {% else %}
-<p>Ceci est un rappel pour votre evenement de <strong>demain</strong>.</p>
+<p>Ceci est un rappel pour votre événement de <strong>demain</strong>.</p>
 {% endif %}
 
 <div class="info-box">
@@ -38,7 +38,7 @@
     {% endif %}
     {% if tour %}
     <p>
-        <span class="label">Tournee :</span>
+        <span class="label">Tournée :</span>
         <span class="value">{{ tour.name }}</span>
     </p>
     {% endif %}
@@ -99,12 +99,12 @@
 {% endif %}
 
 <p style="margin-top: 30px;">
-    Bon concert!<br>
-    <strong>L'equipe GigRoute</strong>
+    Bon concert !<br>
+    <strong>L'équipe GigRoute</strong>
 </p>
 
 <p style="color: #999999; font-size: 12px; margin-top: 20px; border-top: 1px solid #eeeeee; padding-top: 15px;">
-    Vous recevez cet email car vous etes inscrit a cet evenement.
-    Vous pouvez gerer vos preferences de rappels dans vos parametres.
+    Vous recevez cet email car vous êtes inscrit à cet événement.
+    Vous pouvez gérer vos préférences de rappels dans vos paramètres.
 </p>
 {% endblock %}

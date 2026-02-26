@@ -4,10 +4,10 @@ GIGROUTE
 
 NOUVELLE DEMANDE GUESTLIST
 
-Une nouvelle demande d'acces guestlist a ete soumise.
+Une nouvelle demande d'accès guestlist a été soumise.
 
 ---
-DETAILS DE LA DEMANDE
+DÉTAILS DE LA DEMANDE
 ---
 Nom: {{ entry.guest_name }}
 Email: {{ entry.guest_email }}
@@ -16,10 +16,10 @@ Type: {{ entry.entry_type.value|replace('_', ' ')|title }}
 {% if entry.notes %}Notes: {{ entry.notes }}{% endif %}
 
 ---
-DETAILS DE L'EVENEMENT
+DÉTAILS DE L'ÉVÉNEMENT
 ---
 Artiste: {{ band.name }}
-{% if tour %}Tournee: {{ tour.name }}{% endif %}
+{% if tour %}Tournée : {{ tour.name }}{% endif %}
 Lieu: {{ venue.name }}
 Adresse: {{ venue.address }}, {{ venue.city }}
 Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
@@ -27,11 +27,11 @@ Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
 ---
 ACTION REQUISE
 ---
-Connectez-vous a GigRoute pour approuver ou refuser cette demande.
+Connectez-vous à GigRoute pour approuver ou refuser cette demande.
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.

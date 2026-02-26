@@ -2,18 +2,18 @@
 GIGROUTE
 ==============================
 
-VOTRE INSCRIPTION A ETE APPROUVEE
+VOTRE INSCRIPTION A ÉTÉ APPROUVÉE
 
 Bonjour {{ user.first_name }},
 
-Felicitations! Votre demande d'inscription a GigRoute a ete approuvee.
+Félicitations ! Votre demande d'inscription à GigRoute a été approuvée.
 
 ---
 CONNEXION
 ---
 {{ login_url }}
 
-Vous pouvez maintenant vous connecter avec vos identifiants et acceder a la plateforme.
+Vous pouvez maintenant vous connecter avec vos identifiants et accéder à la plateforme.
 
 ---
 VOS INFORMATIONS
@@ -21,11 +21,11 @@ VOS INFORMATIONS
 Nom: {{ user.full_name }}
 Email: {{ user.email }}
 
-Bienvenue dans l'equipe!
+Bienvenue dans l'équipe !
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.

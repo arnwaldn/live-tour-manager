@@ -116,6 +116,12 @@
 }
 
 @media (max-width: 575.98px) {
+    /* Notification dropdown responsive */
+    .notification-dropdown {
+        width: calc(100vw - 2rem) !important;
+        max-width: 320px;
+    }
+
     /* Extra small adjustments */
     .sidebar {
         width: 85vw;

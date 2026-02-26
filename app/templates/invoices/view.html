@@ -189,7 +189,7 @@
                         </tr>
                         <tr class="fw-bold {{ 'text-danger' if invoice.is_overdue else '' }}">
                             <td colspan="{{ 5 if invoice.status.value == 'draft' else 4 }}"></td>
-                            <td class="text-end">Reste du</td>
+                            <td class="text-end">Reste dû</td>
                             <td class="text-end">{{ "{:,.2f}".format(invoice.amount_due) }} EUR</td>
                         </tr>
                         {% endif %}
@@ -283,7 +283,7 @@
                 <h6 class="text-white-50">Total TTC</h6>
                 <h2 class="mb-1">{{ "{:,.2f}".format(invoice.total_ttc) }} EUR</h2>
                 {% if invoice.amount_due and invoice.amount_due > 0 and invoice.amount_due != invoice.total_ttc %}
-                <p class="mb-0 small text-white-50">Reste du : {{ "{:,.2f}".format(invoice.amount_due) }} EUR</p>
+                <p class="mb-0 small text-white-50">Reste dû : {{ "{:,.2f}".format(invoice.amount_due) }} EUR</p>
                 {% endif %}
             </div>
         </div>
@@ -328,7 +328,7 @@
         {% if invoice.issuer_iban %}
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-transparent">
-                <h6 class="mb-0"><i class="bi bi-bank me-2"></i>Coordonnees bancaires</h6>
+                <h6 class="mb-0"><i class="bi bi-bank me-2"></i>Coordonnées bancaires</h6>
             </div>
             <div class="card-body small">
                 <p class="mb-1"><strong>IBAN :</strong> {{ invoice.issuer_iban }}</p>
@@ -559,7 +559,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-info mb-3">
-                        Reste du : <strong>{{ "{:,.2f}".format(invoice.amount_due) }} EUR</strong>
+                        Reste dû : <strong>{{ "{:,.2f}".format(invoice.amount_due) }} EUR</strong>
                     </div>
                     <div class="mb-3">
                         <label for="pay_amount" class="form-label">Montant *</label>
