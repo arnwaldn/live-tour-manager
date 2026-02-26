@@ -22,7 +22,7 @@
             {{ stop.venue.name }} · {{ stop.date.strftime('%d/%m/%Y') }}
         </p>
     </div>
-    <div class="btn-group">
+    <div class="d-flex flex-wrap gap-2">
         <a href="{{ url_for('guestlist.check_in_interface', stop_id=stop.id) }}" class="btn btn-outline-success">
             <i class="bi bi-check2-circle me-1"></i>Check-in
         </a>
@@ -98,7 +98,7 @@
                 <label for="entry_type" class="form-label">Type</label>
                 <select name="entry_type" id="entry_type" class="form-select">
                     <option value="">Tous les types</option>
-                    <option value="guest" {{ 'selected' if request.args.get('entry_type') == 'guest' }}>Guest</option>
+                    <option value="guest" {{ 'selected' if request.args.get('entry_type') == 'guest' }}>Invité</option>
                     <option value="vip" {{ 'selected' if request.args.get('entry_type') == 'vip' }}>VIP</option>
                     <option value="press" {{ 'selected' if request.args.get('entry_type') == 'press' }}>Presse</option>
                     <option value="industry" {{ 'selected' if request.args.get('entry_type') == 'industry' }}>Industrie</option>
@@ -162,16 +162,16 @@
                         <td class="d-none d-md-table-cell">{{ entry.requested_by.full_name }}</td>
                         <td class="text-center">{{ entry.plus_ones }}</td>
                         <td>
-                            <div class="btn-group btn-group-sm">
+                            <div class="d-flex gap-1">
                                 <form action="{{ url_for('guestlist.approve_entry', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-success" title="Approuver" aria-label="Approuver">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Approuver" aria-label="Approuver">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                 </form>
                                 <form action="{{ url_for('guestlist.deny_entry', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-danger" title="Refuser" aria-label="Refuser">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Refuser" aria-label="Refuser">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                 </form>

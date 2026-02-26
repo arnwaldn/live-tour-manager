@@ -1,6 +1,6 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Settlement - {{ settlement.venue_name }} - GigRoute{% endblock %}
+{% block title %}Règlement - {{ settlement.venue_name }} - GigRoute{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -169,7 +169,7 @@
         <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Tableau de bord</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('reports.index') }}">Rapports</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('reports.financial_dashboard') }}">Tableau de bord financier</a></li>
-        <li class="breadcrumb-item active">Settlement</li>
+        <li class="breadcrumb-item active">Règlement</li>
     </ol>
 </nav>
 {% endblock %}

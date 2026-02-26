@@ -6,7 +6,7 @@ BIENVENUE SUR GIGROUTE
 
 Bonjour {{ user.first_name }},
 
-Votre compte a ete cree avec succes. Bienvenue dans l'equipe GigRoute!
+Votre compte a été créé avec succès. Bienvenue dans l'équipe GigRoute !
 
 ---
 VOS INFORMATIONS
@@ -19,11 +19,11 @@ CONNEXION
 ---
 {{ login_url }}
 
-Vous pouvez maintenant vous connecter et acceder a toutes les fonctionnalites de gestion de tournee.
+Vous pouvez maintenant vous connecter et accéder à toutes les fonctionnalités de gestion de tournée.
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.

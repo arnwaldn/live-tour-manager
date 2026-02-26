@@ -4,14 +4,14 @@ GIGROUTE
 
 NOUVELLE INSCRIPTION EN ATTENTE
 
-Une nouvelle demande d'inscription a ete soumise et attend votre approbation.
+Une nouvelle demande d'inscription a été soumise et attend votre approbation.
 
 ---
 INFORMATIONS DU DEMANDEUR
 ---
 Nom: {{ user.full_name }}
 Email: {{ user.email }}
-{% if user.phone %}Telephone: {{ user.phone }}{% endif %}
+{% if user.phone %}Téléphone : {{ user.phone }}{% endif %}
 
 ---
 ACTION REQUISE
@@ -21,8 +21,8 @@ ACTION REQUISE
 Connectez-vous pour approuver ou refuser cette demande.
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.

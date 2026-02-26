@@ -6,19 +6,19 @@ INVITATION MISSION
 
 Bonjour {{ user.first_name }},
 
-Vous etes invite(e) a participer a l'evenement suivant:
+Vous êtes invité(e) à participer à l'événement suivant :
 
 ---
-DETAILS
+DÉTAILS
 ---
-Evenement: {{ tour_stop.event_label }}
+Événement : {{ tour_stop.event_label }}
 Date: {{ tour_stop.date.strftime('%A %d %B %Y') }}
 {% if venue %}Lieu: {{ venue.name }}, {{ venue.city }}{% elif tour_stop.location_city %}Lieu: {{ tour_stop.location_city }}{% if tour_stop.location_country %}, {{ tour_stop.location_country }}{% endif %}{% endif %}
-{% if tour %}Tournee: {{ tour.name }}{% endif %}
+{% if tour %}Tournée : {{ tour.name }}{% endif %}
 {% if band %}Groupe: {{ band.name }}{% endif %}
 
 {% if tour_stop.load_in_time or tour_stop.soundcheck_time or tour_stop.set_time %}---
-HORAIRES PREVUS
+HORAIRES PRÉVUS
 ---
 {% if tour_stop.load_in_time %}Load-in: {{ tour_stop.load_in_time.strftime('%H:%M') }}{% endif %}
 {% if tour_stop.soundcheck_time %}Soundcheck: {{ tour_stop.soundcheck_time.strftime('%H:%M') }}{% endif %}
@@ -27,7 +27,7 @@ HORAIRES PREVUS
 {% endif %}
 
 ---
-REPONDRE
+RÉPONDRE
 ---
 Pour ACCEPTER: {{ accept_url }}
 Pour REFUSER: {{ decline_url }}
@@ -39,10 +39,10 @@ NOTES
 ---
 {{ tour_stop.notes }}{% endif %}
 
-A bientot,
-L'equipe GigRoute
+À bientôt,
+L'équipe GigRoute
 
 ---
-Vous recevez cet email car vous avez ete assigne(e) a cet evenement.
+Vous recevez cet email car vous avez été assigné(e) à cet événement.
 
 (c) 2026 GigRoute

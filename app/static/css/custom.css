@@ -703,6 +703,10 @@ a:hover {
     padding: 0.5rem;
 }
 
+.notification-dropdown {
+    width: 320px;
+}
+
 .dropdown-item {
     border-radius: 0.25rem;
     padding: 0.5rem 0.75rem;

@@ -2,17 +2,17 @@
 GIGROUTE
 ==============================
 
-VOTRE DEMANDE GUESTLIST A ETE REFUSEE
+VOTRE DEMANDE GUESTLIST A ÉTÉ REFUSÉE
 
 Bonjour,
 
-Nous regrettons de vous informer que votre demande d'acces guestlist a ete REFUSEE.
+Nous regrettons de vous informer que votre demande d'accès guestlist a été REFUSÉE.
 
 ---
-DETAILS DE L'EVENEMENT
+DÉTAILS DE L'ÉVÉNEMENT
 ---
 Artiste: {{ band.name }}
-{% if tour %}Tournee: {{ tour.name }}{% endif %}
+{% if tour %}Tournée : {{ tour.name }}{% endif %}
 Lieu: {{ venue.name }}
 Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
 
@@ -20,13 +20,13 @@ Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
 VOTRE DEMANDE
 ---
 Nom: {{ entry.guest_name }}
-Type d'acces demande: {{ entry.entry_type.value|replace('_', ' ')|title }}
+Type d'accès demandé : {{ entry.entry_type.value|replace('_', ' ')|title }}
 
 Si vous avez des questions, veuillez contacter le management de l'artiste.
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.

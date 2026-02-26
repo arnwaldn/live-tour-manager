@@ -2,17 +2,17 @@
 GIGROUTE
 ==============================
 
-INSCRIPTION REFUSEE
+INSCRIPTION REFUSÉE
 
 Bonjour {{ name }},
 
-Nous regrettons de vous informer que votre demande d'inscription a GigRoute n'a pas ete approuvee.
+Nous regrettons de vous informer que votre demande d'inscription à GigRoute n'a pas été approuvée.
 
 Si vous pensez qu'il s'agit d'une erreur ou si vous souhaitez plus d'informations, veuillez contacter l'administrateur de la plateforme.
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.

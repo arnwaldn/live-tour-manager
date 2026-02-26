@@ -2,11 +2,11 @@
 GIGROUTE
 ==============================
 
-DOCUMENT PARTAGE AVEC VOUS
+DOCUMENT PARTAGÉ AVEC VOUS
 
 Bonjour {{ shared_to.first_name }},
 
-{{ shared_by.full_name }} a partage un document avec vous.
+{{ shared_by.full_name }} a partagé un document avec vous.
 
 ---
 DOCUMENT
@@ -19,9 +19,9 @@ Taille: {{ document.file_size_formatted }}
 Pour voir le document: {{ view_url }}
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
-Vous recevez cet email car un document a ete partage avec vous.
+Vous recevez cet email car un document a été partagé avec vous.
 
 (c) 2026 GigRoute

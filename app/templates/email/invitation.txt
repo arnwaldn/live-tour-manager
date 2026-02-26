@@ -2,18 +2,18 @@
 GIGROUTE
 ==============================
 
-INVITATION A REJOINDRE GIGROUTE
+INVITATION À REJOINDRE GIGROUTE
 
 Bonjour {{ user.first_name }},
 
-{{ invited_by.full_name }} vous invite a rejoindre GigRoute, la plateforme de gestion de tournees.
+{{ invited_by.full_name }} vous invite à rejoindre GigRoute, la plateforme de gestion de tournées.
 
 ---
 ACCEPTER L'INVITATION
 ---
 {{ accept_url }}
 
-Ce lien est valable pendant {{ expiry_hours }} heures (72h). Passe ce delai, vous devrez demander une nouvelle invitation.
+Ce lien est valable pendant {{ expiry_hours }} heures (72h). Passé ce délai, vous devrez demander une nouvelle invitation.
 
 ---
 VOS INFORMATIONS
@@ -22,14 +22,14 @@ Nom: {{ user.full_name }}
 Email: {{ user.email }}
 
 En acceptant cette invitation, vous pourrez:
-- Acceder aux informations de tournee
-- Gerer les guestlists
+- Accéder aux informations de tournée
+- Gérer les guestlists
 - Consulter les plannings
 - Et bien plus encore!
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.

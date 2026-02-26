@@ -1,6 +1,6 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Overview - {{ tour.name }} - GigRoute{% endblock %}
+{% block title %}Vue d'ensemble - {{ tour.name }} - GigRoute{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
@@ -310,7 +310,7 @@
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
-        <li class="breadcrumb-item active">Overview</li>
+        <li class="breadcrumb-item active">Vue d'ensemble</li>
     </ol>
 </nav>
 {% endblock %}
@@ -319,7 +319,7 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 no-print">
     <div class="mb-3 mb-md-0">
         <h1 class="h2 mb-1">
-            <i class="bi bi-graph-up me-2"></i>Tour Overview
+            <i class="bi bi-graph-up me-2"></i>Vue d'ensemble
         </h1>
         <p class="text-muted mb-0">Vue consolidée de la tournée</p>
     </div>

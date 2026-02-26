@@ -2,15 +2,15 @@
 GIGROUTE
 ==============================
 
-{% if notification_type == 'created' %}NOUVELLE DATE AJOUTEE{% elif notification_type == 'updated' %}DATE MODIFIEE{% elif notification_type == 'cancelled' %}DATE ANNULEE{% else %}MISE A JOUR TOURNEE{% endif %}
+{% if notification_type == 'created' %}NOUVELLE DATE AJOUTÉE{% elif notification_type == 'updated' %}DATE MODIFIÉE{% elif notification_type == 'cancelled' %}DATE ANNULÉE{% else %}MISE À JOUR TOURNÉE{% endif %}
 
-{% if notification_type == 'created' %}Une nouvelle date vient d'etre ajoutee a la tournee {{ tour.name }}.{% elif notification_type == 'updated' %}Une date de la tournee {{ tour.name }} a ete mise a jour.{% elif notification_type == 'cancelled' %}Une date de la tournee {{ tour.name }} a ete annulee.{% else %}Des modifications ont ete apportees a la tournee {{ tour.name }}.{% endif %}
+{% if notification_type == 'created' %}Une nouvelle date vient d'être ajoutée à la tournée {{ tour.name }}.{% elif notification_type == 'updated' %}Une date de la tournée {{ tour.name }} a été mise à jour.{% elif notification_type == 'cancelled' %}Une date de la tournée {{ tour.name }} a été annulée.{% else %}Des modifications ont été apportées à la tournée {{ tour.name }}.{% endif %}
 
 ---
-DETAILS DE L'EVENEMENT
+DÉTAILS DE L'ÉVÉNEMENT
 ---
 Artiste: {{ band.name }}
-Tournee: {{ tour.name }}
+Tournée : {{ tour.name }}
 Lieu: {{ venue.name }}
 Ville: {{ venue.city }}, {{ venue.country }}
 Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
@@ -25,11 +25,11 @@ ADRESSE
 {{ venue.postal_code }} {{ venue.city }}
 {{ venue.country }}{% endif %}
 
-Connectez-vous a GigRoute pour plus de details.
+Connectez-vous à GigRoute pour plus de détails.
 
 Cordialement,
-L'equipe GigRoute
+L'équipe GigRoute
 
 ---
 (c) 2026 GigRoute
-Cet email a ete envoye automatiquement.
+Cet email a été envoyé automatiquement.
