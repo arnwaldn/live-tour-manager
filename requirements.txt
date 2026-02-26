@@ -61,3 +61,6 @@ icalendar>=5.0.0
 
 # Image Processing (profile pictures)
 Pillow>=10.0.0
+
+# Stripe (SaaS billing)
+stripe>=14.0.0

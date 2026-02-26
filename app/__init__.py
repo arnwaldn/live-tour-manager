@@ -42,6 +42,11 @@ def create_app(config_name=None):
     # Initialize extensions
     init_extensions(app)
 
+    # Initialize Stripe API key
+    if app.config.get('STRIPE_SECRET_KEY'):
+        import stripe
+        stripe.api_key = app.config['STRIPE_SECRET_KEY']
+
     # Load mail config from database (if available)
     with app.app_context():
         try:
@@ -126,6 +131,8 @@ def register_blueprints(app):
     from app.blueprints.api import api_bp
     # Advancing module — event preparation workflow
     from app.blueprints.advancing import advancing_bp
+    # Billing module — Stripe SaaS subscription management
+    from app.blueprints.billing import billing_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
@@ -145,6 +152,8 @@ def register_blueprints(app):
     app.register_blueprint(crew_bp)
     # Advancing module — event preparation workflow
     app.register_blueprint(advancing_bp, url_prefix='/advancing')
+    # Billing module — Stripe SaaS subscription management
+    app.register_blueprint(billing_bp, url_prefix='/billing')
     # REST API v1 — JWT auth, no CSRF needed
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
@@ -1118,6 +1127,17 @@ def register_context_processors(app):
             'unread_notifications_count': unread_count,
             'recent_notifications': recent_notifications
         }
+
+    @app.context_processor
+    def billing_processor():
+        """Provide billing/plan data to templates."""
+        current_plan = 'free'
+        if current_user.is_authenticated:
+            try:
+                current_plan = current_user.current_plan
+            except Exception:
+                current_plan = 'free'
+        return {'current_plan': current_plan}
 
     @app.context_processor
     def pdf_availability_processor():

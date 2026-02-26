@@ -1,0 +1,184 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Mon abonnement — GigRoute{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Mon abonnement</h1>
+        <p class="text-muted mb-0">Gerez votre plan et suivez votre utilisation.</p>
+    </div>
+    <a href="{{ url_for('billing.pricing') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-tag me-1" aria-hidden="true"></i>
+        Voir les tarifs
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Current Plan Card -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="bi bi-credit-card me-2" aria-hidden="true"></i>
+                    Plan actuel
+                </h5>
+
+                <div class="d-flex align-items-center mb-3">
+                    {% if plan == 'pro' %}
+                        <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                            <i class="bi bi-star-fill me-1" aria-hidden="true"></i>
+                            Pro
+                        </span>
+                    {% else %}
+                        <span class="badge bg-secondary fs-6 px-3 py-2">
+                            Gratuit
+                        </span>
+                    {% endif %}
+
+                    {% if subscription and subscription.cancel_at_period_end %}
+                        <span class="badge bg-danger ms-2">Annulation programmee</span>
+                    {% endif %}
+                </div>
+
+                {% if plan == 'pro' and subscription %}
+                    <p class="text-muted mb-2">
+                        {% if subscription.current_period_end %}
+                            {% if subscription.cancel_at_period_end %}
+                                Votre abonnement se termine le
+                                <strong>{{ subscription.current_period_end.strftime('%d/%m/%Y') }}</strong>.
+                            {% else %}
+                                Prochain renouvellement le
+                                <strong>{{ subscription.current_period_end.strftime('%d/%m/%Y') }}</strong>.
+                            {% endif %}
+                        {% endif %}
+                    </p>
+
+                    <!-- Manage via Stripe Portal -->
+                    <form action="{{ url_for('billing.portal') }}" method="POST" class="mt-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="bi bi-gear me-1" aria-hidden="true"></i>
+                            Gerer mon abonnement
+                        </button>
+                    </form>
+                {% else %}
+                    <p class="text-muted mb-3">
+                        Passez a Pro pour debloquer les tournees illimitees, les factures, l'API et l'export PDF.
+                    </p>
+                    <form action="{{ url_for('billing.checkout') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-lightning-fill me-1" aria-hidden="true"></i>
+                            Passer a Pro — 29 &euro;/mois
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Card -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="bi bi-bar-chart me-2" aria-hidden="true"></i>
+                    Utilisation
+                </h5>
+
+                <!-- Tours usage -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Tournees</span>
+                        <span class="fw-semibold">
+                            {{ tour_count }}{% if limits.max_tours is not none %} / {{ limits.max_tours }}{% endif %}
+                        </span>
+                    </div>
+                    {% if limits.max_tours is not none %}
+                        {% set tour_pct = (tour_count / limits.max_tours * 100) | int if limits.max_tours > 0 else 0 %}
+                        <div class="progress" style="height: 8px;" role="progressbar"
+                             aria-valuenow="{{ tour_count }}" aria-valuemin="0" aria-valuemax="{{ limits.max_tours }}"
+                             aria-label="Utilisation des tournees">
+                            <div class="progress-bar {% if tour_pct >= 100 %}bg-danger{% elif tour_pct >= 80 %}bg-warning{% else %}bg-success{% endif %}"
+                                 style="width: {{ [tour_pct, 100] | min }}%"></div>
+                        </div>
+                    {% else %}
+                        <div class="progress" style="height: 8px;" role="progressbar" aria-label="Utilisation illimitee">
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        </div>
+                        <small class="text-muted">Illimite</small>
+                    {% endif %}
+                </div>
+
+                <!-- Stops usage (max per tour) -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Dates (max par tournee)</span>
+                        <span class="fw-semibold">
+                            {{ max_stops }}{% if limits.max_stops_per_tour is not none %} / {{ limits.max_stops_per_tour }}{% endif %}
+                        </span>
+                    </div>
+                    {% if limits.max_stops_per_tour is not none %}
+                        {% set stop_pct = (max_stops / limits.max_stops_per_tour * 100) | int if limits.max_stops_per_tour > 0 else 0 %}
+                        <div class="progress" style="height: 8px;" role="progressbar"
+                             aria-valuenow="{{ max_stops }}" aria-valuemin="0" aria-valuemax="{{ limits.max_stops_per_tour }}"
+                             aria-label="Utilisation des dates">
+                            <div class="progress-bar {% if stop_pct >= 100 %}bg-danger{% elif stop_pct >= 80 %}bg-warning{% else %}bg-success{% endif %}"
+                                 style="width: {{ [stop_pct, 100] | min }}%"></div>
+                        </div>
+                    {% else %}
+                        <div class="progress" style="height: 8px;" role="progressbar" aria-label="Utilisation illimitee">
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        </div>
+                        <small class="text-muted">Illimite</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features comparison for Free users -->
+{% if plan != 'pro' %}
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="bi bi-unlock me-2" aria-hidden="true"></i>
+            Debloquez avec Pro
+        </h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-infinity text-warning fs-4 me-3" aria-hidden="true"></i>
+                    <div>
+                        <strong>Illimite</strong>
+                        <p class="text-muted small mb-0">Tournees et dates sans limites</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-receipt text-warning fs-4 me-3" aria-hidden="true"></i>
+                    <div>
+                        <strong>Factures</strong>
+                        <p class="text-muted small mb-0">Factur-X, export PDF, envoi email</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-code-square text-warning fs-4 me-3" aria-hidden="true"></i>
+                    <div>
+                        <strong>API REST</strong>
+                        <p class="text-muted small mb-0">Integration complete pour app mobile</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

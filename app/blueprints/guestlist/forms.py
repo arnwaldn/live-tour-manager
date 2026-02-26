@@ -31,8 +31,8 @@ class GuestlistEntryForm(FlaskForm):
         ('industry', 'Professionnel'),
         ('press', 'Presse'),
         ('artist', 'Artiste'),
-        ('comp', 'Complimentary'),
-        ('working', 'Crew/Staff')
+        ('comp', 'Invitation gracieuse'),
+        ('working', 'Équipe/Staff')
     ], default='guest')
 
     # Nouveau champ pour sélectionner un artiste (membre du groupe)
@@ -145,8 +145,8 @@ class GuestlistSearchForm(FlaskForm):
         ('industry', 'Professionnel'),
         ('press', 'Presse'),
         ('artist', 'Artiste'),
-        ('comp', 'Complimentary'),
-        ('working', 'Crew/Staff')
+        ('comp', 'Invitation gracieuse'),
+        ('working', 'Équipe/Staff')
     ])
 
     submit = SubmitField('Filtrer')

@@ -19,6 +19,7 @@ from app.models.logistics import LogisticsInfo, LogisticsType
 from app.models.lineup import LineupSlot, PerformerType
 from app.extensions import db
 from app.decorators import tour_access_required, tour_edit_required
+from app.decorators.billing import check_tour_limit, check_stop_limit
 from app.utils.audit import log_create, log_update, log_delete
 from app.utils.email import send_tour_stop_notification
 from app.utils.geo import calculate_stops_distances, get_tour_total_distance
@@ -152,6 +153,7 @@ def index():
 
 @tours_bp.route('/create', methods=['GET', 'POST'])
 @login_required
+@check_tour_limit
 def create_tour():
     """Create a new tour - select band first."""
     managed_bands = current_user.managed_bands
@@ -192,6 +194,7 @@ def create_tour():
 
 @tours_bp.route('/create/<int:band_id>', methods=['GET', 'POST'])
 @login_required
+@check_tour_limit
 def create(band_id):
     """Create a new tour for a band."""
     band = Band.query.get_or_404(band_id)
@@ -339,6 +342,7 @@ def update_status(id, tour=None):
 @tours_bp.route('/<int:id>/stops/add', methods=['GET', 'POST'])
 @login_required
 @tour_edit_required
+@check_stop_limit
 def add_stop(id, tour=None):
     """Add a stop to the tour."""
     form = TourStopForm()

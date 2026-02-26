@@ -69,6 +69,13 @@ class Config:
     # France uses API Adresse (free, unlimited), international uses Geoapify (3000/day free)
     GEOAPIFY_API_KEY = os.environ.get('GEOAPIFY_API_KEY')
 
+    # Stripe (SaaS billing)
+    STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+    STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY')
+    STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+    STRIPE_PRO_PRICE_ID = os.environ.get('STRIPE_PRO_PRICE_ID')
+    APP_URL = os.environ.get('APP_URL', 'http://localhost:5000')
+
 
 class DevelopmentConfig(Config):
     """Development configuration."""
@@ -98,6 +105,13 @@ class TestingConfig(Config):
 
     # Disable rate limiting in tests
     RATELIMIT_ENABLED = False
+
+    # Stripe test values
+    STRIPE_SECRET_KEY = 'sk_test_fake_key_for_testing'
+    STRIPE_PUBLISHABLE_KEY = 'pk_test_fake_key_for_testing'
+    STRIPE_WEBHOOK_SECRET = 'whsec_test_fake_secret'
+    STRIPE_PRO_PRICE_ID = 'price_test_pro_monthly'
+    APP_URL = 'http://localhost'
 
     # Use in-memory cache for tests
     CACHE_TYPE = 'SimpleCache'
