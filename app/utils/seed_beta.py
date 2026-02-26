@@ -864,7 +864,6 @@ def run_seed():
                 'amount': Decimal('300.00'),
                 'unit_rate': Decimal('300.00'),
                 'quantity': 1,
-                'contract_type': ContractType.CDDU,
                 'status': PaymentStatus.APPROVED,
             },
             {
@@ -875,7 +874,6 @@ def run_seed():
                 'amount': Decimal('300.00'),
                 'unit_rate': Decimal('300.00'),
                 'quantity': 1,
-                'contract_type': ContractType.CDDU,
                 'status': PaymentStatus.APPROVED,
             },
             {
@@ -886,7 +884,6 @@ def run_seed():
                 'amount': Decimal('350.00'),
                 'unit_rate': Decimal('350.00'),
                 'quantity': 1,
-                'contract_type': ContractType.CDDU,
                 'status': PaymentStatus.APPROVED,
             },
             {
@@ -897,7 +894,6 @@ def run_seed():
                 'amount': Decimal('350.00'),
                 'unit_rate': Decimal('350.00'),
                 'quantity': 1,
-                'contract_type': ContractType.CDDU,
                 'status': PaymentStatus.APPROVED,
             },
         ]
@@ -951,7 +947,6 @@ def run_seed():
                     currency='EUR',
                     work_date=bikini_stop.date,
                     payment_frequency=PaymentFrequency.DAILY,
-                    contract_type=ContractType.CDDU,
                     status=PaymentStatus.PENDING_APPROVAL,
                     submitted_by_id=sophie.id if sophie else admin.id,
                     submitted_at=datetime.utcnow(),
