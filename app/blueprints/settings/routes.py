@@ -1716,9 +1716,10 @@ def _reload_mail_config(app):
 def admin_reset_data():
     """Full data reset — deletes everything except admin user Arnaud Porcel.
 
-    Uses PostgreSQL TRUNCATE CASCADE for atomic, FK-safe deletion,
-    then deletes non-admin users individually.
+    Uses PostgreSQL TRUNCATE CASCADE for atomic, FK-safe deletion.
     """
+    from sqlalchemy import text
+
     confirm = request.form.get('confirm')
     if confirm != 'RESET':
         flash('Confirmation invalide. Tapez RESET pour confirmer.', 'error')
@@ -1733,10 +1734,13 @@ def admin_reset_data():
     admin_id = admin_user.id
 
     try:
-        conn = db.session.connection()
+        # Step 1: Get existing tables
+        result = db.session.execute(text(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+        ))
+        existing = {row[0] for row in result}
 
-        # Step 1: TRUNCATE all tables that should be completely emptied
-        # CASCADE handles FK constraints automatically
+        # Step 2: TRUNCATE all data tables (CASCADE handles FKs)
         tables_to_truncate = [
             'invoice_payments', 'invoice_lines', 'invoices',
             'team_member_payments',
@@ -1752,37 +1756,23 @@ def admin_reset_data():
             'band_memberships', 'bands',
             'external_contacts',
             'venue_contacts', 'venues',
+            'audit_logs',
         ]
-
-        # Build TRUNCATE for existing tables only
-        existing = set()
-        result = conn.execute(db.text(
-            "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
-        ))
-        for row in result:
-            existing.add(row[0])
-
         truncate_list = [t for t in tables_to_truncate if t in existing]
         if truncate_list:
-            sql = f"TRUNCATE {', '.join(truncate_list)} CASCADE"
-            conn.execute(db.text(sql))
+            db.session.execute(text(
+                f"TRUNCATE {', '.join(truncate_list)} CASCADE"
+            ))
 
-        # Step 2: Clean user-related tables (keep admin rows)
-        user_tables = [
-            'travel_cards', 'user_professions', 'user_payment_configs',
-            'user_roles', 'audit_logs'
-        ]
-        for table in user_tables:
+        # Step 3: Clean user-related tables (keep admin rows)
+        for table in ['travel_cards', 'user_professions', 'user_payment_configs', 'user_roles']:
             if table in existing:
-                if table == 'audit_logs':
-                    conn.execute(db.text(f"DELETE FROM {table}"))
-                else:
-                    conn.execute(db.text(
-                        f"DELETE FROM {table} WHERE user_id != :aid"
-                    ), {'aid': admin_id})
+                db.session.execute(text(
+                    f"DELETE FROM {table} WHERE user_id != :aid"
+                ), {'aid': admin_id})
 
-        # Step 3: Delete all non-admin users
-        conn.execute(db.text(
+        # Step 4: Delete all non-admin users
+        db.session.execute(text(
             "DELETE FROM users WHERE id != :aid"
         ), {'aid': admin_id})
 
