@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
             else if (currentViewType === 'listMonth') viewParam = 'list';
 
             let url = '{{ url_for("main.global_calendar_events") }}';
-            url += `?start=${fetchInfo.startStr}&end=${fetchInfo.endStr}&view=${viewParam}`;
+            url += `?start=${encodeURIComponent(fetchInfo.startStr)}&end=${encodeURIComponent(fetchInfo.endStr)}&view=${viewParam}`;
             if (tourId) {
                 url += `&tour_id=${tourId}`;
             }
