@@ -19,7 +19,7 @@
 <div class="alert alert-danger d-flex align-items-center mb-3">
     <i class="bi bi-exclamation-triangle-fill me-2"></i>
     <div>
-        <strong>{{ expired_count }}</strong> document(s) expiré(s).
+        <strong>{{ expired_count }}</strong> document{{ 's' if expired_count > 1 else '' }} expiré{{ 's' if expired_count > 1 else '' }}.
         <a href="{{ url_for('documents.expiring') }}" class="alert-link">Voir les détails</a>
     </div>
 </div>
@@ -29,7 +29,7 @@
 <div class="alert alert-warning d-flex align-items-center mb-3">
     <i class="bi bi-clock-history me-2"></i>
     <div>
-        <strong>{{ expiring_count }}</strong> document(s) expire(nt) dans les 90 prochains jours.
+        <strong>{{ expiring_count }}</strong> document{{ 's' if expiring_count > 1 else '' }} expire{{ 'nt' if expiring_count > 1 else '' }} dans les 90 prochains jours.
         <a href="{{ url_for('documents.expiring') }}" class="alert-link">Voir les détails</a>
     </div>
 </div>

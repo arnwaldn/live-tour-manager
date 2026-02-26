@@ -12,7 +12,7 @@ Bonjour {{ user.first_name }},
 DÉTAILS
 ---
 Événement : {{ tour_stop.event_label }}
-Date: {{ tour_stop.date.strftime('%A %d %B %Y') }}
+Date: {{ tour_stop.date|format_date_fr }}
 {% if venue %}Lieu: {{ venue.name }}, {{ venue.city }}{% elif tour_stop.location_city %}Lieu: {{ tour_stop.location_city }}{% if tour_stop.location_country %}, {{ tour_stop.location_country }}{% endif %}{% endif %}
 {% if tour %}Tournée : {{ tour.name }}{% endif %}
 {% if band %}Groupe: {{ band.name }}{% endif %}

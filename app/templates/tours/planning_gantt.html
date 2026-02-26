@@ -441,7 +441,7 @@
             </h2>
             <p class="text-muted mb-0 small">
                 {{ stop.venue.name if stop.venue else 'Lieu non défini' }} -
-                <span class="d-none d-sm-inline">{{ stop.date.strftime('%A %d %B %Y') | capitalize }}</span>
+                <span class="d-none d-sm-inline">{{ stop.date|format_date_fr }}</span>
                 <span class="d-sm-none">{{ stop.date.strftime('%d/%m/%Y') }}</span>
             </p>
         </div>

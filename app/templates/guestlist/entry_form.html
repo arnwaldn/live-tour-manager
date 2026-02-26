@@ -1,6 +1,6 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}{{ title }} - Guestlist - GigRoute{% endblock %}
+{% block title %}{{ title }} - Invités - GigRoute{% endblock %}
 
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -8,7 +8,7 @@
         <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=stop.tour.id) }}">{{ stop.tour.name }}</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}">{{ stop.venue.name }}</a></li>
-        <li class="breadcrumb-item"><a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}">Guestlist</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}">Invités</a></li>
         <li class="breadcrumb-item active">{{ title }}</li>
     </ol>
 </nav>

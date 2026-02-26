@@ -110,7 +110,7 @@
             </div>
             <div class="card-footer bg-transparent border-0 d-flex justify-content-between">
                 <small class="text-muted">
-                    {{ venue.contacts|length }} contact(s)
+                    {{ venue.contacts|length }} contact{{ 's' if venue.contacts|length > 1 else '' }}
                 </small>
                 <div class="btn-group btn-group-sm">
                     <a href="{{ url_for('venues.detail', id=venue.id) }}" class="btn btn-outline-primary">

@@ -147,13 +147,13 @@
                             </div>
                             <div>
                                 <div class="fw-medium">{{ payment.user.full_name if payment.user else 'N/A' }}</div>
-                                <small class="text-muted">{{ payment.staff_role.value if payment.staff_role else '' }}</small>
+                                <small class="text-muted">{{ payment.staff_role.value|tr('staff_role') if payment.staff_role else '' }}</small>
                             </div>
                         </div>
                     </td>
                     <td>
                         <span class="badge bg-{{ 'success' if payment.payment_type.value == 'cachet' else 'info' if payment.payment_type.value == 'per_diem' else 'warning' if payment.payment_type.value == 'overtime' else 'secondary' }}">
-                            {{ payment.payment_type.value }}
+                            {{ payment.payment_type.value|tr('payment_type') }}
                         </span>
                     </td>
                     <td>

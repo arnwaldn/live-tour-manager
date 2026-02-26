@@ -160,7 +160,7 @@
                 <td style="border: none;"><strong>Nombre dates:</strong></td>
                 <td style="border: none;">{{ tour.stops|length if tour.stops else 0 }}</td>
                 <td style="border: none;"><strong>Statut:</strong></td>
-                <td style="border: none;">{{ tour.status.value if tour.status else 'N/A' }}</td>
+                <td style="border: none;">{{ tour.status.value|tr('tour_status') if tour.status else 'N/A' }}</td>
             </tr>
         </table>
     </div>

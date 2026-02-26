@@ -52,7 +52,7 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournees</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
         <li class="breadcrumb-item active">Programmation</li>
@@ -80,7 +80,7 @@
             <div class="card-body py-3">
                 <div class="d-flex align-items-center gap-3">
                     <div>
-                        <h5 class="mb-1">{{ stop.date.strftime('%A %d %B %Y') }}</h5>
+                        <h5 class="mb-1">{{ stop.date|format_date_fr }}</h5>
                         {% if stop.venue %}
                         <span class="text-muted">
                             <i class="bi bi-geo-alt"></i>
@@ -129,7 +129,7 @@
                                             {{ slot.performer_type_label }}
                                         </span>
                                         <span class="confirmed-badge {{ 'confirmed-yes' if slot.is_confirmed else 'confirmed-no' }}"
-                                              title="{{ 'Confirme' if slot.is_confirmed else 'Non confirme' }}"></span>
+                                              title="{{ 'Confirmé' if slot.is_confirmed else 'Non confirmé' }}"></span>
                                     </div>
                                     <div class="d-flex align-items-center gap-3 text-muted small">
                                         <span class="time-display">{{ slot.time_range_formatted }}</span>

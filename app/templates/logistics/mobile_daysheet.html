@@ -295,10 +295,10 @@
             {% if stop.venue %}
             {{ stop.venue.name }}
             {% else %}
-            {{ stop.date.strftime('%d %B %Y') }}
+            {{ stop.date|format_date_fr('short') }}
             {% endif %}
         </h1>
-        <div class="date">{{ stop.date.strftime('%A %d %B %Y') }}</div>
+        <div class="date">{{ stop.date|format_date_fr }}</div>
         {% if stop.tour and stop.tour.band %}
         <div class="band-name">{{ stop.tour.band_name }}</div>
         {% endif %}
@@ -417,11 +417,11 @@
                 </a>
                 <a href="{{ url_for('logistics.travel_itinerary', stop_id=stop.id) }}" class="quick-link">
                     <i class="bi bi-signpost-2"></i>
-                    Itineraire
+                    Itinéraire
                 </a>
                 <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="quick-link">
                     <i class="bi bi-person-lines-fill"></i>
-                    Guestlist
+                    Invités
                 </a>
                 <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="quick-link">
                     <i class="bi bi-gear"></i>

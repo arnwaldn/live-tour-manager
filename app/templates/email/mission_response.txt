@@ -12,7 +12,7 @@ Bonjour,
 DÉTAILS
 ---
 Événement : {{ tour_stop.event_label }}
-Date: {{ tour_stop.date.strftime('%A %d %B %Y') }}
+Date: {{ tour_stop.date|format_date_fr }}
 {% if tour_stop.venue %}Lieu: {{ tour_stop.venue.name }}, {{ tour_stop.venue.city }}{% endif %}
 {% if band %}Groupe: {{ band.name }}{% endif %}
 

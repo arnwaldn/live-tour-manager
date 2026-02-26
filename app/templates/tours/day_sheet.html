@@ -61,7 +61,7 @@
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                 <div>
                     <h2>{{ tour.band_name }}</h2>
-                    <div class="date">{{ stop.date.strftime('%A %d %B %Y') }}</div>
+                    <div class="date">{{ stop.date|format_date_fr }}</div>
                     {% if stop.venue %}
                     <div class="venue">
                         <i class="bi bi-geo-alt me-1"></i>
@@ -109,7 +109,7 @@
             {% endif %}
             {% if stop.guestlist_count %}
             <div class="info-card">
-                <div class="info-card-label">Guestlist</div>
+                <div class="info-card-label">Invités</div>
                 <div class="info-card-value">{{ stop.guestlist_count }} pers.</div>
             </div>
             {% endif %}
@@ -352,7 +352,7 @@
                 <i class="bi bi-info-circle me-1"></i>Détails complets
             </a>
             <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-outline-primary">
-                <i class="bi bi-person-lines-fill me-1"></i>Guestlist
+                <i class="bi bi-person-lines-fill me-1"></i>Invités
             </a>
             <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="btn btn-outline-primary">
                 <i class="bi bi-truck me-1"></i>Logistique

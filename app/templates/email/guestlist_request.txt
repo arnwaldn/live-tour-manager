@@ -11,7 +11,7 @@ DÉTAILS DE LA DEMANDE
 ---
 Nom: {{ entry.guest_name }}
 Email: {{ entry.guest_email }}
-Type: {{ entry.entry_type.value|replace('_', ' ')|title }}
+Type: {{ entry.entry_type.value|tr('entry_type') }}
 {% if entry.plus_ones > 0 %}Accompagnants: +{{ entry.plus_ones }}{% endif %}
 {% if entry.notes %}Notes: {{ entry.notes }}{% endif %}
 

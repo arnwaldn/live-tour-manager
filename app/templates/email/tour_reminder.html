@@ -23,7 +23,7 @@
     <h3>{{ tour_stop.event_label }}</h3>
     <p>
         <span class="label">Date :</span>
-        <span class="value">{{ tour_stop.date.strftime('%A %d %B %Y') }}</span>
+        <span class="value">{{ tour_stop.date|format_date_fr }}</span>
     </p>
     {% if venue %}
     <p>

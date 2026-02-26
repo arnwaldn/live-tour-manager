@@ -1526,7 +1526,7 @@ def dashboard():
     )
 
 
-@main_bp.route('/calendar')
+@main_bp.route('/calendar', strict_slashes=False)
 @login_required
 def global_calendar():
     """Global calendar showing events based on user role.

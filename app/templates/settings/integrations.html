@@ -288,7 +288,7 @@ function syncGoogle() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast('success', `${data.synced} événement(s) synchronisé(s) avec Google Calendar`);
+            showToast('success', `${data.synced} événement${data.synced > 1 ? 's' : ''} synchronisé${data.synced > 1 ? 's' : ''} avec Google Calendar`);
             setTimeout(() => location.reload(), 1500);
         } else {
             showToast('error', data.error || 'Erreur lors de la synchronisation');
@@ -345,7 +345,7 @@ function syncOutlook() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast('success', `${data.synced} événement(s) synchronisé(s) avec Outlook`);
+            showToast('success', `${data.synced} événement${data.synced > 1 ? 's' : ''} synchronisé${data.synced > 1 ? 's' : ''} avec Outlook`);
             setTimeout(() => location.reload(), 1500);
         } else {
             showToast('error', data.error || 'Erreur lors de la synchronisation');

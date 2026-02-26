@@ -58,7 +58,7 @@
                 </div>
                 <div class="card-footer bg-transparent border-0 d-flex justify-content-between">
                     <small class="text-muted">
-                        {{ band.memberships|length }} membre(s) · {{ band.tours|length }} tournée(s)
+                        {{ band.memberships|length }} membre{{ 's' if band.memberships|length > 1 else '' }} · {{ band.tours|length }} tournée{{ 's' if band.tours|length > 1 else '' }}
                     </small>
                     <a href="{{ url_for('bands.detail', id=band.id) }}" class="btn btn-sm btn-outline-primary">
                         Voir
@@ -104,7 +104,7 @@
                 </div>
                 <div class="card-footer bg-transparent border-0 d-flex justify-content-between">
                     <small class="text-muted">
-                        {{ band.memberships|length }} membre(s)
+                        {{ band.memberships|length }} membre{{ 's' if band.memberships|length > 1 else '' }}
                     </small>
                     <a href="{{ url_for('bands.detail', id=band.id) }}" class="btn btn-sm btn-outline-primary">
                         Voir

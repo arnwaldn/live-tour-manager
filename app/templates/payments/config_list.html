@@ -57,7 +57,7 @@
                             {{ config.staff_category.value if config.staff_category else '-' }}
                         </span>
                     </td>
-                    <td>{{ config.staff_role.value if config.staff_role else '-' }}</td>
+                    <td>{{ config.staff_role.value|tr('staff_role') if config.staff_role else '-' }}</td>
                     <td>
                         {% if config.is_intermittent %}
                         <span class="badge bg-purple text-white">Intermittent</span>
@@ -67,7 +67,7 @@
                     </td>
                     <td class="text-end">
                         {% if config.show_rate %}
-                        <small class="text-muted">Show:</small> {{ "{:,.0f}".format(config.show_rate) }} EUR
+                        <small class="text-muted">Concert:</small> {{ "{:,.0f}".format(config.show_rate) }} EUR
                         {% elif config.daily_rate %}
                         <small class="text-muted">Jour:</small> {{ "{:,.0f}".format(config.daily_rate) }} EUR
                         {% elif config.weekly_rate %}

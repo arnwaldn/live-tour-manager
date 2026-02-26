@@ -141,10 +141,10 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb" class="no-print">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournees</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=stop.tour.id) }}">{{ stop.tour.name }}</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('logistics.manage', stop_id=stop.id) }}">Logistique</a></li>
-        <li class="breadcrumb-item active">Itineraire</li>
+        <li class="breadcrumb-item active">Itinéraire</li>
     </ol>
 </nav>
 {% endblock %}
@@ -154,7 +154,7 @@
     <div class="mb-3 mb-md-0">
         <h1 class="h2 mb-1"><i class="bi bi-signpost-2 me-2"></i>Itineraire du Jour</h1>
         <p class="text-muted mb-0">
-            {{ stop.date.strftime('%A %d %B %Y') }}
+            {{ stop.date|format_date_fr }}
         </p>
     </div>
     <div class="btn-group">
@@ -359,7 +359,7 @@
                     <i class="bi bi-file-text me-2"></i>Feuille de route complète
                 </a>
                 <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-person-lines-fill me-2"></i>Guestlist
+                    <i class="bi bi-person-lines-fill me-2"></i>Invités
                 </a>
                 <a href="{{ url_for('logistics.mobile_daysheet', stop_id=stop.id) }}" class="list-group-item list-group-item-action">
                     <i class="bi bi-phone me-2"></i>Version Mobile

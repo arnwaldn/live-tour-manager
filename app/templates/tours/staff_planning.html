@@ -20,7 +20,7 @@
             </h2>
             <p class="text-muted mb-0">
                 {{ stop.venue.name if stop.venue else 'Lieu non défini' }} -
-                {{ stop.date.strftime('%A %d %B %Y') | capitalize }}
+                {{ stop.date|format_date_fr }}
             </p>
         </div>
         <div>

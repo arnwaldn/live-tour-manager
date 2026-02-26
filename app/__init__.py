@@ -77,6 +77,9 @@ def create_app(config_name=None):
     # Register context processors
     register_context_processors(app)
 
+    # Register template filters (French i18n)
+    register_template_filters(app)
+
     # Configure logging
     configure_logging(app)
 
@@ -720,6 +723,146 @@ def register_cli_commands(app):
         print(f"  - Manager: {manager_email}")
         print("  - Venues, Professions, Roles, Bands (empty)")
         print("="*60)
+
+
+# ─── French i18n: Template Filters ──────────────────────────────────
+
+DAYS_FR = {
+    'Monday': 'Lundi', 'Tuesday': 'Mardi', 'Wednesday': 'Mercredi',
+    'Thursday': 'Jeudi', 'Friday': 'Vendredi', 'Saturday': 'Samedi',
+    'Sunday': 'Dimanche'
+}
+
+MONTHS_FR = {
+    'January': 'janvier', 'February': 'février', 'March': 'mars',
+    'April': 'avril', 'May': 'mai', 'June': 'juin',
+    'July': 'juillet', 'August': 'août', 'September': 'septembre',
+    'October': 'octobre', 'November': 'novembre', 'December': 'décembre'
+}
+
+TRANSLATIONS = {
+    'tour_status': {
+        'draft': 'Brouillon', 'planning': 'Planification', 'confirmed': 'Confirmée',
+        'active': 'Active', 'completed': 'Terminée', 'cancelled': 'Annulée'
+    },
+    'stop_status': {
+        'draft': 'Brouillon', 'pending': 'En négociation', 'confirmed': 'Confirmé',
+        'performed': 'Réalisé', 'settled': 'Soldé', 'canceled': 'Annulé',
+        'rescheduled': 'Reporté'
+    },
+    'payment_type': {
+        'cachet': 'Cachet', 'per_diem': 'Per diem', 'overtime': 'Heures sup.',
+        'bonus': 'Prime', 'reimbursement': 'Remboursement', 'advance': 'Avance',
+        'travel': 'Transport', 'meal': 'Repas', 'accommodation': 'Hébergement',
+        'equipment': 'Équipement', 'buyout': 'Rachat droits'
+    },
+    'payment_status': {
+        'draft': 'Brouillon', 'pending': 'En attente', 'approved': 'Approuvé',
+        'scheduled': 'Programmé', 'processing': 'En traitement', 'paid': 'Payé',
+        'rejected': 'Rejeté', 'cancelled': 'Annulé'
+    },
+    'staff_role': {
+        'lead_musician': 'Musicien principal', 'musician': 'Musicien',
+        'backing_vocalist': 'Choriste', 'dancer': 'Danseur',
+        'choreographer': 'Chorégraphe',
+        'foh_engineer': 'Ingé son façade', 'monitor_engineer': 'Ingé retours',
+        'audio_tech': 'Tech son', 'system_tech': 'Tech système',
+        'lighting_director': 'Dir. lumière', 'lighting_tech': 'Tech lumière',
+        'lighting_operator': 'Pupitreur lumière',
+        'video_director': 'Dir. vidéo', 'video_tech': 'Tech vidéo', 'vj': 'VJ',
+        'stage_manager': 'Régisseur plateau', 'stagehand': 'Machiniste',
+        'rigger': 'Rigger', 'scenic_tech': 'Tech décor', 'pyro_tech': 'Tech pyro',
+        'guitar_tech': 'Tech guitare', 'bass_tech': 'Tech basse',
+        'drum_tech': 'Tech batterie', 'keyboard_tech': 'Tech claviers',
+        'percussion_tech': 'Tech percussions',
+        'tour_manager': 'Tour manager', 'production_manager': 'Dir. production',
+        'production_assistant': 'Asst. production',
+        'tour_coordinator': 'Coord. tournée', 'advance_person': 'Avanceur',
+        'tour_publicist': 'Attaché presse',
+        'business_manager': 'Dir. administratif',
+        'security': 'Sécurité', 'driver': 'Chauffeur',
+        'bus_driver': 'Chauffeur bus', 'truck_driver': 'Chauffeur camion',
+        'chef': 'Chef cuisinier', 'catering_staff': 'Catering',
+        'wardrobe': 'Costumier', 'hair_makeup': 'Coiffure/maquillage',
+        'hospitality': 'Hospitalité',
+        'local_crew': 'Crew local', 'local_driver': 'Chauffeur local',
+        'local_security': 'Sécurité locale', 'contractor': 'Prestataire',
+        'vendor': 'Fournisseur'
+    },
+    'logistics_type': {
+        'flight': 'Vol', 'train': 'Train', 'bus': 'Bus', 'ferry': 'Ferry',
+        'rental_car': 'Voiture location', 'taxi': 'Taxi',
+        'ground_transport': 'Transport terrestre', 'hotel': 'Hôtel',
+        'apartment': 'Appartement', 'rental': 'Location',
+        'equipment': 'Matériel', 'backline': 'Backline',
+        'catering': 'Restauration', 'meal': 'Repas'
+    },
+    'entry_type': {
+        'guest': 'Invité', 'artist': 'Artiste', 'industry': 'Industrie',
+        'press': 'Presse', 'vip': 'VIP', 'comp': 'Comp',
+        'working': 'Professionnel'
+    },
+    'guestlist_status': {
+        'pending': 'En attente', 'approved': 'Approuvé',
+        'denied': 'Refusé', 'checked_in': 'Entré'
+    },
+    'invoice_status': {
+        'draft': 'Brouillon', 'validated': 'Validée', 'sent': 'Envoyée',
+        'paid': 'Payée', 'partial': 'Partielle', 'overdue': 'En retard',
+        'disputed': 'Contestée', 'cancelled': 'Annulée', 'credited': 'Avoir'
+    },
+    'contract_type': {
+        'cddu': 'CDDU', 'cdd': 'CDD', 'cdi': 'CDI',
+        'freelance': 'Auto-entrepreneur', 'prestation': 'Prestation',
+        'guso': 'GUSO'
+    }
+}
+
+
+def register_template_filters(app):
+    """Register Jinja2 template filters for French i18n."""
+
+    @app.template_filter('format_date_fr')
+    def format_date_fr(date, fmt='full'):
+        """Format a date in French without relying on system locale.
+
+        Args:
+            date: A date or datetime object.
+            fmt: 'full' (Lundi 15 mars 2026), 'short' (15 mars 2026),
+                 'day_month' (15 mars).
+        """
+        if not date:
+            return ''
+        day_en = date.strftime('%A')
+        month_en = date.strftime('%B')
+        day_fr = DAYS_FR.get(day_en, day_en)
+        month_fr = MONTHS_FR.get(month_en, month_en)
+        if fmt == 'full':
+            return f"{day_fr} {date.day} {month_fr} {date.year}"
+        elif fmt == 'short':
+            return f"{date.day} {month_fr} {date.year}"
+        elif fmt == 'day_month':
+            return f"{date.day} {month_fr}"
+        return str(date)
+
+    @app.template_filter('tr')
+    def translate_enum(value, enum_type):
+        """Translate an enum value to French.
+
+        Usage in templates: {{ entry.entry_type.value|tr('entry_type') }}
+        """
+        if not value:
+            return ''
+        translations = TRANSLATIONS.get(enum_type, {})
+        return translations.get(str(value), str(value).replace('_', ' ').title())
+
+    @app.template_filter('pluralize_fr')
+    def pluralize_fr(count, singular, plural=None):
+        """French pluralization: {{ count|pluralize_fr('concert', 'concerts') }}"""
+        if plural is None:
+            plural = singular + 's'
+        count = int(count) if count else 0
+        return f"{count} {singular}" if count <= 1 else f"{count} {plural}"
 
 
 def register_context_processors(app):

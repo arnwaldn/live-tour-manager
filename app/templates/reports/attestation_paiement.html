@@ -173,7 +173,7 @@
             {% if config %}
             <div class="info-row">
                 <div class="info-label">Catégorie:</div>
-                <div class="info-value">{{ config.staff_category.value.title() if config.staff_category else '-' }} - {{ config.staff_role.value.replace('_', ' ').title() if config.staff_role else '-' }}</div>
+                <div class="info-value">{{ config.staff_category.value.title() if config.staff_category else '-' }} - {{ config.staff_role.value|tr('staff_role') if config.staff_role else '-' }}</div>
             </div>
             {% if config.siret %}
             <div class="info-row">
@@ -190,7 +190,7 @@
         <div class="info-grid">
             <div class="info-row">
                 <div class="info-label">Type:</div>
-                <div class="info-value">{{ payment.payment_type.value.title() if payment.payment_type else '-' }}</div>
+                <div class="info-value">{{ payment.payment_type.value|tr('payment_type') if payment.payment_type else '-' }}</div>
             </div>
             <div class="info-row">
                 <div class="info-label">Description:</div>
@@ -214,7 +214,7 @@
                     {% elif payment.status.value == 'approved' %}
                     <span class="status-badge status-approved">APPROUVÉ</span>
                     {% else %}
-                    {{ payment.status.value }}
+                    {{ payment.status.value|tr('payment_status') }}
                     {% endif %}
                 </div>
             </div>

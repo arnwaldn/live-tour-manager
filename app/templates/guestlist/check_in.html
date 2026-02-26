@@ -54,7 +54,7 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}">Guestlist</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}">Invités</a></li>
         <li class="breadcrumb-item active">Check-in</li>
     </ol>
 </nav>
@@ -140,7 +140,7 @@
             <div class="flex-grow-1">
                 <h5 class="mb-1 guest-name">{{ entry.guest_name }}</h5>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <span class="badge bg-secondary">{{ entry.entry_type.value }}</span>
+                    <span class="badge bg-secondary">{{ entry.entry_type.value|tr('entry_type') }}</span>
                     {% if entry.plus_ones > 0 %}
                     <span class="badge bg-info">+{{ entry.plus_ones }}</span>
                     {% endif %}
