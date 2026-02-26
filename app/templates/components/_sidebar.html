@@ -167,6 +167,19 @@
                 </a>
             </li>
 
+            <!-- Abonnement (billing) -->
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'billing' in request.endpoint else '' }}"
+                   href="{{ url_for('billing.dashboard') }}"
+                   {{ 'aria-current=page' if 'billing' in request.endpoint else '' }}>
+                    <i class="bi bi-credit-card me-2" aria-hidden="true"></i>
+                    Abonnement
+                    {% if current_plan == 'pro' %}
+                    <span class="badge bg-warning text-dark ms-auto" style="font-size: 0.65rem;">Pro</span>
+                    {% endif %}
+                </a>
+            </li>
+
             <!-- Settings -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if request.endpoint == 'settings.index' or request.endpoint == 'settings.profile' or request.endpoint == 'settings.password' or request.endpoint == 'settings.notifications' else '' }}"

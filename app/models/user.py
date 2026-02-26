@@ -156,6 +156,9 @@ class User(UserMixin, db.Model):
     profile_picture_data = db.Column(db.LargeBinary, nullable=True)
     profile_picture_mime = db.Column(db.String(50), nullable=True)
 
+    # Stripe billing
+    stripe_customer_id = db.Column(db.String(255), unique=True, nullable=True)
+
     # ============================================================
     # NEW: Access Level & Professional Identity (v2.0)
     # ============================================================
@@ -422,6 +425,22 @@ class User(UserMixin, db.Model):
     def bands(self):
         """Get all bands the user is a member of."""
         return [membership.band for membership in self.band_memberships]
+
+    # ============================================================
+    # BILLING / SUBSCRIPTION HELPERS
+    # ============================================================
+
+    @property
+    def current_plan(self):
+        """Get the user's current plan name ('free' or 'pro')."""
+        if self.subscription and self.subscription.is_active:
+            return self.subscription.plan.value
+        return 'free'
+
+    @property
+    def is_pro(self):
+        """Check if user has an active Pro subscription."""
+        return self.subscription is not None and self.subscription.is_pro
 
     # ============================================================
     # PRE-DELETION VALIDATION (P-H1)

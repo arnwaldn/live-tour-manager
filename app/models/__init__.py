@@ -79,6 +79,12 @@ from app.models.advancing import (
     RiderCategory,
     DEFAULT_CHECKLIST_ITEMS,
 )
+# Subscription (SaaS billing)
+from app.models.subscription import (
+    Subscription,
+    SubscriptionPlan,
+    SubscriptionStatus,
+)
 # AuditLog is in app/utils/audit.py (enriched existing model)
 
 __all__ = [
@@ -185,4 +191,8 @@ __all__ = [
     'ChecklistCategory',
     'RiderCategory',
     'DEFAULT_CHECKLIST_ITEMS',
+    # === SUBSCRIPTION (SaaS Billing) ===
+    'Subscription',
+    'SubscriptionPlan',
+    'SubscriptionStatus',
 ]
