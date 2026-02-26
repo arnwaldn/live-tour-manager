@@ -1,5 +1,5 @@
 /**
- * Service Worker — Studio Palenque Tour Manager
+ * Service Worker — GigRoute
  * Cache-first for static assets, network-first for dynamic pages.
  */
 const CACHE_NAME = 'tour-manager-v1';
@@ -83,7 +83,7 @@ self.addEventListener('fetch', (event) => {
           if (cached) return cached;
           // Return a basic offline page
           return new Response(
-            '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors ligne</title><style>body{font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#1a1a1a;color:#C9A962}div{text-align:center}h1{font-size:2rem}p{color:#aaa}</style></head><body><div><h1>Hors ligne</h1><p>Verifiez votre connexion internet et reessayez.</p><button onclick="location.reload()" style="margin-top:1rem;padding:.5rem 1.5rem;background:#C9A962;border:none;color:#000;border-radius:4px;cursor:pointer">Reessayer</button></div></body></html>',
+            '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hors ligne</title><style>body{font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#1a1a1a;color:#FFB72D}div{text-align:center}h1{font-size:2rem}p{color:#aaa}</style></head><body><div><h1>Hors ligne</h1><p>Verifiez votre connexion internet et reessayez.</p><button onclick="location.reload()" style="margin-top:1rem;padding:.5rem 1.5rem;background:#FFB72D;border:none;color:#000;border-radius:4px;cursor:pointer">Reessayer</button></div></body></html>',
             { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
           );
         });

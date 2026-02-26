@@ -1,6 +1,6 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Feuille de route - {{ stop.venue.name if stop.venue else stop.date.strftime('%d/%m/%Y') }} - Tour Manager{% endblock %}
+{% block title %}Feuille de route - {{ stop.venue.name if stop.venue else stop.date.strftime('%d/%m/%Y') }} - GigRoute{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -652,7 +652,7 @@
 <!-- Footer -->
 <div class="text-center text-muted mt-4 small">
     <p class="mb-0">
-        Feuille de route généré le {{ now.strftime('%d/%m/%Y à %H:%M') }} · Tour Manager
+        Feuille de route généré le {{ now.strftime('%d/%m/%Y à %H:%M') }} · GigRoute
     </p>
 </div>
 {% endblock %}

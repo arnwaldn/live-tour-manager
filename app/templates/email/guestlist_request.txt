@@ -1,5 +1,5 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
 NOUVELLE DEMANDE GUESTLIST
@@ -27,11 +27,11 @@ Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
 ---
 ACTION REQUISE
 ---
-Connectez-vous a Studio Palenque Tour pour approuver ou refuser cette demande.
+Connectez-vous a GigRoute pour approuver ou refuser cette demande.
 
 Cordialement,
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute
 Cet email a ete envoye automatiquement.

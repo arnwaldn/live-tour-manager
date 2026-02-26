@@ -1,5 +1,5 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
 {% if notification_type == 'created' %}NOUVELLE DATE AJOUTEE{% elif notification_type == 'updated' %}DATE MODIFIEE{% elif notification_type == 'cancelled' %}DATE ANNULEE{% else %}MISE A JOUR TOURNEE{% endif %}
@@ -25,11 +25,11 @@ ADRESSE
 {{ venue.postal_code }} {{ venue.city }}
 {{ venue.country }}{% endif %}
 
-Connectez-vous a Studio Palenque Tour pour plus de details.
+Connectez-vous a GigRoute pour plus de details.
 
 Cordialement,
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute
 Cet email a ete envoye automatiquement.

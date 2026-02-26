@@ -22,7 +22,7 @@ def create_calendar(name, description=None):
         icalendar.Calendar object
     """
     cal = Calendar()
-    cal.add('prodid', '-//Studio Palenque Tour//Tour Manager//FR')
+    cal.add('prodid', '-//GigRoute//Tour Manager//FR')
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')
@@ -53,7 +53,7 @@ def create_event(tour_stop, tour=None, include_alarm=True):
 
     # Unique identifier
     tour_id = tour.id if tour else (tour_stop.tour_id or 0)
-    event.add('uid', f'tourstop-{tour_stop.id}-tour-{tour_id}@tourmanager.studiopalenque.com')
+    event.add('uid', f'tourstop-{tour_stop.id}-tour-{tour_id}@gigroute.app')
 
     # Timestamps
     now = datetime.now(DEFAULT_TIMEZONE)
@@ -418,7 +418,7 @@ def _create_crew_slot_event(slot, tour_stop):
     """Create an iCal event for a crew schedule slot."""
     event = Event()
 
-    event.add('uid', f'crewslot-{slot.id}@tourmanager.studiopalenque.com')
+    event.add('uid', f'crewslot-{slot.id}@gigroute.app')
     event.add('dtstamp', datetime.now(DEFAULT_TIMEZONE))
 
     # Summary with category

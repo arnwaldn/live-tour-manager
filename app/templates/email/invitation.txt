@@ -1,12 +1,12 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
-INVITATION A REJOINDRE STUDIO PALENQUE TOUR
+INVITATION A REJOINDRE GIGROUTE
 
 Bonjour {{ user.first_name }},
 
-{{ invited_by.full_name }} vous invite a rejoindre Studio Palenque Tour, la plateforme de gestion de tournees.
+{{ invited_by.full_name }} vous invite a rejoindre GigRoute, la plateforme de gestion de tournees.
 
 ---
 ACCEPTER L'INVITATION
@@ -28,8 +28,8 @@ En acceptant cette invitation, vous pourrez:
 - Et bien plus encore!
 
 Cordialement,
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute
 Cet email a ete envoye automatiquement.

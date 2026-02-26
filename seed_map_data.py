@@ -25,13 +25,13 @@ with app.app_context():
         print('Created test user')
 
     # Get or create test band
-    band = Band.query.filter_by(name='Studio Palenque').first()
+    band = Band.query.filter_by(name='GigRoute').first()
     if not band:
-        band = Band(name='Studio Palenque', genre='World Music', bio='Groupe test')
+        band = Band(name='GigRoute', genre='World Music', bio='Groupe test')
         band.manager_id = user.id
         db.session.add(band)
         db.session.commit()
-        print('Created band: Studio Palenque')
+        print('Created band: GigRoute')
     else:
         print(f'Using existing band: {band.name}')
 

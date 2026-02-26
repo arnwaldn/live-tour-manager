@@ -983,7 +983,7 @@ def export_ical(stop_id):
 
     # Create calendar
     cal = Calendar()
-    cal.add('prodid', '-//Tour Manager//Studio Palenque//FR')
+    cal.add('prodid', '-//Tour Manager//GigRoute//FR')
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')
@@ -991,7 +991,7 @@ def export_ical(stop_id):
 
     # Main event (the show)
     main_event = Event()
-    main_event.add('uid', f'show-{stop.id}@tourmanager.studiopalenque.com')
+    main_event.add('uid', f'show-{stop.id}@gigroute.app')
     main_event.add('summary', f'{tour.band_name} @ {stop.venue.name if stop.venue else "TBA"}')
 
     # Set show time
@@ -1061,7 +1061,7 @@ def export_ical(stop_id):
         call_time = getattr(stop, attr, None)
         if call_time:
             call_event = Event()
-            call_event.add('uid', f'{attr}-{stop.id}@tourmanager.studiopalenque.com')
+            call_event.add('uid', f'{attr}-{stop.id}@gigroute.app')
             call_event.add('summary', f'{label} - {stop.venue.name if stop.venue else "TBA"}')
             call_event.add('dtstart', datetime.combine(stop.date, call_time))
             # 30 min duration for call times
@@ -1086,7 +1086,7 @@ def export_ical(stop_id):
         if logistics.logistics_type in [LogisticsType.FLIGHT, LogisticsType.TRAIN, LogisticsType.BUS]:
             if logistics.departure_time:
                 transport_event = Event()
-                transport_event.add('uid', f'transport-{logistics.id}@tourmanager.studiopalenque.com')
+                transport_event.add('uid', f'transport-{logistics.id}@gigroute.app')
 
                 type_name = _get_logistics_title(logistics)
                 summary = f'{type_name}'
@@ -1218,7 +1218,7 @@ def export_tour_ical(tour_id):
 
     # Create calendar
     cal = Calendar()
-    cal.add('prodid', '-//Tour Manager//Studio Palenque//FR')
+    cal.add('prodid', '-//Tour Manager//GigRoute//FR')
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')
@@ -1227,7 +1227,7 @@ def export_tour_ical(tour_id):
     # Add each stop as an event
     for stop in sorted(tour.stops, key=lambda s: s.date):
         event = Event()
-        event.add('uid', f'show-{stop.id}@tourmanager.studiopalenque.com')
+        event.add('uid', f'show-{stop.id}@gigroute.app')
 
         venue_name = stop.venue.name if stop.venue else 'TBA'
         event.add('summary', f'{tour.band_name} @ {venue_name}')

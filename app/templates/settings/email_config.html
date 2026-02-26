@@ -1,6 +1,6 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Configuration Email - Tour Manager{% endblock %}
+{% block title %}Configuration Email - GigRoute{% endblock %}
 
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
@@ -79,7 +79,7 @@
                         <label class="form-label">Expéditeur par défaut</label>
                         <input type="text" name="mail_default_sender" class="form-control"
                                value="{{ config.MAIL_DEFAULT_SENDER or '' }}"
-                               placeholder="Tour Manager <noreply@exemple.com>">
+                               placeholder="GigRoute <noreply@exemple.com>">
                         <small class="text-muted">Format: Nom &lt;email@exemple.com&gt;</small>
                     </div>
 
@@ -148,7 +148,7 @@
                                 <ol class="text-muted ps-3 mb-3">
                                     <li>Allez sur <strong>myaccount.google.com/apppasswords</strong></li>
                                     <li>Sélectionnez "Autre (nom personnalisé)"</li>
-                                    <li>Entrez "Tour Manager" comme nom</li>
+                                    <li>Entrez "GigRoute" comme nom</li>
                                     <li>Cliquez sur "Générer"</li>
                                     <li><strong>Copiez le mot de passe de 16 caractères</strong> (sans espaces)</li>
                                 </ol>

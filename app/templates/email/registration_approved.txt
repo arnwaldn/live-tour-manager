@@ -1,12 +1,12 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
 VOTRE INSCRIPTION A ETE APPROUVEE
 
 Bonjour {{ user.first_name }},
 
-Felicitations! Votre demande d'inscription a Studio Palenque Tour a ete approuvee.
+Felicitations! Votre demande d'inscription a GigRoute a ete approuvee.
 
 ---
 CONNEXION
@@ -24,8 +24,8 @@ Email: {{ user.email }}
 Bienvenue dans l'equipe!
 
 Cordialement,
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute
 Cet email a ete envoye automatiquement.

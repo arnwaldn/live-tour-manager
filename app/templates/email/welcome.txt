@@ -1,12 +1,12 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
-BIENVENUE SUR STUDIO PALENQUE TOUR
+BIENVENUE SUR GIGROUTE
 
 Bonjour {{ user.first_name }},
 
-Votre compte a ete cree avec succes. Bienvenue dans l'equipe Studio Palenque!
+Votre compte a ete cree avec succes. Bienvenue dans l'equipe GigRoute!
 
 ---
 VOS INFORMATIONS
@@ -22,8 +22,8 @@ CONNEXION
 Vous pouvez maintenant vous connecter et acceder a toutes les fonctionnalites de gestion de tournee.
 
 Cordialement,
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute
 Cet email a ete envoye automatiquement.

@@ -55,7 +55,7 @@ class Invoice(db.Model):
     # Reference facture creditee (pour avoir)
     credited_invoice_id = db.Column(db.Integer, db.ForeignKey('invoices.id'), nullable=True)
 
-    # === EMETTEUR (Studio Palenque ou autre societe) ===
+    # === EMETTEUR (GigRoute ou autre societe) ===
     issuer_name = db.Column(db.String(200), nullable=False)
     issuer_legal_form = db.Column(db.String(50))           # SARL, SAS, etc.
     issuer_address_line1 = db.Column(db.String(200))
@@ -364,9 +364,9 @@ class InvoicePayment(db.Model):
         return f'<InvoicePayment {self.amount} EUR on {self.payment_date}>'
 
 
-# Configuration emetteur par defaut (Studio Palenque)
+# Configuration emetteur par defaut (GigRoute)
 DEFAULT_ISSUER_CONFIG = {
-    'name': 'Studio Palenque',
+    'name': 'GigRoute',
     'legal_form': 'SARL',
     'address_line1': '',
     'city': '',

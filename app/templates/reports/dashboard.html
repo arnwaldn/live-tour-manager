@@ -1,6 +1,6 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Tableau de bord financier - Tour Manager{% endblock %}
+{% block title %}Tableau de bord financier - GigRoute{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -336,9 +336,9 @@
 
 <!-- Logistics Costs Section (Informatif) -->
 {% if kpis.logistics_costs and kpis.logistics_costs.total > 0 %}
-<div class="card chart-card mb-4" style="border: 2px solid var(--sp-gold, #C9A962);">
-    <div class="card-header bg-transparent border-0 pt-4" style="border-bottom: 1px solid var(--sp-gold, #C9A962) !important;">
-        <h5 class="chart-title mb-0" style="color: var(--sp-gold, #C9A962);">
+<div class="card chart-card mb-4" style="border: 2px solid var(--sp-gold, #FFB72D);">
+    <div class="card-header bg-transparent border-0 pt-4" style="border-bottom: 1px solid var(--sp-gold, #FFB72D) !important;">
+        <h5 class="chart-title mb-0" style="color: var(--sp-gold, #FFB72D);">
             <i class="bi bi-truck me-2"></i>Frais Logistiques Totaux
             <small class="text-muted fw-normal ms-2">(Informatif - non déduit des revenus)</small>
         </h5>
@@ -347,9 +347,9 @@
         <div class="row g-3">
             <!-- Total -->
             <div class="col-6 col-md-2">
-                <div class="text-center p-3 rounded" style="background-color: rgba(201, 169, 98, 0.15);">
-                    <i class="bi bi-calculator display-6" style="color: var(--sp-gold, #C9A962);"></i>
-                    <h4 class="mb-0 mt-2" style="color: var(--sp-gold, #C9A962);">{{ kpis.formatted_logistics_total }}</h4>
+                <div class="text-center p-3 rounded" style="background-color: rgba(255, 183, 45, 0.15);">
+                    <i class="bi bi-calculator display-6" style="color: var(--sp-gold, #FFB72D);"></i>
+                    <h4 class="mb-0 mt-2" style="color: var(--sp-gold, #FFB72D);">{{ kpis.formatted_logistics_total }}</h4>
                     <small class="text-muted">Total</small>
                 </div>
             </div>

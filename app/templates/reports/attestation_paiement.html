@@ -154,7 +154,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="logo">STUDIO PALENQUE TOUR</div>
+        <div class="logo">GIGROUTE</div>
         <div class="document-title">Attestation de Paiement</div>
         <div class="reference">Référence: {{ payment.reference }}</div>
     </div>
@@ -245,7 +245,7 @@
     {% endif %}
 
     <div class="certification">
-        <p>Je soussigné(e), représentant de <strong>Studio Palenque Tour</strong>, certifie que le paiement
+        <p>Je soussigné(e), représentant de <strong>GigRoute</strong>, certifie que le paiement
         référencé <strong>{{ payment.reference }}</strong> d'un montant de <strong>{{ "{:,.2f}".format(payment.amount) }} {{ payment.currency }}</strong>
         {% if payment.status.value == 'paid' %}
         a été effectué le <strong>{{ payment.paid_date.strftime('%d/%m/%Y') if payment.paid_date else 'N/A' }}</strong>
@@ -274,7 +274,7 @@
 
     <div class="footer">
         <strong>Document généré le:</strong> {{ generated_at.strftime('%d/%m/%Y à %H:%M') }}<br>
-        <strong>Studio Palenque Tour Manager</strong><br>
+        <strong>GigRoute Manager</strong><br>
         Ce document fait foi de paiement. Conservez-le pour vos archives.
     </div>
 </body>

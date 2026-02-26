@@ -1,5 +1,5 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
 INVITATION MISSION
@@ -40,9 +40,9 @@ NOTES
 {{ tour_stop.notes }}{% endif %}
 
 A bientot,
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
 Vous recevez cet email car vous avez ete assigne(e) a cet evenement.
 
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute

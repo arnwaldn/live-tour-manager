@@ -1,5 +1,5 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
 REPONSE A UNE INVITATION
@@ -28,7 +28,7 @@ Repondu le: {{ invitation.responded_at.strftime('%d/%m/%Y a %H:%M') }}
 {% if invitation.is_declined %}ATTENTION: Vous devrez peut-etre trouver un remplacement pour cet evenement.{% endif %}
 
 Cordialement,
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute

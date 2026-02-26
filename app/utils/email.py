@@ -1,5 +1,5 @@
 """
-Email utility module for Studio Palenque Tour.
+Email utility module for GigRoute.
 Handles all email notifications using Flask-Mail.
 """
 import uuid
@@ -16,7 +16,7 @@ def send_email(subject, recipient, template, **kwargs):
     Send an email using Flask-Mail.
 
     Args:
-        subject: Email subject (will be prefixed with [Studio Palenque Tour])
+        subject: Email subject (will be prefixed with [GigRoute])
         recipient: Email address of the recipient
         template: Template name (without .html extension) in templates/email/
         **kwargs: Context variables for the template
@@ -38,9 +38,9 @@ def send_email(subject, recipient, template, **kwargs):
 
     try:
         msg = Message(
-            subject=f"[Studio Palenque Tour] {subject}",
+            subject=f"[GigRoute] {subject}",
             recipients=[recipient],
-            sender=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@studiopalenque.com')
+            sender=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app')
         )
         msg.html = render_template(f'email/{template}.html', **kwargs)
 
@@ -172,7 +172,7 @@ def send_welcome_email(user):
     login_url = url_for('auth.login', _external=True)
 
     return send_email(
-        subject='Bienvenue sur Studio Palenque Tour',
+        subject='Bienvenue sur GigRoute',
         recipient=user.email,
         template='welcome',
         user=user,
@@ -194,7 +194,7 @@ def send_invitation_email(user, invited_by):
     accept_url = url_for('auth.accept_invite', token=user.invitation_token, _external=True)
 
     return send_email(
-        subject='Invitation a rejoindre Studio Palenque Tour',
+        subject='Invitation a rejoindre GigRoute',
         recipient=user.email,
         template='invitation',
         user=user,

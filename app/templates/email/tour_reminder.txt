@@ -1,5 +1,5 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
 {% if reminder_type == 'j7' %}RAPPEL J-7{% else %}RAPPEL: C'EST DEMAIN!{% endif %}
@@ -41,9 +41,9 @@ NOTES
 {{ tour_stop.notes }}{% endif %}
 
 Bon concert!
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
 Vous recevez cet email car vous etes inscrit a cet evenement.
 
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute

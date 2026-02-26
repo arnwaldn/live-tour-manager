@@ -1,6 +1,6 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Rapport Financier - {{ tour.name }} - Studio Palenque Tour{% endblock %}
+{% block title %}Rapport Financier - {{ tour.name }} - GigRoute{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -117,9 +117,9 @@
 
 <!-- Logistics Costs Section (Informatif) -->
 {% if tour_data.logistics_costs and tour_data.logistics_costs.total > 0 %}
-<div class="card mb-4" style="border-color: var(--sp-gold, #C9A962);">
-    <div class="card-header" style="background-color: rgba(201, 169, 98, 0.15); border-bottom-color: var(--sp-gold, #C9A962);">
-        <h5 class="mb-0" style="color: var(--sp-gold, #C9A962);">
+<div class="card mb-4" style="border-color: var(--sp-gold, #FFB72D);">
+    <div class="card-header" style="background-color: rgba(255, 183, 45, 0.15); border-bottom-color: var(--sp-gold, #FFB72D);">
+        <h5 class="mb-0" style="color: var(--sp-gold, #FFB72D);">
             <i class="bi bi-truck me-2"></i>Frais Logistiques
             <small class="text-muted fw-normal ms-2">(Informatif - non déduit des revenus)</small>
         </h5>
@@ -128,10 +128,10 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-5 g-3">
             <!-- Total -->
             <div class="col">
-                <div class="card h-100 text-center border-0" style="background-color: rgba(201, 169, 98, 0.1);">
+                <div class="card h-100 text-center border-0" style="background-color: rgba(255, 183, 45, 0.1);">
                     <div class="card-body py-3">
-                        <i class="bi bi-calculator display-6 mb-2" style="color: var(--sp-gold, #C9A962);"></i>
-                        <h4 class="card-title h5 mb-1" style="color: var(--sp-gold, #C9A962);">
+                        <i class="bi bi-calculator display-6 mb-2" style="color: var(--sp-gold, #FFB72D);"></i>
+                        <h4 class="card-title h5 mb-1" style="color: var(--sp-gold, #FFB72D);">
                             {{ "{:,.2f}".format(tour_data.logistics_costs.total) }}
                         </h4>
                         <small class="text-muted">{{ tour_data.currency }}</small>

@@ -1438,7 +1438,7 @@ def dashboard():
             html = f"""<!DOCTYPE html>
 <html><head><title>Debug Dashboard v9</title></head>
 <body style="background:#1a1a1a;color:#fff;font-family:monospace;padding:20px;">
-<h1 style="color:#C9A962;">Dashboard Debug v9</h1>
+<h1 style="color:#FFB72D;">Dashboard Debug v9</h1>
 <pre style="background:#2a2a2a;padding:15px;border-radius:5px;">
 {json.dumps(debug_data, indent=2)}
 </pre>

@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     print(f"""
     ============================================================
-              STUDIO PALENQUE TOUR - Development Server
+              GIGROUTE - Development Server
     ============================================================
       Running on: http://{host}:{port}
       Environment: {os.environ.get('FLASK_ENV', 'development')}

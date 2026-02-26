@@ -1,5 +1,5 @@
 """
-Financial reports utility module for Studio Palenque Tour.
+Financial reports utility module for GigRoute.
 Handles calculations for tour financial analytics.
 """
 from decimal import Decimal

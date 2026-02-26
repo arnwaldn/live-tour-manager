@@ -1,5 +1,5 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
 VOTRE DEMANDE GUESTLIST A ETE REFUSEE
@@ -25,8 +25,8 @@ Type d'acces demande: {{ entry.entry_type.value|replace('_', ' ')|title }}
 Si vous avez des questions, veuillez contacter le management de l'artiste.
 
 Cordialement,
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute
 Cet email a ete envoye automatiquement.

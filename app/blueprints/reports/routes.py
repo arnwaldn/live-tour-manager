@@ -1,5 +1,5 @@
 """
-Reports routes for Studio Palenque Tour.
+Reports routes for GigRoute.
 Includes general stats and financial reports.
 """
 from flask import render_template, redirect, url_for, flash, Response, request

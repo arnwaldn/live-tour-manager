@@ -23,8 +23,8 @@ except ImportError:
 WEASYPRINT_AVAILABLE = PDF_AVAILABLE
 
 # Color palette
-GOLD = HexColor('#C9A962')
-DARK_BG = HexColor('#1a1a1a')
+GOLD = HexColor('#FFB72D')
+DARK_BG = HexColor('#1A1A22')
 BLUE = HexColor('#0d6efd')
 GREEN = HexColor('#198754')
 RED = HexColor('#dc3545')
@@ -461,7 +461,7 @@ def generate_tour_pdf(tour) -> bytes:
 
     # Footer
     generation_date = datetime.now().strftime('%d/%m/%Y %H:%M')
-    elements.append(Paragraph(f"Studio Palenque Tour - Genere le {generation_date}", footer_style))
+    elements.append(Paragraph(f"GigRoute - Genere le {generation_date}", footer_style))
 
     doc.build(elements)
     return buffer.getvalue()
@@ -643,7 +643,7 @@ def generate_daysheet_pdf(stop) -> bytes:
     # Footer
     generation_date = datetime.now().strftime('%d/%m/%Y %H:%M')
     elements.append(Paragraph(
-        f"Day Sheet genere le {generation_date} - Studio Palenque Tour Manager - "
+        f"Day Sheet genere le {generation_date} - GigRoute - "
         f"Reference: DAYSHEET-{stop.id}-{date_str.replace('/', '')}",
         footer_style
     ))

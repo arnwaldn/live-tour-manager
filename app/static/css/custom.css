@@ -1,27 +1,27 @@
 /**
- * Studio Palenque Tour - Custom Styles
+ * GigRoute - Custom Styles
  * Elegant dark theme with gold accents
  * Bootstrap 5.3 enhancements
  */
 
 /* ==========================================================================
-   CSS Variables / Theme - Studio Palenque
+   CSS Variables / Theme - GigRoute
    ========================================================================== */
 
 :root {
-    /* Studio Palenque Brand Colors */
-    --sp-black: #000000;
-    --sp-gold: #C9A962;
-    --sp-gold-light: #D4B87A;
-    --sp-gold-dark: #A68B4B;
-    --sp-white: #FFFFFF;
+    /* GigRoute Brand Colors — Electric Amber palette */
+    --sp-black: #0F0F14;
+    --sp-gold: #FFB72D;
+    --sp-gold-light: #FFCF6B;
+    --sp-gold-dark: #E5A020;
+    --sp-white: #FAF8F5;
     --sp-gray: #8B8B8B;
     --sp-gray-light: #AAAAAA;
-    --sp-bg-dark: #0A0A0A;
-    --sp-bg-card: #1A1A1A;
-    --sp-bg-card-hover: #252525;
-    --sp-border: rgba(201, 169, 98, 0.2);
-    --sp-border-light: rgba(201, 169, 98, 0.1);
+    --sp-bg-dark: #0F0F14;
+    --sp-bg-card: #1A1A22;
+    --sp-bg-card-hover: #25252E;
+    --sp-border: rgba(255, 183, 45, 0.2);
+    --sp-border-light: rgba(255, 183, 45, 0.1);
 
     /* Mapping to existing system (backward compatibility) */
     --tm-primary: var(--sp-gold);
@@ -47,7 +47,7 @@
     --tm-sidebar-bg: var(--sp-black);
     --tm-sidebar-text: var(--sp-white);
     --tm-sidebar-color: var(--sp-gray-light);
-    --tm-sidebar-hover-bg: rgba(201, 169, 98, 0.1);
+    --tm-sidebar-hover-bg: rgba(255, 183, 45, 0.1);
 
     /* Transitions */
     --tm-transition-fast: 0.15s ease;
@@ -57,7 +57,7 @@
     --tm-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
     --tm-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
     --tm-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.5);
-    --tm-shadow-gold: 0 0 20px rgba(201, 169, 98, 0.15);
+    --tm-shadow-gold: 0 0 20px rgba(255, 183, 45, 0.15);
 }
 
 /* ==========================================================================
@@ -72,7 +72,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
     font-weight: 600;
     color: var(--sp-white);
 }
@@ -102,7 +102,7 @@ a:hover {
 }
 
 /* ==========================================================================
-   Navbar - Studio Palenque Style
+   Navbar - GigRoute Style
    ========================================================================== */
 
 .navbar {
@@ -113,7 +113,7 @@ a:hover {
 
 .navbar-brand {
     color: var(--sp-gold) !important;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
     font-weight: 700;
 }
 
@@ -133,7 +133,7 @@ a:hover {
 
 .navbar-credit {
     font-size: 0.65rem;
-    color: rgba(201, 169, 98, 0.6);
+    color: rgba(255, 183, 45, 0.6);
     line-height: 1;
     margin-top: 2px;
 }
@@ -160,7 +160,7 @@ a:hover {
     background-color: var(--sp-bg-card);
     border-color: var(--sp-gold);
     color: var(--sp-white);
-    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.25);
 }
 
 .navbar .btn-light {
@@ -175,7 +175,7 @@ a:hover {
 }
 
 /* ==========================================================================
-   Sidebar Navigation - Studio Palenque Style
+   Sidebar Navigation - GigRoute Style
    ========================================================================== */
 
 .sidebar {
@@ -205,7 +205,7 @@ a:hover {
     color: var(--sp-gold);
     font-weight: 700;
     font-size: 1.1rem;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .sidebar-brand:hover {
@@ -232,7 +232,7 @@ a:hover {
 .sidebar-brand .brand-credit {
     display: block;
     font-size: 0.6rem;
-    color: rgba(201, 169, 98, 0.6);
+    color: rgba(255, 183, 45, 0.6);
     margin-left: 52px;
     margin-top: -2px;
 }
@@ -335,7 +335,7 @@ a:hover {
     border-bottom: 1px solid var(--sp-border);
     padding: 1rem 1.25rem;
     color: var(--sp-gold);
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .card-body {
@@ -358,7 +358,7 @@ a:hover {
     font-weight: 700;
     line-height: 1.2;
     color: var(--sp-gold);
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .stat-card .stat-label {
@@ -387,7 +387,7 @@ a:hover {
     letter-spacing: 0.025em;
     color: var(--sp-gold);
     border-bottom: 2px solid var(--sp-border);
-    background-color: rgba(201, 169, 98, 0.05);
+    background-color: rgba(255, 183, 45, 0.05);
 }
 
 .table td {
@@ -396,8 +396,8 @@ a:hover {
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(201, 169, 98, 0.05);
-    --bs-table-hover-bg: rgba(201, 169, 98, 0.05);
+    background-color: rgba(255, 183, 45, 0.05);
+    --bs-table-hover-bg: rgba(255, 183, 45, 0.05);
 }
 
 .table-striped > tbody > tr:nth-of-type(odd) {
@@ -434,7 +434,7 @@ a:hover {
     background-color: var(--sp-bg-card);
     border-color: var(--sp-gold);
     color: var(--sp-white);
-    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.25);
 }
 
 .form-control.is-invalid:focus,
@@ -458,7 +458,7 @@ a:hover {
 }
 
 .form-check-input:focus {
-    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.25);
     border-color: var(--sp-gold);
 }
 
@@ -495,7 +495,7 @@ a:hover {
 .btn-primary:focus {
     background-color: var(--sp-gold-dark);
     border-color: var(--sp-gold-dark);
-    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.5);
+    box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.5);
 }
 
 .btn-outline-primary {
@@ -558,7 +558,7 @@ a:hover {
     background-color: var(--sp-gold-dark);
     border-color: var(--sp-gold-dark);
     color: var(--sp-black);
-    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.5);
+    box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.5);
 }
 
 /* Action button group */
@@ -818,7 +818,7 @@ a:hover {
 
 .modal-title {
     color: var(--sp-gold);
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .modal-body {
@@ -846,7 +846,7 @@ a:hover {
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--sp-gold);
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .fc .fc-button-primary {
@@ -944,7 +944,7 @@ a:hover {
     font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--sp-white);
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Outfit', 'Inter', sans-serif;
 }
 
 .empty-state-text {
@@ -1021,7 +1021,7 @@ a:hover {
 }
 
 .table-clickable tr:hover {
-    background-color: rgba(201, 169, 98, 0.08);
+    background-color: rgba(255, 183, 45, 0.08);
 }
 
 /* Hover card effect */
@@ -1072,7 +1072,7 @@ a:hover {
     --bs-pagination-hover-border-color: var(--sp-gold);
     --bs-pagination-hover-color: var(--sp-gold);
     --bs-pagination-focus-bg: var(--sp-bg-card);
-    --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+    --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.25);
     --bs-pagination-active-bg: var(--sp-gold);
     --bs-pagination-active-border-color: var(--sp-gold);
     --bs-pagination-active-color: var(--sp-black);
@@ -1130,7 +1130,7 @@ a:hover {
 }
 
 .accordion-button:focus {
-    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.25);
     border-color: var(--sp-gold);
 }
 
@@ -1148,12 +1148,12 @@ a:hover {
     background-color: var(--sp-bg-dark) !important;
     color: var(--sp-white) !important;
     border-color: var(--sp-border) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23C9A962' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23FFB72D' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
 }
 
 .accordion-body .form-select:focus {
     border-color: var(--sp-gold) !important;
-    box-shadow: 0 0 0 0.2rem rgba(201, 169, 98, 0.25) !important;
+    box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.25) !important;
 }
 
 /* ==========================================================================
@@ -1169,7 +1169,7 @@ a:hover {
 }
 
 .card-header {
-    background-color: rgba(201, 169, 98, 0.1);
+    background-color: rgba(255, 183, 45, 0.1);
     border-bottom-color: var(--sp-border);
 }
 
@@ -1191,7 +1191,7 @@ a:hover {
     background-color: #2a2a2a;
     border-color: var(--sp-gold);
     color: var(--sp-white);
-    box-shadow: 0 0 0 0.25rem rgba(201, 169, 98, 0.25);
+    box-shadow: 0 0 0 0.25rem rgba(255, 183, 45, 0.25);
 }
 
 .form-control::placeholder {
@@ -1216,7 +1216,7 @@ a:hover {
     --bs-table-color: var(--sp-white);
     --bs-table-border-color: var(--sp-border);
     --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
-    --bs-table-hover-bg: rgba(201, 169, 98, 0.1);
+    --bs-table-hover-bg: rgba(255, 183, 45, 0.1);
 }
 
 .table-light,

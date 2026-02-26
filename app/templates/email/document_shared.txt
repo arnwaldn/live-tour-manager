@@ -1,5 +1,5 @@
 ==============================
-STUDIO PALENQUE TOUR
+GIGROUTE
 ==============================
 
 DOCUMENT PARTAGE AVEC VOUS
@@ -19,9 +19,9 @@ Taille: {{ document.file_size_formatted }}
 Pour voir le document: {{ view_url }}
 
 Cordialement,
-L'equipe Studio Palenque
+L'equipe GigRoute
 
 ---
 Vous recevez cet email car un document a ete partage avec vous.
 
-(c) 2026 Studio Palenque Group
+(c) 2026 GigRoute

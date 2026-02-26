@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Studio Palenque Tour{% endblock %}</title>
+    <title>{% block title %}GigRoute{% endblock %}</title>
     <style>
         /* Reset */
         body, table, td, p, a, li, blockquote {
@@ -46,7 +46,7 @@
             height: auto;
         }
         .email-header h1 {
-            color: #C9A962;
+            color: #FFB72D;
             font-size: 24px;
             font-weight: 400;
             margin: 15px 0 0 0;
@@ -72,12 +72,12 @@
         /* Info Box */
         .info-box {
             background-color: #1A1A1A;
-            border-left: 4px solid #C9A962;
+            border-left: 4px solid #FFB72D;
             padding: 20px;
             margin: 25px 0;
         }
         .info-box h3 {
-            color: #C9A962;
+            color: #FFB72D;
             font-size: 16px;
             font-weight: 600;
             margin: 0 0 10px 0;
@@ -101,7 +101,7 @@
         .btn {
             display: inline-block;
             padding: 14px 30px;
-            background-color: #C9A962;
+            background-color: #FFB72D;
             color: #000000;
             text-decoration: none;
             font-weight: 600;
@@ -163,13 +163,13 @@
             margin: 5px 0;
         }
         .email-footer a {
-            color: #C9A962;
+            color: #FFB72D;
             text-decoration: none;
         }
         .email-footer .divider {
             width: 60px;
             height: 1px;
-            background-color: #C9A962;
+            background-color: #FFB72D;
             margin: 15px auto;
         }
 
@@ -192,8 +192,8 @@
                     <!-- Header -->
                     <tr>
                         <td class="email-header">
-                            <h1>STUDIO PALENQUE</h1>
-                            <p style="color: #C9A962; font-size: 12px; letter-spacing: 4px; margin: 5px 0 0 0;">TOUR MANAGEMENT</p>
+                            <h1>GIGROUTE</h1>
+                            <p style="color: #FFB72D; font-size: 12px; letter-spacing: 4px; margin: 5px 0 0 0;">DU BUREAU AU BACKSTAGE</p>
                         </td>
                     </tr>
 
@@ -208,7 +208,7 @@
                     <tr>
                         <td class="email-footer">
                             <div class="divider"></div>
-                            <p>&copy; {{ now().year if now is defined else '2026' }} Studio Palenque Group</p>
+                            <p>&copy; {{ now().year if now is defined else '2026' }} GigRoute</p>
                             <p>Cet email a été envoyé automatiquement. Merci de ne pas y répondre.</p>
                             <p><a href="{{ url_for('settings.notifications', _external=True) }}">Gerer mes preferences email</a></p>
                         </td>

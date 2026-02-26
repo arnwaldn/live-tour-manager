@@ -1,49 +1,49 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Settlement - {{ settlement.venue_name }} - Tour Manager{% endblock %}
+{% block title %}Settlement - {{ settlement.venue_name }} - GigRoute{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Settlement Page - Dark Theme (Studio Palenque) */
+    /* Settlement Page - Dark Theme (GigRoute) */
     .settlement-header {
         background: var(--sp-bg-card, #1A1A1A);
         color: white;
         border-radius: 12px;
         padding: 2rem;
-        border: 1px solid rgba(201, 169, 98, 0.3);
+        border: 1px solid rgba(255, 183, 45, 0.3);
     }
     .settlement-section {
         background: var(--sp-bg-card, #1A1A1A);
         border-radius: 12px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         margin-bottom: 1.5rem;
-        border: 1px solid rgba(201, 169, 98, 0.15);
+        border: 1px solid rgba(255, 183, 45, 0.15);
     }
     .settlement-section-header {
-        background: rgba(201, 169, 98, 0.1);
+        background: rgba(255, 183, 45, 0.1);
         padding: 1rem 1.5rem;
-        border-bottom: 1px solid rgba(201, 169, 98, 0.2);
+        border-bottom: 1px solid rgba(255, 183, 45, 0.2);
         border-radius: 12px 12px 0 0;
         font-weight: 600;
         color: var(--sp-white, #FFFFFF);
     }
     .settlement-section-header i {
-        color: var(--sp-gold, #C9A962) !important;
+        color: var(--sp-gold, #FFB72D) !important;
     }
     .settlement-row {
         display: flex;
         justify-content: space-between;
         padding: 0.75rem 1.5rem;
-        border-bottom: 1px solid rgba(201, 169, 98, 0.1);
+        border-bottom: 1px solid rgba(255, 183, 45, 0.1);
     }
     .settlement-row:last-child {
         border-bottom: none;
     }
     .settlement-row.highlight {
-        background-color: rgba(201, 169, 98, 0.05);
+        background-color: rgba(255, 183, 45, 0.05);
     }
     .settlement-row.total {
-        background-color: rgba(201, 169, 98, 0.15);
+        background-color: rgba(255, 183, 45, 0.15);
         font-weight: 600;
     }
     .settlement-row.artist-payment {
@@ -70,25 +70,25 @@
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
         border-radius: 4px;
-        background: rgba(201, 169, 98, 0.2) !important;
-        color: var(--sp-gold, #C9A962) !important;
+        background: rgba(255, 183, 45, 0.2) !important;
+        color: var(--sp-gold, #FFB72D) !important;
     }
     .signature-area {
-        border: 1px dashed rgba(201, 169, 98, 0.4);
+        border: 1px dashed rgba(255, 183, 45, 0.4);
         border-radius: 8px;
         padding: 1.5rem;
         min-height: 100px;
         background: var(--sp-bg-card-hover, #252525);
     }
     .signature-line {
-        border-bottom: 1px solid var(--sp-gold, #C9A962);
+        border-bottom: 1px solid var(--sp-gold, #FFB72D);
         margin-bottom: 0.5rem;
         min-width: 200px;
     }
     /* Summary Card Dark Theme */
     .settlement-summary-card {
         background: var(--sp-bg-card, #1A1A1A) !important;
-        border: 1px solid rgba(201, 169, 98, 0.2) !important;
+        border: 1px solid rgba(255, 183, 45, 0.2) !important;
     }
     .settlement-summary-card .text-muted {
         color: var(--sp-gray, #8B8B8B) !important;
@@ -97,7 +97,7 @@
         color: var(--sp-white, #FFFFFF);
     }
     .settlement-summary-card .text-primary {
-        color: var(--sp-gold, #C9A962) !important;
+        color: var(--sp-gold, #FFB72D) !important;
     }
     .settlement-summary-card .text-success {
         color: #28a745 !important;
@@ -110,7 +110,7 @@
         .no-print { display: none !important; }
         body { background: white !important; }
         .settlement-header {
-            background: #C9A962 !important;
+            background: #FFB72D !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
@@ -207,7 +207,7 @@
             </p>
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <span class="badge fs-6 mb-2" style="background: rgba(201, 169, 98, 0.2); color: var(--sp-gold, #C9A962);">{{ settlement.tour_name }}</span>
+            <span class="badge fs-6 mb-2" style="background: rgba(255, 183, 45, 0.2); color: var(--sp-gold, #FFB72D);">{{ settlement.tour_name }}</span>
             <br>
             <span class="badge {% if settlement.status == 'confirmed' %}bg-success{% elif settlement.status == 'completed' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
                 {{ settlement.status|capitalize }}
@@ -536,7 +536,7 @@
 <div class="text-center text-muted small mt-4">
     <p class="mb-1">
         <i class="bi bi-info-circle me-1"></i>
-        Ce document est une feuille de règlement générée par Tour Manager.
+        Ce document est une feuille de règlement générée par GigRoute.
     </p>
     <p class="mb-0">
         Généré le {{ now().strftime('%d/%m/%Y à %H:%M') if now is defined else 'N/A' }} - Référence: SETTLEMENT-{{ settlement.stop_id }}-{{ settlement.date.strftime('%Y%m%d') }}

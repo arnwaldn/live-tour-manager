@@ -1,6 +1,6 @@
 {% extends "layouts/dashboard.html" %}
 
-{% block title %}Itineraire - {{ stop.venue.name if stop.venue else stop.date.strftime('%d/%m/%Y') }} - Tour Manager{% endblock %}
+{% block title %}Itineraire - {{ stop.venue.name if stop.venue else stop.date.strftime('%d/%m/%Y') }} - GigRoute{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -372,7 +372,7 @@
 <!-- Footer -->
 <div class="text-center text-muted mt-4 small">
     <p class="mb-0">
-        Itineraire genere le {{ now.strftime('%d/%m/%Y a %H:%M') }} - Tour Manager
+        Itineraire genere le {{ now.strftime('%d/%m/%Y a %H:%M') }} - GigRoute
     </p>
 </div>
 {% endblock %}

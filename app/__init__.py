@@ -570,7 +570,7 @@ def register_cli_commands(app):
             manager = User(
                 email=manager_email,
                 first_name='Jonathan',
-                last_name='Studio Palenque',
+                last_name='GigRoute',
                 access_level=AccessLevel.MANAGER,
                 is_active=True,
                 email_verified=True

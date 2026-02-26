@@ -1,13 +1,13 @@
 {% extends "email/base.html" %}
 
-{% block title %}Invitation - Studio Palenque Tour{% endblock %}
+{% block title %}Invitation - GigRoute{% endblock %}
 
 {% block content %}
 <h2>Vous avez été invité(e) !</h2>
 
 <p>Bonjour {{ user.first_name }},</p>
 
-<p><strong>{{ invited_by.full_name }}</strong> vous invite à rejoindre <strong>Studio Palenque Tour</strong>, la plateforme de gestion de tournées professionnelle.</p>
+<p><strong>{{ invited_by.full_name }}</strong> vous invite à rejoindre <strong>GigRoute</strong>, la plateforme de gestion de tournées professionnelle.</p>
 
 <div class="info-box">
     <h3>Votre compte</h3>
@@ -33,10 +33,10 @@
 
 <p style="font-size: 14px; color: #888888;">
     Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur:<br>
-    <a href="{{ accept_url }}" style="color: #C9A962; word-break: break-all;">{{ accept_url }}</a>
+    <a href="{{ accept_url }}" style="color: #FFB72D; word-break: break-all;">{{ accept_url }}</a>
 </p>
 
-<p>Avec Studio Palenque Tour, vous pouvez:</p>
+<p>Avec GigRoute, vous pouvez:</p>
 
 <ul style="color: #333333; margin: 20px 0; padding-left: 20px;">
     <li style="margin-bottom: 10px;">📅 Gérer les tournées et dates de concert</li>
@@ -47,7 +47,7 @@
 
 <p style="margin-top: 30px;">
     À très bientôt,<br>
-    <strong>L'équipe Studio Palenque</strong>
+    <strong>L'équipe GigRoute</strong>
 </p>
 
 <p style="font-size: 12px; color: #999999; margin-top: 30px; border-top: 1px solid #eeeeee; padding-top: 20px;">

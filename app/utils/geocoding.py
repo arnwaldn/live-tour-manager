@@ -60,7 +60,7 @@ def geocode_address(
         'addressdetails': 0
     }
     headers = {
-        'User-Agent': 'StudioPalenqueTour/1.0 (Tour Management Application)',
+        'User-Agent': 'GigRoute/1.0 (Tour Management Application)',
         'Accept-Language': 'fr,en'
     }
 
@@ -118,7 +118,7 @@ def reverse_geocode(
         'addressdetails': 1
     }
     headers = {
-        'User-Agent': 'StudioPalenqueTour/1.0 (Tour Management Application)',
+        'User-Agent': 'GigRoute/1.0 (Tour Management Application)',
         'Accept-Language': 'fr,en'
     }
 
