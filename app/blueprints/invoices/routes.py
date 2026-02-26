@@ -53,7 +53,7 @@ def index():
     form = InvoiceFilterForm(request.args)
 
     # Populate select fields
-    form.tour_id.choices = [(0, 'Toutes les tournees')] + [
+    form.tour_id.choices = [(0, 'Toutes les tournées')] + [
         (t.id, t.name) for t in Tour.query.order_by(Tour.start_date.desc()).all()
     ]
 

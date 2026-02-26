@@ -286,8 +286,8 @@ class ReportService:
             'Banque',
             'Statut intermittent',
             'SIRET',
-            'Numero conges spectacles',
-            'Tournee',
+            'Numéro congés spectacles',
+            'Tournée',
             'Statut'
         ])
 
