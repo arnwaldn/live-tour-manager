@@ -7,7 +7,7 @@ from datetime import date, time, datetime, timedelta
 from flask import url_for
 
 from app.extensions import db
-from app.models.user import User, Role
+from app.models.user import User, Role, AccessLevel
 from app.models.band import Band, BandMembership
 from app.models.venue import Venue
 from app.models.tour import Tour, TourStatus
@@ -69,7 +69,9 @@ def manager_user(app, manager_role):
         email='manager@test.com',
         first_name='Test',
         last_name='Manager',
-        is_active=True
+        is_active=True,
+        access_level=AccessLevel.MANAGER,
+        email_verified=True,
     )
     user.set_password('Manager123!')
     user.roles.append(manager_role)
@@ -85,7 +87,9 @@ def musician_user(app, musician_role):
         email='musician@test.com',
         first_name='Test',
         last_name='Musician',
-        is_active=True
+        is_active=True,
+        access_level=AccessLevel.STAFF,
+        email_verified=True,
     )
     user.set_password('Musician123!')
     user.roles.append(musician_role)
@@ -308,7 +312,7 @@ class TestAddLogistics:
             'address': '789 Luxury Ave',
             'city': 'Paris',
             'country': 'France',
-            'room_type': 'DOUBLE',
+            'room_type': 'double',
             'number_of_rooms': 2,
             'breakfast_included': True,
             'cost': '200.00',
@@ -333,7 +337,7 @@ class TestAddLogistics:
             'flight_number': 'AF1234',
             'departure_airport': 'CDG',
             'arrival_airport': 'JFK',
-            'start_datetime': datetime.now().strftime('%Y-%m-%d %H:%M'),
+            'start_datetime': datetime.now().strftime('%Y-%m-%dT%H:%M'),
             'cost': '450.00',
             'currency': 'EUR'
         }, follow_redirects=True)
@@ -508,7 +512,7 @@ class TestLocalContacts:
 
         response = client.post(f'/logistics/stop/{tour_stop.id}/contacts/add', data={
             'name': 'New Contact',
-            'role': 'Venue Manager',
+            'role': 'Promoter',
             'company': 'Test Venue Inc',
             'email': 'contact@venue.com',
             'phone': '+33 1 11 22 33 44',

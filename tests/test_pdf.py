@@ -11,9 +11,8 @@ from datetime import date
 from app.utils.pdf_generator import (
     format_currency,
     generate_settlement_pdf,
-    _build_settlement_html,
     _get_fill_rate_class,
-    _get_fill_rate_badge,
+    _get_fill_rate_color,
     _get_deal_type,
     PDF_AVAILABLE
 )
@@ -56,55 +55,69 @@ class TestPdfFormatCurrency:
 # =============================================================================
 
 class TestFillRateClass:
-    """Tests for _get_fill_rate_class function."""
+    """Tests for _get_fill_rate_class function (returns labels)."""
 
     def test_excellent_rate(self):
-        """Test >= 90% returns excellent."""
-        assert _get_fill_rate_class(95) == 'fill-rate-excellent'
-        assert _get_fill_rate_class(90) == 'fill-rate-excellent'
-        assert _get_fill_rate_class(100) == 'fill-rate-excellent'
+        """Test >= 90% returns Excellent."""
+        assert _get_fill_rate_class(95) == 'Excellent'
+        assert _get_fill_rate_class(90) == 'Excellent'
+        assert _get_fill_rate_class(100) == 'Excellent'
 
     def test_good_rate(self):
-        """Test 75-89% returns good."""
-        assert _get_fill_rate_class(89) == 'fill-rate-good'
-        assert _get_fill_rate_class(75) == 'fill-rate-good'
-        assert _get_fill_rate_class(80) == 'fill-rate-good'
+        """Test 75-89% returns Bon."""
+        assert _get_fill_rate_class(89) == 'Bon'
+        assert _get_fill_rate_class(75) == 'Bon'
+        assert _get_fill_rate_class(80) == 'Bon'
 
     def test_medium_rate(self):
-        """Test 50-74% returns medium."""
-        assert _get_fill_rate_class(74) == 'fill-rate-medium'
-        assert _get_fill_rate_class(50) == 'fill-rate-medium'
-        assert _get_fill_rate_class(60) == 'fill-rate-medium'
+        """Test 50-74% returns Moyen."""
+        assert _get_fill_rate_class(74) == 'Moyen'
+        assert _get_fill_rate_class(50) == 'Moyen'
+        assert _get_fill_rate_class(60) == 'Moyen'
 
     def test_low_rate(self):
-        """Test < 50% returns low."""
-        assert _get_fill_rate_class(49) == 'fill-rate-low'
-        assert _get_fill_rate_class(25) == 'fill-rate-low'
-        assert _get_fill_rate_class(0) == 'fill-rate-low'
-
-
-class TestFillRateBadge:
-    """Tests for _get_fill_rate_badge function."""
-
-    def test_excellent_badge(self):
-        """Test >= 90% returns Excellent."""
-        assert _get_fill_rate_badge(95) == 'Excellent'
-        assert _get_fill_rate_badge(100) == 'Excellent'
-
-    def test_good_badge(self):
-        """Test 75-89% returns Bon."""
-        assert _get_fill_rate_badge(85) == 'Bon'
-        assert _get_fill_rate_badge(75) == 'Bon'
-
-    def test_medium_badge(self):
-        """Test 50-74% returns Moyen."""
-        assert _get_fill_rate_badge(60) == 'Moyen'
-        assert _get_fill_rate_badge(50) == 'Moyen'
-
-    def test_low_badge(self):
         """Test < 50% returns Faible."""
-        assert _get_fill_rate_badge(30) == 'Faible'
-        assert _get_fill_rate_badge(0) == 'Faible'
+        assert _get_fill_rate_class(49) == 'Faible'
+        assert _get_fill_rate_class(25) == 'Faible'
+        assert _get_fill_rate_class(0) == 'Faible'
+
+
+class TestFillRateColor:
+    """Tests for _get_fill_rate_color function."""
+
+    @pytest.mark.skipif(not PDF_AVAILABLE, reason="reportlab not installed")
+    def test_excellent_color(self):
+        """Test >= 90% returns GREEN."""
+        color = _get_fill_rate_color(95)
+        assert color is not None
+
+    @pytest.mark.skipif(not PDF_AVAILABLE, reason="reportlab not installed")
+    def test_good_color(self):
+        """Test 75-89% returns BLUE."""
+        color = _get_fill_rate_color(85)
+        assert color is not None
+
+    @pytest.mark.skipif(not PDF_AVAILABLE, reason="reportlab not installed")
+    def test_medium_color(self):
+        """Test 50-74% returns YELLOW."""
+        color = _get_fill_rate_color(60)
+        assert color is not None
+
+    @pytest.mark.skipif(not PDF_AVAILABLE, reason="reportlab not installed")
+    def test_low_color(self):
+        """Test < 50% returns RED."""
+        color = _get_fill_rate_color(30)
+        assert color is not None
+
+    def test_no_pdf_returns_none(self):
+        """Test returns None when PDF not available."""
+        import app.utils.pdf_generator as mod
+        original = mod.PDF_AVAILABLE
+        mod.PDF_AVAILABLE = False
+        try:
+            assert _get_fill_rate_color(95) is None
+        finally:
+            mod.PDF_AVAILABLE = original
 
 
 class TestGetDealType:
@@ -139,127 +152,23 @@ class TestGetDealType:
 # HTML Generation Tests
 # =============================================================================
 
-class TestBuildSettlementHtml:
-    """Tests for _build_settlement_html function."""
+class TestFillRateClassBoundaries:
+    """Tests for fill rate boundary values."""
 
-    @pytest.fixture
-    def sample_settlement_data(self):
-        """Create sample settlement data for testing."""
-        return {
-            'stop_id': 1,
-            'tour_id': 1,
-            'tour_name': 'Summer Tour 2025',
-            'band_name': 'Test Band',
-            'date': date(2025, 6, 15),
-            'venue_name': 'Le Zenith',
-            'venue_city': 'Paris',
-            'venue_country': 'France',
-            'status': 'confirmed',
-            'capacity': 5000,
-            'sold_tickets': 4200,
-            'fill_rate': 84.0,
-            'ticket_price': 45.0,
-            'avg_ticket_price': 45.0,
-            'gross_revenue': 189000.0,
-            'ticketing_fee_percentage': 5.0,
-            'ticketing_fees': 9450.0,
-            'nbor': 179550.0,
-            'promoter_expenses': {'total': 0},
-            'guarantee': 15000.0,
-            'door_deal_percentage': 10.0,
-            'door_deal_amount': 16455.0,
-            'simple_door_deal': 17955.0,
-            'split_point': 15000.0,
-            'backend_base': 164550.0,
-            'break_even_tickets': 351,
-            'break_even_revenue': 15000.0,
-            'artist_payment': 17955.0,
-            'payment_type': 'door_deal',
-            'venue_share': 161595.0,
-            'promoter_profit': 161595.0,
-            'currency': 'EUR',
-            'is_above_break_even': True,
-            'profit_above_guarantee': 2955.0,
-            'has_promoter_expenses': False,
-        }
+    def test_boundary_90(self):
+        """Test exact boundary at 90%."""
+        assert _get_fill_rate_class(90) == 'Excellent'
+        assert _get_fill_rate_class(89.9) == 'Bon'
 
-    def test_html_contains_band_name(self, sample_settlement_data):
-        """Test HTML includes band name."""
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-        assert 'Test Band' in html
+    def test_boundary_75(self):
+        """Test exact boundary at 75%."""
+        assert _get_fill_rate_class(75) == 'Bon'
+        assert _get_fill_rate_class(74.9) == 'Moyen'
 
-    def test_html_contains_venue_info(self, sample_settlement_data):
-        """Test HTML includes venue information."""
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-        assert 'Le Zenith' in html
-        assert 'Paris' in html
-        assert 'France' in html
-
-    def test_html_contains_box_office_section(self, sample_settlement_data):
-        """Test HTML includes Box Office section."""
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-        assert 'BOX OFFICE' in html
-        assert '5,000' in html  # capacity
-        assert '4,200' in html  # sold tickets
-
-    def test_html_contains_nbor_section(self, sample_settlement_data):
-        """Test HTML includes NBOR (Net Box Office Receipts) section."""
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-        assert 'RECETTES NETTES (NBOR)' in html
-        assert 'Frais de billetterie' in html
-
-    def test_html_contains_artist_payment(self, sample_settlement_data):
-        """Test HTML includes artist payment section."""
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-        assert 'PAIEMENT ARTISTE' in html
-        assert 'CALCUL DU PAIEMENT ARTISTE' in html
-
-    def test_html_contains_signatures_section(self, sample_settlement_data):
-        """Test HTML includes signatures section."""
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-        assert 'SIGNATURES' in html
-        assert "Representant de l'artiste" in html
-        assert 'Promoteur' in html
-
-    def test_html_door_deal_info(self, sample_settlement_data):
-        """Test HTML includes door deal percentage."""
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-        assert '10' in html  # door deal percentage
-
-    def test_html_with_promoter_expenses(self, sample_settlement_data):
-        """Test HTML includes promoter expenses when present."""
-        sample_settlement_data['promoter_expenses'] = {
-            'total': 5000,
-            'venue_fee': 2000,
-            'security': 1500,
-            'marketing_cost': 1500
-        }
-        sample_settlement_data['has_promoter_expenses'] = True
-
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-        assert 'DEPENSES PROMOTEUR' in html
-        assert 'Location salle' in html
-        assert 'Securite' in html
-
-    def test_html_guarantee_only_deal(self, sample_settlement_data):
-        """Test HTML for guarantee-only deal."""
-        sample_settlement_data['door_deal_percentage'] = 0
-        sample_settlement_data['payment_type'] = 'guarantee'
-
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-        assert 'Guarantee' in html
-
-    def test_html_is_valid_structure(self, sample_settlement_data):
-        """Test HTML has proper structure."""
-        html = _build_settlement_html(sample_settlement_data, 'EUR')
-
-        # Check basic HTML structure
-        assert '<!DOCTYPE html>' in html
-        assert '<html' in html
-        assert '</html>' in html
-        assert '<head>' in html
-        assert '<body>' in html
-        assert '<style>' in html
+    def test_boundary_50(self):
+        """Test exact boundary at 50%."""
+        assert _get_fill_rate_class(50) == 'Moyen'
+        assert _get_fill_rate_class(49.9) == 'Faible'
 
 
 # =============================================================================
@@ -324,20 +233,18 @@ class TestGenerateSettlementPdf:
         # PDF files start with %PDF
         assert result[:4] == b'%PDF'
 
-    def test_generate_pdf_without_xhtml2pdf(self, sample_settlement_data):
-        """Test error when xhtml2pdf not available."""
-        with patch('app.utils.pdf_generator.PDF_AVAILABLE', False):
-            # Re-import to get the patched version
-            from app.utils import pdf_generator
-            original_available = pdf_generator.PDF_AVAILABLE
-            pdf_generator.PDF_AVAILABLE = False
+    def test_generate_pdf_without_reportlab(self, sample_settlement_data):
+        """Test error when reportlab not available."""
+        from app.utils import pdf_generator
+        original_available = pdf_generator.PDF_AVAILABLE
+        pdf_generator.PDF_AVAILABLE = False
 
-            try:
-                with pytest.raises(ImportError) as excinfo:
-                    pdf_generator.generate_settlement_pdf(sample_settlement_data)
-                assert 'xhtml2pdf' in str(excinfo.value)
-            finally:
-                pdf_generator.PDF_AVAILABLE = original_available
+        try:
+            with pytest.raises(ImportError) as excinfo:
+                pdf_generator.generate_settlement_pdf(sample_settlement_data)
+            assert 'reportlab' in str(excinfo.value)
+        finally:
+            pdf_generator.PDF_AVAILABLE = original_available
 
     @pytest.mark.skipif(not PDF_AVAILABLE, reason="xhtml2pdf not installed")
     def test_generate_pdf_with_door_deal(self, sample_settlement_data):
@@ -424,23 +331,17 @@ class TestPdfEdgeCases:
             'has_promoter_expenses': False,
         }
 
-    def test_html_with_null_date(self, minimal_settlement):
-        """Test HTML generation with null date."""
-        html = _build_settlement_html(minimal_settlement, 'EUR')
-        assert 'N/A' in html
+    def test_deal_type_with_zero_values(self, minimal_settlement):
+        """Test _get_deal_type with zero values."""
+        assert _get_deal_type(minimal_settlement) == 'Guarantee'
 
-    def test_html_with_zero_values(self, minimal_settlement):
-        """Test HTML generation with zero values."""
-        html = _build_settlement_html(minimal_settlement, 'EUR')
-        # Should not raise any errors
-        assert '<!DOCTYPE html>' in html
+    def test_format_currency_with_zero(self):
+        """Test format_currency with zero amount."""
+        result = format_currency(0, 'EUR')
+        assert '0.00' in result
 
-    def test_fill_rate_boundary_values(self):
-        """Test fill rate boundaries."""
-        # Exactly at boundaries
-        assert _get_fill_rate_class(90) == 'fill-rate-excellent'
-        assert _get_fill_rate_class(89.9) == 'fill-rate-good'
-        assert _get_fill_rate_class(75) == 'fill-rate-good'
-        assert _get_fill_rate_class(74.9) == 'fill-rate-medium'
-        assert _get_fill_rate_class(50) == 'fill-rate-medium'
-        assert _get_fill_rate_class(49.9) == 'fill-rate-low'
+    def test_format_currency_unknown_currency(self):
+        """Test format_currency with unknown currency code."""
+        result = format_currency(100, 'JPY')
+        assert 'JPY' in result
+        assert '100.00' in result

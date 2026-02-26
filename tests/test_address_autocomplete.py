@@ -51,7 +51,7 @@ TEST_CASES = [
 ]
 
 
-def test_api_adresse(query: str, limit: int = 5) -> dict:
+def check_api_adresse(query: str, limit: int = 5) -> dict:
     """Test API Adresse (France)"""
     params = {
         'q': query,
@@ -85,7 +85,7 @@ def test_api_adresse(query: str, limit: int = 5) -> dict:
     }
 
 
-def test_geoapify(query: str, country_code: str = None, limit: int = 5) -> dict:
+def check_geoapify(query: str, country_code: str = None, limit: int = 5) -> dict:
     """Test Geoapify (International)"""
     if not GEOAPIFY_KEY:
         return {
@@ -153,9 +153,9 @@ def run_tests():
 
         try:
             if test['country'] == 'FR':
-                result = test_api_adresse(test['query'])
+                result = check_api_adresse(test['query'])
             else:
-                result = test_geoapify(test['query'], test['country'])
+                result = check_geoapify(test['query'], test['country'])
 
             if result['success']:
                 print(f"[PASS] {result['count']} suggestions found")
