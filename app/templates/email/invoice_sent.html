@@ -1,0 +1,74 @@
+{% extends "email/base.html" %}
+
+{% block title %}{{ type_label }} {{ invoice.number }} - GigRoute{% endblock %}
+
+{% block content %}
+<h2>{{ type_label }} {{ invoice.number }}</h2>
+
+<p>Bonjour {{ recipient_name }},</p>
+
+<p>Veuillez trouver ci-joint la {{ type_label|lower }} <strong>{{ invoice.number }}</strong> emise par <strong>{{ issuer_name }}</strong>.</p>
+
+<div class="info-box">
+    <h3>{{ type_label }} {{ invoice.number }}</h3>
+    <p>
+        <span class="label">Date d'emission :</span>
+        <span class="value">{{ invoice.issue_date.strftime('%d/%m/%Y') if invoice.issue_date else 'N/A' }}</span>
+    </p>
+    <p>
+        <span class="label">Date d'echeance :</span>
+        <span class="value">{{ invoice.due_date.strftime('%d/%m/%Y') if invoice.due_date else 'N/A' }}</span>
+    </p>
+    {% if invoice.delivery_date %}
+    <p>
+        <span class="label">Date de prestation :</span>
+        <span class="value">{{ invoice.delivery_date.strftime('%d/%m/%Y') }}</span>
+    </p>
+    {% endif %}
+    <p>
+        <span class="label">Montant HT :</span>
+        <span class="value">{{ "%.2f"|format(invoice.subtotal_ht|float) }} {{ invoice.currency }}</span>
+    </p>
+    <p>
+        <span class="label">TVA :</span>
+        <span class="value">{{ "%.2f"|format(invoice.vat_amount|float) }} {{ invoice.currency }}</span>
+    </p>
+    <p>
+        <span class="label">Montant TTC :</span>
+        <span class="value" style="font-size: 18px; color: #FFB72D;">{{ "%.2f"|format(invoice.total_ttc|float) }} {{ invoice.currency }}</span>
+    </p>
+    {% if invoice.amount_due and invoice.amount_due != invoice.total_ttc %}
+    <p>
+        <span class="label">Reste a payer :</span>
+        <span class="value">{{ "%.2f"|format(invoice.amount_due|float) }} {{ invoice.currency }}</span>
+    </p>
+    {% endif %}
+</div>
+
+{% if invoice.payment_terms %}
+<p><strong>Conditions de paiement :</strong> {{ invoice.payment_terms }}</p>
+{% endif %}
+
+{% if invoice.payment_method_accepted %}
+<p><strong>Mode de paiement :</strong> {{ invoice.payment_method_accepted }}</p>
+{% endif %}
+
+{% if invoice.issuer_iban %}
+<p><strong>IBAN :</strong> {{ invoice.issuer_iban }}{% if invoice.issuer_bic %} (BIC: {{ invoice.issuer_bic }}){% endif %}</p>
+{% endif %}
+
+{% if invoice.public_notes %}
+<p style="margin-top: 20px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #6c757d;">
+    {{ invoice.public_notes }}
+</p>
+{% endif %}
+
+<p style="margin-top: 30px;">
+    Cordialement,<br>
+    <strong>{{ issuer_name }}</strong>
+</p>
+
+<p style="color: #999999; font-size: 12px; margin-top: 20px; border-top: 1px solid #eeeeee; padding-top: 15px;">
+    Le document PDF est joint a cet email. En cas de question, contactez directement {{ issuer_name }}{% if invoice.issuer_email %} a {{ invoice.issuer_email }}{% endif %}.
+</p>
+{% endblock %}

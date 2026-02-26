@@ -31,22 +31,40 @@
             <i class="bi bi-trash me-1"></i>Supprimer
         </button>
         {% elif invoice.status.value == 'validated' %}
+        <a href="{{ url_for('invoices.download_pdf', invoice_id=invoice.id) }}" class="btn btn-outline-secondary" title="Telecharger PDF">
+            <i class="bi bi-file-pdf me-1"></i>PDF
+        </a>
+        {% if invoice.recipient_email %}
+        <form action="{{ url_for('invoices.send_email_invoice', invoice_id=invoice.id) }}" method="POST" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary" title="Envoyer par email a {{ invoice.recipient_email }}">
+                <i class="bi bi-envelope me-1"></i>Envoyer par email
+            </button>
+        </form>
+        {% endif %}
         <form action="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}" method="POST" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-send me-1"></i>Marquer envoyée
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-send me-1"></i>Marquer envoyee
             </button>
         </form>
         <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
             <i class="bi bi-x-circle me-1"></i>Annuler
         </button>
         {% elif invoice.status.value in ['sent', 'partial', 'overdue'] %}
+        <a href="{{ url_for('invoices.download_pdf', invoice_id=invoice.id) }}" class="btn btn-outline-secondary" title="Telecharger PDF">
+            <i class="bi bi-file-pdf me-1"></i>PDF
+        </a>
         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#paymentModal">
             <i class="bi bi-cash me-1"></i>Enregistrer paiement
         </button>
         <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
             <i class="bi bi-x-circle me-1"></i>Annuler
         </button>
+        {% elif invoice.status.value == 'paid' %}
+        <a href="{{ url_for('invoices.download_pdf', invoice_id=invoice.id) }}" class="btn btn-outline-secondary" title="Telecharger PDF">
+            <i class="bi bi-file-pdf me-1"></i>PDF
+        </a>
         {% endif %}
     </div>
 </div>

@@ -1,11 +1,14 @@
 """
 MissionInvitation model - tracks invitations sent to members for tour stops.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 import enum
 import secrets
 
 from app.extensions import db
+
+# Delai d expiration des tokens d invitation (en jours)
+TOKEN_EXPIRY_DAYS = 30
 
 
 class MissionInvitationStatus(enum.Enum):
@@ -152,8 +155,14 @@ class MissionInvitation(db.Model):
 
     @classmethod
     def get_by_token(cls, token):
-        """Find invitation by token."""
-        return cls.query.filter_by(token=token).first()
+        """Find invitation by token, enforcing expiry."""
+        invitation = cls.query.filter_by(token=token).first()
+        if invitation and invitation.is_pending:
+            expiry = invitation.invited_at + timedelta(days=TOKEN_EXPIRY_DAYS)
+            if datetime.utcnow() > expiry:
+                invitation.mark_expired()
+                db.session.commit()
+        return invitation
 
     @classmethod
     def get_for_stop(cls, tour_stop_id):

@@ -422,6 +422,78 @@ def send_tour_stop_notification(tour_stop, notification_type='created'):
     return success
 
 
+def send_invoice_email(invoice):
+    """
+    Send invoice by email to recipient with PDF attachment.
+
+    Args:
+        invoice: Invoice model instance
+
+    Returns:
+        bool: True if email sent successfully
+    """
+    if not invoice.recipient_email:
+        logger.error(f"[EMAIL] Invoice {invoice.number}: no recipient email")
+        return False
+
+    # Check if recipient has emails disabled
+    from app.models.user import User
+    user = User.query.filter_by(email=invoice.recipient_email).first()
+    if user and not user.receive_emails:
+        logger.info(f"[EMAIL] Invoice email skipped - {invoice.recipient_email} disabled emails")
+        return True
+
+    email_id = str(uuid.uuid4())[:8]
+    logger.info(f"[EMAIL:{email_id}] Sending invoice {invoice.number} to {invoice.recipient_email}")
+
+    try:
+        # Generate PDF attachment
+        from app.utils.pdf_generator import generate_invoice_pdf, PDF_AVAILABLE
+        pdf_bytes = None
+        if PDF_AVAILABLE:
+            pdf_bytes = generate_invoice_pdf(invoice)
+
+        # Type labels for subject
+        type_labels = {
+            'invoice': 'Facture', 'credit': 'Avoir', 'proforma': 'Proforma',
+            'deposit': 'Acompte', 'final': 'Solde',
+        }
+        type_label = type_labels.get(invoice.type.value, 'Facture')
+        subject = f"{type_label} {invoice.number}"
+
+        msg = Message(
+            subject=f"[GigRoute] {subject}",
+            recipients=[invoice.recipient_email],
+            sender=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app')
+        )
+
+        # Render email body
+        context = {
+            'invoice': invoice,
+            'issuer_name': invoice.issuer_name,
+            'recipient_name': invoice.recipient_name,
+            'type_label': type_label,
+        }
+        msg.html = render_template('email/invoice_sent.html', **context)
+        msg.body = _html_to_text(msg.html)
+
+        # Attach PDF
+        if pdf_bytes:
+            safe_number = invoice.number.replace('/', '-')
+            msg.attach(
+                f"{safe_number}.pdf",
+                "application/pdf",
+                pdf_bytes,
+            )
+
+        mail.send(msg)
+        logger.info(f"[EMAIL:{email_id}] Invoice {invoice.number} sent to {invoice.recipient_email}")
+        return True
+    except Exception as e:
+        logger.error(f"[EMAIL:{email_id}] Failed to send invoice {invoice.number}: {e}")
+        return False
+
+
 def send_document_shared_email(document, shared_by, shared_to):
     """
     Send email when a document is shared with a user.
