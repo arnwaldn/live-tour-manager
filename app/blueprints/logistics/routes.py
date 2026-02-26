@@ -5,6 +5,8 @@ from datetime import datetime, time
 from flask import render_template, redirect, url_for, flash, request, make_response, Response
 from flask_login import login_required, current_user
 
+from sqlalchemy.orm import joinedload, selectinload
+
 from app.blueprints.logistics import logistics_bp
 from app.blueprints.logistics.forms import LogisticsInfoForm, LocalContactForm, LogisticsAssignmentForm
 from app.models.tour import Tour
@@ -45,7 +47,12 @@ def get_visible_logistics(stop, user):
 @login_required
 def manage(stop_id):
     """View logistics for a tour stop."""
-    stop = TourStop.query.get_or_404(stop_id)
+    # Eager-load logistics and local_contacts to avoid N+1
+    stop = TourStop.query.options(
+        selectinload(TourStop.logistics),
+        selectinload(TourStop.local_contacts),
+        joinedload(TourStop.tour),
+    ).get_or_404(stop_id)
     tour = stop.tour
 
     # Check access to tour
@@ -587,7 +594,15 @@ def delete_contact(id):
 @login_required
 def day_sheet(stop_id):
     """View day sheet for a tour stop."""
-    stop = TourStop.query.get_or_404(stop_id)
+    # Eager-load logistics, contacts, members, venue, guestlist for day sheet
+    stop = TourStop.query.options(
+        joinedload(TourStop.venue),
+        joinedload(TourStop.tour),
+        selectinload(TourStop.logistics),
+        selectinload(TourStop.local_contacts),
+        selectinload(TourStop.assigned_members),
+        selectinload(TourStop.guestlist_entries),
+    ).get_or_404(stop_id)
     tour = stop.tour
 
     # Check access to tour
@@ -693,7 +708,13 @@ def day_sheet(stop_id):
 @login_required
 def travel_itinerary(stop_id):
     """Unified travel itinerary view - all transport, hotels, call times in one timeline."""
-    stop = TourStop.query.get_or_404(stop_id)
+    # Eager-load logistics, venue, contacts for itinerary timeline
+    stop = TourStop.query.options(
+        joinedload(TourStop.venue),
+        joinedload(TourStop.tour),
+        selectinload(TourStop.logistics),
+        selectinload(TourStop.local_contacts),
+    ).get_or_404(stop_id)
     tour = stop.tour
 
     # Check access
@@ -808,7 +829,13 @@ def travel_itinerary(stop_id):
 @login_required
 def mobile_daysheet(stop_id):
     """Mobile-optimized day sheet for crew on the go."""
-    stop = TourStop.query.get_or_404(stop_id)
+    # Eager-load venue, contacts, logistics for mobile view
+    stop = TourStop.query.options(
+        joinedload(TourStop.venue),
+        joinedload(TourStop.tour),
+        selectinload(TourStop.logistics),
+        selectinload(TourStop.local_contacts),
+    ).get_or_404(stop_id)
     tour = stop.tour
 
     # Check access
@@ -939,7 +966,12 @@ def export_ical(stop_id):
         flash('Module icalendar non installe. Executez: pip install icalendar', 'error')
         return redirect(url_for('logistics.manage', stop_id=stop_id))
 
-    stop = TourStop.query.get_or_404(stop_id)
+    # Eager-load venue and logistics for iCal generation
+    stop = TourStop.query.options(
+        joinedload(TourStop.venue),
+        joinedload(TourStop.tour),
+        selectinload(TourStop.logistics),
+    ).get_or_404(stop_id)
     tour = stop.tour
 
     # Check access

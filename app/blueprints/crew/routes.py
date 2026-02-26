@@ -8,6 +8,8 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
+from sqlalchemy.orm import joinedload, selectinload
+
 from app.blueprints.crew import crew_bp
 from app.blueprints.crew.forms import (
     CrewSlotForm, CrewAssignmentForm, ExternalContactForm
@@ -171,8 +173,13 @@ def schedule(stop_id):
     tour_stop = TourStop.query.get_or_404(stop_id)
     can_edit = _can_edit_crew_schedule(tour_stop, current_user)
 
-    # Get all slots grouped by category
-    slots = CrewScheduleSlot.query.filter_by(tour_stop_id=stop_id).order_by(
+    # Get all slots grouped by category — eager-load assignments with user/external_contact
+    # to avoid N+1 when template iterates slot.assignments
+    slots = CrewScheduleSlot.query.options(
+        selectinload(CrewScheduleSlot.assignments).joinedload(CrewAssignment.user),
+        selectinload(CrewScheduleSlot.assignments).joinedload(CrewAssignment.external_contact),
+        selectinload(CrewScheduleSlot.assignments).joinedload(CrewAssignment.profession),
+    ).filter_by(tour_stop_id=stop_id).order_by(
         CrewScheduleSlot.profession_category,
         CrewScheduleSlot.start_time,
         CrewScheduleSlot.order
@@ -217,8 +224,10 @@ def my_schedule(stop_id):
     """Personal view showing only user's assignments."""
     tour_stop = TourStop.query.get_or_404(stop_id)
 
-    # Get user's assignments
-    assignments = CrewAssignment.query.join(CrewScheduleSlot).filter(
+    # Get user's assignments — eager-load slot to avoid N+1 in template
+    assignments = CrewAssignment.query.options(
+        joinedload(CrewAssignment.slot),
+    ).join(CrewScheduleSlot).filter(
         CrewScheduleSlot.tour_stop_id == stop_id,
         CrewAssignment.user_id == current_user.id
     ).all()
@@ -589,7 +598,11 @@ def export_ical(stop_id):
 @crew_view_required
 def api_schedule(stop_id):
     """Get crew schedule as JSON."""
-    slots = CrewScheduleSlot.query.filter_by(tour_stop_id=stop_id).all()
+    # Eager-load assignments->user/external_contact for to_dict() serialization
+    slots = CrewScheduleSlot.query.options(
+        selectinload(CrewScheduleSlot.assignments).joinedload(CrewAssignment.user),
+        selectinload(CrewScheduleSlot.assignments).joinedload(CrewAssignment.external_contact),
+    ).filter_by(tour_stop_id=stop_id).all()
     return jsonify([slot.to_dict() for slot in slots])
 
 

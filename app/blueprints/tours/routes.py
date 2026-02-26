@@ -6,6 +6,8 @@ from datetime import timedelta
 from flask import render_template, redirect, url_for, flash, request, jsonify, Response, current_app
 from flask_login import login_required, current_user
 
+from sqlalchemy.orm import joinedload, selectinload
+
 from app.blueprints.tours import tours_bp
 from app.blueprints.tours.forms import TourForm, TourStopForm, RescheduleStopForm, LineupSlotForm, MemberScheduleForm
 from app.models.tour import Tour, TourStatus
@@ -140,7 +142,10 @@ def index():
         except ValueError:
             pass
 
-    tours = query.order_by(Tour.start_date.desc()).all()
+    tours = query.options(
+        joinedload(Tour.band),
+        selectinload(Tour.stops).joinedload(TourStop.venue),
+    ).order_by(Tour.start_date.desc()).all()
 
     return render_template('tours/list.html', tours=tours, bands=user_bands, status_filter=status_filter)
 
@@ -226,6 +231,10 @@ def create(band_id):
 @tour_access_required
 def detail(id, tour=None):
     """View tour details and stops."""
+    # Eager-load stops->venue to avoid N+1 when template iterates tour.stops
+    tour = Tour.query.options(
+        selectinload(Tour.stops).joinedload(TourStop.venue)
+    ).get(id)
     return render_template('tours/detail.html', tour=tour)
 
 
@@ -489,7 +498,12 @@ def stop_detail(id, stop_id, tour=None):
     """View tour stop details."""
     from app.models.mission_invitation import MissionInvitation
 
-    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+    # Eager-load venue, lineup_slots, and assigned_members->professions
+    stop = TourStop.query.options(
+        joinedload(TourStop.venue),
+        selectinload(TourStop.lineup_slots),
+        selectinload(TourStop.assigned_members),
+    ).filter_by(id=stop_id, tour_id=id).first_or_404()
 
     # Préparer la programmation combinée (slots + groupe principal)
     all_performers = []
@@ -992,7 +1006,12 @@ def reorder_lineup(id, stop_id, tour=None):
 @tour_access_required
 def day_sheet(id, stop_id, tour=None):
     """Day Sheet view - detailed timeline for a tour stop."""
-    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+    # Eager-load venue and logistics to avoid N+1 in day sheet template
+    stop = TourStop.query.options(
+        joinedload(TourStop.venue),
+        selectinload(TourStop.logistics),
+        selectinload(TourStop.lineup_slots),
+    ).filter_by(id=stop_id, tour_id=id).first_or_404()
     return render_template('tours/day_sheet.html', tour=tour, stop=stop)
 
 
@@ -1002,6 +1021,10 @@ def day_sheet(id, stop_id, tour=None):
 def overview(id, tour=None):
     """Tour overview dashboard with consolidated view."""
     from datetime import date
+    # Eager-load stops->venue to avoid N+1 in overview template
+    tour = Tour.query.options(
+        selectinload(Tour.stops).joinedload(TourStop.venue)
+    ).get(id)
     return render_template('tours/overview.html', tour=tour, today=date.today())
 
 
@@ -1018,6 +1041,13 @@ def calendar(id, tour=None):
 @tour_access_required
 def tour_map(id, tour=None):
     """Interactive map view of tour route."""
+    # Eager-load stops->venue and stops->logistics->assignments->user
+    # to avoid N+1 when iterating stops, logistics items, and assignments
+    tour = Tour.query.options(
+        selectinload(Tour.stops).joinedload(TourStop.venue),
+        selectinload(Tour.stops).selectinload(TourStop.logistics),
+    ).get(id)
+
     # Get stops with coordinates (from venue OR direct location)
     stops_with_coords = [
         stop for stop in tour.stops
@@ -1183,6 +1213,10 @@ def tour_map(id, tour=None):
 @tour_access_required
 def calendar_events(id, tour=None):
     """Return tour stops as JSON for FullCalendar."""
+    # Eager-load stops->venue to avoid N+1 per stop
+    tour = Tour.query.options(
+        selectinload(Tour.stops).joinedload(TourStop.venue)
+    ).get(id)
     events = []
     for stop in tour.stops:
         # Handle stops without venue (DAY_OFF, TRAVEL, etc.)

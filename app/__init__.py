@@ -3,11 +3,14 @@ Tour Manager Application Factory.
 Creates and configures the Flask application instance.
 """
 import os
+import json
 import logging
+import uuid
 from logging.handlers import RotatingFileHandler
+from datetime import datetime, timezone
 
 import click
-from flask import Flask, render_template
+from flask import Flask, render_template, request, g
 
 from app.config import config
 from app.extensions import init_extensions, db
@@ -211,9 +214,11 @@ def register_error_handlers(app):
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
+        request_id = g.get('request_id', '-')
+        app.logger.error('500 Internal Server Error: %s (request_id=%s)', error, request_id)
         if _is_api_request():
-            return jsonify({'error': {'code': 'internal_error', 'message': 'Internal server error.'}}), 500
-        return render_template('errors/500.html'), 500
+            return jsonify({'error': {'code': 'internal_error', 'message': 'Internal server error.', 'request_id': request_id}}), 500
+        return render_template('errors/500.html', request_id=request_id), 500
 
     @app.errorhandler(429)
     def ratelimit_error(error):
@@ -817,27 +822,70 @@ def register_context_processors(app):
         return country
 
 
+class JSONFormatter(logging.Formatter):
+    """JSON log formatter for production (Render, cloud platforms)."""
+
+    def format(self, record):
+        log_entry = {
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'level': record.levelname,
+            'message': record.getMessage(),
+            'module': record.module,
+            'line': record.lineno,
+        }
+        # Add request_id if available
+        try:
+            log_entry['request_id'] = g.get('request_id', '-')
+        except RuntimeError:
+            pass  # Outside request context
+        # Add exception info
+        if record.exc_info and record.exc_info[0]:
+            log_entry['exception'] = self.formatException(record.exc_info)
+        return json.dumps(log_entry, ensure_ascii=False)
+
+
 def configure_logging(app):
-    """Configure application logging."""
-    if not app.debug and not app.testing:
-        # Ensure logs directory exists
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
+    """Configure application logging.
 
-        # File handler for errors
-        file_handler = RotatingFileHandler(
-            'logs/tour_manager.log',
-            maxBytes=10240000,  # 10 MB
-            backupCount=10
+    Production: JSON to stdout (for Render/cloud log aggregation).
+    Development: plain text with colors.
+    """
+    if app.testing:
+        return
+
+    # Request ID middleware
+    @app.before_request
+    def assign_request_id():
+        g.request_id = request.headers.get('X-Request-ID', str(uuid.uuid4())[:8])
+
+    @app.after_request
+    def log_request(response):
+        if request.path.startswith('/static'):
+            return response
+        app.logger.info(
+            '%s %s %s %dms',
+            request.method,
+            request.path,
+            response.status_code,
+            int((response.headers.get('X-Response-Time', 0)) or 0),
         )
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-        ))
-        file_handler.setLevel(logging.INFO)
-        app.logger.addHandler(file_handler)
+        return response
 
+    if not app.debug:
+        # Production: JSON to stdout
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(JSONFormatter())
+        stream_handler.setLevel(logging.INFO)
+
+        # Clear existing handlers to avoid duplicates
+        app.logger.handlers.clear()
+        app.logger.addHandler(stream_handler)
         app.logger.setLevel(logging.INFO)
-        app.logger.info('Tour Manager startup')
+        app.logger.info('Tour Manager startup (JSON logging)')
+    else:
+        # Development: plain text
+        app.logger.setLevel(logging.DEBUG)
+        app.logger.info('Tour Manager startup (development)')
 
 
 def register_security_headers(app):

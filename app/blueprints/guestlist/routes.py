@@ -6,6 +6,8 @@ from io import StringIO
 from flask import render_template, redirect, url_for, flash, request, jsonify, Response, current_app
 from flask_login import login_required, current_user
 
+from sqlalchemy.orm import joinedload, selectinload
+
 from app.blueprints.guestlist import guestlist_bp
 from app.blueprints.guestlist.forms import (
     GuestlistEntryForm, GuestlistApprovalForm,
@@ -105,10 +107,12 @@ def manage(stop_id):
             GuestlistEntry.company.ilike(f'%{search}%')
         )
 
-    # Pagination
+    # Pagination — eager-load requested_by to avoid N+1 in template
     page = request.args.get('page', 1, type=int)
     per_page = 20
-    entries = query.order_by(GuestlistEntry.created_at.desc()).paginate(
+    entries = query.options(
+        joinedload(GuestlistEntry.requested_by)
+    ).order_by(GuestlistEntry.created_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
 
@@ -135,7 +139,9 @@ def manage(stop_id):
                 GuestlistEntry.user_id == current_user.id
             )
         )
-    pending_entries = pending_query.order_by(GuestlistEntry.created_at.desc()).all()
+    pending_entries = pending_query.options(
+        joinedload(GuestlistEntry.requested_by)
+    ).order_by(GuestlistEntry.created_at.desc()).all()
 
     # Stats based on all entries
     stats = {
@@ -680,7 +686,9 @@ def export_csv(stop_id):
         except ValueError:
             pass
 
-    entries = query.order_by(GuestlistEntry.guest_name).all()
+    entries = query.options(
+        joinedload(GuestlistEntry.requested_by)
+    ).order_by(GuestlistEntry.guest_name).all()
 
     # Create CSV
     output = StringIO()

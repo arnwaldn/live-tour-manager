@@ -13,6 +13,8 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
+from sqlalchemy.orm import joinedload
+
 from app.blueprints.payments import payments_bp
 from app.blueprints.payments.forms import (
     PaymentForm, PerDiemBatchForm, UserPaymentConfigForm,
@@ -83,8 +85,11 @@ def index():
     if form.date_to.data:
         query = query.filter(TeamMemberPayment.work_date <= form.date_to.data)
 
-    # Order by most recent first
-    payments = query.order_by(TeamMemberPayment.created_at.desc()).all()
+    # Order by most recent first — eager-load user and tour to avoid N+1 in template
+    payments = query.options(
+        joinedload(TeamMemberPayment.user),
+        joinedload(TeamMemberPayment.tour),
+    ).order_by(TeamMemberPayment.created_at.desc()).all()
 
     # Calculate summary stats
     total_amount = sum(p.amount for p in payments if p.status != PaymentStatus.CANCELLED)
@@ -130,8 +135,11 @@ def dashboard():
         ).scalar() or Decimal('0')
         category_totals[category.value] = float(total)
 
-    # Recent payments
-    recent_payments = TeamMemberPayment.query.order_by(
+    # Recent payments — eager-load user and tour to avoid N+1
+    recent_payments = TeamMemberPayment.query.options(
+        joinedload(TeamMemberPayment.user),
+        joinedload(TeamMemberPayment.tour),
+    ).order_by(
         TeamMemberPayment.created_at.desc()
     ).limit(10).all()
 
@@ -330,7 +338,10 @@ def submit_for_approval(payment_id):
 @manager_required
 def approval_queue():
     """View payments pending approval."""
-    payments = TeamMemberPayment.query.filter_by(
+    payments = TeamMemberPayment.query.options(
+        joinedload(TeamMemberPayment.user),
+        joinedload(TeamMemberPayment.tour),
+    ).filter_by(
         status=PaymentStatus.PENDING_APPROVAL
     ).order_by(TeamMemberPayment.created_at).all()
 
@@ -607,7 +618,11 @@ def export_csv():
     if date_to:
         query = query.filter(TeamMemberPayment.work_date <= date_to)
 
-    payments = query.order_by(TeamMemberPayment.work_date).all()
+    payments = query.options(
+        joinedload(TeamMemberPayment.user),
+        joinedload(TeamMemberPayment.tour),
+        joinedload(TeamMemberPayment.tour_stop),
+    ).order_by(TeamMemberPayment.work_date).all()
 
     # Create CSV
     output = io.StringIO()
@@ -806,7 +821,9 @@ def tour_summary(tour_id):
     """Financial summary for a tour."""
     tour = Tour.query.get_or_404(tour_id)
 
-    payments = TeamMemberPayment.query.filter_by(tour_id=tour_id).all()
+    payments = TeamMemberPayment.query.options(
+        joinedload(TeamMemberPayment.user),
+    ).filter_by(tour_id=tour_id).all()
 
     # Group by category
     by_category = {}
@@ -862,7 +879,9 @@ def api_tour_stops(tour_id):
     if not tour.can_view(current_user):
         abort(403)
 
-    stops = TourStop.query.filter_by(tour_id=tour_id).order_by(TourStop.date).all()
+    stops = TourStop.query.options(
+        joinedload(TourStop.venue),
+    ).filter_by(tour_id=tour_id).order_by(TourStop.date).all()
     return jsonify([
         {
             'id': s.id,
