@@ -134,14 +134,7 @@ class ProductionConfig(Config):
             raise ValueError("SECRET_KEY environment variable is required in production")
         if not cls.SQLALCHEMY_DATABASE_URI:
             raise ValueError("DATABASE_URL environment variable is required in production")
-
-        # Log to stderr
-        import logging
-        from logging import StreamHandler
-
-        stream_handler = StreamHandler()
-        stream_handler.setLevel(logging.INFO)
-        app.logger.addHandler(stream_handler)
+        # Logging is configured in configure_logging() — no handler added here
 
 
 # Configuration dictionary for easy access

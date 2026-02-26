@@ -23,6 +23,7 @@ cryptography>=41.0.0
 # API (REST + JWT)
 PyJWT>=2.8.0
 marshmallow>=3.20.0
+Flask-Cors>=4.0.0
 
 # Email
 Flask-Mail==0.9.1

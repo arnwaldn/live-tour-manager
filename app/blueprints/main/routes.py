@@ -890,11 +890,11 @@ def db_test():
 def health_check():
     """Health check endpoint for Docker/load balancer."""
     try:
-        # Test database connection
         db.session.execute(db.text('SELECT 1'))
         db_status = 'healthy'
     except Exception as e:
-        db_status = f'unhealthy: {str(e)}'
+        current_app.logger.error('Health check DB failure: %s', e)
+        db_status = 'unhealthy'
 
     status = 'healthy' if db_status == 'healthy' else 'unhealthy'
 
@@ -902,7 +902,7 @@ def health_check():
         'status': status,
         'database': db_status,
         'service': 'tour-manager',
-        'version': '2026-02-01-v1'  # Deployment version marker
+        'version': '2026-02-01-v2'
     }), 200 if status == 'healthy' else 503
 
 
