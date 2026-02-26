@@ -29,7 +29,7 @@
                     <option value="draft" {{ 'selected' if request.args.get('status') == 'draft' }}>Brouillon</option>
                     <option value="planning" {{ 'selected' if request.args.get('status') == 'planning' }}>Planification</option>
                     <option value="confirmed" {{ 'selected' if request.args.get('status') == 'confirmed' }}>Confirmée</option>
-                    <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
+                    <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>En cours</option>
                     <option value="completed" {{ 'selected' if request.args.get('status') == 'completed' }}>Terminée</option>
                     <option value="cancelled" {{ 'selected' if request.args.get('status') == 'cancelled' }}>Annulée</option>
                 </select>

@@ -249,14 +249,14 @@
             <div class="card-body">
                 {# Collect all times and sort chronologically #}
                 {% set times = [] %}
-                {% if stop.load_in_time %}{% set _ = times.append(('load_in', stop.load_in_time, 'bi-truck', 'Load-In', false)) %}{% endif %}
+                {% if stop.load_in_time %}{% set _ = times.append(('load_in', stop.load_in_time, 'bi-truck', 'Chargement', false)) %}{% endif %}
                 {% if stop.crew_call_time %}{% set _ = times.append(('crew', stop.crew_call_time, 'bi-tools', 'Appel équipe', false)) %}{% endif %}
                 {% if stop.artist_call_time %}{% set _ = times.append(('artist', stop.artist_call_time, 'bi-person-badge', 'Appel artistes', false)) %}{% endif %}
                 {% if stop.catering_time %}{% set _ = times.append(('catering', stop.catering_time, 'bi-cup-hot', 'Catering', false)) %}{% endif %}
                 {% if stop.soundcheck_time %}{% set _ = times.append(('soundcheck', stop.soundcheck_time, 'bi-soundwave', 'Soundcheck', false)) %}{% endif %}
                 {% if stop.press_time %}{% set _ = times.append(('press', stop.press_time, 'bi-newspaper', 'Presse', false)) %}{% endif %}
                 {% if stop.meet_greet_time %}{% set _ = times.append(('meet_greet', stop.meet_greet_time, 'bi-people', 'Meet & Greet', false)) %}{% endif %}
-                {% if stop.doors_time %}{% set _ = times.append(('doors', stop.doors_time, 'bi-door-open', 'Ouverture portes', false)) %}{% endif %}
+                {% if stop.doors_time %}{% set _ = times.append(('doors', stop.doors_time, 'bi-door-open', 'Ouverture des portes', false)) %}{% endif %}
                 {% if stop.set_time %}{% set _ = times.append(('set', stop.set_time, 'bi-music-note-beamed', 'Set', true)) %}{% endif %}
                 {% if stop.curfew_time %}{% set _ = times.append(('curfew', stop.curfew_time, 'bi-moon', 'Couvre-feu', false)) %}{% endif %}
 
@@ -267,7 +267,7 @@
                         <div class="schedule-timeline">
                             {% if stop.load_in_time %}
                             <div class="schedule-item d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-truck me-2 text-muted"></i>Load-In</span>
+                                <span><i class="bi bi-truck me-2 text-muted"></i>Chargement</span>
                                 <strong>{{ stop.load_in_time.strftime('%H:%M') }}</strong>
                             </div>
                             {% endif %}
@@ -314,7 +314,7 @@
                             {% endif %}
                             {% if stop.doors_time %}
                             <div class="schedule-item d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-door-open me-2 text-muted"></i>Ouverture portes</span>
+                                <span><i class="bi bi-door-open me-2 text-muted"></i>Ouverture des portes</span>
                                 <strong>{{ stop.doors_time.strftime('%H:%M') }}</strong>
                             </div>
                             {% endif %}
