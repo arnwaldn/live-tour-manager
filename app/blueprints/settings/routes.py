@@ -1716,24 +1716,8 @@ def _reload_mail_config(app):
 def admin_reset_data():
     """Full data reset — deletes everything except admin user Arnaud Porcel.
 
-    Deletes: All users (except admin), bands, tours, stops, venues,
-    guestlists, payments, invoices, documents, logistics, crew, etc.
+    Uses raw SQL for maximum resilience — skips tables that don't exist.
     """
-    from app.models.tour import Tour
-    from app.models.tour_stop import TourStop, TourStopMember
-    from app.models.logistics import LogisticsInfo, LogisticsAssignment
-    from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment
-    from app.models.planning_slot import PlanningSlot
-    from app.models.notification import Notification
-    from app.models.reminder import TourStopReminder
-    from app.models.lineup import LineupSlot
-    from app.models.mission_invitation import MissionInvitation
-    from app.models.invoices import Invoice, InvoiceLine, InvoicePayment
-    from app.models.payments import TeamMemberPayment
-    from app.models.band import BandMembership
-    from app.models.venue import Venue, VenueContact
-    from app.models.oauth_token import OAuthToken
-
     confirm = request.form.get('confirm')
     if confirm != 'RESET':
         flash('Confirmation invalide. Tapez RESET pour confirmer.', 'error')
@@ -1746,88 +1730,86 @@ def admin_reset_data():
         return redirect(url_for('settings.settings_index'))
 
     admin_id = admin_user.id
-    deleted = {}
+    results = []
+    errors = []
+
+    def safe_sql(label, sql):
+        try:
+            db.session.execute(db.text(sql))
+            results.append(label)
+        except Exception as e:
+            db.session.rollback()
+            errors.append(f"{label}: {str(e)[:80]}")
 
     try:
-        # Tier 6 — deepest children
-        deleted['invoice_payments'] = InvoicePayment.query.delete()
-        deleted['invoice_lines'] = InvoiceLine.query.delete()
-        deleted['logistics_assignments'] = LogisticsAssignment.query.delete()
-        deleted['crew_assignments'] = CrewAssignment.query.delete()
+        # Tier 6 — deepest children first
+        safe_sql('invoice_payments', 'DELETE FROM invoice_payments')
+        safe_sql('invoice_lines', 'DELETE FROM invoice_lines')
+        safe_sql('logistics_assignments', 'DELETE FROM logistics_assignments')
+        safe_sql('crew_assignments', 'DELETE FROM crew_assignments')
 
-        # Tier 5 — depend on tour_stops
-        deleted['planning_slots'] = PlanningSlot.query.delete()
-        deleted['crew_schedule_slots'] = CrewScheduleSlot.query.delete()
-        deleted['tour_stop_reminders'] = TourStopReminder.query.delete()
-        deleted['lineup_slots'] = LineupSlot.query.delete()
-        deleted['logistics_info'] = LogisticsInfo.query.delete()
-        deleted['guestlist_entries'] = GuestlistEntry.query.delete()
-        deleted['mission_invitations'] = MissionInvitation.query.delete()
+        # Tier 5
+        safe_sql('planning_slots', 'DELETE FROM planning_slots')
+        safe_sql('crew_schedule_slots', 'DELETE FROM crew_schedule_slots')
+        safe_sql('tour_stop_reminders', 'DELETE FROM tour_stop_reminders')
+        safe_sql('lineup_slots', 'DELETE FROM lineup_slots')
+        safe_sql('logistics_info', 'DELETE FROM logistics_info')
+        safe_sql('guestlist_entries', 'DELETE FROM guestlist_entries')
+        safe_sql('mission_invitations', 'DELETE FROM mission_invitations')
+        safe_sql('local_contacts', 'DELETE FROM local_contacts')
+        safe_sql('promotor_expenses', 'DELETE FROM promotor_expenses')
 
-        # Nullify self-referential FKs
-        db.session.execute(db.text("UPDATE tour_stops SET rescheduled_from_id = NULL WHERE rescheduled_from_id IS NOT NULL"))
+        # Nullify self-refs before deleting
+        safe_sql('nullify_rescheduled', 'UPDATE tour_stops SET rescheduled_from_id = NULL WHERE rescheduled_from_id IS NOT NULL')
+        safe_sql('tour_stop_members_v2', 'DELETE FROM tour_stop_members_v2')
+        safe_sql('tour_stop_members', 'DELETE FROM tour_stop_members')
 
-        # Local contacts + promotor expenses (raw SQL — no ORM model imported)
-        db.session.execute(db.text("DELETE FROM local_contacts"))
-        db.session.execute(db.text("DELETE FROM promotor_expenses"))
+        # Tier 4 — tour_stops
+        safe_sql('tour_stops', 'DELETE FROM tour_stops')
 
-        # TourStopMember v2
-        db.session.execute(db.text("DELETE FROM tour_stop_members_v2"))
-        # TourStopMember legacy join table
-        deleted['tour_stop_members'] = TourStopMember.query.delete()
+        # Nullify circular FKs
+        safe_sql('nullify_invoice_id', 'UPDATE team_member_payments SET invoice_id = NULL WHERE invoice_id IS NOT NULL')
+        safe_sql('nullify_credited', 'UPDATE invoices SET credited_invoice_id = NULL WHERE credited_invoice_id IS NOT NULL')
+        safe_sql('invoices', 'DELETE FROM invoices')
+        safe_sql('team_member_payments', 'DELETE FROM team_member_payments')
 
-        # Tier 4 — tour_stops, then tours
-        deleted['tour_stops'] = TourStop.query.delete()
+        # Documents
+        safe_sql('document_shares', 'DELETE FROM document_shares')
+        safe_sql('documents', 'DELETE FROM documents')
 
-        # Nullify circular FK invoices <-> payments
-        db.session.execute(db.text("UPDATE team_member_payments SET invoice_id = NULL WHERE invoice_id IS NOT NULL"))
-        # Nullify self-ref invoices
-        db.session.execute(db.text("UPDATE invoices SET credited_invoice_id = NULL WHERE credited_invoice_id IS NOT NULL"))
-        deleted['invoices'] = Invoice.query.delete()
-        deleted['payments'] = TeamMemberPayment.query.delete()
-
-        # Documents + shares
-        db.session.execute(db.text("DELETE FROM document_shares"))
-        deleted['documents'] = Document.query.delete()
-
-        # Notifications + OAuth
-        deleted['notifications'] = Notification.query.delete()
-        deleted['oauth_tokens'] = OAuthToken.query.delete()
+        # Notifications + misc
+        safe_sql('notifications', 'DELETE FROM notifications')
+        safe_sql('oauth_tokens', 'DELETE FROM oauth_tokens')
+        safe_sql('audit_logs', 'DELETE FROM audit_logs')
 
         # Tours
-        deleted['tours'] = Tour.query.delete()
+        safe_sql('tours', 'DELETE FROM tours')
 
         # Bands
-        deleted['band_memberships'] = BandMembership.query.delete()
-        db.session.execute(db.text("DELETE FROM bands"))
-        deleted['bands'] = 'all'
+        safe_sql('band_memberships', 'DELETE FROM band_memberships')
+        safe_sql('bands', 'DELETE FROM bands')
 
-        # User data (for non-admin users)
-        # Travel cards
-        db.session.execute(db.text(f"DELETE FROM travel_cards WHERE user_id != {admin_id}"))
-        # User professions
-        UserProfession.query.filter(UserProfession.user_id != admin_id).delete(synchronize_session=False)
-        # User payment configs
-        db.session.execute(db.text(f"DELETE FROM user_payment_configs WHERE user_id != {admin_id}"))
-        # External contacts
-        db.session.execute(db.text("DELETE FROM external_contacts"))
-        # User roles
-        db.session.execute(db.text(f"DELETE FROM user_roles WHERE user_id != {admin_id}"))
-        # Audit logs
-        db.session.execute(db.text("DELETE FROM audit_logs"))
+        # User-related (keep admin)
+        safe_sql('travel_cards', f'DELETE FROM travel_cards WHERE user_id != {admin_id}')
+        safe_sql('user_professions', f'DELETE FROM user_professions WHERE user_id != {admin_id}')
+        safe_sql('user_payment_configs', f'DELETE FROM user_payment_configs WHERE user_id != {admin_id}')
+        safe_sql('external_contacts', 'DELETE FROM external_contacts')
+        safe_sql('user_roles', f'DELETE FROM user_roles WHERE user_id != {admin_id}')
 
         # Delete all users except admin
-        deleted['users'] = User.query.filter(User.id != admin_id).delete(synchronize_session=False)
+        safe_sql('users', f"DELETE FROM users WHERE id != {admin_id}")
 
         # Venues
-        deleted['venue_contacts'] = VenueContact.query.delete()
-        deleted['venues'] = Venue.query.delete()
+        safe_sql('venue_contacts', 'DELETE FROM venue_contacts')
+        safe_sql('venues', 'DELETE FROM venues')
 
         db.session.commit()
 
-        total = sum(v for v in deleted.values() if isinstance(v, int))
-        flash(f'Reset complet effectué. {total} enregistrements supprimés. Seul le compte {admin_email} est conservé.', 'success')
-        current_app.logger.warning(f"ADMIN RESET: Full data reset by {current_user.email}. {deleted}")
+        msg = f'Reset complet. {len(results)} tables nettoyées. Seul {admin_email} est conservé.'
+        if errors:
+            msg += f' ({len(errors)} tables ignorées: {", ".join(e.split(":")[0] for e in errors)})'
+        flash(msg, 'success')
+        current_app.logger.warning(f"ADMIN RESET by {current_user.email}. OK: {results}. Errors: {errors}")
 
     except Exception as e:
         db.session.rollback()
