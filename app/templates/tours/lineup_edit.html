@@ -20,7 +20,7 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournees</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.manage_lineup', id=tour.id, stop_id=stop.id) }}">Programmation</a></li>

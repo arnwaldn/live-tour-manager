@@ -62,7 +62,7 @@
         <div class="alert alert-{{ 'secondary' if payment.status.value == 'draft' else 'warning' if payment.status.value == 'pending' else 'info' if payment.status.value == 'approved' else 'primary' if payment.status.value == 'scheduled' else 'success' if payment.status.value == 'paid' else 'danger' }} d-flex align-items-center mb-4">
             <i class="bi bi-{{ 'pencil' if payment.status.value == 'draft' else 'hourglass-split' if payment.status.value == 'pending' else 'check' if payment.status.value == 'approved' else 'calendar-check' if payment.status.value == 'scheduled' else 'check-circle' if payment.status.value == 'paid' else 'x-circle' }} fs-4 me-3"></i>
             <div>
-                <strong>Statut: {{ payment.status.value|upper }}</strong>
+                <strong>Statut: {{ payment.status.value|tr('payment_status') }}</strong>
                 {% if payment.status.value == 'draft' %}
                 <p class="mb-0 small">Ce paiement est en brouillon. Soumettez-le pour approbation.</p>
                 {% elif payment.status.value == 'pending' %}
@@ -86,7 +86,7 @@
                         <label class="form-label text-muted small">Type de paiement</label>
                         <p class="mb-0">
                             <span class="badge bg-{{ 'success' if payment.payment_type.value == 'cachet' else 'info' if payment.payment_type.value == 'per_diem' else 'warning' if payment.payment_type.value == 'overtime' else 'secondary' }} fs-6">
-                                {{ payment.payment_type.value }}
+                                {{ payment.payment_type.value|tr('payment_type') }}
                             </span>
                         </p>
                     </div>
@@ -194,7 +194,7 @@
                     </div>
                     <div class="col-6">
                         <label class="form-label text-muted small mb-0">Rôle</label>
-                        <p class="mb-0 small">{{ payment.staff_role.value if payment.staff_role else '-' }}</p>
+                        <p class="mb-0 small">{{ payment.staff_role.value|tr('staff_role') if payment.staff_role else '-' }}</p>
                     </div>
                 </div>
             </div>

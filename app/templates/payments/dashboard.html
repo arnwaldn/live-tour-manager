@@ -170,13 +170,13 @@
                     <td>{{ payment.user.full_name if payment.user else 'N/A' }}</td>
                     <td>
                         <span class="badge bg-{{ 'success' if payment.payment_type.value == 'cachet' else 'info' if payment.payment_type.value == 'per_diem' else 'secondary' }}">
-                            {{ payment.payment_type.value }}
+                            {{ payment.payment_type.value|tr('payment_type') }}
                         </span>
                     </td>
                     <td class="text-end fw-medium">{{ "{:,.2f}".format(payment.amount) }} {{ payment.currency }}</td>
                     <td>
                         <span class="badge bg-{{ 'secondary' if payment.status.value == 'draft' else 'warning' if payment.status.value == 'pending' else 'success' if payment.status.value == 'paid' else 'primary' }}">
-                            {{ payment.status.value }}
+                            {{ payment.status.value|tr('payment_status') }}
                         </span>
                     </td>
                     <td><small class="text-muted">{{ payment.created_at.strftime('%d/%m/%Y') if payment.created_at else '-' }}</small></td>

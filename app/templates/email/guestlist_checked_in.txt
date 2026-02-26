@@ -20,7 +20,7 @@ Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
 VOTRE ENTRÉE
 ---
 Nom: {{ entry.guest_name }}
-Type d'accès : {{ entry.entry_type.value|replace('_', ' ')|title }}
+Type d'accès : {{ entry.entry_type.value|tr('entry_type') }}
 {% if entry.plus_ones > 0 %}Accompagnants: +{{ entry.plus_ones }}{% endif %}
 Statut : CHECK-IN EFFECTUÉ
 

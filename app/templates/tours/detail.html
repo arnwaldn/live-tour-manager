@@ -202,7 +202,7 @@
                                 <th>Date</th>
                                 <th class="d-none d-md-table-cell">Salle</th>
                                 <th class="d-none d-lg-table-cell">Horaires</th>
-                                <th>Guestlist</th>
+                                <th>Invités</th>
                                 <th>Statut</th>
                                 <th></th>
                             </tr>
@@ -231,7 +231,7 @@
                                     <small>Portes: {{ stop.doors_time.strftime('%H:%M') }}</small>
                                     {% endif %}
                                     {% if stop.set_time %}
-                                    <br><small>Show: {{ stop.set_time.strftime('%H:%M') }}</small>
+                                    <br><small>Concert: {{ stop.set_time.strftime('%H:%M') }}</small>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -244,7 +244,7 @@
                                     </a>
                                 </td>
                                 <td>
-                                    {% set stop_status_labels = {'draft': 'Brouillon', 'hold': 'En attente', 'pending': 'En négo', 'confirmed': 'Confirmé', 'advanced': 'Avancé', 'completed': 'Terminé', 'cancelled': 'Annulé'} %}
+                                    {% set stop_status_labels = {'draft': 'Brouillon', 'pending': 'En négociation', 'confirmed': 'Confirmé', 'performed': 'Réalisé', 'settled': 'Soldé', 'canceled': 'Annulé', 'rescheduled': 'Reporté'} %}
                                     <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'warning' if stop.status.value == 'pending' else 'info' if stop.status.value == 'advanced' else 'danger' if stop.status.value == 'cancelled' else 'secondary' }}">
                                         {{ stop_status_labels.get(stop.status.value, stop.status.value) }}
                                     </span>

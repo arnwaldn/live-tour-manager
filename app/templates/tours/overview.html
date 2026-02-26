@@ -349,7 +349,7 @@
                 <h1>{{ tour.band_name }} - {{ tour.name }}</h1>
                 <div class="tour-dates">
                     <i class="bi bi-calendar-range me-2"></i>
-                    {{ tour.start_date.strftime('%d %B %Y') }} → {{ tour.end_date.strftime('%d %B %Y') }}
+                    {{ tour.start_date|format_date_fr('short') }} → {{ tour.end_date|format_date_fr('short') }}
                     {% set tour_status_labels = {'draft': 'Brouillon', 'planning': 'Planification', 'confirmed': 'Confirmée', 'active': 'En cours', 'completed': 'Terminée', 'cancelled': 'Annulée', 'archived': 'Archivée'} %}
                     <span class="ms-3 badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'warning' if tour.status.value == 'planning' else 'secondary' }}">
                         {{ tour_status_labels.get(tour.status.value, tour.status.value) }}
@@ -491,7 +491,7 @@
                             <i class="bi bi-{{ 'airplane' if item.log.logistics_type.value == 'flight' else 'train-front' if item.log.logistics_type.value == 'train' else 'bus-front' if item.log.logistics_type.value == 'bus' else 'car-front' }}"></i>
                         </div>
                         <div class="logistics-info">
-                            <div class="title">{{ item.log.provider or item.log.logistics_type.value|replace('_', ' ')|title }}</div>
+                            <div class="title">{{ item.log.provider or item.log.logistics_type.value|tr('logistics_type') }}</div>
                             <div class="details">{{ item.stop.date.strftime('%d/%m') }} - {{ item.stop.venue.city if item.stop.venue else 'N/A' }}</div>
                         </div>
                         {% if item.log.cost %}

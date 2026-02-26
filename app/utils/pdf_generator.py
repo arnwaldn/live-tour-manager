@@ -8,6 +8,20 @@ from io import BytesIO
 from datetime import datetime
 from typing import Dict, Any
 
+from app import DAYS_FR, MONTHS_FR
+
+
+def _format_date_fr(date, fmt='full'):
+    """Format a date in French without relying on locale."""
+    if not date:
+        return ''
+    day_fr = DAYS_FR.get(date.strftime('%A'), date.strftime('%A'))
+    month_fr = MONTHS_FR.get(date.strftime('%B'), date.strftime('%B'))
+    if fmt == 'full':
+        return f"{day_fr} {date.day} {month_fr} {date.year}"
+    return f"{date.day} {month_fr} {date.year}"
+
+
 try:
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.units import cm
@@ -124,7 +138,7 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
 
     # Format date
     date_str = s['date'].strftime('%d/%m/%Y') if s['date'] else 'N/A'
-    date_full = s['date'].strftime('%A %d %B %Y') if s['date'] else 'N/A'
+    date_full = _format_date_fr(s['date']) if s['date'] else 'N/A'
 
     # Header table (simulated colored header)
     header_data = [
@@ -405,8 +419,8 @@ def generate_tour_pdf(tour) -> bytes:
     ]
 
     status_labels = {
-        'hold': 'En attente', 'pending': 'En nego', 'confirmed': 'Confirme',
-        'advanced': 'Avance', 'completed': 'Termine', 'cancelled': 'Annule'
+        'hold': 'En attente', 'pending': 'En négo', 'confirmed': 'Confirmé',
+        'advanced': 'Avancé', 'completed': 'Terminé', 'cancelled': 'Annulé'
     }
 
     for stop in stops:
@@ -512,7 +526,7 @@ def generate_daysheet_pdf(stop) -> bytes:
     tour = stop.tour
     band_name = tour.band.name if tour.band else 'TBA'
     date_str = stop.date.strftime('%d/%m/%Y') if stop.date else 'TBA'
-    date_full = stop.date.strftime('%A %d %B %Y') if stop.date else 'TBA'
+    date_full = _format_date_fr(stop.date) if stop.date else 'TBA'
 
     # Venue info
     venue_name = stop.venue.name if stop.venue else 'TBA'
@@ -536,8 +550,8 @@ def generate_daysheet_pdf(stop) -> bytes:
     # Status
     status = stop.status.value if stop.status else '-'
     status_labels = {
-        'hold': 'En attente', 'pending': 'En negociation', 'confirmed': 'Confirme',
-        'advanced': 'Avance', 'completed': 'Termine', 'cancelled': 'Annule'
+        'hold': 'En attente', 'pending': 'En négociation', 'confirmed': 'Confirmé',
+        'advanced': 'Avancé', 'completed': 'Terminé', 'cancelled': 'Annulé'
     }
     status_label = status_labels.get(status, status)
 

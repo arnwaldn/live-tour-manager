@@ -13,7 +13,7 @@
     <h3>Votre compte</h3>
     <p><span class="label">Email:</span> <span class="value">{{ user.email }}</span></p>
     <p><span class="label">Nom:</span> <span class="value">{{ user.full_name }}</span></p>
-    <p><span class="label">Rôle(s):</span>
+    <p><span class="label">Rôle{{ 's' if user.roles|length > 1 else '' }} :</span>
         <span class="value">
             {% for role in user.roles %}{{ role.name }}{% if not loop.last %}, {% endif %}{% endfor %}
         </span>

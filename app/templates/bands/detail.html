@@ -165,7 +165,7 @@
                                 <td>{{ tour.stops|length }} dates</td>
                                 <td>
                                     <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'secondary' }}">
-                                        {{ tour.status.value }}
+                                        {{ tour.status.value|tr('tour_status') }}
                                     </span>
                                 </td>
                                 <td>

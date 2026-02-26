@@ -24,7 +24,7 @@
 <div class="info-box">
     <h3>Votre invitation</h3>
     <p><span class="label">Nom:</span> <span class="value">{{ entry.guest_name }}</span></p>
-    <p><span class="label">Type d'accès:</span> <span class="value">{{ entry.entry_type.value|replace('_', ' ')|title }}</span></p>
+    <p><span class="label">Type d'accès:</span> <span class="value">{{ entry.entry_type.value|tr('entry_type') }}</span></p>
     {% if entry.plus_ones > 0 %}
     <p><span class="label">Accompagnants:</span> <span class="value">+{{ entry.plus_ones }}</span></p>
     {% endif %}

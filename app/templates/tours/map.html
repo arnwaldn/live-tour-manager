@@ -186,7 +186,7 @@
                 <i class="bi bi-building text-info" style="font-size: 1.25rem;"></i>
                 <div>
                     <span class="map-stat-value">{{ hotels|length }}</span>
-                    <span class="map-stat-label">hotel(s) sur la carte</span>
+                    <span class="map-stat-label">hôtel{{ 's' if hotels|length > 1 else '' }} sur la carte</span>
                 </div>
             </div>
             {% endif %}
@@ -195,7 +195,7 @@
                 <i class="bi bi-airplane text-primary" style="font-size: 1.25rem;"></i>
                 <div>
                     <span class="map-stat-value">{{ transports|length }}</span>
-                    <span class="map-stat-label">transport(s) sur la carte</span>
+                    <span class="map-stat-label">transport{{ 's' if transports|length > 1 else '' }} sur la carte</span>
                 </div>
             </div>
             {% endif %}
@@ -233,7 +233,7 @@
 <div class="alert alert-{{ 'warning' if stops_with_coords else 'info' }} mt-3">
     <i class="bi bi-{{ 'exclamation-triangle' if stops_with_coords else 'info-circle' }} me-2"></i>
     {% if stops_with_coords %}
-    <strong>{{ missing_coords }}</strong> date(s) sans coordonnées GPS.
+    <strong>{{ missing_coords }}</strong> date{{ 's' if missing_coords > 1 else '' }} sans coordonnées GPS.
     {% else %}
     <strong>Aucune date avec coordonnées GPS.</strong>
     {% endif %}

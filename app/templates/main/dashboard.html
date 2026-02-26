@@ -68,7 +68,7 @@
                     </div>
                     <div class="flex-grow-1 ms-3">
                         <h3 class="h2 mb-0">{{ stats.pending_guestlist }}</h3>
-                        <p class="text-muted small mb-0">Guestlist en attente</p>
+                        <p class="text-muted small mb-0">Invités en attente</p>
                     </div>
                 </div>
             </div>
@@ -102,7 +102,7 @@
                     <i class="bi bi-calendar-day me-2 text-primary"></i>
                     Aujourd'hui
                 </h5>
-                <span class="badge bg-primary">{{ today_stops|length }} concert(s)</span>
+                <span class="badge bg-primary">{{ today_stops|length }} concert{{ 's' if today_stops|length > 1 else '' }}</span>
             </div>
             <div class="card-body">
                 {% if today_stops %}
@@ -123,7 +123,7 @@
                                 </small>
                             </div>
                             <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'warning' }}">
-                                {{ stop.status.value }}
+                                {{ stop.status.value|tr('stop_status') }}
                             </span>
                         </div>
                     </a>
@@ -180,9 +180,9 @@
                     <p class="text-muted mt-2 mb-0">Aucun concert dans les 14 prochains jours</p>
                     <p class="text-info small mb-0">
                         <i class="bi bi-info-circle me-1"></i>
-                        {{ stats.beyond_two_weeks }} concert(s) prévu(s) plus tard
+                        {{ stats.beyond_two_weeks }} concert{{ 's' if stats.beyond_two_weeks > 1 else '' }} prévu{{ 's' if stats.beyond_two_weeks > 1 else '' }} plus tard
                     </p>
-                    <a href="{{ url_for('tours.index') }}" class="btn btn-sm btn-outline-primary mt-2">
+                    <a href="{{ url_for('main.global_calendar') }}" class="btn btn-sm btn-outline-primary mt-2">
                         Voir le calendrier
                     </a>
                     {% else %}
@@ -237,7 +237,7 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' }}">
-                                        {{ tour.status.value }}
+                                        {{ tour.status.value|tr('tour_status') }}
                                     </span>
                                 </td>
                                 <td>
@@ -268,7 +268,7 @@
             <div class="card-header bg-warning bg-opacity-10 border-0">
                 <h5 class="mb-0 text-warning">
                     <i class="bi bi-clock-history me-2"></i>
-                    Guestlist en attente
+                    Invités en attente
                 </h5>
             </div>
             <div class="card-body">

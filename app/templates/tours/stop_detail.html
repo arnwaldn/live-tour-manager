@@ -114,7 +114,7 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
     <div class="mb-3 mb-md-0">
         <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
-            <h1 class="h2 mb-0">{{ stop.date.strftime('%A %d %B %Y') }}</h1>
+            <h1 class="h2 mb-0">{{ stop.date|format_date_fr }}</h1>
             <span class="event-type-badge event-type-{{ event_type_value }}">
                 <i class="bi {{ event_icons.get(event_type_value, 'bi-calendar-event') }}"></i>
                 {{ event_labels.get(event_type_value, 'Concert') }}
@@ -176,7 +176,7 @@
         </a>
         {% endif %}
         <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-primary">
-            <i class="bi bi-person-lines-fill me-1"></i>Guestlist
+            <i class="bi bi-person-lines-fill me-1"></i>Invités
         </a>
         {% endif %}
     </div>
@@ -200,12 +200,12 @@
                 <div class="col-md-6">
                     <p class="mb-1">
                         <span class="text-decoration-line-through text-muted">
-                            Date initiale: {{ stop.original_date.strftime('%d %B %Y') }}
+                            Date initiale: {{ stop.original_date|format_date_fr('short') }}
                         </span>
                     </p>
                     <p class="mb-0">
                         <i class="bi bi-arrow-right text-success"></i>
-                        <strong class="text-success">Nouvelle date: {{ stop.date.strftime('%d %B %Y') }}</strong>
+                        <strong class="text-success">Nouvelle date: {{ stop.date|format_date_fr('short') }}</strong>
                     </p>
                 </div>
                 <div class="col-md-6">
@@ -434,7 +434,7 @@
                                 </span>
                                 {% endif %}
                                 {% if performer.is_confirmed %}
-                                <i class="bi bi-check-circle-fill text-success" title="Confirme"></i>
+                                <i class="bi bi-check-circle-fill text-success" title="Confirmé"></i>
                                 {% endif %}
                                 {% if performer.is_main_band %}
                                 <i class="bi bi-star-fill text-warning" title="Groupe principal"></i>
@@ -501,7 +501,7 @@
                             <tr>
                                 <td>
                                     <i class="bi bi-{{ 'airplane' if logistics.logistics_type.value == 'flight' else 'building' if logistics.logistics_type.value == 'hotel' else 'car-front' if logistics.logistics_type.value == 'ground_transport' else 'box' }} me-2"></i>
-                                    {{ logistics.logistics_type.value }}
+                                    {{ logistics.logistics_type.value|tr('logistics_type') }}
                                 </td>
                                 <td>{{ logistics.start_datetime.strftime('%d/%m/%Y') if logistics.start_datetime else '-' }}</td>
                                 <td>
@@ -603,7 +603,7 @@
         <!-- Guestlist Card -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Guestlist</h5>
+                <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Invités</h5>
                 <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-sm btn-outline-primary">
                     Gérer
                 </a>
@@ -788,7 +788,7 @@
 
                     <div class="mt-3 pt-2 border-top text-muted">
                         <small>
-                            <i class="bi bi-info-circle me-1"></i>{{ stop.assigned_members|length }} membre(s) verront cet événement
+                            <i class="bi bi-info-circle me-1"></i>{{ stop.assigned_members|length }} membre{{ 's' if stop.assigned_members|length > 1 else '' }} verr{{ 'ont' if stop.assigned_members|length > 1 else 'a' }} cet événement
                             {% if total_invited > 0 and accepted_count == total_invited %}
                             <span class="text-success ms-2"><i class="bi bi-check-circle-fill"></i> Équipe complète confirmée</span>
                             {% endif %}

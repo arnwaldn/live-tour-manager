@@ -20,7 +20,7 @@ Date: {{ tour_stop.date.strftime('%d/%m/%Y') }}
 VOTRE DEMANDE
 ---
 Nom: {{ entry.guest_name }}
-Type d'accès demandé : {{ entry.entry_type.value|replace('_', ' ')|title }}
+Type d'accès demandé : {{ entry.entry_type.value|tr('entry_type') }}
 
 Si vous avez des questions, veuillez contacter le management de l'artiste.
 

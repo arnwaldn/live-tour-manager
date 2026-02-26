@@ -23,7 +23,7 @@
     {% if entry.guest_email %}
     <p><span class="label">Email:</span> <span class="value">{{ entry.guest_email }}</span></p>
     {% endif %}
-    <p><span class="label">Type d'accès:</span> <span class="value">{{ entry.entry_type.value|replace('_', ' ')|title }}</span></p>
+    <p><span class="label">Type d'accès:</span> <span class="value">{{ entry.entry_type.value|tr('entry_type') }}</span></p>
     {% if entry.plus_ones > 0 %}
     <p><span class="label">Accompagnants:</span> <span class="value">+{{ entry.plus_ones }}</span></p>
     {% endif %}

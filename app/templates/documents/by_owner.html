@@ -46,7 +46,7 @@
             <div class="col">
                 <h4 class="mb-1">{{ owner_name }}</h4>
                 <p class="text-muted mb-0">
-                    {{ documents|length }} document(s)
+                    {{ documents|length }} document{{ 's' if documents|length > 1 else '' }}
                     {% if owner_type == 'user' and owner.email %}
                     <span class="mx-2">|</span>
                     <i class="bi bi-envelope me-1"></i>{{ owner.email }}

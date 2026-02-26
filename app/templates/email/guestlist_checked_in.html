@@ -19,7 +19,7 @@
 
 <div class="info-box">
     <h3>Votre accès</h3>
-    <p><span class="label">Type:</span> <span class="value">{{ entry.entry_type.value|replace('_', ' ')|title }}</span></p>
+    <p><span class="label">Type:</span> <span class="value">{{ entry.entry_type.value|tr('entry_type') }}</span></p>
     {% if entry.plus_ones > 0 %}
     <p><span class="label">Accompagnants:</span> <span class="value">{{ entry.checked_in_plus_ones }}/{{ entry.plus_ones }} enregistrés</span></p>
     {% endif %}

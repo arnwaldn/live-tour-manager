@@ -20,7 +20,7 @@
         </h1>
         <p class="text-muted mb-0">
             {{ tour_stop.venue.name if tour_stop.venue else tour_stop.location_city }} -
-            {{ tour_stop.date.strftime('%A %d %B %Y') }}
+            {{ tour_stop.date|format_date_fr }}
         </p>
     </div>
     <div class="btn-group mt-3 mt-md-0">

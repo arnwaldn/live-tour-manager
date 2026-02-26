@@ -19,7 +19,7 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournees</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=tour.id) }}">{{ tour.name }}</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">{{ stop.date.strftime('%d/%m/%Y') }}</a></li>
         <li class="breadcrumb-item active">Reporter</li>
@@ -43,7 +43,7 @@
                 <h6 class="card-subtitle text-muted mb-2">Concert actuel</h6>
                 <div class="d-flex align-items-center gap-3">
                     <div>
-                        <span class="h4 mb-0">{{ stop.date.strftime('%d %B %Y') }}</span>
+                        <span class="h4 mb-0">{{ stop.date|format_date_fr('short') }}</span>
                         {% if stop.venue %}
                         <p class="venue-info mb-0 mt-1">
                             <i class="bi bi-geo-alt"></i>
@@ -56,7 +56,7 @@
                         </p>
                         {% endif %}
                     </div>
-                    {% set stop_status_labels = {'draft': 'Brouillon', 'hold': 'En attente', 'pending': 'En négo', 'confirmed': 'Confirmé', 'advanced': 'Avancé', 'completed': 'Terminé', 'cancelled': 'Annulé'} %}
+                    {% set stop_status_labels = {'draft': 'Brouillon', 'pending': 'En négociation', 'confirmed': 'Confirmé', 'performed': 'Réalisé', 'settled': 'Soldé', 'canceled': 'Annulé', 'rescheduled': 'Reporté'} %}
                     <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'warning' if stop.status.value == 'pending' else 'info' if stop.status.value == 'advanced' else 'danger' if stop.status.value == 'cancelled' else 'secondary' }}">
                         {{ stop_status_labels.get(stop.status.value, stop.status.value) }}
                     </span>

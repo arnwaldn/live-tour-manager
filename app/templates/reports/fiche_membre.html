@@ -169,7 +169,7 @@
                 <td class="label">Catégorie:</td>
                 <td>{{ config.staff_category.value.title() if config.staff_category else '-' }}</td>
                 <td class="label">Role:</td>
-                <td>{{ config.staff_role.value.replace('_', ' ').title() if config.staff_role else '-' }}</td>
+                <td>{{ config.staff_role.value|tr('staff_role') if config.staff_role else '-' }}</td>
             </tr>
             <tr>
                 <td class="label">Type contrat:</td>
@@ -254,7 +254,7 @@
                 {% for payment in data.payments %}
                 <tr>
                     <td>{{ payment.reference }}</td>
-                    <td>{{ payment.payment_type.value if payment.payment_type else '-' }}</td>
+                    <td>{{ payment.payment_type.value|tr('payment_type') if payment.payment_type else '-' }}</td>
                     <td>{{ payment.description or '-' }}</td>
                     <td>{{ payment.work_date.strftime('%d/%m/%Y') if payment.work_date else '-' }}</td>
                     <td class="amount">{{ "{:,.2f}".format(payment.amount) }} EUR</td>
@@ -270,7 +270,7 @@
             <tr style="background: transparent;">
                 <td style="border: none; padding: 0;">
                     <strong>TOTAL GÉNÉRAL</strong><br>
-                    <span style="font-size: 9pt;">{{ payments|length }} paiement(s)</span>
+                    <span style="font-size: 9pt;">{{ payments|length }} paiement{{ 's' if payments|length > 1 else '' }}</span>
                 </td>
                 <td style="border: none; padding: 0; text-align: right;">
                     <span class="total-amount">{{ "{:,.2f}".format(totals.total) }} EUR</span>
