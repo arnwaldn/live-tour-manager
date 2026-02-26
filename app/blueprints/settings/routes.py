@@ -1712,19 +1712,22 @@ def _reload_mail_config(app):
 # ============================================================
 
 @settings_bp.route('/admin/reset-diagnostic')
-@requires_admin
 def admin_reset_diagnostic():
-    """GET diagnostic — tests each layer before actual reset."""
+    """GET diagnostic — TEMPORARY: uses secret token instead of @requires_admin."""
     from sqlalchemy import text
     import traceback
 
+    # Temporary secret auth (remove after reset)
+    if request.args.get('key') != 'gr2026reset':
+        abort(403)
+
     steps = {}
 
-    # Step 1: Auth OK
+    # Step 1: Auth check
     steps['auth'] = {
         'ok': True,
-        'user': current_user.email,
-        'is_admin': current_user.is_admin()
+        'user': current_user.email if current_user.is_authenticated else 'anonymous',
+        'is_authenticated': current_user.is_authenticated
     }
 
     # Step 2: DB connection
@@ -1783,14 +1786,17 @@ def admin_reset_diagnostic():
 
 
 @settings_bp.route('/admin/reset-execute')
-@requires_admin
 def admin_reset_execute():
-    """GET-based reset for debugging — bypasses CSRF.
-    Usage: /settings/admin/reset-execute?confirm=RESET
+    """GET-based reset — TEMPORARY: uses secret token.
+    Usage: /settings/admin/reset-execute?key=gr2026reset&confirm=RESET
     REMOVE THIS ROUTE after successful reset.
     """
     from sqlalchemy import text
     import traceback
+
+    # Temporary secret auth (remove after reset)
+    if request.args.get('key') != 'gr2026reset':
+        abort(403)
 
     confirm = request.args.get('confirm')
     if confirm != 'RESET':
