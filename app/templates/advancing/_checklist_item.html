@@ -1,0 +1,42 @@
+{# Partial: single checklist item — usable standalone for HTMX swap #}
+<div class="list-group-item d-flex align-items-start gap-3" id="item-{{ item.id }}">
+    <form method="post" action="{{ url_for('advancing.toggle_item', item_id=item.id) }}" class="mt-1">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent"
+                aria-label="{% if item.is_completed %}Décocher{% else %}Cocher{% endif %} {{ item.label }}">
+            {% if item.is_completed %}
+            <i class="bi bi-check-circle-fill text-success fs-5" aria-hidden="true"></i>
+            {% else %}
+            <i class="bi bi-circle text-muted fs-5" aria-hidden="true"></i>
+            {% endif %}
+        </button>
+    </form>
+    <div class="flex-grow-1">
+        <div class="{{ 'text-decoration-line-through text-muted' if item.is_completed else '' }}">
+            {{ item.label }}
+        </div>
+        {% if item.notes %}
+        <small class="text-muted">{{ item.notes }}</small>
+        {% endif %}
+    </div>
+    <button class="btn btn-sm btn-outline-secondary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#note-{{ item.id }}"
+            aria-label="Ajouter une note">
+        <i class="bi bi-chat-dots" aria-hidden="true"></i>
+    </button>
+</div>
+{# Collapsible note form #}
+<div class="collapse" id="note-{{ item.id }}">
+    <div class="list-group-item bg-light">
+        <form method="post" action="{{ url_for('advancing.update_item_note', item_id=item.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="input-group input-group-sm">
+                <input type="text" name="notes" class="form-control" placeholder="Ajouter une note..."
+                       value="{{ item.notes or '' }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check" aria-hidden="true"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

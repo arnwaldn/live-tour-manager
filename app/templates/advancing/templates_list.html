@@ -1,0 +1,63 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Templates advancing</h1>
+        <p class="text-muted mb-0">Modèles de checklist réutilisables</p>
+    </div>
+    <a href="{{ url_for('advancing.create_template') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus me-1" aria-hidden="true"></i>Nouveau template
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if templates %}
+<div class="row">
+    {% for template in templates %}
+    <div class="col-md-6 col-lg-4 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0">{{ template.name }}</h6>
+                    {% if template.is_default %}
+                    <span class="badge bg-warning text-dark">Par défaut</span>
+                    {% endif %}
+                </div>
+                {% if template.description %}
+                <p class="text-muted small mb-2">{{ template.description }}</p>
+                {% endif %}
+                <p class="small mb-0">
+                    <i class="bi bi-list-check me-1" aria-hidden="true"></i>
+                    {{ template.items|length }} élément{{ 's' if template.items|length > 1 else '' }}
+                </p>
+            </div>
+            {% if not template.is_default %}
+            <div class="card-footer bg-transparent border-0">
+                <form method="post" action="{{ url_for('advancing.delete_template', template_id=template.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                            onclick="return confirm('Supprimer ce template ?')">
+                        <i class="bi bi-trash me-1" aria-hidden="true"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-file-earmark-text display-4 text-muted mb-3" aria-hidden="true"></i>
+        <h5>Aucun template</h5>
+        <p class="text-muted">Créez un template pour standardiser vos checklists d'advancing.</p>
+        <a href="{{ url_for('advancing.create_template') }}" class="btn btn-primary">
+            <i class="bi bi-plus me-1" aria-hidden="true"></i>Créer un template
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

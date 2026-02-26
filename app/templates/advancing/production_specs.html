@@ -1,0 +1,95 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Fiche technique — {{ stop.venue_name }}</h1>
+        <p class="text-muted mb-0">{{ stop.date|format_date_fr('full') }} — {{ stop.venue_city }}</p>
+    </div>
+    <a href="{{ url_for('advancing.stop_detail', stop_id=stop.id) }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Advancing
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0"><i class="bi bi-rulers me-2" aria-hidden="true"></i>Spécifications scène</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('advancing.update_production_specs', stop_id=stop.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <h6 class="text-muted mb-3">Dimensions de la scène</h6>
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ form.stage_width.label }}</label>
+                            {{ form.stage_width(class="form-control", placeholder="12.0") }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ form.stage_depth.label }}</label>
+                            {{ form.stage_depth(class="form-control", placeholder="10.0") }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ form.stage_height.label }}</label>
+                            {{ form.stage_height(class="form-control", placeholder="8.0") }}
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mb-3">Infrastructure</h6>
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.power_available.label }}</label>
+                            {{ form.power_available(class="form-control", placeholder="3x63A + 2x32A") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">{{ form.rigging_points.label }}</label>
+                            {{ form.rigging_points(class="form-control", placeholder="24") }}
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check me-1" aria-hidden="true"></i>Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Current specs summary -->
+        {% if stop.stage_width or stop.power_available or stop.rigging_points %}
+        <div class="card mt-3 border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0">Récapitulatif</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if stop.stage_width or stop.stage_depth or stop.stage_height %}
+                    <div class="col-md-4">
+                        <strong>Scène</strong><br>
+                        {% if stop.stage_width %}L={{ stop.stage_width }}m {% endif %}
+                        {% if stop.stage_depth %}P={{ stop.stage_depth }}m {% endif %}
+                        {% if stop.stage_height %}H={{ stop.stage_height }}m{% endif %}
+                    </div>
+                    {% endif %}
+                    {% if stop.power_available %}
+                    <div class="col-md-4">
+                        <strong>Puissance</strong><br>{{ stop.power_available }}
+                    </div>
+                    {% endif %}
+                    {% if stop.rigging_points %}
+                    <div class="col-md-4">
+                        <strong>Points d'accroche</strong><br>{{ stop.rigging_points }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

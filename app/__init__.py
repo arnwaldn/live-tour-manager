@@ -124,6 +124,8 @@ def register_blueprints(app):
     from app.blueprints.crew import crew_bp
     # REST API v1
     from app.blueprints.api import api_bp
+    # Advancing module — event preparation workflow
+    from app.blueprints.advancing import advancing_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
@@ -141,6 +143,8 @@ def register_blueprints(app):
     app.register_blueprint(invoices_bp, url_prefix='/invoices')
     # Crew module - enabled for full crew scheduling functionality
     app.register_blueprint(crew_bp)
+    # Advancing module — event preparation workflow
+    app.register_blueprint(advancing_bp, url_prefix='/advancing')
     # REST API v1 — JWT auth, no CSRF needed
     app.register_blueprint(api_bp, url_prefix='/api/v1')
 
@@ -1001,6 +1005,20 @@ TRANSLATIONS = {
         'cddu': 'CDDU', 'cdd': 'CDD', 'cdi': 'CDI',
         'freelance': 'Auto-entrepreneur', 'prestation': 'Prestation',
         'guso': 'GUSO'
+    },
+    'advancing_status': {
+        'not_started': 'Non démarré', 'in_progress': 'En cours',
+        'waiting_venue': 'Attente salle', 'completed': 'Terminé',
+        'issues': 'Problèmes'
+    },
+    'advancing_category': {
+        'accueil': 'Accueil', 'technique': 'Technique', 'catering': 'Catering',
+        'hebergement': 'Hébergement', 'logistique': 'Logistique',
+        'securite': 'Sécurité', 'admin': 'Administration'
+    },
+    'rider_category': {
+        'son': 'Son', 'lumiere': 'Lumière', 'scene': 'Scène',
+        'backline': 'Backline', 'catering': 'Catering', 'loges': 'Loges'
     }
 }
 

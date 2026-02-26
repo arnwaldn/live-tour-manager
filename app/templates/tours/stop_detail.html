@@ -641,6 +641,33 @@
             </div>
         </div>
 
+        <!-- Advancing Card -->
+        {% if current_user.is_manager_or_above() %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Advancing</h5>
+                <a href="{{ url_for('advancing.stop_detail', stop_id=stop.id) }}" class="btn btn-sm btn-outline-primary">
+                    Gérer
+                </a>
+            </div>
+            <div class="card-body">
+                {% set adv_status_labels = {'not_started': 'Non démarré', 'in_progress': 'En cours', 'waiting_venue': 'Attente salle', 'completed': 'Terminé', 'issues': 'Problèmes'} %}
+                {% set adv_status_colors = {'not_started': 'secondary', 'in_progress': 'primary', 'waiting_venue': 'warning', 'completed': 'success', 'issues': 'danger'} %}
+                {% set adv_status = stop.advancing_status or 'not_started' %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-{{ adv_status_colors.get(adv_status, 'secondary') }}">
+                        {{ adv_status_labels.get(adv_status, adv_status) }}
+                    </span>
+                    <span class="text-muted small">{{ stop.advancing_completion }}%</span>
+                </div>
+                <div class="progress" style="height: 6px;">
+                    <div class="progress-bar bg-success" style="width: {{ stop.advancing_completion }}%"
+                         role="progressbar" aria-valuenow="{{ stop.advancing_completion }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Assigned Members Card with Invitation Status -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">

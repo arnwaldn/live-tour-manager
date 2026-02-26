@@ -96,6 +96,18 @@
             </li>
             {% endif %}
 
+            <!-- Advancing (manager and above) -->
+            {% if current_user.is_manager_or_above() %}
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if 'advancing' in request.endpoint else '' }}"
+                   href="{{ url_for('advancing.templates_list') }}"
+                   {{ 'aria-current=page' if 'advancing' in request.endpoint else '' }}>
+                    <i class="bi bi-clipboard-check me-2" aria-hidden="true"></i>
+                    Advancing
+                </a>
+            </li>
+            {% endif %}
+
             {% if current_user.is_manager_or_above() %}
             <li class="nav-item mt-3">
                 <span class="nav-link text-muted small text-uppercase">Finances</span>

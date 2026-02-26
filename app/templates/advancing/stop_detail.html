@@ -1,0 +1,230 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">
+            Advancing — {{ stop.venue_name }}
+            <span class="badge bg-{{ stop.advancing_status_color }}">{{ stop.advancing_status_label }}</span>
+        </h1>
+        <p class="text-muted mb-0">
+            {{ stop.date|format_date_fr('full') }} — {{ stop.venue_city }}
+            {% if data.advancing_deadline %}
+            | Deadline: <strong>{{ data.advancing_deadline }}</strong>
+            {% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('advancing.rider_detail', stop_id=stop.id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-list-check me-1" aria-hidden="true"></i>Rider
+        </a>
+        <a href="{{ url_for('advancing.contacts', stop_id=stop.id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-person-rolodex me-1" aria-hidden="true"></i>Contacts
+        </a>
+        <a href="{{ url_for('advancing.production_specs', stop_id=stop.id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-rulers me-1" aria-hidden="true"></i>Fiche tech.
+        </a>
+        <a href="{{ url_for('advancing.export_pdf', stop_id=stop.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-file-pdf me-1" aria-hidden="true"></i>PDF
+        </a>
+        {% if stop.tour_id %}
+        <a href="{{ url_for('advancing.tour_dashboard', tour_id=stop.tour_id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Dashboard
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Progress bar -->
+{% if data.total_items > 0 %}
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span>{{ data.completed_items }}/{{ data.total_items }} éléments complétés</span>
+            <span class="badge bg-primary">{{ data.completion_pct }}%</span>
+        </div>
+        <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-success" id="progressBar" style="width: {{ data.completion_pct }}%"
+                 role="progressbar" aria-valuenow="{{ data.completion_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Main content: Checklist -->
+    <div class="col-lg-8">
+        {% if data.total_items == 0 %}
+        <!-- Init checklist -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-clipboard-check display-4 text-muted mb-3" aria-hidden="true"></i>
+                <h5>Checklist non initialisée</h5>
+                <p class="text-muted">Initialisez la checklist d'advancing pour cette date.</p>
+                <form method="post" action="{{ url_for('advancing.init_checklist', stop_id=stop.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>
+                        Initialiser (template par défaut)
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <!-- Checklist by category -->
+        {% set category_labels = {
+            'accueil': 'Accueil', 'technique': 'Technique', 'catering': 'Catering',
+            'hebergement': 'Hébergement', 'logistique': 'Logistique',
+            'securite': 'Sécurité', 'admin': 'Administration'
+        } %}
+        {% set category_icons = {
+            'accueil': 'bi-door-open', 'technique': 'bi-tools', 'catering': 'bi-cup-hot',
+            'hebergement': 'bi-building', 'logistique': 'bi-truck', 'securite': 'bi-shield-check',
+            'admin': 'bi-file-earmark-text'
+        } %}
+
+        {% for category, items in data.checklist_by_category.items() %}
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="{{ category_icons.get(category, 'bi-check-circle') }} me-2" aria-hidden="true"></i>
+                    {{ category_labels.get(category, category) }}
+                </h6>
+                {% set completed = items|selectattr('is_completed')|list|length %}
+                <span class="badge bg-{{ 'success' if completed == items|length else 'secondary' }}">
+                    {{ completed }}/{{ items|length }}
+                </span>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for item in items %}
+                <div class="list-group-item d-flex align-items-start gap-3">
+                    <form method="post" action="{{ url_for('advancing.toggle_item', item_id=item.id) }}" class="mt-1">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent"
+                                aria-label="{% if item.is_completed %}Décocher{% else %}Cocher{% endif %} {{ item.label }}">
+                            {% if item.is_completed %}
+                            <i class="bi bi-check-circle-fill text-success fs-5" aria-hidden="true"></i>
+                            {% else %}
+                            <i class="bi bi-circle text-muted fs-5" aria-hidden="true"></i>
+                            {% endif %}
+                        </button>
+                    </form>
+                    <div class="flex-grow-1">
+                        <div class="{{ 'text-decoration-line-through text-muted' if item.is_completed else '' }}">
+                            {{ item.label }}
+                        </div>
+                        {% if item.notes %}
+                        <small class="text-muted">{{ item.notes }}</small>
+                        {% endif %}
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#note-{{ item.id }}"
+                            aria-label="Ajouter une note">
+                        <i class="bi bi-chat-dots" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <!-- Collapsible note form -->
+                <div class="collapse" id="note-{{ item.id }}">
+                    <div class="list-group-item bg-light">
+                        <form method="post" action="{{ url_for('advancing.update_item_note', item_id=item.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="input-group input-group-sm">
+                                <input type="text" name="notes" class="form-control" placeholder="Ajouter une note..."
+                                       value="{{ item.notes or '' }}">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Reset button -->
+        <div class="text-end mt-3">
+            <form method="post" action="{{ url_for('advancing.reset_checklist', stop_id=stop.id) }}"
+                  class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm"
+                        onclick="return confirm('Réinitialiser la checklist ? Toutes les données seront perdues.')">
+                    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
+                    Réinitialiser
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar: Status, email, quick actions -->
+    <div class="col-lg-4">
+        <!-- Status card -->
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0">Statut & deadline</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('advancing.update_status', stop_id=stop.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        {{ status_form.status(class="form-select form-select-sm") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Date limite</label>
+                        {{ status_form.advancing_deadline(class="form-control form-control-sm", type="date") }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Mettre à jour</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Send email card -->
+        {% if data.total_items > 0 %}
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0">Envoyer à la salle</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('advancing.send_to_venue', stop_id=stop.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <input type="email" name="recipient_email" class="form-control form-control-sm"
+                               placeholder="Email du contact"
+                               value="{{ stop.venue_contact_email or '' }}">
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-envelope me-1" aria-hidden="true"></i>
+                        Envoyer le récapitulatif
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick links -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0">Liens rapides</h6>
+            </div>
+            <div class="list-group list-group-flush">
+                {% if stop.tour_id %}
+                <a href="{{ url_for('tours.stop_detail', id=stop.tour_id, stop_id=stop.id) }}"
+                   class="list-group-item list-group-item-action">
+                    <i class="bi bi-calendar-event me-2" aria-hidden="true"></i>Détail de la date
+                </a>
+                {% endif %}
+                {% if stop.venue %}
+                <a href="{{ url_for('venues.detail', id=stop.venue.id) }}"
+                   class="list-group-item list-group-item-action">
+                    <i class="bi bi-building me-2" aria-hidden="true"></i>Fiche salle
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

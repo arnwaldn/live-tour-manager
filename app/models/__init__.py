@@ -68,6 +68,17 @@ from app.models.invoices import (
     DEFAULT_ISSUER_CONFIG,
     DEFAULT_LEGAL_MENTIONS,
 )
+# Advancing module — event preparation workflow
+from app.models.advancing import (
+    AdvancingChecklistItem,
+    AdvancingTemplate,
+    RiderRequirement,
+    AdvancingContact,
+    AdvancingStatus,
+    ChecklistCategory,
+    RiderCategory,
+    DEFAULT_CHECKLIST_ITEMS,
+)
 # AuditLog is in app/utils/audit.py (enriched existing model)
 
 __all__ = [
@@ -165,4 +176,13 @@ __all__ = [
     'DEFAULT_ISSUER_CONFIG',
     'DEFAULT_LEGAL_MENTIONS',
     # Note: AuditLog is in app/utils/audit.py
+    # === ADVANCING MODULE ===
+    'AdvancingChecklistItem',
+    'AdvancingTemplate',
+    'RiderRequirement',
+    'AdvancingContact',
+    'AdvancingStatus',
+    'ChecklistCategory',
+    'RiderCategory',
+    'DEFAULT_CHECKLIST_ITEMS',
 ]

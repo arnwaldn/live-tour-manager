@@ -40,6 +40,11 @@
         <a href="{{ url_for('tours.tour_map', id=tour.id) }}" class="btn btn-outline-info">
             <i class="bi bi-map me-1"></i>Carte
         </a>
+        {% if current_user.is_manager_or_above() %}
+        <a href="{{ url_for('advancing.tour_dashboard', tour_id=tour.id) }}" class="btn btn-outline-warning" title="Advancing">
+            <i class="bi bi-clipboard-check me-1"></i>Advancing
+        </a>
+        {% endif %}
         {% if pdf_available %}
         <a href="{{ url_for('logistics.export_tour_pdf', tour_id=tour.id) }}" class="btn btn-outline-success" title="Exporter en PDF">
             <i class="bi bi-file-pdf me-1"></i>PDF
@@ -166,6 +171,11 @@
                 <a href="{{ url_for('tours.calendar', id=tour.id) }}" class="list-group-item list-group-item-action">
                     <i class="bi bi-calendar3 me-2"></i>Vue calendrier
                 </a>
+                {% if current_user.is_manager_or_above() %}
+                <a href="{{ url_for('advancing.tour_dashboard', tour_id=tour.id) }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-clipboard-check me-2"></i>Advancing
+                </a>
+                {% endif %}
                 {% if pdf_available %}
                 <a href="{{ url_for('logistics.export_tour_pdf', tour_id=tour.id) }}" class="list-group-item list-group-item-action">
                     <i class="bi bi-file-pdf me-2"></i>Export PDF
