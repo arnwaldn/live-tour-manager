@@ -1,0 +1,28 @@
+[flake8]
+max-line-length = 120
+exclude =
+    __pycache__,
+    migrations,
+    venv,
+    .venv
+extend-ignore =
+    # Line too long — enforce gradually, black handles this
+    E501,
+    # Whitespace in blank lines — cosmetic
+    W293,
+    # Continuation line alignment — cosmetic
+    E127,
+    E128,
+    # Spacing before inline comment — cosmetic
+    E261,
+    # Too many blank lines — cosmetic
+    E303,
+    # Comparison to True/False — style preference
+    E712,
+    # Unused imports — fix incrementally (105 occurrences)
+    F401,
+    # Module level import not at top — some are conditional
+    E402
+per-file-ignores =
+    # Test files can have longer lines and unused imports
+    tests/*:E501,F401,F841

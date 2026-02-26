@@ -536,7 +536,7 @@ def register_cli_commands(app):
         # Admin user
         existing_admin = User.query.filter_by(email=admin_email).first()
         if existing_admin:
-            print(f"[UPDATE] Admin exists, ensuring ADMIN access level...")
+            print("[UPDATE] Admin exists, ensuring ADMIN access level...")
             existing_admin.access_level = AccessLevel.ADMIN
             existing_admin.is_active = True
             existing_admin.email_verified = True
@@ -560,7 +560,7 @@ def register_cli_commands(app):
         # Manager user
         existing_manager = User.query.filter_by(email=manager_email).first()
         if existing_manager:
-            print(f"[UPDATE] Manager exists, ensuring MANAGER access level...")
+            print("[UPDATE] Manager exists, ensuring MANAGER access level...")
             existing_manager.access_level = AccessLevel.MANAGER
             existing_manager.is_active = True
             existing_manager.email_verified = True

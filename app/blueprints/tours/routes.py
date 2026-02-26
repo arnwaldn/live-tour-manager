@@ -3,7 +3,7 @@ Tour management routes.
 """
 from datetime import timedelta
 
-from flask import render_template, redirect, url_for, flash, request, jsonify, Response, current_app
+from flask import render_template, redirect, url_for, flash, request, jsonify, Response, current_app, abort
 from flask_login import login_required, current_user
 
 from sqlalchemy.orm import joinedload, selectinload
@@ -1830,7 +1830,7 @@ def add_planning_slot(id, stop_id, tour=None):
     from app.models.planning_slot import PlanningSlot
     from datetime import datetime
 
-    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+    TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
     # Récupérer les données du formulaire
     role_name = request.form.get('role_name', '').strip()
@@ -2043,5 +2043,3 @@ def delete_slot_json(id, stop_id, slot_id, tour=None):
     db.session.commit()
 
     return jsonify({'success': True})
-
-

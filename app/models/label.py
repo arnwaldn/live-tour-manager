@@ -32,7 +32,7 @@ class Label(db.Model):
         if include_empty:
             choices.append((0, '-- Aucun label --'))
         choices.extend([
-            (l.id, l.name) for l in cls.query.filter_by(is_active=True).order_by(cls.name).all()
+            (label.id, label.name) for label in cls.query.filter_by(is_active=True).order_by(cls.name).all()
         ])
         return choices
 

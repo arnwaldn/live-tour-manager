@@ -591,8 +591,7 @@ def undo_check_in(id):
 @login_required
 def bulk_action(stop_id):
     """Perform bulk action on guestlist entries."""
-    stop = TourStop.query.get_or_404(stop_id)
-    tour = stop.tour
+    TourStop.query.get_or_404(stop_id)
 
     # Check access and permission
     if not current_user.is_staff_or_above():
