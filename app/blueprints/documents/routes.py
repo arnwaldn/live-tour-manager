@@ -208,9 +208,10 @@ def upload():
     if form.validate_on_submit():
         file = form.file.data
 
-        # Validate file
-        if not Document.is_allowed_file(file.filename):
-            flash('Type de fichier non autorise.', 'danger')
+        # Validate file extension + magic bytes
+        is_valid, error_msg = Document.validate_file_content(file, file.filename)
+        if not is_valid:
+            flash(error_msg, 'danger')
             return render_template('documents/upload.html', form=form,
                                    users=users, bands=bands, tours=tours)
 

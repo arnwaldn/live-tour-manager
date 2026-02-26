@@ -184,11 +184,56 @@ class Document(db.Model):
         """Return maximum file size in bytes (16 MB)."""
         return 16 * 1024 * 1024
 
+    # Magic byte signatures for content-based file type validation
+    MAGIC_SIGNATURES = {
+        'pdf':  [b'%PDF'],
+        'jpg':  [b'\xff\xd8\xff'],
+        'jpeg': [b'\xff\xd8\xff'],
+        'png':  [b'\x89PNG\r\n\x1a\n'],
+        'gif':  [b'GIF87a', b'GIF89a'],
+        'doc':  [b'\xd0\xcf\x11\xe0'],  # OLE2 Compound Document
+        'xls':  [b'\xd0\xcf\x11\xe0'],  # OLE2 Compound Document
+        'docx': [b'PK\x03\x04'],        # ZIP archive (Office Open XML)
+        'xlsx': [b'PK\x03\x04'],        # ZIP archive (Office Open XML)
+    }
+
     @classmethod
     def is_allowed_file(cls, filename):
         """Check if a filename has an allowed extension."""
         return '.' in filename and \
                filename.rsplit('.', 1)[1].lower() in cls.allowed_extensions()
+
+    @classmethod
+    def validate_file_content(cls, file_obj, filename):
+        """Validate file content matches its extension using magic bytes.
+
+        Args:
+            file_obj: File-like object (werkzeug FileStorage or similar)
+            filename: Original filename to determine expected type
+
+        Returns:
+            (bool, str): (is_valid, error_message)
+        """
+        if not cls.is_allowed_file(filename):
+            return False, 'Extension de fichier non autorisée.'
+
+        ext = filename.rsplit('.', 1)[1].lower()
+        signatures = cls.MAGIC_SIGNATURES.get(ext)
+        if not signatures:
+            return True, ''  # No signature to check, extension is allowed
+
+        # Read first 8 bytes for magic byte check
+        header = file_obj.read(8)
+        file_obj.seek(0)
+
+        if len(header) < 4:
+            return False, 'Fichier vide ou corrompu.'
+
+        for sig in signatures:
+            if header[:len(sig)] == sig:
+                return True, ''
+
+        return False, f'Le contenu du fichier ne correspond pas au format {ext.upper()}.'
 
     def get_full_path(self, upload_folder):
         """Return the full filesystem path to the document."""
