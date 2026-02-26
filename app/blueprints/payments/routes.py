@@ -216,8 +216,12 @@ def add():
 @manager_required
 def detail(payment_id):
     """View payment details."""
+    import traceback
     payment = TeamMemberPayment.query.get_or_404(payment_id)
-    return render_template('payments/detail.html', payment=payment)
+    try:
+        return render_template('payments/detail.html', payment=payment)
+    except Exception as e:
+        return f"<pre>Template error: {e}\n\n{traceback.format_exc()}</pre>", 500
 
 
 @payments_bp.route('/<int:payment_id>/edit', methods=['GET', 'POST'])
