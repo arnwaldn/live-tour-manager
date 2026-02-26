@@ -176,12 +176,12 @@ def run_seed():
         (julie.id, 'Claviers / Synthétiseurs', 'member'),
         (antoine.id, 'Batterie / Machines', 'member'),
     ]
-    for user_id, instrument, role in memberships:
+    for user_id, instrument, role_in_band in memberships:
         existing = BandMembership.query.filter_by(user_id=user_id, band_id=band.id).first()
         if not existing:
             db.session.add(BandMembership(
                 user_id=user_id, band_id=band.id,
-                instrument=instrument, role=role
+                instrument=instrument, role_in_band=role_in_band
             ))
 
     db.session.flush()
