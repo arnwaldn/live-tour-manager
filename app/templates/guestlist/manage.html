@@ -106,10 +106,10 @@
                 </select>
             </div>
             <div class="col-12 col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-outline-primary me-2">
+                <button type="submit" class="btn btn-outline-primary me-2" aria-label="Rechercher">
                     <i class="bi bi-search"></i>
                 </button>
-                <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-outline-secondary">
+                <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-outline-secondary" aria-label="Réinitialiser les filtres">
                     <i class="bi bi-x-lg"></i>
                 </a>
             </div>
@@ -126,14 +126,9 @@
         </h5>
         {% if stop.tour.band_is_manager(current_user) or current_user.is_staff_or_above() %}
         <div class="btn-group btn-group-sm">
-            <form action="{{ url_for('guestlist.bulk_action', stop_id=stop.id) }}" method="POST" class="d-inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="action" value="approve_all">
-                <button type="submit" class="btn btn-outline-success"
-                        onclick="return confirm('Approuver tous les invités en attente?')">
-                    <i class="bi bi-check-all me-1"></i>Tout approuver
-                </button>
-            </form>
+            <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#approveAllModal">
+                <i class="bi bi-check-all me-1"></i>Tout approuver
+            </button>
         </div>
         {% endif %}
     </div>
@@ -170,13 +165,13 @@
                             <div class="btn-group btn-group-sm">
                                 <form action="{{ url_for('guestlist.approve_entry', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-success" title="Approuver">
+                                    <button type="submit" class="btn btn-success" title="Approuver" aria-label="Approuver">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                 </form>
                                 <form action="{{ url_for('guestlist.deny_entry', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-danger" title="Refuser">
+                                    <button type="submit" class="btn btn-danger" title="Refuser" aria-label="Refuser">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                 </form>
@@ -244,7 +239,7 @@
                         </td>
                         <td>
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown">
+                                <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown" aria-label="Actions invité">
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
@@ -271,13 +266,10 @@
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <form action="{{ url_for('guestlist.delete_entry', id=entry.id) }}" method="POST">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="dropdown-item text-danger"
-                                                    onclick="return confirm('Supprimer cet invité?')">
-                                                <i class="bi bi-trash me-2"></i>Supprimer
-                                            </button>
-                                        </form>
+                                        <button type="button" class="dropdown-item text-danger"
+                                                onclick="showConfirmModal('{{ url_for('guestlist.delete_entry', id=entry.id) }}', 'Supprimer {{ entry.guest_name }} de la guestlist ? Cette action ne peut pas être annulée.', 'Supprimer')">
+                                            <i class="bi bi-trash me-2"></i>Supprimer
+                                        </button>
                                     </li>
                                     {% endif %}
                                 </ul>
@@ -315,4 +307,67 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Approve All Modal -->
+<div class="modal fade" id="approveAllModal" tabindex="-1" aria-labelledby="approveAllModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success bg-opacity-10">
+                <h5 class="modal-title text-success" id="approveAllModalLabel">
+                    <i class="bi bi-check-all me-2"></i>Approuver tous les invités
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Approuver tous les invités en attente pour cette date ?</p>
+                <p class="text-muted small mb-0">Des notifications seront envoyées aux demandeurs.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form action="{{ url_for('guestlist.bulk_action', stop_id=stop.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="approve_all">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-all me-1"></i>Tout approuver
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal (dynamic) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-check-lg me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
+</script>
 {% endblock %}

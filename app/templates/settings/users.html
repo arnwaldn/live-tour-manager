@@ -138,11 +138,11 @@
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('settings.user_detail', id=user.id) }}"
-                                   class="btn btn-outline-secondary" title="Voir la fiche">
+                                   class="btn btn-outline-secondary" title="Voir la fiche" aria-label="Voir la fiche">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 <a href="{{ url_for('settings.users_edit', id=user.id) }}"
-                                   class="btn btn-outline-primary" title="Modifier">
+                                   class="btn btn-outline-primary" title="Modifier" aria-label="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 {% if user.id != current_user.id %}
@@ -150,30 +150,22 @@
                                 <form action="{{ url_for('settings.users_resend_invite', id=user.id) }}"
                                       method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-outline-info" title="Renvoyer l'invitation">
+                                    <button type="submit" class="btn btn-outline-info" title="Renvoyer l'invitation" aria-label="Renvoyer l'invitation">
                                         <i class="bi bi-envelope"></i>
                                     </button>
                                 </form>
                                 {% endif %}
                                 {% if user.is_active %}
-                                <form action="{{ url_for('settings.users_delete', id=user.id) }}"
-                                      method="POST" class="d-inline"
-                                      onsubmit="return confirm('Voulez-vous vraiment désactiver cet utilisateur ?');">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-outline-danger" title="Désactiver">
-                                        <i class="bi bi-person-x"></i>
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-outline-danger" title="Désactiver" aria-label="Désactiver"
+                                        onclick="showConfirmModal('{{ url_for('settings.users_delete', id=user.id) }}', 'Désactiver {{ user.full_name }} ? L\'utilisateur ne pourra plus accéder à l\'application.', 'Désactiver')">
+                                    <i class="bi bi-person-x"></i>
+                                </button>
                                 {% else %}
                                 <!-- Utilisateur inactif - proposer suppression définitive -->
-                                <form action="{{ url_for('settings.users_hard_delete', id=user.id) }}"
-                                      method="POST" class="d-inline"
-                                      onsubmit="return confirm('⚠️ ATTENTION: Cette action est IRRÉVERSIBLE!\n\nSupprimer définitivement cet utilisateur?\nToutes ses données seront perdues.');">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-danger" title="Supprimer définitivement">
-                                        <i class="bi bi-trash3-fill"></i>
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-danger" title="Supprimer définitivement" aria-label="Supprimer définitivement"
+                                        onclick="showConfirmModal('{{ url_for('settings.users_hard_delete', id=user.id) }}', 'Supprimer définitivement {{ user.full_name }} ? Toutes ses données seront perdues. Cette action est IRRÉVERSIBLE.', 'Supprimer')">
+                                    <i class="bi bi-trash3-fill"></i>
+                                </button>
                                 {% endif %}
                                 {% endif %}
                             </div>
@@ -220,5 +212,38 @@ document.getElementById('searchUsers').addEventListener('keyup', function() {
         row.style.display = text.includes(searchTerm) ? '' : 'none';
     });
 });
+
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
 </script>
+
+<!-- Dynamic Confirm Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -159,7 +159,7 @@
     </div>
     <div class="btn-group">
         <a href="{{ url_for('logistics.day_sheet', stop_id=stop.id) }}" class="btn btn-outline-secondary">
-            <i class="bi bi-file-text me-1"></i>Day Sheet
+            <i class="bi bi-file-text me-1"></i>Feuille de route
         </a>
         <a href="{{ url_for('logistics.mobile_daysheet', stop_id=stop.id) }}" class="btn btn-outline-primary">
             <i class="bi bi-phone me-1"></i>Mobile
@@ -356,7 +356,7 @@
             </div>
             <div class="list-group list-group-flush">
                 <a href="{{ url_for('logistics.day_sheet', stop_id=stop.id) }}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-file-text me-2"></i>Day Sheet Complet
+                    <i class="bi bi-file-text me-2"></i>Feuille de route Complet
                 </a>
                 <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="list-group-item list-group-item-action">
                     <i class="bi bi-person-lines-fill me-2"></i>Guestlist

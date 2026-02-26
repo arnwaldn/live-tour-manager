@@ -29,22 +29,18 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                    <form action="{{ url_for('notifications.delete_read_notifications') }}" method="POST"
-                          onsubmit="return confirm('Supprimer toutes les notifications lues ?');">
-                        <button type="submit" class="dropdown-item">
-                            <i class="bi bi-check-circle me-2"></i>
-                            Supprimer les lues
-                        </button>
-                    </form>
+                    <button type="button" class="dropdown-item"
+                            onclick="showConfirmModal('{{ url_for('notifications.delete_read_notifications') }}', 'Supprimer toutes les notifications lues ?', 'Supprimer')">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Supprimer les lues
+                    </button>
                 </li>
                 <li>
-                    <form action="{{ url_for('notifications.delete_all_notifications') }}" method="POST"
-                          onsubmit="return confirm('Supprimer TOUTES les notifications ?');">
-                        <button type="submit" class="dropdown-item text-danger">
-                            <i class="bi bi-trash me-2"></i>
-                            Tout supprimer
-                        </button>
-                    </form>
+                    <button type="button" class="dropdown-item text-danger"
+                            onclick="showConfirmModal('{{ url_for('notifications.delete_all_notifications') }}', 'Supprimer TOUTES les notifications ? Cette action est irréversible.', 'Tout supprimer')">
+                        <i class="bi bi-trash me-2"></i>
+                        Tout supprimer
+                    </button>
                 </li>
             </ul>
         </div>
@@ -115,12 +111,10 @@
                             {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <form action="{{ url_for('notifications.delete_notification', id=notification.id) }}" method="POST"
-                                      onsubmit="return confirm('Supprimer cette notification ?');">
-                                    <button type="submit" class="dropdown-item text-danger">
-                                        <i class="bi bi-trash me-2"></i>Supprimer
-                                    </button>
-                                </form>
+                                <button type="button" class="dropdown-item text-danger"
+                                        onclick="showConfirmModal('{{ url_for('notifications.delete_notification', id=notification.id) }}', 'Supprimer cette notification ?', 'Supprimer')">
+                                    <i class="bi bi-trash me-2"></i>Supprimer
+                                </button>
                             </li>
                         </ul>
                     </div>
@@ -144,4 +138,39 @@
     </p>
 </div>
 {% endif %}
+
+<!-- Dynamic Confirm Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
+</script>
 {% endblock %}

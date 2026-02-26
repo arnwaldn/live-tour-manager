@@ -106,14 +106,10 @@
                                 Partage le {{ share.shared_at.strftime('%d/%m/%Y') }}
                             </small>
                         </div>
-                        <form action="{{ url_for('documents.remove_share', id=document.id, share_id=share.id) }}"
-                              method="POST" class="d-inline">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger"
-                                    onclick="return confirm('Retirer ce partage?');">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                onclick="showConfirmModal('{{ url_for('documents.remove_share', id=document.id, share_id=share.id) }}', 'Retirer le partage avec {{ share.shared_to.full_name }} ? Cette personne n\'aura plus accès au document.', 'Retirer')">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
                     </div>
                 </li>
                 {% endfor %}
@@ -141,4 +137,39 @@
         </div>
     </div>
 </div>
+
+<!-- Confirmation Modal (dynamic) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-check-lg me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
+</script>
 {% endblock %}

@@ -155,20 +155,20 @@
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('documents.detail', id=doc.id) }}"
-                                   class="btn btn-outline-primary" title="Détails">
+                                   class="btn btn-outline-primary" title="Détails" aria-label="Détails">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 <a href="{{ url_for('documents.download', id=doc.id) }}"
-                                   class="btn btn-outline-success" title="Télécharger">
+                                   class="btn btn-outline-success" title="Télécharger" aria-label="Télécharger">
                                     <i class="bi bi-download"></i>
                                 </a>
                                 <a href="{{ url_for('documents.edit', id=doc.id) }}"
-                                   class="btn btn-outline-secondary" title="Modifier">
+                                   class="btn btn-outline-secondary" title="Modifier" aria-label="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <button type="button" class="btn btn-outline-danger"
                                         data-bs-toggle="modal" data-bs-target="#deleteModal{{ doc.id }}"
-                                        title="Supprimer">
+                                        title="Supprimer" aria-label="Supprimer">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
@@ -179,7 +179,7 @@
                                     <div class="modal-content">
                                         <div class="modal-header">
                                             <h5 class="modal-title">Confirmer la suppression</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                                         </div>
                                         <div class="modal-body">
                                             <p>Voulez-vous vraiment supprimer le document <strong>{{ doc.name }}</strong>?</p>

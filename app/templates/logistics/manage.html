@@ -135,7 +135,7 @@
             <i class="bi bi-arrow-left me-1"></i>Retour
         </a>
         <a href="{{ url_for('logistics.day_sheet', stop_id=stop.id) }}" class="btn btn-outline-primary">
-            <i class="bi bi-file-text me-1"></i>Day Sheet
+            <i class="bi bi-file-text me-1"></i>Feuille de route
         </a>
         {% if stop.tour.band_is_manager(current_user) %}
         <a href="{{ url_for('logistics.add_logistics', stop_id=stop.id) }}" class="btn btn-primary">
@@ -220,7 +220,7 @@
                                 </a>
                                 <form action="{{ url_for('logistics.delete_logistics', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="return confirm('Supprimer?')">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer cet élément ?', 'Supprimer')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -302,7 +302,7 @@
                                     {% if stop.tour.band_is_manager(current_user) %}
                                     <form action="{{ url_for('logistics.unassign_user', id=entry.id, user_id=assignment.user_id) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn-remove" title="Désassigner" onclick="return confirm('Désassigner {{ assignment.user.first_name }}?')">
+                                        <button type="submit" class="btn-remove" title="Désassigner" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Désassigner {{ assignment.user.first_name }} ?', 'Désassigner')">
                                             <i class="bi bi-x-lg"></i>
                                         </button>
                                     </form>
@@ -371,7 +371,7 @@
                                 </a>
                                 <form action="{{ url_for('logistics.delete_logistics', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="return confirm('Supprimer?')">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer cet élément ?', 'Supprimer')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -459,7 +459,7 @@
                                     {% if stop.tour.band_is_manager(current_user) %}
                                     <form action="{{ url_for('logistics.unassign_user', id=entry.id, user_id=assignment.user_id) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn-remove" title="Désassigner" onclick="return confirm('Désassigner {{ assignment.user.first_name }}?')">
+                                        <button type="submit" class="btn-remove" title="Désassigner" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Désassigner {{ assignment.user.first_name }} ?', 'Désassigner')">
                                             <i class="bi bi-x-lg"></i>
                                         </button>
                                     </form>
@@ -530,7 +530,7 @@
                                 </a>
                                 <form action="{{ url_for('logistics.delete_logistics', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="return confirm('Supprimer?')">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer cet élément ?', 'Supprimer')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -592,7 +592,7 @@
                                     {% if stop.tour.band_is_manager(current_user) %}
                                     <form action="{{ url_for('logistics.unassign_user', id=entry.id, user_id=assignment.user_id) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn-remove" title="Désassigner" onclick="return confirm('Désassigner {{ assignment.user.first_name }}?')">
+                                        <button type="submit" class="btn-remove" title="Désassigner" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Désassigner {{ assignment.user.first_name }} ?', 'Désassigner')">
                                             <i class="bi bi-x-lg"></i>
                                         </button>
                                     </form>
@@ -671,7 +671,7 @@
                                 <li>
                                     <form action="{{ url_for('logistics.delete_contact', id=contact.id) }}" method="POST">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Supprimer ce contact?')">
+                                        <button type="submit" class="dropdown-item text-danger" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer ce contact ?', 'Supprimer')">
                                             <i class="bi bi-trash me-2"></i>Supprimer
                                         </button>
                                     </form>
@@ -784,4 +784,39 @@
         </div>
     </div>
 </div>
+
+<!-- Dynamic Confirm Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
+</script>
 {% endblock %}

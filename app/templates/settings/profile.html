@@ -54,13 +54,10 @@
                 </form>
 
                 {% if current_user.profile_picture_data %}
-                <form method="POST" action="{{ url_for('settings.delete_profile_picture') }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-outline-danger btn-sm"
-                            onclick="return confirm('Supprimer votre photo de profil ?')">
-                        <i class="bi bi-trash me-1"></i>Supprimer la photo
-                    </button>
-                </form>
+                <button type="button" class="btn btn-outline-danger btn-sm"
+                        onclick="showConfirmModal('{{ url_for('settings.delete_profile_picture') }}', 'Supprimer votre photo de profil ?', 'Supprimer')">
+                    <i class="bi bi-trash me-1"></i>Supprimer la photo
+                </button>
                 {% endif %}
             </div>
         </div>
@@ -236,12 +233,11 @@
                                     <hr class="my-3">
                                     <small class="text-muted d-block mb-2">Supprimer une carte:</small>
                                     {% for card in current_user.travel_cards %}
-                                    <form action="{{ url_for('settings.delete_own_travel_card', card_id=card.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Supprimer cette carte ?');">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm mb-1" title="Supprimer {{ card.card_name or card.card_number }}">
-                                            <i class="bi bi-trash me-1"></i>{{ card.card_name or card.card_number }}
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-outline-danger btn-sm mb-1"
+                                            title="Supprimer {{ card.card_name or card.card_number }}"
+                                            onclick="showConfirmModal('{{ url_for('settings.delete_own_travel_card', card_id=card.id) }}', 'Supprimer la carte {{ card.card_name or card.card_number }} ?', 'Supprimer')">
+                                        <i class="bi bi-trash me-1"></i>{{ card.card_name or card.card_number }}
+                                    </button>
                                     {% endfor %}
                                     {% endif %}
                                 </div>
@@ -517,15 +513,11 @@
                                            class="btn btn-outline-primary" title="Télécharger">
                                             <i class="bi bi-download"></i>
                                         </a>
-                                        <form action="{{ url_for('settings.delete_profile_document', doc_id=doc.id) }}"
-                                              method="POST" class="d-inline">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-danger"
-                                                    title="Supprimer"
-                                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce document?')">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-outline-danger"
+                                                title="Supprimer"
+                                                onclick="showConfirmModal('{{ url_for('settings.delete_profile_document', doc_id=doc.id) }}', 'Supprimer ce document ?', 'Supprimer')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -588,11 +580,40 @@
     </div>
 </div>
 
+<!-- Dynamic Confirm Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title text-danger" id="confirmModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="confirmModalForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i><span id="confirmModalBtn">Confirmer</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Helper function for date comparison in Jinja2
-// The actual date comparison is handled by Jinja2, this is just for reference
+function showConfirmModal(url, message, btnText) {
+    document.getElementById('confirmModalForm').action = url;
+    document.getElementById('confirmModalMessage').textContent = message;
+    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
+    new bootstrap.Modal(document.getElementById('confirmModal')).show();
+}
 </script>
 {% endblock %}
