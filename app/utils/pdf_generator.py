@@ -350,6 +350,269 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
     return buffer.getvalue()
 
 
+def generate_invoice_pdf(invoice) -> bytes:
+    """
+    Generate a professional invoice PDF compliant with French e-invoicing requirements.
+
+    Args:
+        invoice: Invoice model instance (with lines loaded)
+
+    Returns:
+        PDF file as bytes
+    """
+    if not PDF_AVAILABLE:
+        raise ImportError("reportlab is required for PDF generation. Install with: pip install reportlab")
+
+    from reportlab.lib.enums import TA_LEFT
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm,
+                            bottomMargin=1.5*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
+
+    styles = getSampleStyleSheet()
+    elements = []
+    currency = invoice.currency or 'EUR'
+
+    # Custom styles
+    title_style = ParagraphStyle('InvTitle', parent=styles['Heading1'], fontSize=18,
+                                 textColor=WHITE, alignment=TA_CENTER, spaceAfter=4)
+    subtitle_style = ParagraphStyle('InvSub', parent=styles['Normal'], fontSize=10,
+                                    textColor=WHITE, alignment=TA_CENTER)
+    section_header_style = ParagraphStyle('InvSection', parent=styles['Heading2'], fontSize=11,
+                                          textColor=BLACK, spaceBefore=12, spaceAfter=6,
+                                          backColor=LIGHT_GRAY)
+    label_style = ParagraphStyle('InvLabel', parent=styles['Normal'], fontSize=9, textColor=GRAY)
+    value_style = ParagraphStyle('InvValue', parent=styles['Normal'], fontSize=9, alignment=TA_RIGHT)
+    bold_value = ParagraphStyle('InvBoldValue', parent=styles['Normal'], fontSize=10,
+                                alignment=TA_RIGHT, fontName='Helvetica-Bold')
+    cell_style = ParagraphStyle('InvCell', parent=styles['Normal'], fontSize=9)
+    cell_bold = ParagraphStyle('InvCellBold', parent=styles['Normal'], fontSize=9,
+                               fontName='Helvetica-Bold')
+    small_style = ParagraphStyle('InvSmall', parent=styles['Normal'], fontSize=8, textColor=GRAY)
+    footer_style = ParagraphStyle('InvFooter', parent=styles['Normal'], fontSize=7,
+                                  textColor=GRAY, alignment=TA_CENTER)
+    addr_style = ParagraphStyle('InvAddr', parent=styles['Normal'], fontSize=9,
+                                alignment=TA_LEFT, leading=13)
+
+    # Type labels
+    type_labels = {
+        'invoice': 'FACTURE', 'credit': 'AVOIR', 'proforma': 'FACTURE PROFORMA',
+        'deposit': "FACTURE D'ACOMPTE", 'final': 'FACTURE DE SOLDE',
+    }
+    invoice_type_label = type_labels.get(invoice.type.value, 'FACTURE')
+
+    # Header
+    issue_date_str = invoice.issue_date.strftime('%d/%m/%Y') if invoice.issue_date else ''
+    due_date_str = invoice.due_date.strftime('%d/%m/%Y') if invoice.due_date else ''
+
+    header_data = [
+        [Paragraph(f"<b>{invoice_type_label}</b>", title_style)],
+        [Paragraph(f"N° {invoice.number}", subtitle_style)],
+        [Paragraph(f"Date: {issue_date_str} | Echeance: {due_date_str}", subtitle_style)],
+    ]
+    header_table = Table(header_data, colWidths=[doc.width])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), BLUE),
+        ('TOPPADDING', (0, 0), (0, 0), 14),
+        ('BOTTOMPADDING', (-1, -1), (-1, -1), 14),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 14))
+
+    # Issuer and Recipient side by side
+    issuer_lines = [f"<b>{invoice.issuer_name or ''}</b>"]
+    if invoice.issuer_legal_form:
+        issuer_lines[0] += f" ({invoice.issuer_legal_form})"
+    if invoice.issuer_address_line1:
+        issuer_lines.append(invoice.issuer_address_line1)
+    if invoice.issuer_address_line2:
+        issuer_lines.append(invoice.issuer_address_line2)
+    postal_city = f"{invoice.issuer_postal_code or ''} {invoice.issuer_city or ''}".strip()
+    if postal_city:
+        issuer_lines.append(postal_city)
+    if invoice.issuer_siret:
+        issuer_lines.append(f"SIRET: {invoice.issuer_siret}")
+    if invoice.issuer_vat:
+        issuer_lines.append(f"TVA: {invoice.issuer_vat}")
+    if invoice.issuer_rcs:
+        issuer_lines.append(f"RCS: {invoice.issuer_rcs}")
+    if invoice.issuer_phone:
+        issuer_lines.append(f"Tel: {invoice.issuer_phone}")
+    if invoice.issuer_email:
+        issuer_lines.append(invoice.issuer_email)
+
+    recipient_lines = [f"<b>{invoice.recipient_name or ''}</b>"]
+    if invoice.recipient_legal_form:
+        recipient_lines[0] += f" ({invoice.recipient_legal_form})"
+    if invoice.recipient_address_line1:
+        recipient_lines.append(invoice.recipient_address_line1)
+    if invoice.recipient_address_line2:
+        recipient_lines.append(invoice.recipient_address_line2)
+    postal_city_r = f"{invoice.recipient_postal_code or ''} {invoice.recipient_city or ''}".strip()
+    if postal_city_r:
+        recipient_lines.append(postal_city_r)
+    if invoice.recipient_siret:
+        recipient_lines.append(f"SIRET: {invoice.recipient_siret}")
+    if invoice.recipient_vat:
+        recipient_lines.append(f"TVA: {invoice.recipient_vat}")
+
+    addr_data = [[
+        Paragraph("<br/>".join(issuer_lines), addr_style),
+        Paragraph("<br/>".join(recipient_lines), addr_style),
+    ]]
+    addr_table = Table(addr_data, colWidths=[doc.width * 0.48, doc.width * 0.48],
+                       spaceBefore=0, spaceAfter=0)
+    addr_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 0), (0, 0), LIGHT_BLUE),
+        ('BACKGROUND', (1, 0), (1, 0), LIGHT_GRAY),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(addr_table)
+    elements.append(Spacer(1, 12))
+
+    # Invoice lines table
+    elements.append(Paragraph("LIGNES DE FACTURE", section_header_style))
+
+    right_cell = ParagraphStyle('RCell', parent=styles['Normal'], fontSize=9, alignment=TA_RIGHT)
+    right_bold = ParagraphStyle('RBold', parent=styles['Normal'], fontSize=9,
+                                alignment=TA_RIGHT, fontName='Helvetica-Bold')
+
+    lines_header = [
+        Paragraph("<b>#</b>", cell_bold),
+        Paragraph("<b>Description</b>", cell_bold),
+        Paragraph("<b>Qte</b>", cell_bold),
+        Paragraph("<b>P.U. HT</b>", cell_bold),
+        Paragraph("<b>TVA</b>", cell_bold),
+        Paragraph("<b>Total HT</b>", cell_bold),
+    ]
+    lines_data = [lines_header]
+
+    for line in invoice.lines:
+        lines_data.append([
+            Paragraph(str(line.line_number), cell_style),
+            Paragraph(line.description or '', cell_style),
+            Paragraph(f"{line.quantity}", right_cell),
+            Paragraph(format_currency(float(line.unit_price_ht or 0), currency), right_cell),
+            Paragraph(f"{line.vat_rate or 0}%", right_cell),
+            Paragraph(format_currency(float(line.total_ht or 0), currency), right_bold),
+        ])
+
+    col_widths = [doc.width * 0.06, doc.width * 0.38, doc.width * 0.1,
+                  doc.width * 0.16, doc.width * 0.1, doc.width * 0.2]
+    lines_table = Table(lines_data, colWidths=col_widths, repeatRows=1)
+    lines_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), BLUE),
+        ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, LIGHT_GRAY]),
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, HexColor('#dddddd')),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    elements.append(lines_table)
+    elements.append(Spacer(1, 10))
+
+    # Totals section
+    elements.append(Paragraph("TOTAUX", section_header_style))
+    totals_data = [
+        [Paragraph("Sous-total HT", label_style),
+         Paragraph(format_currency(float(invoice.subtotal_ht or 0), currency), value_style)],
+    ]
+    if invoice.discount_amount and float(invoice.discount_amount) > 0:
+        totals_data.append([
+            Paragraph("Remise", label_style),
+            Paragraph(f"-{format_currency(float(invoice.discount_amount), currency)}", value_style),
+        ])
+        totals_data.append([
+            Paragraph("Sous-total apres remise", label_style),
+            Paragraph(format_currency(float(invoice.subtotal_after_discount or 0), currency), value_style),
+        ])
+    totals_data.append([
+        Paragraph("TVA", label_style),
+        Paragraph(format_currency(float(invoice.vat_amount or 0), currency), value_style),
+    ])
+    totals_data.append([
+        Paragraph("<b>TOTAL TTC</b>", cell_bold),
+        Paragraph(f"<b>{format_currency(float(invoice.total_ttc or 0), currency)}</b>", bold_value),
+    ])
+    if invoice.amount_paid and float(invoice.amount_paid) > 0:
+        totals_data.append([
+            Paragraph("Deja paye", label_style),
+            Paragraph(f"-{format_currency(float(invoice.amount_paid), currency)}", value_style),
+        ])
+        totals_data.append([
+            Paragraph("<b>RESTE A PAYER</b>", cell_bold),
+            Paragraph(f"<b>{format_currency(float(invoice.amount_due or 0), currency)}</b>", bold_value),
+        ])
+
+    totals_table = Table(totals_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
+    totals_table.setStyle(TableStyle([
+        ('LINEBELOW', (0, 0), (-1, -2), 0.5, LIGHT_GRAY),
+        ('BACKGROUND', (0, -1), (-1, -1), LIGHT_GREEN),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(totals_table)
+    elements.append(Spacer(1, 10))
+
+    # Payment info
+    elements.append(Paragraph("CONDITIONS DE PAIEMENT", section_header_style))
+    pay_info = []
+    if invoice.payment_terms:
+        pay_info.append(f"<b>Conditions:</b> {invoice.payment_terms}")
+    if invoice.payment_method_accepted:
+        pay_info.append(f"<b>Mode de paiement:</b> {invoice.payment_method_accepted}")
+    if invoice.issuer_iban:
+        pay_info.append(f"<b>IBAN:</b> {invoice.issuer_iban}")
+    if invoice.issuer_bic:
+        pay_info.append(f"<b>BIC:</b> {invoice.issuer_bic}")
+    elements.append(Paragraph("<br/>".join(pay_info) if pay_info else "Non specifie", cell_style))
+    elements.append(Spacer(1, 8))
+
+    # Legal mentions (mandatory in France)
+    elements.append(Paragraph("MENTIONS LEGALES", section_header_style))
+    legal_lines = []
+    if invoice.vat_mention:
+        legal_lines.append(invoice.vat_mention)
+    if invoice.no_discount_mention:
+        legal_lines.append("Pas d'escompte pour paiement anticipe.")
+    if invoice.late_penalty_rate:
+        legal_lines.append(
+            f"Penalites de retard: {invoice.late_penalty_rate}% par an. "
+            f"Indemnite forfaitaire de recouvrement: {format_currency(float(invoice.recovery_fee or 40), currency)}."
+        )
+    if invoice.special_mentions:
+        legal_lines.append(invoice.special_mentions)
+    elements.append(Paragraph("<br/>".join(legal_lines) if legal_lines else "Aucune mention particuliere.", small_style))
+
+    # Public notes
+    if invoice.public_notes:
+        elements.append(Spacer(1, 8))
+        elements.append(Paragraph("NOTES", section_header_style))
+        elements.append(Paragraph(invoice.public_notes, cell_style))
+
+    elements.append(Spacer(1, 20))
+
+    # Footer
+    generation_date = datetime.now().strftime('%d/%m/%Y %H:%M')
+    elements.append(Paragraph(
+        f"Document genere le {generation_date} par GigRoute - "
+        f"Reference: {invoice.number}",
+        footer_style
+    ))
+
+    doc.build(elements)
+    return buffer.getvalue()
+
+
 def generate_tour_pdf(tour) -> bytes:
     """
     Generate a PDF with tour schedule (all stops).

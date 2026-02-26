@@ -8,7 +8,7 @@ from functools import wraps
 
 from flask import (
     render_template, redirect, url_for, flash, request,
-    jsonify, abort, current_app
+    jsonify, abort, current_app, make_response
 )
 from flask_login import login_required, current_user
 
@@ -576,6 +576,71 @@ def mark_overdue(invoice_id):
         invoice.status = InvoiceStatus.OVERDUE
         db.session.commit()
         flash('Facture marquee en retard.', 'warning')
+
+    return redirect(url_for('invoices.view', invoice_id=invoice.id))
+
+
+# ============================================================================
+# PDF EXPORT
+# ============================================================================
+
+@invoices_bp.route('/<int:invoice_id>/pdf')
+@login_required
+@manager_required
+def download_pdf(invoice_id):
+    """Generate and download invoice as PDF."""
+    invoice = Invoice.query.get_or_404(invoice_id)
+
+    from app.utils.pdf_generator import generate_invoice_pdf, PDF_AVAILABLE
+    if not PDF_AVAILABLE:
+        flash('Generation PDF non disponible (reportlab manquant).', 'danger')
+        return redirect(url_for('invoices.view', invoice_id=invoice.id))
+
+    pdf_bytes = generate_invoice_pdf(invoice)
+
+    # Build filename: FACT-2026-00001.pdf
+    safe_number = invoice.number.replace('/', '-')
+    filename = f"{safe_number}.pdf"
+
+    response = make_response(pdf_bytes)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+# ============================================================================
+# EMAIL SENDING
+# ============================================================================
+
+@invoices_bp.route('/<int:invoice_id>/send-email', methods=['POST'])
+@login_required
+@manager_required
+def send_email_invoice(invoice_id):
+    """Send invoice by email to recipient with PDF attached."""
+    invoice = Invoice.query.get_or_404(invoice_id)
+
+    if invoice.status == InvoiceStatus.DRAFT:
+        flash('Veuillez valider la facture avant de l\'envoyer par email.', 'warning')
+        return redirect(url_for('invoices.view', invoice_id=invoice.id))
+
+    recipient_email = invoice.recipient_email
+    if not recipient_email:
+        flash('Aucune adresse email pour le destinataire.', 'danger')
+        return redirect(url_for('invoices.view', invoice_id=invoice.id))
+
+    from app.utils.email import send_invoice_email
+    success = send_invoice_email(invoice)
+
+    if success:
+        # Mark as sent if not already
+        if invoice.status == InvoiceStatus.VALIDATED:
+            invoice.mark_as_sent()
+            db.session.commit()
+        log_action('send_email', 'invoice', invoice.id,
+                   details=f'Facture envoyee par email a {recipient_email}')
+        flash(f'Facture envoyee par email a {recipient_email}.', 'success')
+    else:
+        flash('Erreur lors de l\'envoi de l\'email.', 'danger')
 
     return redirect(url_for('invoices.view', invoice_id=invoice.id))
 
