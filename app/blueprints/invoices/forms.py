@@ -20,13 +20,13 @@ class InvoiceFilterForm(FlaskForm):
     status = SelectField('Statut', choices=[
         ('', 'Tous'),
         (InvoiceStatus.DRAFT.value, 'Brouillon'),
-        (InvoiceStatus.VALIDATED.value, 'Validee'),
-        (InvoiceStatus.SENT.value, 'Envoyee'),
-        (InvoiceStatus.PAID.value, 'Payee'),
-        (InvoiceStatus.PARTIAL.value, 'Partiellement payee'),
+        (InvoiceStatus.VALIDATED.value, 'Validée'),
+        (InvoiceStatus.SENT.value, 'Envoyée'),
+        (InvoiceStatus.PAID.value, 'Payée'),
+        (InvoiceStatus.PARTIAL.value, 'Partiellement payée'),
         (InvoiceStatus.OVERDUE.value, 'En retard'),
-        (InvoiceStatus.DISPUTED.value, 'Contestee'),
-        (InvoiceStatus.CANCELLED.value, 'Annulee'),
+        (InvoiceStatus.DISPUTED.value, 'Contestée'),
+        (InvoiceStatus.CANCELLED.value, 'Annulée'),
     ], validators=[Optional()])
     invoice_type = SelectField('Type', choices=[
         ('', 'Tous'),

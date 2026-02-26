@@ -171,7 +171,7 @@ class DocumentFilterForm(FlaskForm):
             ('', 'Tous'),
             ('user', 'Membres'),
             ('band', 'Groupes'),
-            ('tour', 'Tournees'),
+            ('tour', 'Tournées'),
         ],
         validators=[Optional()]
     )
@@ -180,8 +180,8 @@ class DocumentFilterForm(FlaskForm):
         'Statut expiration',
         choices=[
             ('', 'Tous'),
-            ('expired', 'Expires'),
-            ('expiring_soon', 'Expire bientot'),
+            ('expired', 'Expirés'),
+            ('expiring_soon', 'Expire bientôt'),
             ('valid', 'Valides'),
         ],
         validators=[Optional()]

@@ -27,8 +27,8 @@
     "screenshots": [],
     "shortcuts": [
         {
-            "name": "Tournees",
-            "short_name": "Tournees",
+            "name": "Tournées",
+            "short_name": "Tournées",
             "url": "/tours",
             "icons": [{"src": "/static/img/icon-192.png", "sizes": "192x192"}]
         },
