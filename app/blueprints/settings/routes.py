@@ -28,7 +28,7 @@ from app.models.document import Document, DocumentType
 from app.models.band import Band
 from app.models.guestlist import GuestlistEntry
 from app.models.payments import UserPaymentConfig, StaffCategory, StaffRole, ContractType, PaymentFrequency
-from app.decorators import requires_manager
+from app.decorators import requires_manager, requires_admin
 from app.utils.email import send_invitation_email, send_registration_notification, send_approval_email, send_rejection_email
 
 
@@ -1705,3 +1705,133 @@ def _reload_mail_config(app):
 
     # Reinitialize Flask-Mail with updated config
     mail.init_app(app)
+
+
+# ============================================================
+# ADMIN: FULL DATA RESET
+# ============================================================
+
+@settings_bp.route('/admin/reset-data', methods=['POST'])
+@requires_admin
+def admin_reset_data():
+    """Full data reset — deletes everything except admin user Arnaud Porcel.
+
+    Deletes: All users (except admin), bands, tours, stops, venues,
+    guestlists, payments, invoices, documents, logistics, crew, etc.
+    """
+    from app.models.tour import Tour
+    from app.models.tour_stop import TourStop, TourStopMember
+    from app.models.logistics import LogisticsInfo, LogisticsAssignment
+    from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment
+    from app.models.planning_slot import PlanningSlot
+    from app.models.notification import Notification
+    from app.models.reminder import TourStopReminder
+    from app.models.lineup import LineupSlot
+    from app.models.mission_invitation import MissionInvitation
+    from app.models.invoices import Invoice, InvoiceLine, InvoicePayment
+    from app.models.payments import TeamMemberPayment
+    from app.models.band import BandMembership
+    from app.models.venue import Venue, VenueContact
+    from app.models.oauth_token import OAuthToken
+
+    confirm = request.form.get('confirm')
+    if confirm != 'RESET':
+        flash('Confirmation invalide. Tapez RESET pour confirmer.', 'error')
+        return redirect(url_for('settings.settings_index'))
+
+    admin_email = 'arnaud.porcel@gmail.com'
+    admin_user = User.query.filter_by(email=admin_email).first()
+    if not admin_user:
+        flash('Compte admin introuvable.', 'error')
+        return redirect(url_for('settings.settings_index'))
+
+    admin_id = admin_user.id
+    deleted = {}
+
+    try:
+        # Tier 6 — deepest children
+        deleted['invoice_payments'] = InvoicePayment.query.delete()
+        deleted['invoice_lines'] = InvoiceLine.query.delete()
+        deleted['logistics_assignments'] = LogisticsAssignment.query.delete()
+        deleted['crew_assignments'] = CrewAssignment.query.delete()
+
+        # Tier 5 — depend on tour_stops
+        deleted['planning_slots'] = PlanningSlot.query.delete()
+        deleted['crew_schedule_slots'] = CrewScheduleSlot.query.delete()
+        deleted['tour_stop_reminders'] = TourStopReminder.query.delete()
+        deleted['lineup_slots'] = LineupSlot.query.delete()
+        deleted['logistics_info'] = LogisticsInfo.query.delete()
+        deleted['guestlist_entries'] = GuestlistEntry.query.delete()
+        deleted['mission_invitations'] = MissionInvitation.query.delete()
+
+        # Nullify self-referential FKs
+        db.session.execute(db.text("UPDATE tour_stops SET rescheduled_from_id = NULL WHERE rescheduled_from_id IS NOT NULL"))
+
+        # Local contacts + promotor expenses (raw SQL — no ORM model imported)
+        db.session.execute(db.text("DELETE FROM local_contacts"))
+        db.session.execute(db.text("DELETE FROM promotor_expenses"))
+
+        # TourStopMember v2
+        db.session.execute(db.text("DELETE FROM tour_stop_members_v2"))
+        # TourStopMember legacy join table
+        deleted['tour_stop_members'] = TourStopMember.query.delete()
+
+        # Tier 4 — tour_stops, then tours
+        deleted['tour_stops'] = TourStop.query.delete()
+
+        # Nullify circular FK invoices <-> payments
+        db.session.execute(db.text("UPDATE team_member_payments SET invoice_id = NULL WHERE invoice_id IS NOT NULL"))
+        # Nullify self-ref invoices
+        db.session.execute(db.text("UPDATE invoices SET credited_invoice_id = NULL WHERE credited_invoice_id IS NOT NULL"))
+        deleted['invoices'] = Invoice.query.delete()
+        deleted['payments'] = TeamMemberPayment.query.delete()
+
+        # Documents + shares
+        db.session.execute(db.text("DELETE FROM document_shares"))
+        deleted['documents'] = Document.query.delete()
+
+        # Notifications + OAuth
+        deleted['notifications'] = Notification.query.delete()
+        deleted['oauth_tokens'] = OAuthToken.query.delete()
+
+        # Tours
+        deleted['tours'] = Tour.query.delete()
+
+        # Bands
+        deleted['band_memberships'] = BandMembership.query.delete()
+        db.session.execute(db.text("DELETE FROM bands"))
+        deleted['bands'] = 'all'
+
+        # User data (for non-admin users)
+        # Travel cards
+        db.session.execute(db.text(f"DELETE FROM travel_cards WHERE user_id != {admin_id}"))
+        # User professions
+        UserProfession.query.filter(UserProfession.user_id != admin_id).delete(synchronize_session=False)
+        # User payment configs
+        db.session.execute(db.text(f"DELETE FROM user_payment_configs WHERE user_id != {admin_id}"))
+        # External contacts
+        db.session.execute(db.text("DELETE FROM external_contacts"))
+        # User roles
+        db.session.execute(db.text(f"DELETE FROM user_roles WHERE user_id != {admin_id}"))
+        # Audit logs
+        db.session.execute(db.text("DELETE FROM audit_logs"))
+
+        # Delete all users except admin
+        deleted['users'] = User.query.filter(User.id != admin_id).delete(synchronize_session=False)
+
+        # Venues
+        deleted['venue_contacts'] = VenueContact.query.delete()
+        deleted['venues'] = Venue.query.delete()
+
+        db.session.commit()
+
+        total = sum(v for v in deleted.values() if isinstance(v, int))
+        flash(f'Reset complet effectué. {total} enregistrements supprimés. Seul le compte {admin_email} est conservé.', 'success')
+        current_app.logger.warning(f"ADMIN RESET: Full data reset by {current_user.email}. {deleted}")
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"ADMIN RESET FAILED: {e}")
+        flash(f'Erreur lors du reset : {str(e)}', 'error')
+
+    return redirect(url_for('settings.settings_index'))
