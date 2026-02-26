@@ -116,6 +116,8 @@ def register_blueprints(app):
     from app.blueprints.invoices import invoices_bp
     # Crew module - enabled for full crew scheduling functionality
     from app.blueprints.crew import crew_bp
+    # REST API v1
+    from app.blueprints.api import api_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)
@@ -133,6 +135,8 @@ def register_blueprints(app):
     app.register_blueprint(invoices_bp, url_prefix='/invoices')
     # Crew module - enabled for full crew scheduling functionality
     app.register_blueprint(crew_bp)
+    # REST API v1 — JWT auth, no CSRF needed
+    app.register_blueprint(api_bp, url_prefix='/api/v1')
 
 
 def register_mail_config_reloader(app):
@@ -182,24 +186,39 @@ def register_mail_config_reloader(app):
             pass  # Silently ignore errors (table may not exist yet)
 
 
+def _is_api_request():
+    """Check if the current request targets the API (returns JSON)."""
+    from flask import request
+    return request.path.startswith('/api/')
+
+
 def register_error_handlers(app):
     """Register error handlers for common HTTP errors."""
+    from flask import jsonify
 
     @app.errorhandler(403)
     def forbidden(error):
+        if _is_api_request():
+            return jsonify({'error': {'code': 'forbidden', 'message': 'Access denied.'}}), 403
         return render_template('errors/403.html'), 403
 
     @app.errorhandler(404)
     def not_found(error):
+        if _is_api_request():
+            return jsonify({'error': {'code': 'not_found', 'message': 'Resource not found.'}}), 404
         return render_template('errors/404.html'), 404
 
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
+        if _is_api_request():
+            return jsonify({'error': {'code': 'internal_error', 'message': 'Internal server error.'}}), 500
         return render_template('errors/500.html'), 500
 
     @app.errorhandler(429)
     def ratelimit_error(error):
+        if _is_api_request():
+            return jsonify({'error': {'code': 'rate_limit_exceeded', 'message': 'Too many requests. Try again later.'}}), 429
         return render_template('errors/429.html'), 429
 
 
