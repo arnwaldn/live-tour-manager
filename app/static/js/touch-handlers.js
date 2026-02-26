@@ -138,12 +138,14 @@
                 break;
 
             case 'delete':
-                const deleteForm = card.querySelector('[data-action="delete"]');
-                if (deleteForm && confirm('Supprimer cet élément?')) {
-                    card.style.transform = 'translateX(-100%)';
-                    setTimeout(function() {
-                        deleteForm.submit();
-                    }, 300);
+                var deleteForm = card.querySelector('[data-action="delete"]');
+                if (deleteForm && window.showConfirmModal) {
+                    window.showConfirmModal(null, 'Supprimer cet élément ?', 'Supprimer', null, function() {
+                        card.style.transform = 'translateX(-100%)';
+                        setTimeout(function() {
+                            deleteForm.submit();
+                        }, 300);
+                    });
                 } else {
                     card.style.transform = 'translateX(0)';
                 }
