@@ -110,7 +110,7 @@ def add_stop_debug(tour_id):
         # Step 7: Test TourStopForm
         try:
             from app.blueprints.tours.forms import TourStopForm
-            form = TourStopForm()
+            TourStopForm()
             result['steps_completed'].append('form_created')
         except Exception as form_err:
             result['errors'].append(f'TourStopForm error: {str(form_err)}')
@@ -294,7 +294,7 @@ def crew_debug(stop_id):
         # Step 6: Test forms
         try:
             from app.blueprints.crew.forms import CrewSlotForm, CrewAssignmentForm, ExternalContactForm
-            slot_form = CrewSlotForm()
+            CrewSlotForm()
             result['slot_form'] = 'OK'
         except Exception as form_err:
             result['errors'].append(f'CrewSlotForm error: {str(form_err)}')
@@ -664,7 +664,7 @@ def run_migrations():
             """))
             venue_col_exists = r.fetchone() is not None
             db.session.rollback()
-        except:
+        except Exception:
             venue_col_exists = False
             db.session.rollback()
 
@@ -750,7 +750,7 @@ def create_tables():
                 'message': 'Users table already exists, no action needed',
                 'timestamp': datetime.utcnow().isoformat()
             })
-        except:
+        except Exception:
             db.session.rollback()
 
         # Create all tables
@@ -2693,7 +2693,7 @@ def assign_stop_member_debug(stop_id, user_id):
     from app.models.user import User
 
     try:
-        stop = TourStop.query.get_or_404(stop_id)
+        TourStop.query.get_or_404(stop_id)
         user = User.query.get_or_404(user_id)
 
         # Check if already assigned
@@ -2794,7 +2794,7 @@ def create_planning_slot_debug(stop_id, user_id):
     from datetime import time
 
     try:
-        stop = TourStop.query.get_or_404(stop_id)
+        TourStop.query.get_or_404(stop_id)
         user = User.query.get_or_404(user_id)
 
         # Get params

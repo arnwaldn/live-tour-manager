@@ -200,7 +200,7 @@
     <div class="col-12 col-lg-8">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Timeline</h5>
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Chronologie</h5>
             </div>
             <div class="card-body">
                 {% if timeline %}
@@ -274,7 +274,7 @@
         {% if stop.venue %}
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-dark text-white">
-                <h5 class="mb-0"><i class="bi bi-building me-2"></i>Venue</h5>
+                <h5 class="mb-0"><i class="bi bi-building me-2"></i>Salle</h5>
             </div>
             <div class="card-body">
                 <h5 class="mb-2">{{ stop.venue.name }}</h5>
@@ -356,7 +356,7 @@
             </div>
             <div class="list-group list-group-flush">
                 <a href="{{ url_for('logistics.day_sheet', stop_id=stop.id) }}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-file-text me-2"></i>Feuille de route Complet
+                    <i class="bi bi-file-text me-2"></i>Feuille de route complète
                 </a>
                 <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="list-group-item list-group-item-action">
                     <i class="bi bi-person-lines-fill me-2"></i>Guestlist

@@ -144,7 +144,7 @@ class PaymentService:
         Returns:
             List of created payments
         """
-        tour = Tour.query.get_or_404(tour_id)
+        Tour.query.get_or_404(tour_id)
         created_payments = []
 
         # Get all users with payment configs that have per_diem > 0
@@ -173,7 +173,6 @@ class PaymentService:
             day_stops = [s for s in stops if s.date == current_date]
 
             # Determine day type
-            is_show_day = any(s.stop_type.value in ('concert', 'festival') for s in day_stops)
             is_travel_day = any(s.stop_type.value == 'travel' for s in day_stops)
             is_day_off = any(s.stop_type.value == 'day_off' for s in day_stops)
 

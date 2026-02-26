@@ -648,7 +648,6 @@ def accounting_attestation(payment_id):
         flash('Les services d\'export ne sont pas disponibles.', 'error')
         return redirect(url_for('reports.index'))
 
-    from app.models.payments import TeamMemberPayment
     payment = TeamMemberPayment.query.get_or_404(payment_id)
 
     # Check access via tour

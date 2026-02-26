@@ -325,37 +325,105 @@
     };
 
     // ==========================================================================
-    // Confirmation Dialogs
+    // Confirmation Dialogs (Bootstrap Modal)
     // ==========================================================================
 
     function initConfirmDialogs() {
+        // [data-confirm] — generic confirmation before click action
         document.querySelectorAll('[data-confirm]').forEach(function(element) {
             element.addEventListener('click', function(e) {
-                const message = element.dataset.confirm || 'Êtes-vous sûr de vouloir continuer?';
-                if (!confirm(message)) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                e.preventDefault();
+                e.stopPropagation();
+                var message = element.dataset.confirm || 'Êtes-vous sûr de vouloir continuer ?';
+                var form = element.closest('form');
+                if (form) {
+                    showConfirmModal(form.action, message, 'Confirmer');
+                } else if (element.href) {
+                    showConfirmModal(null, message, 'Confirmer', null, function() {
+                        window.location.href = element.href;
+                    });
                 }
             });
         });
 
-        // Delete confirmation with modal
+        // [data-delete-confirm] — delete confirmation
         document.querySelectorAll('[data-delete-confirm]').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
-                const itemName = btn.dataset.deleteConfirm || 'cet élément';
-                const form = btn.closest('form') || document.querySelector(btn.dataset.form);
+                var itemName = btn.dataset.deleteConfirm || 'cet élément';
+                var form = btn.closest('form') || document.querySelector(btn.dataset.form);
+                var message = 'Supprimer ' + itemName + ' ? Cette action est irréversible.';
 
-                if (confirm('Supprimer ' + itemName + '?\nCette action est irréversible.')) {
-                    if (form) {
-                        form.submit();
-                    } else if (btn.href) {
+                if (form) {
+                    showConfirmModal(form.action, message, 'Supprimer');
+                } else if (btn.href) {
+                    showConfirmModal(null, message, 'Supprimer', null, function() {
                         window.location.href = btn.href;
-                    }
+                    });
                 }
             });
         });
     }
+
+    // ==========================================================================
+    // Global showConfirmModal
+    // ==========================================================================
+
+    /**
+     * Show a Bootstrap confirmation modal.
+     * @param {string|null} url   - POST form action URL (null if using onConfirm callback)
+     * @param {string} message    - Confirmation message
+     * @param {string} btnText    - Confirm button label
+     * @param {string} variant    - 'success' or 'danger' (default: 'danger')
+     * @param {Function} onConfirm - Optional callback instead of POST form submit
+     */
+    window.showConfirmModal = function(url, message, btnText, variant, onConfirm) {
+        var modal = document.getElementById('confirmModal');
+        if (!modal) return;
+
+        var form = document.getElementById('confirmModalForm');
+        var msgEl = document.getElementById('confirmModalMessage');
+        var btnEl = document.getElementById('confirmModalBtn');
+        var header = document.getElementById('confirmModalHeader');
+        var labelEl = document.getElementById('confirmModalLabel');
+        var submitBtn = document.getElementById('confirmModalSubmitBtn');
+
+        msgEl.textContent = message;
+        if (btnText) btnEl.textContent = btnText;
+
+        // Variant styling
+        if (variant === 'success') {
+            header.className = 'modal-header bg-success bg-opacity-10';
+            labelEl.className = 'modal-title text-success';
+            submitBtn.className = 'btn btn-success';
+        } else {
+            header.className = 'modal-header bg-danger bg-opacity-10';
+            labelEl.className = 'modal-title text-danger';
+            submitBtn.className = 'btn btn-danger';
+        }
+
+        // Clean up previous callback handler
+        if (form._confirmHandler) {
+            form.removeEventListener('submit', form._confirmHandler);
+            form._confirmHandler = null;
+        }
+
+        if (onConfirm) {
+            // Callback mode: prevent default form submit, call callback
+            form.action = '';
+            form._confirmHandler = function(e) {
+                e.preventDefault();
+                bootstrap.Modal.getInstance(modal).hide();
+                onConfirm();
+            };
+            form.addEventListener('submit', form._confirmHandler);
+        } else {
+            // POST mode: set form action, use default submit
+            form.action = url;
+        }
+
+        new bootstrap.Modal(modal).show();
+    };
 
     // ==========================================================================
     // Search Functionality

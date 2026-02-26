@@ -265,7 +265,6 @@ def notify_new_tour_stop(tour_stop, exclude_user_id=None):
         return []
 
     # Gérer le cas où venue est null
-    location = tour_stop.venue.name if tour_stop.venue else (tour_stop.location_city or 'Lieu à définir')
     city = tour_stop.venue.city if tour_stop.venue else ''
 
     title = f"Nouvel événement : {tour_stop.event_label}"

@@ -235,7 +235,7 @@
                 <div class="schedule-row">
                     <span class="schedule-time">{{ stop.load_in_time.strftime('%H:%M') }}</span>
                     <span class="schedule-icon"><i class="bi bi-truck"></i></span>
-                    <span class="schedule-label">Load-In</span>
+                    <span class="schedule-label">Chargement (Load-In)</span>
                 </div>
                 {% endif %}
                 {% if stop.crew_call_time %}
@@ -261,10 +261,10 @@
                 {% endif %}
                 {% endif %}
 
-                <!-- Soundcheck & Pre-Show Section -->
+                <!-- Soundcheck & Avant-show Section -->
                 {% if stop.soundcheck_time or stop.press_time or stop.meet_greet_time %}
                 <div class="schedule-section-title">
-                    <i class="bi bi-soundwave me-2"></i>Pré-Show
+                    <i class="bi bi-soundwave me-2"></i>Avant-show
                 </div>
                 {% if stop.soundcheck_time %}
                 <div class="schedule-row">

@@ -112,7 +112,7 @@ def send_guestlist_notification(entry, notification_type, extra_context=None):
         # Filter by notification preferences
         recipients = [r for r in all_managers if _user_accepts_notification(r, 'notify_guestlist_request')]
         if not recipients and all_managers:
-            logger.info(f"Guestlist request notification skipped - all managers disabled notify_guestlist_request")
+            logger.info("Guestlist request notification skipped - all managers disabled notify_guestlist_request")
     else:
         # Notify the guest or requester
         recipient = entry.guest_email or (entry.requested_by.email if entry.requested_by else None)
@@ -411,7 +411,7 @@ def send_tour_stop_notification(tour_stop, notification_type='created'):
     recipients = [r for r in all_recipients if _user_accepts_notification(r, 'notify_new_tour')]
 
     if not recipients and all_recipients:
-        logger.info(f"Tour stop notification skipped - all band members disabled notify_new_tour")
+        logger.info("Tour stop notification skipped - all band members disabled notify_new_tour")
 
     success = True
     for recipient in recipients:
@@ -568,7 +568,7 @@ def _template_exists(template_name):
     try:
         current_app.jinja_env.get_template(template_name)
         return True
-    except:
+    except Exception:
         return False
 
 

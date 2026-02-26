@@ -5,7 +5,7 @@
         <div class="d-flex align-items-center w-100">
             <a href="{{ url_for('main.dashboard') }}" class="sidebar-brand text-decoration-none">
                 <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Studio Palenque" height="40" class="brand-icon">
-                <span class="brand-text">Studio Palenque Tour</span>
+                <span class="brand-text" id="sidebarLabel">Studio Palenque Tour</span>
                 <span class="brand-credit">Cree par Arnaud Porcel</span>
             </a>
             <button type="button" class="btn-close btn-close-white d-lg-none ms-auto" data-bs-dismiss="offcanvas"
@@ -17,8 +17,9 @@
             <!-- Tableau de bord -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' else '' }}"
-                   href="{{ url_for('main.dashboard') }}">
-                    <i class="bi bi-speedometer2 me-2"></i>
+                   href="{{ url_for('main.dashboard') }}"
+                   {{ 'aria-current=page' if request.endpoint == 'main.dashboard' else '' }}>
+                    <i class="bi bi-speedometer2 me-2" aria-hidden="true"></i>
                     Tableau de bord
                 </a>
             </li>
@@ -30,8 +31,9 @@
             <!-- Bands -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'bands' in request.endpoint else '' }}"
-                   href="{{ url_for('bands.index') }}">
-                    <i class="bi bi-people me-2"></i>
+                   href="{{ url_for('bands.index') }}"
+                   {{ 'aria-current=page' if 'bands' in request.endpoint else '' }}>
+                    <i class="bi bi-people me-2" aria-hidden="true"></i>
                     Groupes
                 </a>
             </li>
@@ -39,8 +41,9 @@
             <!-- Tours -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'tours' in request.endpoint else '' }}"
-                   href="{{ url_for('tours.index') }}">
-                    <i class="bi bi-calendar-event me-2"></i>
+                   href="{{ url_for('tours.index') }}"
+                   {{ 'aria-current=page' if 'tours' in request.endpoint else '' }}>
+                    <i class="bi bi-calendar-event me-2" aria-hidden="true"></i>
                     Tournées
                 </a>
             </li>
@@ -48,8 +51,9 @@
             <!-- Venues -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'venues' in request.endpoint else '' }}"
-                   href="{{ url_for('venues.index') }}">
-                    <i class="bi bi-building me-2"></i>
+                   href="{{ url_for('venues.index') }}"
+                   {{ 'aria-current=page' if 'venues' in request.endpoint else '' }}>
+                    <i class="bi bi-building me-2" aria-hidden="true"></i>
                     Salles
                 </a>
             </li>
@@ -57,8 +61,9 @@
             <!-- Global Calendar -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if request.endpoint == 'main.global_calendar' else '' }}"
-                   href="{{ url_for('main.global_calendar') }}">
-                    <i class="bi bi-calendar3 me-2"></i>
+                   href="{{ url_for('main.global_calendar') }}"
+                   {{ 'aria-current=page' if request.endpoint == 'main.global_calendar' else '' }}>
+                    <i class="bi bi-calendar3 me-2" aria-hidden="true"></i>
                     Calendrier
                 </a>
             </li>
@@ -71,8 +76,9 @@
             {% if current_user.is_staff_or_above() %}
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'guestlist' in request.endpoint and 'check_in' not in request.endpoint else '' }}"
-                   href="{{ url_for('guestlist.index') }}">
-                    <i class="bi bi-person-check me-2"></i>
+                   href="{{ url_for('guestlist.index') }}"
+                   {{ 'aria-current=page' if 'guestlist' in request.endpoint and 'check_in' not in request.endpoint else '' }}>
+                    <i class="bi bi-person-check me-2" aria-hidden="true"></i>
                     Guestlists
                 </a>
             </li>
@@ -82,8 +88,9 @@
             {% if current_user.is_staff_or_above() %}
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'check_in' in request.endpoint else '' }}"
-                   href="{{ url_for('guestlist.check_in_select') }}">
-                    <i class="bi bi-qr-code-scan me-2"></i>
+                   href="{{ url_for('guestlist.check_in_select') }}"
+                   {{ 'aria-current=page' if 'check_in' in request.endpoint else '' }}>
+                    <i class="bi bi-qr-code-scan me-2" aria-hidden="true"></i>
                     Check-in
                 </a>
             </li>
@@ -97,8 +104,9 @@
             <!-- Payments -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'payments' in request.endpoint and 'approval' not in request.endpoint else '' }}"
-                   href="{{ url_for('payments.index') }}">
-                    <i class="bi bi-wallet2 me-2"></i>
+                   href="{{ url_for('payments.index') }}"
+                   {{ 'aria-current=page' if 'payments' in request.endpoint and 'approval' not in request.endpoint else '' }}>
+                    <i class="bi bi-wallet2 me-2" aria-hidden="true"></i>
                     Paiements
                 </a>
             </li>
@@ -106,8 +114,9 @@
             <!-- Approval Queue -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'approval' in request.endpoint else '' }}"
-                   href="{{ url_for('payments.approval_queue') }}">
-                    <i class="bi bi-check2-square me-2"></i>
+                   href="{{ url_for('payments.approval_queue') }}"
+                   {{ 'aria-current=page' if 'approval' in request.endpoint else '' }}>
+                    <i class="bi bi-check2-square me-2" aria-hidden="true"></i>
                     Approbations
                 </a>
             </li>
@@ -115,8 +124,9 @@
             <!-- Invoices -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'invoices' in request.endpoint else '' }}"
-                   href="{{ url_for('invoices.index') }}">
-                    <i class="bi bi-receipt me-2"></i>
+                   href="{{ url_for('invoices.index') }}"
+                   {{ 'aria-current=page' if 'invoices' in request.endpoint else '' }}>
+                    <i class="bi bi-receipt me-2" aria-hidden="true"></i>
                     Factures
                 </a>
             </li>
@@ -128,8 +138,9 @@
             <!-- Documents -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'documents' in request.endpoint else '' }}"
-                   href="{{ url_for('documents.index') }}">
-                    <i class="bi bi-file-earmark-text me-2"></i>
+                   href="{{ url_for('documents.index') }}"
+                   {{ 'aria-current=page' if 'documents' in request.endpoint else '' }}>
+                    <i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i>
                     Documents
                 </a>
             </li>
@@ -137,8 +148,9 @@
             <!-- Reports -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'reports' in request.endpoint else '' }}"
-                   href="{{ url_for('reports.index') }}">
-                    <i class="bi bi-graph-up me-2"></i>
+                   href="{{ url_for('reports.index') }}"
+                   {{ 'aria-current=page' if 'reports' in request.endpoint else '' }}>
+                    <i class="bi bi-graph-up me-2" aria-hidden="true"></i>
                     Rapports
                 </a>
             </li>
@@ -146,8 +158,9 @@
             <!-- Settings -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if request.endpoint == 'settings.index' or request.endpoint == 'settings.profile' or request.endpoint == 'settings.password' or request.endpoint == 'settings.notifications' else '' }}"
-                   href="{{ url_for('settings.index') }}">
-                    <i class="bi bi-gear me-2"></i>
+                   href="{{ url_for('settings.index') }}"
+                   {{ 'aria-current=page' if request.endpoint == 'settings.index' or request.endpoint == 'settings.profile' or request.endpoint == 'settings.password' or request.endpoint == 'settings.notifications' else '' }}>
+                    <i class="bi bi-gear me-2" aria-hidden="true"></i>
                     Paramètres
                 </a>
             </li>
@@ -155,8 +168,9 @@
             <!-- Email Configuration -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if request.endpoint == 'settings.email_config' else '' }}"
-                   href="{{ url_for('settings.email_config') }}">
-                    <i class="bi bi-envelope-gear me-2"></i>
+                   href="{{ url_for('settings.email_config') }}"
+                   {{ 'aria-current=page' if request.endpoint == 'settings.email_config' else '' }}>
+                    <i class="bi bi-envelope-gear me-2" aria-hidden="true"></i>
                     Config. Email
                 </a>
             </li>
@@ -164,8 +178,9 @@
             <!-- Users Management -->
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if 'users' in request.endpoint else '' }}"
-                   href="{{ url_for('settings.users_list') }}">
-                    <i class="bi bi-people-fill me-2"></i>
+                   href="{{ url_for('settings.users_list') }}"
+                   {{ 'aria-current=page' if 'users' in request.endpoint else '' }}>
+                    <i class="bi bi-people-fill me-2" aria-hidden="true"></i>
                     Utilisateurs
                 </a>
             </li>
@@ -176,7 +191,7 @@
         <!-- User info at bottom (Mobile) -->
         <div class="border-top p-3 d-lg-none">
             <div class="d-flex align-items-center">
-                <i class="bi bi-person-circle fs-4 me-2"></i>
+                <i class="bi bi-person-circle fs-4 me-2" aria-hidden="true"></i>
                 <div>
                     <strong>{{ current_user.full_name }}</strong>
                     <br>

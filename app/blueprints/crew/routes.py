@@ -253,7 +253,7 @@ def my_schedule(stop_id):
 @crew_edit_required
 def create_slot(stop_id):
     """Create a new crew schedule slot."""
-    tour_stop = TourStop.query.get_or_404(stop_id)
+    TourStop.query.get_or_404(stop_id)
     form = CrewSlotForm()
 
     if form.validate_on_submit():

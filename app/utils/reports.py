@@ -3,7 +3,7 @@ Financial reports utility module for Studio Palenque Tour.
 Handles calculations for tour financial analytics.
 """
 from decimal import Decimal
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
 from datetime import date
 
 
@@ -295,7 +295,10 @@ def calculate_settlement(tour_stop) -> Dict[str, Any]:
         'stop_id': tour_stop.id,
         'tour_id': tour_stop.tour_id,
         'tour_name': tour_stop.tour.name if tour_stop.tour else 'Événement Libre',
-        'band_name': tour_stop.tour.band.name if tour_stop.tour and tour_stop.tour.band else (tour_stop.band.name if tour_stop.band else 'N/A'),
+        'band_name': (
+            tour_stop.tour.band.name if tour_stop.tour and tour_stop.tour.band
+            else (tour_stop.band.name if tour_stop.band else 'N/A')
+        ),
         'date': tour_stop.date,
         'venue_name': tour_stop.venue.name if tour_stop.venue else 'N/A',
         'venue_city': tour_stop.venue.city if tour_stop.venue else 'N/A',
@@ -361,7 +364,6 @@ def calculate_dashboard_kpis(tours) -> Dict[str, Any]:
     - #4: Fill rate = None si capacity inconnue (afficher "N/A")
     - #5: Ajout total_ticket_revenue (GBOR) distinct des revenus artiste
     """
-    from datetime import datetime, timedelta
     from collections import defaultdict
 
     # Current period data

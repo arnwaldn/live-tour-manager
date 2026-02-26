@@ -210,17 +210,17 @@
                                 <form action="{{ url_for('logistics.update_status', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="status" value="confirmed">
-                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Confirmer">
+                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Confirmer" aria-label="Confirmer">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                 </form>
                                 {% endif %}
-                                <a href="{{ url_for('logistics.edit_logistics', id=entry.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                <a href="{{ url_for('logistics.edit_logistics', id=entry.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifier" aria-label="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <form action="{{ url_for('logistics.delete_logistics', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer cet élément ?', 'Supprimer')">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" aria-label="Supprimer" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer cet élément ?', 'Supprimer')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -361,17 +361,17 @@
                                 <form action="{{ url_for('logistics.update_status', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="status" value="confirmed">
-                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Confirmer">
+                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Confirmer" aria-label="Confirmer">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                 </form>
                                 {% endif %}
-                                <a href="{{ url_for('logistics.edit_logistics', id=entry.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                <a href="{{ url_for('logistics.edit_logistics', id=entry.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifier" aria-label="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <form action="{{ url_for('logistics.delete_logistics', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer cet élément ?', 'Supprimer')">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" aria-label="Supprimer" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer cet élément ?', 'Supprimer')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -520,17 +520,17 @@
                                 <form action="{{ url_for('logistics.update_status', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="status" value="confirmed">
-                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Confirmer">
+                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Confirmer" aria-label="Confirmer">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                 </form>
                                 {% endif %}
-                                <a href="{{ url_for('logistics.edit_logistics', id=entry.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                <a href="{{ url_for('logistics.edit_logistics', id=entry.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifier" aria-label="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <form action="{{ url_for('logistics.delete_logistics', id=entry.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer cet élément ?', 'Supprimer')">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer" aria-label="Supprimer" onclick="event.preventDefault(); showConfirmModal(this.closest('form').action, 'Supprimer cet élément ?', 'Supprimer')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -635,7 +635,7 @@
             <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-people me-2"></i>Contacts locaux</h5>
                 {% if stop.tour.band_is_manager(current_user) %}
-                <a href="{{ url_for('logistics.add_contact', stop_id=stop.id) }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ url_for('logistics.add_contact', stop_id=stop.id) }}" class="btn btn-sm btn-outline-primary" aria-label="Ajouter un contact">
                     <i class="bi bi-plus-lg"></i>
                 </a>
                 {% endif %}
@@ -659,7 +659,7 @@
                         </div>
                         {% if stop.tour.band_is_manager(current_user) %}
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                            <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown" aria-label="Actions">
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
@@ -687,12 +687,12 @@
                         </a>
                         {% endif %}
                         {% if contact.phone_secondary %}
-                        <a href="tel:{{ contact.phone_secondary }}" class="btn btn-sm btn-outline-secondary">
+                        <a href="tel:{{ contact.phone_secondary }}" class="btn btn-sm btn-outline-secondary" aria-label="Téléphone secondaire">
                             <i class="bi bi-telephone"></i>
                         </a>
                         {% endif %}
                         {% if contact.email %}
-                        <a href="mailto:{{ contact.email }}" class="btn btn-sm btn-outline-secondary">
+                        <a href="mailto:{{ contact.email }}" class="btn btn-sm btn-outline-secondary" aria-label="Envoyer un email">
                             <i class="bi bi-envelope"></i>
                         </a>
                         {% endif %}
@@ -784,39 +784,4 @@
         </div>
     </div>
 </div>
-
-<!-- Dynamic Confirm Modal -->
-<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger bg-opacity-10">
-                <h5 class="modal-title text-danger" id="confirmModalLabel">
-                    <i class="bi bi-exclamation-triangle me-2"></i>Confirmation
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-            </div>
-            <div class="modal-body">
-                <p id="confirmModalMessage"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <form id="confirmModalForm" method="POST" class="d-inline">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-trash me-1"></i><span id="confirmModalBtn">Confirmer</span>
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-function showConfirmModal(url, message, btnText) {
-    document.getElementById('confirmModalForm').action = url;
-    document.getElementById('confirmModalMessage').textContent = message;
-    if (btnText) document.getElementById('confirmModalBtn').textContent = btnText;
-    new bootstrap.Modal(document.getElementById('confirmModal')).show();
-}
-</script>
 {% endblock %}

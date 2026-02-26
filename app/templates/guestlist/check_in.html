@@ -116,7 +116,7 @@
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
             <input type="text" id="searchInput" class="form-control search-input-large"
                    placeholder="Rechercher un invité..." autofocus>
-            <button type="button" class="btn btn-outline-secondary" id="clearSearch" style="display: none;">
+            <button type="button" class="btn btn-outline-secondary" id="clearSearch" style="display: none;" aria-label="Effacer la recherche">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
@@ -188,7 +188,7 @@
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
     <a href="{{ url_for('guestlist.add_entry', stop_id=stop.id) }}"
        class="btn btn-primary btn-lg rounded-circle shadow-lg"
-       title="Ajouter un invité">
+       title="Ajouter un invité" aria-label="Ajouter un invité">
         <i class="bi bi-plus-lg"></i>
     </a>
 </div>

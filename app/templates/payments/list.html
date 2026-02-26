@@ -107,7 +107,7 @@
                 <button type="submit" class="btn btn-outline-primary btn-sm me-2">
                     <i class="bi bi-funnel me-1"></i>Filtrer
                 </button>
-                <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary btn-sm">
+                <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary btn-sm" aria-label="Réinitialiser les filtres">
                     <i class="bi bi-x-lg"></i>
                 </a>
             </div>
@@ -177,11 +177,11 @@
                     </td>
                     <td class="text-end">
                         <div class="btn-group btn-group-sm">
-                            <a href="{{ url_for('payments.detail', payment_id=payment.id) }}" class="btn btn-outline-primary" title="Voir">
+                            <a href="{{ url_for('payments.detail', payment_id=payment.id) }}" class="btn btn-outline-primary" title="Voir" aria-label="Voir">
                                 <i class="bi bi-eye"></i>
                             </a>
                             {% if payment.status.value == 'draft' %}
-                            <a href="{{ url_for('payments.edit', payment_id=payment.id) }}" class="btn btn-outline-secondary" title="Modifier">
+                            <a href="{{ url_for('payments.edit', payment_id=payment.id) }}" class="btn btn-outline-secondary" title="Modifier" aria-label="Modifier">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             {% endif %}
