@@ -38,19 +38,19 @@
         <!-- Legend -->
         <div class="d-flex flex-wrap gap-3 mb-4">
             <span class="badge bg-success">
-                <i class="bi bi-circle-fill me-1"></i>Confirme
+                <i class="bi bi-circle-fill me-1"></i>Confirmé
             </span>
             <span class="badge bg-warning text-dark">
                 <i class="bi bi-circle-fill me-1"></i>En attente
             </span>
             <span class="badge bg-danger">
-                <i class="bi bi-circle-fill me-1"></i>Annule
+                <i class="bi bi-circle-fill me-1"></i>Annulé
             </span>
             <span class="badge bg-secondary">
-                <i class="bi bi-circle-fill me-1"></i>Termine
+                <i class="bi bi-circle-fill me-1"></i>Terminé
             </span>
             <span class="badge" style="background-color: #fd7e14; color: white;">
-                <i class="bi bi-arrow-repeat me-1"></i>Reporte
+                <i class="bi bi-arrow-repeat me-1"></i>Reporté
             </span>
         </div>
 
@@ -184,7 +184,8 @@ document.addEventListener('DOMContentLoaded', function() {
         'confirmed': 'Confirmé',
         'pending': 'En attente',
         'cancelled': 'Annulé',
-        'completed': 'Terminé'
+        'completed': 'Terminé',
+        'rescheduled': 'Reporté'
     };
 
     const statusClasses = {
@@ -269,9 +270,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Ghost event (date originale d'un concert reporte)
             if (props.isGhost) {
                 const reasonLabels = {
-                    'weather': 'Conditions meteo',
-                    'artist_health': 'Sante artiste',
-                    'venue_issue': 'Probleme venue',
+                    'weather': 'Conditions météo',
+                    'artist_health': 'Santé artiste',
+                    'venue_issue': 'Problème venue',
                     'production': 'Production',
                     'logistics': 'Logistique',
                     'force_majeure': 'Force majeure',
@@ -280,16 +281,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     'other': 'Autre'
                 };
 
-                document.getElementById('eventModalTitle').innerHTML = '<i class="bi bi-arrow-repeat text-warning me-2"></i>Concert Reporte';
+                document.getElementById('eventModalTitle').innerHTML = '<i class="bi bi-arrow-repeat text-warning me-2"></i>Concert reporté';
                 document.getElementById('eventBand').textContent = props.band_name;
-                document.getElementById('eventVenue').textContent = props.venue_name || 'Non definie';
-                document.getElementById('eventCity').textContent = props.city ? `${props.city}, ${props.country}` : 'Non definie';
+                document.getElementById('eventVenue').textContent = props.venue_name || 'Non définie';
+                document.getElementById('eventCity').textContent = props.city ? `${props.city}, ${props.country}` : 'Non définie';
                 document.getElementById('eventDate').innerHTML = `<span style="text-decoration: line-through; color: #6c757d;">${eventDate.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>`;
-                document.getElementById('eventTour').innerHTML = props.is_standalone ? '<span class="text-muted fst-italic">Evenement independant</span>' : (props.tour_name || '-');
+                document.getElementById('eventTour').innerHTML = props.is_standalone ? '<span class="text-muted fst-italic">Événement indépendant</span>' : (props.tour_name || '-');
 
                 // Statut "Reporte"
                 const statusBadge = document.getElementById('eventStatus');
-                statusBadge.textContent = 'Reporte';
+                statusBadge.textContent = 'Reporté';
                 statusBadge.className = 'badge';
                 statusBadge.style.backgroundColor = '#fd7e14';
                 statusBadge.style.color = '#ffffff';
@@ -371,9 +372,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>`;
                 if (props.rescheduleReason) {
                     const reasonLabels = {
-                        'weather': 'Conditions meteo',
-                        'artist_health': 'Sante artiste',
-                        'venue_issue': 'Probleme venue',
+                        'weather': 'Conditions météo',
+                        'artist_health': 'Santé artiste',
+                        'venue_issue': 'Problème venue',
                         'production': 'Production',
                         'logistics': 'Logistique',
                         'force_majeure': 'Force majeure',
@@ -384,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     infoHtml += `<small class="text-muted d-block mt-1">Raison: ${reasonLabels[props.rescheduleReason] || props.rescheduleReason}</small>`;
                 }
                 if (props.rescheduleCount > 1) {
-                    infoHtml += `<small class="text-muted d-block">Reporte ${props.rescheduleCount} fois</small>`;
+                    infoHtml += `<small class="text-muted d-block">Reporté ${props.rescheduleCount} fois</small>`;
                 }
                 rescheduleInfo.innerHTML = infoHtml;
             } else {
@@ -466,14 +467,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Ghost events (date originale des concerts reportes)
             if (props.isGhost) {
                 info.el.classList.add('ghost-event');
-                info.el.setAttribute('title', `Concert reporte vers le ${props.newDate}`);
+                info.el.setAttribute('title', `Concert reporté vers le ${props.newDate}`);
                 return;  // Ne pas ajouter d'autres styles
             }
 
             // Add tooltip
             let tooltip = info.event.title;
             if (props.isRescheduled && props.originalDate) {
-                tooltip += ` (reporte depuis le ${props.originalDate})`;
+                tooltip += ` (reporté depuis le ${props.originalDate})`;
             }
             info.el.setAttribute('title', tooltip);
 
@@ -486,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const badge = document.createElement('span');
                     badge.className = 'reschedule-badge';
                     badge.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
-                    badge.title = `Reporte depuis le ${props.originalDate}`;
+                    badge.title = `Reporté depuis le ${props.originalDate}`;
                     titleEl.appendChild(badge);
                 }
             }

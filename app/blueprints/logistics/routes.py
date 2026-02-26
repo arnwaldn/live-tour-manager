@@ -80,11 +80,11 @@ def manage(stop_id):
     costs_by_type = {}
     total_cost = 0
     for item in visible_logistics:
-        type_name = item.logistics_type.value
+        type_label = _get_logistics_title(item)
         cost = item.cost or 0
-        if type_name not in costs_by_type:
-            costs_by_type[type_name] = 0
-        costs_by_type[type_name] += float(cost)
+        if type_label not in costs_by_type:
+            costs_by_type[type_label] = 0
+        costs_by_type[type_label] += float(cost)
         total_cost += float(cost)
 
     # Sort contacts by primary status
@@ -903,11 +903,11 @@ def _get_logistics_title(item):
         LogisticsType.RENTAL_CAR: 'Location voiture',
         LogisticsType.GROUND_TRANSPORT: 'Navette',
         LogisticsType.FERRY: 'Ferry',
-        LogisticsType.HOTEL: 'Hotel',
+        LogisticsType.HOTEL: 'Hôtel',
         LogisticsType.MEAL: 'Repas',
         LogisticsType.PARKING: 'Parking',
         LogisticsType.VISA: 'Visa',
-        LogisticsType.EQUIPMENT: 'Equipement',
+        LogisticsType.EQUIPMENT: 'Équipement',
         LogisticsType.OTHER: 'Autre',
     }
     return type_titles.get(item.logistics_type, 'Logistique')

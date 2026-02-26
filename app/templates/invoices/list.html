@@ -165,7 +165,7 @@
                         {{ "{:,.2f}".format(invoice.amount_due) }} {{ invoice.currency }}
                     </td>
                     <td>
-                        {% set status_labels = {'draft': 'Brouillon', 'validated': 'Validee', 'sent': 'Envoyee', 'paid': 'Payee', 'partial': 'Partiel', 'overdue': 'En retard', 'disputed': 'Contestee', 'cancelled': 'Annulee', 'credited': 'Avoir'} %}
+                        {% set status_labels = {'draft': 'Brouillon', 'validated': 'Validée', 'sent': 'Envoyée', 'paid': 'Payée', 'partial': 'Partiel', 'overdue': 'En retard', 'disputed': 'Contestée', 'cancelled': 'Annulée', 'credited': 'Avoir'} %}
                         {% set status_colors = {'draft': 'secondary', 'validated': 'info', 'sent': 'primary', 'paid': 'success', 'partial': 'warning', 'overdue': 'danger', 'disputed': 'dark', 'cancelled': 'secondary', 'credited': 'secondary'} %}
                         <span class="badge bg-{{ status_colors.get(invoice.status.value, 'secondary') }}">
                             {{ status_labels.get(invoice.status.value, invoice.status.value) }}

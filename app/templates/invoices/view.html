@@ -34,7 +34,7 @@
         <form action="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}" method="POST" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-primary">
-                <i class="bi bi-send me-1"></i>Marquer envoyee
+                <i class="bi bi-send me-1"></i>Marquer envoyée
             </button>
         </form>
         <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
@@ -56,7 +56,7 @@
 <div class="row">
     <div class="col-lg-8">
         <!-- Status Banner -->
-        {% set status_labels = {'draft': 'Brouillon', 'validated': 'Validee', 'sent': 'Envoyee', 'paid': 'Payee', 'partial': 'Partiellement payee', 'overdue': 'En retard', 'disputed': 'Contestee', 'cancelled': 'Annulee', 'credited': 'Avoir emis'} %}
+        {% set status_labels = {'draft': 'Brouillon', 'validated': 'Validée', 'sent': 'Envoyée', 'paid': 'Payée', 'partial': 'Partiellement payée', 'overdue': 'En retard', 'disputed': 'Contestée', 'cancelled': 'Annulée', 'credited': 'Avoir émis'} %}
         {% set status_colors = {'draft': 'secondary', 'validated': 'info', 'sent': 'primary', 'paid': 'success', 'partial': 'warning', 'overdue': 'danger', 'disputed': 'dark', 'cancelled': 'secondary', 'credited': 'secondary'} %}
         <div class="alert alert-{{ status_colors.get(invoice.status.value, 'secondary') }} d-flex align-items-center mb-4">
             <i class="bi bi-{{ 'pencil' if invoice.status.value == 'draft' else 'check-circle' if invoice.status.value == 'validated' else 'send' if invoice.status.value == 'sent' else 'check2-all' if invoice.status.value == 'paid' else 'hourglass-split' if invoice.status.value == 'partial' else 'exclamation-triangle' if invoice.status.value == 'overdue' else 'x-circle' }} fs-4 me-3"></i>
@@ -67,7 +67,7 @@
                 {% elif invoice.status.value == 'overdue' or invoice.is_overdue %}
                 <p class="mb-0 small text-danger">{{ invoice.days_overdue }} jours de retard. Penalites : {{ "{:,.2f}".format(invoice.late_penalty_amount) }} EUR</p>
                 {% elif invoice.status.value == 'paid' %}
-                <p class="mb-0 small">Payee le {{ invoice.paid_date.strftime('%d/%m/%Y') if invoice.paid_date else '' }}</p>
+                <p class="mb-0 small">Payée le {{ invoice.paid_date.strftime('%d/%m/%Y') if invoice.paid_date else '' }}</p>
                 {% endif %}
             </div>
         </div>
@@ -347,26 +347,26 @@
             <div class="card-body">
                 <ul class="list-unstyled mb-0 small">
                     <li class="mb-2">
-                        <small class="text-muted">Creee le</small><br>
+                        <small class="text-muted">Créée le</small><br>
                         {{ invoice.created_at.strftime('%d/%m/%Y a %H:%M') if invoice.created_at else '-' }}
                         {% if invoice.created_by %} par {{ invoice.created_by.full_name }}{% endif %}
                     </li>
                     {% if invoice.validated_at %}
                     <li class="mb-2">
-                        <small class="text-muted">Validee le</small><br>
+                        <small class="text-muted">Validée le</small><br>
                         {{ invoice.validated_at.strftime('%d/%m/%Y a %H:%M') }}
                         {% if invoice.validated_by %} par {{ invoice.validated_by.full_name }}{% endif %}
                     </li>
                     {% endif %}
                     {% if invoice.sent_date %}
                     <li class="mb-2">
-                        <small class="text-muted">Envoyee le</small><br>
+                        <small class="text-muted">Envoyée le</small><br>
                         {{ invoice.sent_date.strftime('%d/%m/%Y') }}
                     </li>
                     {% endif %}
                     {% if invoice.paid_date %}
                     <li>
-                        <small class="text-muted">Payee le</small><br>
+                        <small class="text-muted">Payée le</small><br>
                         {{ invoice.paid_date.strftime('%d/%m/%Y') }}
                     </li>
                     {% endif %}
