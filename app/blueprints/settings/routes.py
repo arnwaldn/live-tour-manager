@@ -1716,7 +1716,8 @@ def _reload_mail_config(app):
 def admin_reset_data():
     """Full data reset — deletes everything except admin user Arnaud Porcel.
 
-    Uses raw SQL for maximum resilience — skips tables that don't exist.
+    Uses PostgreSQL TRUNCATE CASCADE for atomic, FK-safe deletion,
+    then deletes non-admin users individually.
     """
     confirm = request.form.get('confirm')
     if confirm != 'RESET':
@@ -1730,86 +1731,72 @@ def admin_reset_data():
         return redirect(url_for('settings.settings_index'))
 
     admin_id = admin_user.id
-    results = []
-    errors = []
-
-    def safe_sql(label, sql):
-        try:
-            db.session.execute(db.text(sql))
-            results.append(label)
-        except Exception as e:
-            db.session.rollback()
-            errors.append(f"{label}: {str(e)[:80]}")
 
     try:
-        # Tier 6 — deepest children first
-        safe_sql('invoice_payments', 'DELETE FROM invoice_payments')
-        safe_sql('invoice_lines', 'DELETE FROM invoice_lines')
-        safe_sql('logistics_assignments', 'DELETE FROM logistics_assignments')
-        safe_sql('crew_assignments', 'DELETE FROM crew_assignments')
+        conn = db.session.connection()
 
-        # Tier 5
-        safe_sql('planning_slots', 'DELETE FROM planning_slots')
-        safe_sql('crew_schedule_slots', 'DELETE FROM crew_schedule_slots')
-        safe_sql('tour_stop_reminders', 'DELETE FROM tour_stop_reminders')
-        safe_sql('lineup_slots', 'DELETE FROM lineup_slots')
-        safe_sql('logistics_info', 'DELETE FROM logistics_info')
-        safe_sql('guestlist_entries', 'DELETE FROM guestlist_entries')
-        safe_sql('mission_invitations', 'DELETE FROM mission_invitations')
-        safe_sql('local_contacts', 'DELETE FROM local_contacts')
-        safe_sql('promotor_expenses', 'DELETE FROM promotor_expenses')
+        # Step 1: TRUNCATE all tables that should be completely emptied
+        # CASCADE handles FK constraints automatically
+        tables_to_truncate = [
+            'invoice_payments', 'invoice_lines', 'invoices',
+            'team_member_payments',
+            'logistics_assignments', 'logistics_info',
+            'crew_assignments', 'crew_schedule_slots',
+            'planning_slots', 'tour_stop_reminders',
+            'lineup_slots', 'guestlist_entries',
+            'mission_invitations', 'local_contacts', 'promotor_expenses',
+            'tour_stop_members_v2', 'tour_stop_members',
+            'tour_stops', 'tours',
+            'document_shares', 'documents',
+            'notifications', 'oauth_tokens',
+            'band_memberships', 'bands',
+            'external_contacts',
+            'venue_contacts', 'venues',
+        ]
 
-        # Nullify self-refs before deleting
-        safe_sql('nullify_rescheduled', 'UPDATE tour_stops SET rescheduled_from_id = NULL WHERE rescheduled_from_id IS NOT NULL')
-        safe_sql('tour_stop_members_v2', 'DELETE FROM tour_stop_members_v2')
-        safe_sql('tour_stop_members', 'DELETE FROM tour_stop_members')
+        # Build TRUNCATE for existing tables only
+        existing = set()
+        result = conn.execute(db.text(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+        ))
+        for row in result:
+            existing.add(row[0])
 
-        # Tier 4 — tour_stops
-        safe_sql('tour_stops', 'DELETE FROM tour_stops')
+        truncate_list = [t for t in tables_to_truncate if t in existing]
+        if truncate_list:
+            sql = f"TRUNCATE {', '.join(truncate_list)} CASCADE"
+            conn.execute(db.text(sql))
 
-        # Nullify circular FKs
-        safe_sql('nullify_invoice_id', 'UPDATE team_member_payments SET invoice_id = NULL WHERE invoice_id IS NOT NULL')
-        safe_sql('nullify_credited', 'UPDATE invoices SET credited_invoice_id = NULL WHERE credited_invoice_id IS NOT NULL')
-        safe_sql('invoices', 'DELETE FROM invoices')
-        safe_sql('team_member_payments', 'DELETE FROM team_member_payments')
+        # Step 2: Clean user-related tables (keep admin rows)
+        user_tables = [
+            'travel_cards', 'user_professions', 'user_payment_configs',
+            'user_roles', 'audit_logs'
+        ]
+        for table in user_tables:
+            if table in existing:
+                if table == 'audit_logs':
+                    conn.execute(db.text(f"DELETE FROM {table}"))
+                else:
+                    conn.execute(db.text(
+                        f"DELETE FROM {table} WHERE user_id != :aid"
+                    ), {'aid': admin_id})
 
-        # Documents
-        safe_sql('document_shares', 'DELETE FROM document_shares')
-        safe_sql('documents', 'DELETE FROM documents')
-
-        # Notifications + misc
-        safe_sql('notifications', 'DELETE FROM notifications')
-        safe_sql('oauth_tokens', 'DELETE FROM oauth_tokens')
-        safe_sql('audit_logs', 'DELETE FROM audit_logs')
-
-        # Tours
-        safe_sql('tours', 'DELETE FROM tours')
-
-        # Bands
-        safe_sql('band_memberships', 'DELETE FROM band_memberships')
-        safe_sql('bands', 'DELETE FROM bands')
-
-        # User-related (keep admin)
-        safe_sql('travel_cards', f'DELETE FROM travel_cards WHERE user_id != {admin_id}')
-        safe_sql('user_professions', f'DELETE FROM user_professions WHERE user_id != {admin_id}')
-        safe_sql('user_payment_configs', f'DELETE FROM user_payment_configs WHERE user_id != {admin_id}')
-        safe_sql('external_contacts', 'DELETE FROM external_contacts')
-        safe_sql('user_roles', f'DELETE FROM user_roles WHERE user_id != {admin_id}')
-
-        # Delete all users except admin
-        safe_sql('users', f"DELETE FROM users WHERE id != {admin_id}")
-
-        # Venues
-        safe_sql('venue_contacts', 'DELETE FROM venue_contacts')
-        safe_sql('venues', 'DELETE FROM venues')
+        # Step 3: Delete all non-admin users
+        conn.execute(db.text(
+            "DELETE FROM users WHERE id != :aid"
+        ), {'aid': admin_id})
 
         db.session.commit()
 
-        msg = f'Reset complet. {len(results)} tables nettoyées. Seul {admin_email} est conservé.'
-        if errors:
-            msg += f' ({len(errors)} tables ignorées: {", ".join(e.split(":")[0] for e in errors)})'
-        flash(msg, 'success')
-        current_app.logger.warning(f"ADMIN RESET by {current_user.email}. OK: {results}. Errors: {errors}")
+        flash(
+            f'Reset complet. {len(truncate_list)} tables vidées. '
+            f'Seul le compte {admin_email} est conservé.',
+            'success'
+        )
+        current_app.logger.warning(
+            f"ADMIN RESET by {current_user.email}. "
+            f"Truncated: {truncate_list}"
+        )
 
     except Exception as e:
         db.session.rollback()
