@@ -489,7 +489,7 @@ class PaymentService:
             'Montant',
             'Devise',
             'Statut',
-            'Tournee'
+            'Tournée'
         ]
 
         if include_bank_details:

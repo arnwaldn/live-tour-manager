@@ -16,7 +16,7 @@ from app.models.invoices import InvoiceStatus, InvoiceType, VATRate
 class InvoiceFilterForm(FlaskForm):
     """Filter form for invoice list."""
 
-    tour_id = SelectField('Tournee', coerce=int, validators=[Optional()])
+    tour_id = SelectField('Tournée', coerce=int, validators=[Optional()])
     status = SelectField('Statut', choices=[
         ('', 'Tous'),
         (InvoiceStatus.DRAFT.value, 'Brouillon'),
@@ -52,7 +52,7 @@ class InvoiceForm(FlaskForm):
     ], validators=[DataRequired(message='Type de facture requis')])
 
     # Context
-    tour_id = SelectField('Tournee', coerce=int, validators=[Optional()])
+    tour_id = SelectField('Tournée', coerce=int, validators=[Optional()])
     tour_stop_id = SelectField('Concert/Date', coerce=int, validators=[Optional()])
 
     # Issuer

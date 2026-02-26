@@ -49,7 +49,7 @@ class DocumentUploadForm(FlaskForm):
 
     # For passports/visas
     document_number = StringField(
-        'Numero de document',
+        'Numéro de document',
         validators=[Optional(), Length(max=100)]
     )
 
@@ -74,10 +74,10 @@ class DocumentUploadForm(FlaskForm):
     owner_type = SelectField(
         'Attribuer a',
         choices=[
-            ('', '-- Selectionner --'),
-            ('user', 'Membre de l\'equipe'),
+            ('', '-- Sélectionner --'),
+            ('user', 'Membre de l\'équipe'),
             ('band', 'Groupe'),
-            ('tour', 'Tournee'),
+            ('tour', 'Tournée'),
         ],
         validators=[Optional()]
     )
@@ -118,7 +118,7 @@ class DocumentEditForm(FlaskForm):
     )
 
     document_number = StringField(
-        'Numero de document',
+        'Numéro de document',
         validators=[Optional(), Length(max=100)]
     )
 

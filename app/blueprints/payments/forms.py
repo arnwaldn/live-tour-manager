@@ -26,7 +26,7 @@ class PaymentForm(FlaskForm):
     ])
 
     # Tournee/Concert (optionnel selon contexte)
-    tour_id = SelectField('Tournee', coerce=int, validators=[Optional()])
+    tour_id = SelectField('Tournée', coerce=int, validators=[Optional()])
     tour_stop_id = SelectField('Concert/Date', coerce=int, validators=[Optional()])
 
     # Classification
@@ -153,7 +153,7 @@ class PaymentForm(FlaskForm):
 class PerDiemBatchForm(FlaskForm):
     """Form for generating per diems for a tour."""
 
-    tour_id = SelectField('Tournee', coerce=int, validators=[
+    tour_id = SelectField('Tournée', coerce=int, validators=[
         DataRequired(message='Veuillez selectionner une tournee')
     ])
 
@@ -274,25 +274,25 @@ class UserPaymentConfigForm(FlaskForm):
         Optional(), Length(min=9, max=9)
     ])
 
-    vat_number = StringField('Numero TVA intracommunautaire', validators=[
+    vat_number = StringField('Numéro TVA intracommunautaire', validators=[
         Optional(), Length(max=20)
     ])
 
-    social_security_number = StringField('Numero securite sociale', validators=[
+    social_security_number = StringField('Numéro sécurité sociale', validators=[
         Optional(), Length(max=15)
     ])
 
     is_intermittent = BooleanField('Statut intermittent du spectacle', default=False)
 
-    conges_spectacle_id = StringField('Numero Conges Spectacles', validators=[
+    conges_spectacle_id = StringField('Numéro Congés Spectacles', validators=[
         Optional(), Length(max=20)
     ])
 
-    audiens_id = StringField('Numero Audiens', validators=[
+    audiens_id = StringField('Numéro Audiens', validators=[
         Optional(), Length(max=20)
     ])
 
-    intermittent_id = StringField('Numero Pole Emploi Spectacle', validators=[
+    intermittent_id = StringField('Numéro Pôle Emploi Spectacle', validators=[
         Optional(), Length(max=20)
     ])
 
@@ -320,7 +320,7 @@ class PaymentApprovalForm(FlaskForm):
 class PaymentFilterForm(FlaskForm):
     """Form for filtering payments list."""
 
-    tour_id = SelectField('Tournee', coerce=int, validators=[Optional()])
+    tour_id = SelectField('Tournée', coerce=int, validators=[Optional()])
     user_id = SelectField('Membre', coerce=int, validators=[Optional()])
 
     status = SelectField('Statut', choices=[
