@@ -149,7 +149,7 @@
                             <td class="text-end fw-medium">{{ "{:,.2f}".format(line.total_ht) }} EUR</td>
                             {% if invoice.status.value == 'draft' %}
                             <td>
-                                <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer"
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer" aria-label="Supprimer"
                                     onclick="showConfirmModal('{{ url_for('invoices.delete_line', invoice_id=invoice.id, line_id=line.id) }}', 'Supprimer cette ligne de facture ?', 'Supprimer')">
                                     <i class="bi bi-trash"></i>
                                 </button>

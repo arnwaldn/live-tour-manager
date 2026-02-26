@@ -252,12 +252,12 @@
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}"
-                                           class="btn btn-outline-primary" title="Détails">
+                                           class="btn btn-outline-primary" title="Détails" aria-label="Détails">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         {% if tour.band_is_manager(current_user) %}
                                         <a href="{{ url_for('tours.edit_stop', id=tour.id, stop_id=stop.id) }}"
-                                           class="btn btn-outline-secondary" title="Modifier">
+                                           class="btn btn-outline-secondary" title="Modifier" aria-label="Modifier">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         {% endif %}
@@ -347,7 +347,7 @@
                     <label class="form-label fw-bold">URL d'abonnement</label>
                     <div class="input-group">
                         <input type="text" class="form-control" id="calendarFeedUrl" readonly>
-                        <button class="btn btn-outline-primary" type="button" onclick="copyCalendarUrl()">
+                        <button class="btn btn-outline-primary" type="button" onclick="copyCalendarUrl()" aria-label="Copier l'URL">
                             <i class="bi bi-clipboard"></i>
                         </button>
                     </div>

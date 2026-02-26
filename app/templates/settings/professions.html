@@ -130,18 +130,19 @@
                                         <td class="text-end">
                                             <div class="btn-group btn-group-sm">
                                                 <a href="{{ url_for('settings.professions_edit', id=profession.id) }}"
-                                                   class="btn btn-outline-primary" title="Modifier">
+                                                   class="btn btn-outline-primary" title="Modifier" aria-label="Modifier">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
                                                 <form action="{{ url_for('settings.professions_toggle', id=profession.id) }}"
                                                       method="POST" class="d-inline">
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <button type="submit" class="btn btn-outline-{% if profession.is_active %}warning{% else %}success{% endif %}"
-                                                            title="{% if profession.is_active %}Désactiver{% else %}Activer{% endif %}">
+                                                            title="{% if profession.is_active %}Désactiver{% else %}Activer{% endif %}"
+                                                            aria-label="{% if profession.is_active %}Désactiver{% else %}Activer{% endif %}">
                                                         <i class="bi bi-{% if profession.is_active %}pause{% else %}play{% endif %}-fill"></i>
                                                     </button>
                                                 </form>
-                                                <button type="button" class="btn btn-outline-danger" title="Supprimer"
+                                                <button type="button" class="btn btn-outline-danger" title="Supprimer" aria-label="Supprimer"
                                                         onclick="showConfirmModal('{{ url_for('settings.professions_delete', id=profession.id) }}', 'Supprimer la profession {{ profession.name_fr }} ? Cette action est irréversible.', 'Supprimer')">
                                                     <i class="bi bi-trash"></i>
                                                 </button>

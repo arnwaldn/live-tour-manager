@@ -76,11 +76,11 @@
                         <div class="col-auto">
                             <div class="btn-group">
                                 <form action="{{ url_for('payments.approve', payment_id=payment.id) }}" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-success">
+                                    <button type="submit" class="btn btn-success" aria-label="Approuver">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                 </form>
-                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal_{{ payment.id }}">
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal_{{ payment.id }}" aria-label="Rejeter">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
                             </div>

@@ -78,7 +78,8 @@
                     <form action="{{ url_for('crew.decline_assignment', id=assignment.id) }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="button" class="btn btn-outline-danger"
-                                onclick="showConfirmModal('{{ url_for('crew.decline_assignment', id=assignment.id) }}', 'Décliner cette mission ?', 'Décliner')">
+                                onclick="showConfirmModal('{{ url_for('crew.decline_assignment', id=assignment.id) }}', 'Décliner cette mission ?', 'Décliner')"
+                                aria-label="Décliner">
                             <i class="bi bi-x-lg"></i>
                         </button>
                     </form>

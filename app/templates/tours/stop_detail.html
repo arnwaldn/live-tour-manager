@@ -569,7 +569,7 @@
                                    value="{{ stop.sold_tickets or 0 }}" min="0"
                                    {% if stop.venue and stop.venue.capacity %}max="{{ stop.venue.capacity }}"{% endif %}>
                         </div>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" aria-label="Enregistrer les billets vendus">
                             <i class="bi bi-check-lg"></i>
                         </button>
                     </form>

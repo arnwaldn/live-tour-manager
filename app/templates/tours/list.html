@@ -49,7 +49,7 @@
                 <button type="submit" class="btn btn-outline-primary me-2">
                     <i class="bi bi-funnel me-1"></i>Filtrer
                 </button>
-                <a href="{{ url_for('tours.index') }}" class="btn btn-outline-secondary">
+                <a href="{{ url_for('tours.index') }}" class="btn btn-outline-secondary" aria-label="Réinitialiser les filtres">
                     <i class="bi bi-x-lg"></i>
                 </a>
             </div>
@@ -97,12 +97,12 @@
                     <a href="{{ url_for('tours.detail', id=tour.id) }}" class="btn btn-outline-primary">
                         <i class="bi bi-eye me-1"></i>Voir
                     </a>
-                    <a href="{{ url_for('tours.calendar', id=tour.id) }}" class="btn btn-outline-secondary">
+                    <a href="{{ url_for('tours.calendar', id=tour.id) }}" class="btn btn-outline-secondary" aria-label="Calendrier">
                         <i class="bi bi-calendar3"></i>
                     </a>
                 </div>
                 {% if tour.band_is_manager(current_user) %}
-                <a href="{{ url_for('tours.edit', id=tour.id) }}" class="btn btn-sm btn-outline-secondary">
+                <a href="{{ url_for('tours.edit', id=tour.id) }}" class="btn btn-sm btn-outline-secondary" aria-label="Modifier">
                     <i class="bi bi-pencil"></i>
                 </a>
                 {% endif %}
