@@ -31,19 +31,37 @@ def get_logos_folder():
 
 
 def save_logo_file(file):
-    """Save uploaded logo and return filename."""
+    """Save uploaded logo and return filename, or None if invalid."""
     if not file or not file.filename:
         return None
 
-    # Validate extension
-    ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    # Sanitize filename and validate extension
+    from werkzeug.utils import secure_filename
+    safe_name = secure_filename(file.filename)
+    ext = safe_name.rsplit('.', 1)[1].lower() if '.' in safe_name else ''
     if ext not in ALLOWED_LOGO_EXTENSIONS:
         return None
 
-    # Generate unique filename
-    unique_name = f"{uuid.uuid4().hex}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.{ext}"
+    # Validate magic bytes match image format
+    image_signatures = {
+        'jpg': b'\xff\xd8\xff', 'jpeg': b'\xff\xd8\xff',
+        'png': b'\x89PNG', 'gif': b'GIF8', 'webp': b'RIFF',
+    }
+    header = file.read(8)
+    file.seek(0)
+    expected_sig = image_signatures.get(ext, b'')
+    if expected_sig and not header.startswith(expected_sig):
+        return None
 
-    # Save file
+    # Check file size via seek (avoid reading full file into memory)
+    file.seek(0, 2)
+    if file.tell() > MAX_LOGO_SIZE:
+        file.seek(0)
+        return None
+    file.seek(0)
+
+    # Generate unique filename and save
+    unique_name = f"{uuid.uuid4().hex}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.{ext}"
     logos_folder = get_logos_folder()
     file.save(os.path.join(logos_folder, unique_name))
 

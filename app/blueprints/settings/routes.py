@@ -422,18 +422,36 @@ def upload_profile_picture():
         flash('Aucun fichier sélectionné.', 'error')
         return redirect(url_for('settings.profile'))
 
-    # Check file extension
+    # Sanitize filename and check extension
+    safe_filename = secure_filename(file.filename)
     allowed_extensions = {'jpg', 'jpeg', 'png', 'gif'}
-    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    ext = safe_filename.rsplit('.', 1)[-1].lower() if '.' in safe_filename else ''
     if ext not in allowed_extensions:
         flash('Format non autorisé. Utilisez JPG, PNG ou GIF.', 'error')
         return redirect(url_for('settings.profile'))
 
-    # Read and check file size (max 5MB before resize)
-    file_data = file.read()
-    if len(file_data) > 5 * 1024 * 1024:
+    # Check file size via seek before reading into memory (max 5MB)
+    max_size = 5 * 1024 * 1024
+    file.seek(0, 2)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > max_size:
         flash('Fichier trop volumineux (max 5 MB).', 'error')
         return redirect(url_for('settings.profile'))
+
+    # Validate magic bytes match image format
+    image_signatures = {
+        'jpg': b'\xff\xd8\xff', 'jpeg': b'\xff\xd8\xff',
+        'png': b'\x89PNG', 'gif': b'GIF8',
+    }
+    header = file.read(8)
+    file.seek(0)
+    expected_sig = image_signatures.get(ext, b'')
+    if not header.startswith(expected_sig):
+        flash('Le contenu du fichier ne correspond pas au format image attendu.', 'error')
+        return redirect(url_for('settings.profile'))
+
+    file_data = file.read()
 
     try:
         # Resize image to 200x200 max
