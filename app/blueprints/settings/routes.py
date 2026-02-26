@@ -1711,6 +1711,154 @@ def _reload_mail_config(app):
 # ADMIN: FULL DATA RESET
 # ============================================================
 
+@settings_bp.route('/admin/reset-diagnostic')
+@requires_admin
+def admin_reset_diagnostic():
+    """GET diagnostic — tests each layer before actual reset."""
+    from sqlalchemy import text
+    import traceback
+
+    steps = {}
+
+    # Step 1: Auth OK
+    steps['auth'] = {
+        'ok': True,
+        'user': current_user.email,
+        'is_admin': current_user.is_admin()
+    }
+
+    # Step 2: DB connection
+    try:
+        result = db.session.execute(text(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+        ))
+        tables = sorted([row[0] for row in result])
+        steps['db'] = {'ok': True, 'tables_count': len(tables), 'tables': tables}
+    except Exception as e:
+        steps['db'] = {'ok': False, 'error': str(e), 'trace': traceback.format_exc()}
+        return {'steps': steps}, 500
+
+    # Step 3: Admin user lookup
+    try:
+        admin_user = User.query.filter_by(email='arnaud.porcel@gmail.com').first()
+        steps['admin_user'] = {
+            'ok': admin_user is not None,
+            'id': admin_user.id if admin_user else None
+        }
+    except Exception as e:
+        steps['admin_user'] = {'ok': False, 'error': str(e)}
+
+    # Step 4: Test TRUNCATE on empty temp (dry run — just check syntax)
+    try:
+        existing = set(steps['db'].get('tables', []))
+        tables_to_truncate = [
+            'invoice_payments', 'invoice_lines', 'invoices',
+            'team_member_payments',
+            'logistics_assignments', 'logistics_info',
+            'crew_assignments', 'crew_schedule_slots',
+            'planning_slots', 'tour_stop_reminders',
+            'lineup_slots', 'guestlist_entries',
+            'mission_invitations', 'local_contacts', 'promotor_expenses',
+            'tour_stop_members_v2', 'tour_stop_members',
+            'tour_stops', 'tours',
+            'document_shares', 'documents',
+            'notifications', 'oauth_tokens',
+            'band_memberships', 'bands',
+            'external_contacts',
+            'venue_contacts', 'venues',
+            'audit_logs',
+        ]
+        found = [t for t in tables_to_truncate if t in existing]
+        missing = [t for t in tables_to_truncate if t not in existing]
+        steps['truncate_plan'] = {
+            'ok': True,
+            'will_truncate': found,
+            'missing_tables': missing,
+            'count': len(found)
+        }
+    except Exception as e:
+        steps['truncate_plan'] = {'ok': False, 'error': str(e)}
+
+    return {'status': 'diagnostic_ok', 'steps': steps}
+
+
+@settings_bp.route('/admin/reset-execute')
+@requires_admin
+def admin_reset_execute():
+    """GET-based reset for debugging — bypasses CSRF.
+    Usage: /settings/admin/reset-execute?confirm=RESET
+    REMOVE THIS ROUTE after successful reset.
+    """
+    from sqlalchemy import text
+    import traceback
+
+    confirm = request.args.get('confirm')
+    if confirm != 'RESET':
+        return {'error': 'Add ?confirm=RESET to execute'}, 400
+
+    admin_email = 'arnaud.porcel@gmail.com'
+    admin_user = User.query.filter_by(email=admin_email).first()
+    if not admin_user:
+        return {'error': 'Admin user not found'}, 404
+
+    admin_id = admin_user.id
+
+    try:
+        result = db.session.execute(text(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+        ))
+        existing = {row[0] for row in result}
+
+        tables_to_truncate = [
+            'invoice_payments', 'invoice_lines', 'invoices',
+            'team_member_payments',
+            'logistics_assignments', 'logistics_info',
+            'crew_assignments', 'crew_schedule_slots',
+            'planning_slots', 'tour_stop_reminders',
+            'lineup_slots', 'guestlist_entries',
+            'mission_invitations', 'local_contacts', 'promotor_expenses',
+            'tour_stop_members_v2', 'tour_stop_members',
+            'tour_stops', 'tours',
+            'document_shares', 'documents',
+            'notifications', 'oauth_tokens',
+            'band_memberships', 'bands',
+            'external_contacts',
+            'venue_contacts', 'venues',
+            'audit_logs',
+        ]
+        truncate_list = [t for t in tables_to_truncate if t in existing]
+        if truncate_list:
+            db.session.execute(text(
+                f"TRUNCATE {', '.join(truncate_list)} CASCADE"
+            ))
+
+        for table in ['travel_cards', 'user_professions', 'user_payment_configs', 'user_roles']:
+            if table in existing:
+                db.session.execute(text(
+                    f"DELETE FROM {table} WHERE user_id != :aid"
+                ), {'aid': admin_id})
+
+        db.session.execute(text(
+            "DELETE FROM users WHERE id != :aid"
+        ), {'aid': admin_id})
+
+        db.session.commit()
+
+        return {
+            'status': 'success',
+            'truncated': truncate_list,
+            'admin_kept': admin_email
+        }
+
+    except Exception as e:
+        db.session.rollback()
+        return {
+            'status': 'error',
+            'error': str(e),
+            'trace': traceback.format_exc()
+        }, 500
+
+
 @settings_bp.route('/admin/reset-data', methods=['POST'])
 @requires_admin
 def admin_reset_data():
