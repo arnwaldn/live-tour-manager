@@ -1,0 +1,114 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Contacts salle — {{ stop.venue_name }}</h1>
+        <p class="text-muted mb-0">{{ stop.date|format_date_fr('full') }} — {{ stop.venue_city }}</p>
+    </div>
+    <a href="{{ url_for('advancing.stop_detail', stop_id=stop.id) }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Advancing
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        {% if contacts %}
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nom</th>
+                            <th>Rôle</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th style="width: 80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contact in contacts %}
+                        <tr>
+                            <td>
+                                {{ contact.name }}
+                                {% if contact.is_primary %}
+                                <span class="badge bg-warning text-dark ms-1">Principal</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ contact.role or '-' }}</td>
+                            <td>
+                                {% if contact.email %}
+                                <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if contact.phone %}
+                                <a href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                <form method="post" action="{{ url_for('advancing.delete_contact', contact_id=contact.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            aria-label="Supprimer {{ contact.name }}"
+                                            onclick="return confirm('Supprimer ce contact ?')">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-person-rolodex display-4 text-muted mb-3" aria-hidden="true"></i>
+                <h5>Aucun contact</h5>
+                <p class="text-muted">Ajoutez les contacts de la salle pour faciliter l'advancing.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0">Ajouter un contact</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('advancing.add_contact', stop_id=stop.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.name.label }}</label>
+                        {{ form.name(class="form-control form-control-sm", placeholder="Jean Dupont") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.role.label }}</label>
+                        {{ form.role(class="form-control form-control-sm", placeholder="Régisseur général") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.email.label }}</label>
+                        {{ form.email(class="form-control form-control-sm", placeholder="jean@salle.fr") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.phone.label }}</label>
+                        {{ form.phone(class="form-control form-control-sm", placeholder="06 12 34 56 78") }}
+                    </div>
+                    <div class="mb-3 form-check">
+                        {{ form.is_primary(class="form-check-input") }}
+                        <label class="form-check-label">{{ form.is_primary.label }}</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-plus me-1" aria-hidden="true"></i>Ajouter
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

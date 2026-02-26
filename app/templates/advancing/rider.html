@@ -1,0 +1,139 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Rider technique — {{ stop.venue_name }}</h1>
+        <p class="text-muted mb-0">{{ stop.date|format_date_fr('full') }} — {{ stop.venue_city }}</p>
+    </div>
+    <a href="{{ url_for('advancing.stop_detail', stop_id=stop.id) }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Advancing
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        {% set rider_labels = {'son': 'Son', 'lumiere': 'Lumière', 'scene': 'Scène', 'backline': 'Backline', 'catering': 'Catering', 'loges': 'Loges'} %}
+        {% set rider_icons = {'son': 'bi-speaker', 'lumiere': 'bi-lightbulb', 'scene': 'bi-box', 'backline': 'bi-music-note', 'catering': 'bi-cup-hot', 'loges': 'bi-door-closed'} %}
+
+        {% if riders_by_category %}
+        {% for category, riders in riders_by_category.items() %}
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0">
+                    <i class="{{ rider_icons.get(category, 'bi-list') }} me-2" aria-hidden="true"></i>
+                    {{ rider_labels.get(category, category) }}
+                </h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Exigence</th>
+                            <th class="text-center" style="width: 60px;">Qté</th>
+                            <th class="text-center" style="width: 80px;">Type</th>
+                            <th class="text-center" style="width: 80px;">Confirmé</th>
+                            <th style="width: 120px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rider in riders %}
+                        <tr>
+                            <td>
+                                {{ rider.requirement }}
+                                {% if rider.notes %}
+                                <br><small class="text-muted">{{ rider.notes }}</small>
+                                {% endif %}
+                                {% if rider.venue_response %}
+                                <br><small class="text-success"><i class="bi bi-chat-quote me-1" aria-hidden="true"></i>{{ rider.venue_response }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ rider.quantity }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-{{ 'danger' if rider.is_mandatory else 'secondary' }}">
+                                    {{ 'Requis' if rider.is_mandatory else 'Option' }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {% if rider.is_confirmed %}
+                                <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
+                                {% else %}
+                                <i class="bi bi-question-circle text-muted" aria-hidden="true"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not rider.is_confirmed %}
+                                <form method="post" action="{{ url_for('advancing.confirm_rider', rider_id=rider.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" aria-label="Confirmer">
+                                        <i class="bi bi-check" aria-hidden="true"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form method="post" action="{{ url_for('advancing.delete_rider', rider_id=rider.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            aria-label="Supprimer"
+                                            onclick="return confirm('Supprimer cette exigence ?')">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-list-check display-4 text-muted mb-3" aria-hidden="true"></i>
+                <h5>Aucune exigence rider</h5>
+                <p class="text-muted">Ajoutez les exigences techniques pour cette date.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Add form -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h6 class="mb-0">Ajouter une exigence</h6>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('advancing.add_rider', stop_id=stop.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.category.label }}</label>
+                        {{ form.category(class="form-select form-select-sm") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.requirement.label }}</label>
+                        {{ form.requirement(class="form-control form-control-sm", placeholder="Ex: Console Yamaha CL5") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.quantity.label }}</label>
+                        {{ form.quantity(class="form-control form-control-sm") }}
+                    </div>
+                    <div class="mb-3 form-check">
+                        {{ form.is_mandatory(class="form-check-input") }}
+                        <label class="form-check-label">{{ form.is_mandatory.label }}</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes(class="form-control form-control-sm", rows=2) }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-plus me-1" aria-hidden="true"></i>Ajouter
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

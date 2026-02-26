@@ -396,10 +396,31 @@ class TourStop(db.Model):
     notes = db.Column(db.Text)
     internal_notes = db.Column(db.Text)  # Private notes for band/management
 
-    # Advancement status
+    # Advancement status (legacy fields kept for backward compatibility)
     is_advanced = db.Column(db.Boolean, default=False)
     advanced_at = db.Column(db.DateTime)
     advance_notes = db.Column(db.Text)
+
+    # Advancing module (Phase 7a)
+    advancing_status = db.Column(
+        db.String(20),
+        default='not_started',
+        nullable=False,
+        index=True
+    )
+    advancing_deadline = db.Column(db.Date, nullable=True)
+
+    # Production specs (stage/technical)
+    stage_width = db.Column(db.Float, nullable=True)
+    stage_depth = db.Column(db.Float, nullable=True)
+    stage_height = db.Column(db.Float, nullable=True)
+    power_available = db.Column(db.String(100), nullable=True)
+    rigging_points = db.Column(db.Integer, nullable=True)
+
+    # Venue contact for advancing
+    venue_contact_name = db.Column(db.String(100), nullable=True)
+    venue_contact_email = db.Column(db.String(255), nullable=True)
+    venue_contact_phone = db.Column(db.String(50), nullable=True)
 
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -479,6 +500,25 @@ class TourStop(db.Model):
         cascade='all, delete-orphan',
         foreign_keys='TourStopMember.tour_stop_id',
         lazy='dynamic'
+    )
+
+    # Advancing module (Phase 7a)
+    checklist_items = db.relationship(
+        'AdvancingChecklistItem',
+        back_populates='tour_stop',
+        cascade='all, delete-orphan',
+        order_by='AdvancingChecklistItem.sort_order'
+    )
+    rider_requirements = db.relationship(
+        'RiderRequirement',
+        back_populates='tour_stop',
+        cascade='all, delete-orphan',
+        order_by='RiderRequirement.sort_order'
+    )
+    advancing_contacts = db.relationship(
+        'AdvancingContact',
+        back_populates='tour_stop',
+        cascade='all, delete-orphan'
     )
 
     def __repr__(self):
@@ -636,6 +676,39 @@ class TourStop(db.Model):
         if self.venue:
             return self.venue.country
         return self.location_country or ""
+
+    @property
+    def advancing_completion(self):
+        """Calculate advancing checklist completion percentage."""
+        items = self.checklist_items
+        if not items:
+            return 0
+        completed = sum(1 for item in items if item.is_completed)
+        return int((completed / len(items)) * 100)
+
+    @property
+    def advancing_status_label(self):
+        """French label for advancing status."""
+        labels = {
+            'not_started': 'Non démarré',
+            'in_progress': 'En cours',
+            'waiting_venue': 'Attente salle',
+            'completed': 'Terminé',
+            'issues': 'Problèmes',
+        }
+        return labels.get(self.advancing_status, self.advancing_status)
+
+    @property
+    def advancing_status_color(self):
+        """Bootstrap color for advancing status."""
+        colors = {
+            'not_started': 'secondary',
+            'in_progress': 'primary',
+            'waiting_venue': 'warning',
+            'completed': 'success',
+            'issues': 'danger',
+        }
+        return colors.get(self.advancing_status, 'secondary')
 
     @property
     def is_past(self):

@@ -1,0 +1,117 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Advancing — {{ tour.name }}</h1>
+        <p class="text-muted mb-0">
+            Préparation des {{ summary.total_stops }} date{{ 's' if summary.total_stops > 1 else '' }}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('advancing.templates_list') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-file-earmark-text me-1" aria-hidden="true"></i>
+            Templates
+        </a>
+        <a href="{{ url_for('tours.detail', id=tour.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>
+            Retour tournée
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card bg-secondary bg-opacity-10 border-0">
+            <div class="card-body text-center py-3">
+                <div class="h4 mb-0">{{ summary.not_started }}</div>
+                <small class="text-muted">Non démarré</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card bg-primary bg-opacity-10 border-0">
+            <div class="card-body text-center py-3">
+                <div class="h4 mb-0 text-primary">{{ summary.in_progress + summary.waiting_venue }}</div>
+                <small class="text-muted">En cours</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card bg-success bg-opacity-10 border-0">
+            <div class="card-body text-center py-3">
+                <div class="h4 mb-0 text-success">{{ summary.completed }}</div>
+                <small class="text-muted">Terminé</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 mb-3">
+        <div class="card bg-danger bg-opacity-10 border-0">
+            <div class="card-body text-center py-3">
+                <div class="h4 mb-0 text-danger">{{ summary.issues }}</div>
+                <small class="text-muted">Problèmes</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall progress -->
+{% if summary.total_stops > 0 %}
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-medium">Progression globale</span>
+            <span class="badge bg-primary">{{ summary.overall_completion_pct }}%</span>
+        </div>
+        <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-success" style="width: {{ summary.overall_completion_pct }}%"
+                 role="progressbar" aria-valuenow="{{ summary.overall_completion_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Stops List -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent">
+        <h5 class="mb-0">Dates</h5>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for stop_data in summary.stops %}
+        <a href="{{ url_for('advancing.stop_detail', stop_id=stop_data.id) }}"
+           class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="fw-medium">
+                        {{ stop_data.date|format_date_fr('short') }}
+                        <span class="badge bg-{{ stop_data.advancing_status_color }} ms-2">
+                            {{ stop_data.advancing_status_label }}
+                        </span>
+                    </div>
+                    <small class="text-muted">
+                        {{ stop_data.venue_name }} — {{ stop_data.venue_city }}
+                    </small>
+                </div>
+                <div class="text-end" style="min-width: 120px;">
+                    {% if stop_data.total_items > 0 %}
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height: 6px; min-width: 60px;">
+                            <div class="progress-bar bg-success" style="width: {{ stop_data.completion_pct }}%"
+                                 role="progressbar"></div>
+                        </div>
+                        <small class="text-muted">{{ stop_data.completion_pct }}%</small>
+                    </div>
+                    <small class="text-muted">{{ stop_data.completed_items }}/{{ stop_data.total_items }}</small>
+                    {% else %}
+                    <small class="text-muted">Non initialisé</small>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

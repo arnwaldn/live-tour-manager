@@ -1,0 +1,101 @@
+{% extends "email/base.html" %}
+
+{% block title %}Advancing - {{ stop.venue_name }} - {{ stop.date.strftime('%d/%m/%Y') }}{% endblock %}
+
+{% block content %}
+<h2>Advancing — {{ band_name }}</h2>
+
+<p>Bonjour,</p>
+
+<p>Veuillez trouver ci-dessous le récapitulatif de l'advancing pour le concert du
+<strong>{{ stop.date.strftime('%d/%m/%Y') }}</strong> à <strong>{{ stop.venue_name }}</strong>.</p>
+
+<div class="info-box">
+    <h3>Informations</h3>
+    <p><span class="label">Date :</span> <span class="value">{{ stop.date.strftime('%d/%m/%Y') }}</span></p>
+    <p><span class="label">Lieu :</span> <span class="value">{{ stop.venue_name }} — {{ stop.venue_city }}</span></p>
+    <p><span class="label">Statut advancing :</span> <span class="value">{{ data.advancing_status_label }}</span></p>
+    <p><span class="label">Progression :</span> <span class="value">{{ data.completion_pct }}% ({{ data.completed_items }}/{{ data.total_items }})</span></p>
+</div>
+
+{% set category_labels = {
+    'accueil': 'Accueil', 'technique': 'Technique', 'catering': 'Catering',
+    'hebergement': 'Hébergement', 'logistique': 'Logistique',
+    'securite': 'Sécurité', 'admin': 'Administration'
+} %}
+
+{% if data.checklist_by_category %}
+<h3 style="margin-top: 20px;">Checklist</h3>
+{% for category, items in data.checklist_by_category.items() %}
+<p style="margin-top: 15px;"><strong>{{ category_labels.get(category, category) }}</strong></p>
+<table style="width: 100%; border-collapse: collapse;">
+    {% for item in items %}
+    <tr>
+        <td style="padding: 4px 8px; border-bottom: 1px solid #eee;">
+            {% if item.is_completed %}✅{% else %}⬜{% endif %}
+            {{ item.label }}
+            {% if item.notes %}<br><em style="color: #666; font-size: 12px;">{{ item.notes }}</em>{% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endfor %}
+{% endif %}
+
+{% if data.riders_by_category %}
+{% set rider_labels = {'son': 'Son', 'lumiere': 'Lumière', 'scene': 'Scène', 'backline': 'Backline', 'catering': 'Catering', 'loges': 'Loges'} %}
+<h3 style="margin-top: 20px;">Rider technique</h3>
+{% for category, riders in data.riders_by_category.items() %}
+<p style="margin-top: 10px;"><strong>{{ rider_labels.get(category, category) }}</strong></p>
+<table style="width: 100%; border-collapse: collapse;">
+    <tr style="background: #f5f5f5;">
+        <th style="padding: 6px 8px; text-align: left;">Exigence</th>
+        <th style="padding: 6px 8px; text-align: center;">Qté</th>
+        <th style="padding: 6px 8px; text-align: center;">Type</th>
+    </tr>
+    {% for rider in riders %}
+    <tr>
+        <td style="padding: 4px 8px; border-bottom: 1px solid #eee;">{{ rider.requirement }}</td>
+        <td style="padding: 4px 8px; border-bottom: 1px solid #eee; text-align: center;">{{ rider.quantity }}</td>
+        <td style="padding: 4px 8px; border-bottom: 1px solid #eee; text-align: center;">
+            {{ 'Obligatoire' if rider.is_mandatory else 'Optionnel' }}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endfor %}
+{% endif %}
+
+{% set specs = data.production_specs %}
+{% if specs.stage_width or specs.power_available or specs.rigging_points %}
+<h3 style="margin-top: 20px;">Fiche technique</h3>
+<table style="width: 100%; border-collapse: collapse;">
+    {% if specs.stage_width or specs.stage_depth or specs.stage_height %}
+    <tr>
+        <td style="padding: 4px 8px;">Scène :</td>
+        <td style="padding: 4px 8px;">
+            {% if specs.stage_width %}L={{ specs.stage_width }}m {% endif %}
+            {% if specs.stage_depth %}P={{ specs.stage_depth }}m {% endif %}
+            {% if specs.stage_height %}H={{ specs.stage_height }}m{% endif %}
+        </td>
+    </tr>
+    {% endif %}
+    {% if specs.power_available %}
+    <tr><td style="padding: 4px 8px;">Puissance :</td><td style="padding: 4px 8px;">{{ specs.power_available }}</td></tr>
+    {% endif %}
+    {% if specs.rigging_points %}
+    <tr><td style="padding: 4px 8px;">Accroche :</td><td style="padding: 4px 8px;">{{ specs.rigging_points }} points</td></tr>
+    {% endif %}
+</table>
+{% endif %}
+
+<p style="margin-top: 30px;">
+    Merci de confirmer les éléments ci-dessus.<br>
+    Cordialement,<br>
+    <strong>{{ sender_name }}</strong>
+</p>
+
+<p style="color: #999999; font-size: 12px; margin-top: 20px; border-top: 1px solid #eeeeee; padding-top: 15px;">
+    Cet email a été envoyé depuis GigRoute. En cas de question, contactez directement {{ sender_name }}.
+</p>
+{% endblock %}
