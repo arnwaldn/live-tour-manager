@@ -10,11 +10,11 @@ from typing import Dict, Any
 
 try:
     from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.lib.units import cm, mm
+    from reportlab.lib.units import cm
     from reportlab.lib.colors import HexColor, white, black
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-    from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
     PDF_AVAILABLE = True
 except ImportError:
     PDF_AVAILABLE = False
@@ -99,8 +99,8 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
         raise ImportError("reportlab is required for PDF generation. Install with: pip install reportlab")
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm,
-                            leftMargin=1.5*cm, rightMargin=1.5*cm)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm,
+                            bottomMargin=1.5*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
 
     styles = getSampleStyleSheet()
     elements = []
@@ -109,18 +109,18 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
 
     # Custom styles
     title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, textColor=WHITE,
-                                  spaceAfter=6)
+                                 spaceAfter=6)
     subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=10, textColor=WHITE)
     section_header_style = ParagraphStyle('SectionHeader', parent=styles['Heading2'], fontSize=11,
-                                           textColor=BLACK, spaceBefore=12, spaceAfter=6,
-                                           backColor=LIGHT_GRAY)
+                                          textColor=BLACK, spaceBefore=12, spaceAfter=6,
+                                          backColor=LIGHT_GRAY)
     normal_style = ParagraphStyle('NormalCustom', parent=styles['Normal'], fontSize=9)
     label_style = ParagraphStyle('Label', parent=styles['Normal'], fontSize=9, textColor=GRAY)
     value_style = ParagraphStyle('Value', parent=styles['Normal'], fontSize=9, alignment=TA_RIGHT)
     bold_value = ParagraphStyle('BoldValue', parent=styles['Normal'], fontSize=10, alignment=TA_RIGHT,
-                                 fontName='Helvetica-Bold')
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=GRAY,
-                                   alignment=TA_CENTER)
+                                fontName='Helvetica-Bold')
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7,
+                                  textColor=GRAY, alignment=TA_CENTER)
 
     # Format date
     date_str = s['date'].strftime('%d/%m/%Y') if s['date'] else 'N/A'
@@ -129,7 +129,9 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
     # Header table (simulated colored header)
     header_data = [
         [Paragraph(f"<b>{s['band_name']}</b>", title_style)],
-        [Paragraph(f"<b>{s['venue_name']}</b> - {s.get('venue_city', '')}, {s.get('venue_country', '')}", subtitle_style)],
+        [Paragraph(
+            f"<b>{s['venue_name']}</b> - {s.get('venue_city', '')}, {s.get('venue_country', '')}",
+            subtitle_style)],
         [Paragraph(f"{date_full}", subtitle_style)],
     ]
     header_table = Table(header_data, colWidths=[doc.width])
@@ -157,8 +159,10 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
         [Paragraph("Capacite salle", label_style), Paragraph(f"{s['capacity']:,} places", value_style)],
         [Paragraph("Billets vendus", label_style), Paragraph(f"{s['sold_tickets']:,}", value_style)],
         [Paragraph("Taux de remplissage", label_style), Paragraph(f"{s['fill_rate']}% ({fill_badge})", value_style)],
-        [Paragraph("Prix du billet", label_style), Paragraph(format_currency(s['ticket_price'], currency), value_style)],
-        [Paragraph("<b>RECETTES BRUTES (GBOR)</b>", normal_style), Paragraph(f"<b>{format_currency(s['gross_revenue'], currency)}</b>", bold_value)],
+        [Paragraph("Prix du billet", label_style),
+         Paragraph(format_currency(s['ticket_price'], currency), value_style)],
+        [Paragraph("<b>RECETTES BRUTES (GBOR)</b>", normal_style),
+         Paragraph(f"<b>{format_currency(s['gross_revenue'], currency)}</b>", bold_value)],
     ]
     box_table = Table(box_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
     box_table.setStyle(TableStyle([
@@ -173,9 +177,12 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
     # NBOR Section
     elements.append(Paragraph("RECETTES NETTES (NBOR)", section_header_style))
     nbor_data = [
-        [Paragraph("Recettes brutes (GBOR)", label_style), Paragraph(format_currency(s['gross_revenue'], currency), value_style)],
-        [Paragraph(f"Frais de billetterie ({ticketing_fee_pct}%)", label_style), Paragraph(f"-{format_currency(ticketing_fees, currency)}", value_style)],
-        [Paragraph("<b>RECETTES NETTES (NBOR)</b>", normal_style), Paragraph(f"<b>{format_currency(nbor, currency)}</b>", bold_value)],
+        [Paragraph("Recettes brutes (GBOR)", label_style),
+         Paragraph(format_currency(s['gross_revenue'], currency), value_style)],
+        [Paragraph(f"Frais de billetterie ({ticketing_fee_pct}%)", label_style),
+         Paragraph(f"-{format_currency(ticketing_fees, currency)}", value_style)],
+        [Paragraph("<b>RECETTES NETTES (NBOR)</b>", normal_style),
+         Paragraph(f"<b>{format_currency(nbor, currency)}</b>", bold_value)],
     ]
     nbor_table = Table(nbor_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
     nbor_table.setStyle(TableStyle([
@@ -195,8 +202,10 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
         [Paragraph("Cachet garanti", label_style), Paragraph(format_currency(s['guarantee'], currency), value_style)],
     ]
     if s['door_deal_percentage'] > 0:
-        deal_data.append([Paragraph("Pourcentage Door Deal", label_style), Paragraph(f"{s['door_deal_percentage']}%", value_style)])
-        deal_data.append([Paragraph("Seuil de rentabilite", label_style), Paragraph(f"{s['break_even_tickets']} billets", value_style)])
+        deal_data.append([Paragraph("Pourcentage Door Deal", label_style),
+                          Paragraph(f"{s['door_deal_percentage']}%", value_style)])
+        deal_data.append([Paragraph("Seuil de rentabilite", label_style),
+                          Paragraph(f"{s['break_even_tickets']} billets", value_style)])
     deal_table = Table(deal_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
     deal_table.setStyle(TableStyle([
         ('LINEBELOW', (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
@@ -222,9 +231,14 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
             if val > 0:
                 exp_data.append([Paragraph(label, label_style), Paragraph(format_currency(val, currency), value_style)])
         if promoter_expenses.get('other', 0) > 0:
-            other_desc = f" ({promoter_expenses.get('other_description', '')})" if promoter_expenses.get('other_description') else ''
-            exp_data.append([Paragraph(f"Autres{other_desc}", label_style), Paragraph(format_currency(promoter_expenses['other'], currency), value_style)])
-        exp_data.append([Paragraph("<b>TOTAL DEPENSES</b>", normal_style), Paragraph(f"<b>{format_currency(promoter_total, currency)}</b>", bold_value)])
+            other_desc = (
+                f" ({promoter_expenses.get('other_description', '')})"
+                if promoter_expenses.get('other_description') else ''
+            )
+            exp_data.append([Paragraph(f"Autres{other_desc}", label_style),
+                             Paragraph(format_currency(promoter_expenses['other'], currency), value_style)])
+        exp_data.append([Paragraph("<b>TOTAL DEPENSES</b>", normal_style),
+                         Paragraph(f"<b>{format_currency(promoter_total, currency)}</b>", bold_value)])
         exp_table = Table(exp_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
         exp_table.setStyle(TableStyle([
             ('LINEBELOW', (0, 0), (-1, -2), 0.5, LIGHT_GRAY),
@@ -248,7 +262,8 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
 
     pay_data = [
         [Paragraph("Recettes nettes (NBOR)", label_style), Paragraph(format_currency(nbor, currency), value_style)],
-        [Paragraph("vs. Cachet garanti", label_style), Paragraph(format_currency(s['guarantee'], currency), value_style)],
+        [Paragraph("vs. Cachet garanti", label_style),
+         Paragraph(format_currency(s['guarantee'], currency), value_style)],
         [Paragraph("Methode de paiement retenue", label_style), Paragraph(payment_type_text, value_style)],
     ]
 
@@ -273,8 +288,10 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
     elements.append(Paragraph("PART PROMOTEUR / SALLE", section_header_style))
     venue_data = [
         [Paragraph("Recettes nettes (NBOR)", label_style), Paragraph(format_currency(nbor, currency), value_style)],
-        [Paragraph("- Paiement artiste", label_style), Paragraph(f"-{format_currency(s['artist_payment'], currency)}", value_style)],
-        [Paragraph("<b>PART PROMOTEUR</b>", normal_style), Paragraph(f"<b>{format_currency(s['venue_share'], currency)}</b>", bold_value)],
+        [Paragraph("- Paiement artiste", label_style),
+         Paragraph(f"-{format_currency(s['artist_payment'], currency)}", value_style)],
+        [Paragraph("<b>PART PROMOTEUR</b>", normal_style),
+         Paragraph(f"<b>{format_currency(s['venue_share'], currency)}</b>", bold_value)],
     ]
     venue_table = Table(venue_data, colWidths=[doc.width * 0.6, doc.width * 0.4])
     venue_table.setStyle(TableStyle([
@@ -333,24 +350,24 @@ def generate_tour_pdf(tour) -> bytes:
         raise ImportError("reportlab is required for PDF generation. Install with: pip install reportlab")
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=1.5*cm, bottomMargin=1.5*cm,
-                            leftMargin=1.5*cm, rightMargin=1.5*cm)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=1.5*cm,
+                            bottomMargin=1.5*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
 
     styles = getSampleStyleSheet()
     elements = []
 
     # Custom styles
     title_style = ParagraphStyle('TourTitle', parent=styles['Heading1'], fontSize=20,
-                                  textColor=GOLD, alignment=TA_CENTER, spaceAfter=4)
+                                 textColor=GOLD, alignment=TA_CENTER, spaceAfter=4)
     subtitle_style = ParagraphStyle('TourSubtitle', parent=styles['Normal'], fontSize=12,
-                                     textColor=WHITE, alignment=TA_CENTER)
+                                    textColor=WHITE, alignment=TA_CENTER)
     date_style = ParagraphStyle('TourDates', parent=styles['Normal'], fontSize=10,
-                                 textColor=HexColor('#aaaaaa'), alignment=TA_CENTER)
+                                textColor=HexColor('#aaaaaa'), alignment=TA_CENTER)
     cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=9)
     cell_bold = ParagraphStyle('CellBold', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold')
     cell_small = ParagraphStyle('CellSmall', parent=styles['Normal'], fontSize=8, textColor=GRAY)
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=GRAY,
-                                   alignment=TA_CENTER)
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7,
+                                  textColor=GRAY, alignment=TA_CENTER)
 
     # Tour dates
     start_date = tour.start_date.strftime('%d/%m/%Y') if tour.start_date else 'TBA'
@@ -437,8 +454,8 @@ def generate_tour_pdf(tour) -> bytes:
     elements.append(Spacer(1, 12))
 
     # Total stops
-    total_style = ParagraphStyle('Total', parent=styles['Normal'], fontSize=10, textColor=GRAY,
-                                  alignment=TA_RIGHT)
+    total_style = ParagraphStyle('Total', parent=styles['Normal'], fontSize=10,
+                                 textColor=GRAY, alignment=TA_RIGHT)
     elements.append(Paragraph(f"Total: {len(stops)} date(s)", total_style))
     elements.append(Spacer(1, 16))
 
@@ -464,30 +481,32 @@ def generate_daysheet_pdf(stop) -> bytes:
         raise ImportError("reportlab is required for PDF generation. Install with: pip install reportlab")
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm, bottomMargin=1.5*cm,
-                            leftMargin=1.5*cm, rightMargin=1.5*cm)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1.5*cm,
+                            bottomMargin=1.5*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
 
     styles = getSampleStyleSheet()
     elements = []
 
     # Custom styles
     title_style = ParagraphStyle('DayTitle', parent=styles['Heading1'], fontSize=20,
-                                  textColor=GOLD, alignment=TA_CENTER, spaceAfter=4)
+                                 textColor=GOLD, alignment=TA_CENTER, spaceAfter=4)
     subtitle_style = ParagraphStyle('DaySub', parent=styles['Normal'], fontSize=12,
-                                     textColor=WHITE, alignment=TA_CENTER)
+                                    textColor=WHITE, alignment=TA_CENTER)
     info_style = ParagraphStyle('DayInfo', parent=styles['Normal'], fontSize=10,
-                                 textColor=HexColor('#aaaaaa'), alignment=TA_CENTER)
-    section_header_style = ParagraphStyle('SecHeader', parent=styles['Heading2'], fontSize=11,
-                                           textColor=DARK_BG, backColor=GOLD, spaceBefore=10, spaceAfter=4)
+                                textColor=HexColor('#aaaaaa'), alignment=TA_CENTER)
+    section_header_style = ParagraphStyle(
+        'SecHeader', parent=styles['Heading2'], fontSize=11,
+        textColor=DARK_BG, backColor=GOLD, spaceBefore=10, spaceAfter=4)
     cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=9)
     cell_bold = ParagraphStyle('CellBold', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold')
     time_style = ParagraphStyle('TimeStyle', parent=styles['Normal'], fontSize=10,
-                                 textColor=BLUE, fontName='Helvetica-Bold')
-    highlight_time_style = ParagraphStyle('HighlightTime', parent=styles['Normal'], fontSize=12,
-                                           textColor=GREEN, fontName='Helvetica-Bold')
+                                textColor=BLUE, fontName='Helvetica-Bold')
+    highlight_time_style = ParagraphStyle(
+        'HighlightTime', parent=styles['Normal'], fontSize=12,
+        textColor=GREEN, fontName='Helvetica-Bold')
     cell_small = ParagraphStyle('CellSmall', parent=styles['Normal'], fontSize=8, textColor=GRAY)
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=GRAY,
-                                   alignment=TA_CENTER)
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7,
+                                  textColor=GRAY, alignment=TA_CENTER)
 
     # Get basic info
     tour = stop.tour
