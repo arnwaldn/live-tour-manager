@@ -37,62 +37,21 @@
     // ==========================================================================
 
     function initSidebar() {
-        const sidebar = document.querySelector('.sidebar');
-        const sidebarToggle = document.querySelector('[data-sidebar-toggle]');
-        const backdrop = createBackdrop();
-
+        const sidebar = document.getElementById('sidebarOffcanvas');
         if (!sidebar) return;
 
-        // Toggle button click
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                toggleSidebar();
-            });
-        }
-
-        // Backdrop click closes sidebar
-        backdrop.addEventListener('click', closeSidebar);
-
-        // Close sidebar on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && sidebar.classList.contains('show')) {
-                closeSidebar();
-            }
-        });
-
-        // Handle resize
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                if (window.innerWidth >= CONFIG.sidebarBreakpoint) {
-                    closeSidebar();
+        // Close offcanvas when a nav link is clicked (mobile only)
+        sidebar.querySelectorAll('.nav-link[href], a[href]').forEach(function(link) {
+            link.addEventListener('click', function() {
+                // Only close on mobile (when offcanvas is active, below lg breakpoint)
+                if (window.innerWidth < CONFIG.sidebarBreakpoint) {
+                    var offcanvasInstance = bootstrap.Offcanvas.getInstance(sidebar);
+                    if (offcanvasInstance) {
+                        offcanvasInstance.hide();
+                    }
                 }
-            }, 100);
+            });
         });
-
-        function toggleSidebar() {
-            sidebar.classList.toggle('show');
-            backdrop.classList.toggle('show');
-            document.body.classList.toggle('sidebar-open');
-        }
-
-        function closeSidebar() {
-            sidebar.classList.remove('show');
-            backdrop.classList.remove('show');
-            document.body.classList.remove('sidebar-open');
-        }
-
-        function createBackdrop() {
-            let backdrop = document.querySelector('.sidebar-backdrop');
-            if (!backdrop) {
-                backdrop = document.createElement('div');
-                backdrop.className = 'sidebar-backdrop';
-                document.body.appendChild(backdrop);
-            }
-            return backdrop;
-        }
     }
 
     // ==========================================================================
@@ -570,17 +529,13 @@
     // ==========================================================================
 
     window.addEventListener('orientationchange', function() {
-        // Close sidebar on orientation change
-        const sidebar = document.querySelector('.sidebar');
-        const backdrop = document.querySelector('.sidebar-backdrop');
-
-        if (sidebar && sidebar.classList.contains('show')) {
-            sidebar.classList.remove('show');
-            document.body.classList.remove('sidebar-open');
-        }
-
-        if (backdrop) {
-            backdrop.classList.remove('show');
+        // Close sidebar offcanvas on orientation change
+        var sidebar = document.getElementById('sidebarOffcanvas');
+        if (sidebar) {
+            var offcanvasInstance = bootstrap.Offcanvas.getInstance(sidebar);
+            if (offcanvasInstance) {
+                offcanvasInstance.hide();
+            }
         }
 
         // Trigger resize event after orientation change settles

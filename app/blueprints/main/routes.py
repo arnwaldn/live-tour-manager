@@ -1617,17 +1617,20 @@ def global_calendar_events():
     # Filter by date range if provided
     if start_str:
         try:
-            start_date = datetime.fromisoformat(start_str.replace('Z', '+00:00')).date()
+            # Handle URL decoding: '+' in query string becomes space, restore it
+            clean_start = start_str.replace(' ', '+').replace('Z', '+00:00')
+            start_date = datetime.fromisoformat(clean_start).date()
             query = query.filter(TourStop.date >= start_date)
-        except ValueError:
-            pass
+        except (ValueError, TypeError) as e:
+            current_app.logger.warning(f"Calendar: invalid start date '{start_str}': {e}")
 
     if end_str:
         try:
-            end_date = datetime.fromisoformat(end_str.replace('Z', '+00:00')).date()
+            clean_end = end_str.replace(' ', '+').replace('Z', '+00:00')
+            end_date = datetime.fromisoformat(clean_end).date()
             query = query.filter(TourStop.date <= end_date)
-        except ValueError:
-            pass
+        except (ValueError, TypeError) as e:
+            current_app.logger.warning(f"Calendar: invalid end date '{end_str}': {e}")
 
     stops = query.all()
 
