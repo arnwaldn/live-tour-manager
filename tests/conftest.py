@@ -7,7 +7,7 @@ from datetime import date, time, timedelta
 
 from app import create_app
 from app.extensions import db
-from app.models.user import User, Role
+from app.models.user import User, Role, AccessLevel
 from app.models.band import Band, BandMembership
 from app.models.venue import Venue
 from app.models.tour import Tour, TourStatus
@@ -119,7 +119,10 @@ def manager_user(app, manager_role):
         email='manager@test.com',
         first_name='Test',
         last_name='Manager',
-        phone='+33 1 23 45 67 89'
+        phone='+33 1 23 45 67 89',
+        access_level=AccessLevel.MANAGER,
+        is_active=True,
+        email_verified=True,
     )
     user.set_password('Manager123!')
     user.roles.append(manager_role)
@@ -137,7 +140,10 @@ def musician_user(app, musician_role):
         email='musician@test.com',
         first_name='Test',
         last_name='Musician',
-        phone='+33 1 98 76 54 32'
+        phone='+33 1 98 76 54 32',
+        access_level=AccessLevel.STAFF,
+        is_active=True,
+        email_verified=True,
     )
     user.set_password('Musician123!')
     user.roles.append(musician_role)
