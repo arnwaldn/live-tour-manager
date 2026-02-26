@@ -26,6 +26,93 @@ def ping():
     return f"PONG - {datetime.utcnow().isoformat()} - v2026-02-01-v2", 200, {'Content-Type': 'text/plain'}
 
 
+@main_bp.route('/admin/full-reset', methods=['POST'])
+@login_required
+def admin_full_reset():
+    """HTTP endpoint to trigger full application reset. Admin only.
+
+    Deletes ALL data except the current admin user.
+    Keeps: admin user, professions, roles, system settings.
+    """
+    if not current_user.is_admin():
+        abort(403)
+
+    from app.models.user import User, TravelCard, user_roles
+    from app.models.tour import Tour
+    from app.models.tour_stop import TourStop, TourStopMember
+    from app.models.guestlist import GuestlistEntry
+    from app.models.payments import TeamMemberPayment, UserPaymentConfig
+    from app.models.invoices import InvoicePayment, InvoiceLine, Invoice
+    from app.models.document import Document, DocumentShare
+    from app.models.planning_slot import PlanningSlot
+    from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment, ExternalContact
+    from app.models.notification import Notification
+    from app.models.reminder import TourStopReminder
+    from app.models.lineup import LineupSlot
+    from app.models.logistics import LogisticsInfo, LogisticsAssignment, LocalContact, PromotorExpenses
+    from app.models.band import Band, BandMembership
+    from app.models.profession import UserProfession
+    from app.models.mission_invitation import MissionInvitation
+    from app.models.venue import Venue, VenueContact
+    from app.models.oauth_token import OAuthToken
+
+    admin_id = current_user.id
+
+    try:
+        # Phase 1: Leaf tables
+        Notification.query.delete()
+        TourStopReminder.query.delete()
+        GuestlistEntry.query.delete()
+        InvoicePayment.query.delete()
+        InvoiceLine.query.delete()
+        Invoice.query.delete()
+        TeamMemberPayment.query.delete()
+        PlanningSlot.query.delete()
+        CrewAssignment.query.delete()
+        CrewScheduleSlot.query.delete()
+        ExternalContact.query.delete()
+        LineupSlot.query.delete()
+        LogisticsAssignment.query.delete()
+        PromotorExpenses.query.delete()
+        LocalContact.query.delete()
+        LogisticsInfo.query.delete()
+        DocumentShare.query.delete()
+        Document.query.delete()
+        MissionInvitation.query.delete()
+
+        # Phase 2: Tour structure
+        TourStopMember.query.delete()
+        TourStop.query.delete()
+        Tour.query.delete()
+
+        # Phase 3: Venues
+        VenueContact.query.delete()
+        Venue.query.delete()
+
+        # Phase 4: Bands
+        BandMembership.query.delete()
+        Band.query.delete()
+
+        # Phase 5: User-related data (keep admin)
+        UserPaymentConfig.query.filter(UserPaymentConfig.user_id != admin_id).delete(synchronize_session=False)
+        UserProfession.query.filter(UserProfession.user_id != admin_id).delete(synchronize_session=False)
+        TravelCard.query.filter(TravelCard.user_id != admin_id).delete(synchronize_session=False)
+        OAuthToken.query.filter(OAuthToken.user_id != admin_id).delete(synchronize_session=False)
+        db.session.execute(user_roles.delete().where(user_roles.c.user_id != admin_id))
+
+        # Phase 6: Delete all users except admin
+        count = User.query.filter(User.id != admin_id).delete(synchronize_session=False)
+
+        db.session.commit()
+        flash(f'Reset complet effectué. {count} utilisateurs supprimés. Toutes les tournées, concerts, salles et données associées ont été supprimées.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Full reset failed: {e}')
+        flash(f'Erreur lors du reset : {e}', 'error')
+
+    return redirect(url_for('main.dashboard'))
+
+
 @main_bp.route('/health/tours-list')
 def tours_list_debug():
     """Debug endpoint to list all tours."""

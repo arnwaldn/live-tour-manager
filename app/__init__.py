@@ -724,6 +724,192 @@ def register_cli_commands(app):
         print("  - Venues, Professions, Roles, Bands (empty)")
         print("="*60)
 
+    def _perform_full_reset(admin_email='arnaud.porcel@gmail.com'):
+        """Core reset logic shared by CLI command and HTTP endpoint.
+
+        Deletes ALL data except the admin user. Returns dict of deleted counts.
+        """
+        from app.models.user import User, TravelCard, user_roles
+        from app.models.tour import Tour
+        from app.models.tour_stop import TourStop, TourStopMember
+        from app.models.guestlist import GuestlistEntry
+        from app.models.payments import TeamMemberPayment, UserPaymentConfig
+        from app.models.invoices import InvoicePayment, InvoiceLine, Invoice
+        from app.models.document import Document, DocumentShare
+        from app.models.planning_slot import PlanningSlot
+        from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment, ExternalContact
+        from app.models.notification import Notification
+        from app.models.reminder import TourStopReminder
+        from app.models.lineup import LineupSlot
+        from app.models.logistics import LogisticsInfo, LogisticsAssignment, LocalContact, PromotorExpenses
+        from app.models.band import Band, BandMembership
+        from app.models.profession import UserProfession
+        from app.models.mission_invitation import MissionInvitation
+        from app.models.venue import Venue, VenueContact
+        from app.models.oauth_token import OAuthToken
+        from app.extensions import db
+
+        admin = User.query.filter_by(email=admin_email).first()
+        if not admin:
+            raise ValueError(f"Admin user {admin_email} not found!")
+        admin_id = admin.id
+
+        deleted = {}
+
+        # Phase 1: Leaf tables (no FK dependencies from other tables)
+        count = Notification.query.delete()
+        deleted['notifications'] = count
+
+        count = TourStopReminder.query.delete()
+        deleted['reminders'] = count
+
+        count = GuestlistEntry.query.delete()
+        deleted['guestlist_entries'] = count
+
+        count = InvoicePayment.query.delete()
+        deleted['invoice_payments'] = count
+
+        count = InvoiceLine.query.delete()
+        deleted['invoice_lines'] = count
+
+        count = Invoice.query.delete()
+        deleted['invoices'] = count
+
+        count = TeamMemberPayment.query.delete()
+        deleted['payments'] = count
+
+        count = PlanningSlot.query.delete()
+        deleted['planning_slots'] = count
+
+        count = CrewAssignment.query.delete()
+        deleted['crew_assignments'] = count
+
+        count = CrewScheduleSlot.query.delete()
+        deleted['crew_schedule_slots'] = count
+
+        count = ExternalContact.query.delete()
+        deleted['external_contacts'] = count
+
+        count = LineupSlot.query.delete()
+        deleted['lineup_slots'] = count
+
+        count = LogisticsAssignment.query.delete()
+        deleted['logistics_assignments'] = count
+
+        count = PromotorExpenses.query.delete()
+        deleted['promotor_expenses'] = count
+
+        count = LocalContact.query.delete()
+        deleted['local_contacts'] = count
+
+        count = LogisticsInfo.query.delete()
+        deleted['logistics_info'] = count
+
+        count = DocumentShare.query.delete()
+        deleted['document_shares'] = count
+
+        count = Document.query.delete()
+        deleted['documents'] = count
+
+        count = MissionInvitation.query.delete()
+        deleted['mission_invitations'] = count
+
+        # Phase 2: Tour structure
+        count = TourStopMember.query.delete()
+        deleted['tour_stop_members'] = count
+
+        count = TourStop.query.delete()
+        deleted['tour_stops'] = count
+
+        count = Tour.query.delete()
+        deleted['tours'] = count
+
+        # Phase 3: Venues
+        count = VenueContact.query.delete()
+        deleted['venue_contacts'] = count
+
+        count = Venue.query.delete()
+        deleted['venues'] = count
+
+        # Phase 4: Bands
+        count = BandMembership.query.delete()
+        deleted['band_memberships'] = count
+
+        count = Band.query.delete()
+        deleted['bands'] = count
+
+        # Phase 5: User-related data (keep admin)
+        count = UserPaymentConfig.query.filter(
+            UserPaymentConfig.user_id != admin_id
+        ).delete(synchronize_session=False)
+        deleted['user_payment_configs'] = count
+
+        count = UserProfession.query.filter(
+            UserProfession.user_id != admin_id
+        ).delete(synchronize_session=False)
+        deleted['user_professions'] = count
+
+        count = TravelCard.query.filter(
+            TravelCard.user_id != admin_id
+        ).delete(synchronize_session=False)
+        deleted['travel_cards'] = count
+
+        count = OAuthToken.query.filter(
+            OAuthToken.user_id != admin_id
+        ).delete(synchronize_session=False)
+        deleted['oauth_tokens'] = count
+
+        # Clean user_roles association table for non-admin users
+        db.session.execute(
+            user_roles.delete().where(user_roles.c.user_id != admin_id)
+        )
+        deleted['user_roles'] = '(cleaned)'
+
+        # Phase 6: Delete all users except admin
+        count = User.query.filter(
+            User.id != admin_id
+        ).delete(synchronize_session=False)
+        deleted['users'] = count
+
+        db.session.commit()
+        return deleted, admin
+
+    @app.cli.command('full-reset')
+    @click.option('--confirm', is_flag=True, help='Confirm full reset')
+    @click.option('--admin-email', default='arnaud.porcel@gmail.com', help='Admin email to keep')
+    def full_reset(confirm, admin_email):
+        """Full application reset. Deletes ALL data except one admin user.
+
+        Deletes: ALL tours, stops, venues, bands, users, payments, invoices, etc.
+        Keeps: Only the specified admin user, professions, roles, system settings.
+        """
+        if not confirm:
+            print("WARNING: This will DELETE ALL DATA!")
+            print(f"Only admin user ({admin_email}) will be kept.")
+            print("Run with --confirm to proceed.")
+            return
+
+        print("=" * 60)
+        print("FULL APPLICATION RESET")
+        print("=" * 60)
+
+        try:
+            deleted, admin = _perform_full_reset(admin_email)
+        except ValueError as e:
+            print(f"ERROR: {e}")
+            return
+
+        print("\nDeleted:")
+        for table, count in deleted.items():
+            if count and count != 0:
+                print(f"  - {table}: {count}")
+
+        print("\n" + "=" * 60)
+        print("KEPT:")
+        print(f"  - Admin: {admin.email} (id={admin.id})")
+        print("  - Professions, Roles, System Settings")
+        print("=" * 60)
+
 
 # ─── French i18n: Template Filters ──────────────────────────────────
 
