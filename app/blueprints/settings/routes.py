@@ -1706,28 +1706,3 @@ def _reload_mail_config(app):
     # Reinitialize Flask-Mail with updated config
     mail.init_app(app)
 
-
-# ================================================================
-# TEMPORARY: Seed beta test data (remove after seeding)
-# ================================================================
-@settings_bp.route('/admin/seed-beta', methods=['GET'])
-def seed_beta_data():
-    """Temporary endpoint to seed realistic beta test data.
-    Protected by secret key (no auth required for curl access).
-    """
-    from flask import jsonify
-    secret = request.args.get('key')
-    if secret != 'gr2026seed':
-        return jsonify({'error': 'unauthorized'}), 403
-
-    try:
-        from app.utils.seed_beta import run_seed
-        result = run_seed()
-        return jsonify(result)
-    except Exception as e:
-        db.session.rollback()
-        import traceback
-        return jsonify({
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }), 500
