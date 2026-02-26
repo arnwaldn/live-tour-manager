@@ -415,7 +415,7 @@
                 <h5 class="mb-0"><i class="bi bi-music-note-list me-2"></i>Programmation</h5>
                 {% if tour.band_is_manager(current_user) %}
                 <a href="{{ url_for('tours.manage_lineup', id=tour.id, stop_id=stop.id) }}" class="btn btn-sm btn-outline-warning">
-                    Gerer
+                    Gérer
                 </a>
                 {% endif %}
             </div>

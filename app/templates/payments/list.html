@@ -157,8 +157,8 @@
                         </span>
                     </td>
                     <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ payment.description }}">
-                            {{ payment.description or '-' }}
+                        <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ payment.description if payment.description and payment.description != 'None' else '' }}">
+                            {{ payment.description if payment.description and payment.description != 'None' else '-' }}
                         </span>
                     </td>
                     <td class="text-end fw-medium">
