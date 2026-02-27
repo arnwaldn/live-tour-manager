@@ -39,13 +39,20 @@ def setup_initial_users():
     manager_email = os.environ.get('MANAGER_EMAIL')
     manager_password = os.environ.get('MANAGER_PASSWORD')
 
-    if not admin_email:
+    # In non-interactive environments (Docker, CI), skip if env vars not set
+    if not admin_email or not admin_password:
+        if not sys.stdin.isatty():
+            print("[SKIP] ADMIN_EMAIL/ADMIN_PASSWORD not set and no interactive terminal.")
+            print("[SKIP] Set env vars or run interactively. Exiting gracefully.")
+            return 0
         admin_email = input("Admin email: ").strip()
-    if not admin_password:
         admin_password = getpass.getpass("Admin password: ")
-    if not manager_email:
+    if not manager_email or not manager_password:
+        if not sys.stdin.isatty():
+            print("[SKIP] MANAGER_EMAIL/MANAGER_PASSWORD not set and no interactive terminal.")
+            print("[SKIP] Set env vars or run interactively. Exiting gracefully.")
+            return 0
         manager_email = input("Manager email: ").strip()
-    if not manager_password:
         manager_password = getpass.getpass("Manager password: ")
 
     if not all([admin_email, admin_password, manager_email, manager_password]):
