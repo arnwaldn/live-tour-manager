@@ -56,6 +56,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 CMD bash -c "python -c \"from app import create_app, db; app = create_app('production'); app.app_context().__enter__(); db.create_all(); print('[OK] Database tables ready')\" && \
     flask db stamp heads && \
     (flask seed-professions || true) && \
-    gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 2 --threads 2 \
-    --access-logfile - --error-logfile - \
+    gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 1 --threads 2 \
+    --timeout 120 --access-logfile - --error-logfile - \
     'app:create_app()'"
