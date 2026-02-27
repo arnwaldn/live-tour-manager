@@ -9,7 +9,8 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    FLASK_APP=app:create_app
 
 # Set working directory
 WORKDIR /app
@@ -49,9 +50,10 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-# Initialize database, create initial users, and run Gunicorn
-CMD python -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.create_all(); print('Database tables created')" && \
-    python setup_users.py && \
-    gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 2 \
+# DB migrations + seeding at container start, then Gunicorn
+# All steps are idempotent (safe to re-run on each deploy)
+CMD bash -c "flask db upgrade && \
+    (flask seed-professions || true) && \
+    gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 2 --threads 2 \
     --access-logfile - --error-logfile - \
-    "app:create_app()"
+    'app:create_app()'"
