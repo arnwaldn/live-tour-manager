@@ -52,7 +52,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # DB migrations + seeding at container start, then Gunicorn
 # All steps are idempotent (safe to re-run on each deploy)
-CMD bash -c "flask db upgrade && \
+CMD bash -c "flask db upgrade heads && \
     (flask seed-professions || true) && \
     gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 2 --threads 2 \
     --access-logfile - --error-logfile - \
