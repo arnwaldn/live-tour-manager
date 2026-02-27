@@ -1048,6 +1048,13 @@ def register_template_filters(app):
         """
         if not date:
             return ''
+        # Handle ISO-format strings from serialized data
+        if isinstance(date, str):
+            from datetime import date as date_cls, datetime as dt_cls
+            try:
+                date = dt_cls.fromisoformat(date).date() if 'T' in date else date_cls.fromisoformat(date)
+            except (ValueError, TypeError):
+                return date
         day_en = date.strftime('%A')
         month_en = date.strftime('%B')
         day_fr = DAYS_FR.get(day_en, day_en)

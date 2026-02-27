@@ -821,18 +821,14 @@ class TestDeclineAssignment:
 class TestListContacts:
     """Tests for listing external contacts.
 
-    Note: crew/contacts.html template does not yet exist. Tests that
-    render this template are marked xfail until the template is created.
     """
 
-    @pytest.mark.xfail(reason="crew/contacts.html template not yet created", strict=True)
     def test_list_contacts_authenticated(self, app, client, manager_user):
         """Authenticated user can view contacts list."""
         login(client, 'manager@test.com', 'Manager123!')
         response = client.get('/crew/contacts')
         assert response.status_code == 200
 
-    @pytest.mark.xfail(reason="crew/contacts.html template not yet created", strict=True)
     def test_list_contacts_shows_data(self, app, client, manager_user, external_contact):
         """Contacts list shows contact names."""
         login(client, 'manager@test.com', 'Manager123!')

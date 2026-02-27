@@ -1,0 +1,137 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Contacts Externes - GigRoute{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Tableau de bord</a></li>
+        <li class="breadcrumb-item active">Contacts Externes</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="bi bi-person-rolodex me-2"></i>Contacts Externes</h1>
+        <p class="text-muted mb-0">Freelancers et prestataires sans compte utilisateur</p>
+    </div>
+    <button type="button" class="btn btn-primary mt-2 mt-md-0" data-bs-toggle="modal" data-bs-target="#addContactModal">
+        <i class="bi bi-plus-lg me-1"></i>Ajouter un contact
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-body">
+        {% if contacts %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nom</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Métier</th>
+                        <th>Société</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contact in contacts %}
+                    <tr>
+                        <td class="fw-semibold">{{ contact.full_name }}</td>
+                        <td>
+                            {% if contact.email %}
+                            <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ contact.phone or '—' }}</td>
+                        <td>
+                            {% if contact.profession %}
+                            <span class="badge bg-info bg-opacity-10 text-info">{{ contact.profession.name_fr }}</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ contact.company or '—' }}</td>
+                        <td class="text-end">
+                            <form method="POST" action="{{ url_for('crew.delete_contact', id=contact.id) }}" class="d-inline" onsubmit="return confirm('Supprimer ce contact ?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-person-rolodex display-4 text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">Aucun contact externe</h5>
+            <p class="text-muted">Ajoutez des freelancers et prestataires pour les assigner aux dates de tournée.</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addContactModal">
+                <i class="bi bi-plus-lg me-1"></i>Ajouter un contact
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Contact Modal -->
+<div class="modal fade" id="addContactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('crew.create_contact') }}">
+                {{ form.hidden_tag() }}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Nouveau contact</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Prénom <span class="text-danger">*</span></label>
+                            {{ form.first_name(class="form-control", placeholder="Prénom") }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Nom <span class="text-danger">*</span></label>
+                            {{ form.last_name(class="form-control", placeholder="Nom") }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Email</label>
+                            {{ form.email(class="form-control", placeholder="email@exemple.com") }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Téléphone</label>
+                            {{ form.phone(class="form-control", placeholder="+33 6 ...") }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Métier</label>
+                            {{ form.profession_id(class="form-select") }}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Société</label>
+                            {{ form.company(class="form-control", placeholder="Société") }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            {{ form.notes(class="form-control", rows="2", placeholder="Notes...") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
