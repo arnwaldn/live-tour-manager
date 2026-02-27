@@ -134,7 +134,11 @@ class ProductionConfig(Config):
 
     # SECRET_KEY and DATABASE_URL - validated in init_app (not at import time)
     SECRET_KEY = os.environ.get('SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    # Fix postgres:// → postgresql:// (Render/Neon use postgres://, SQLAlchemy 2.x requires postgresql://)
+    _db_url = os.environ.get('DATABASE_URL', '')
+    if _db_url.startswith('postgres://'):
+        _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = _db_url or None
 
     # Enhanced security for production
     SESSION_COOKIE_SECURE = True

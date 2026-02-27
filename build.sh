@@ -16,6 +16,16 @@ pip install -r requirements.txt
 echo ""
 echo "=== Step 2: Checking database connection ==="
 python -c "
+import os, sys
+db_url = os.environ.get('DATABASE_URL', '')
+if not db_url:
+    print('ERROR: DATABASE_URL not set. Cannot proceed.')
+    sys.exit(1)
+# Fix Render's postgres:// → postgresql:// (required by SQLAlchemy 2.x)
+if db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    os.environ['DATABASE_URL'] = db_url
+    print('Fixed DATABASE_URL scheme: postgres:// → postgresql://')
 from app import create_app
 from app.extensions import db
 app = create_app()
@@ -25,7 +35,7 @@ with app.app_context():
         print('Database connection: OK')
     except Exception as e:
         print(f'Database connection FAILED: {e}')
-        exit(1)
+        sys.exit(1)
 "
 
 echo ""
