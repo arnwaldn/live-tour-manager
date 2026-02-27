@@ -1,6 +1,6 @@
 ﻿#!/usr/bin/env python3
 """
-Tour Manager - Seed Data Script
+GigRoute - Seed Data Script
 Creates demo data for development and testing.
 
 Usage:
@@ -86,7 +86,7 @@ ROLES_DATA = [
 
 USERS_DATA = [
     {
-        'email': 'manager@tourmanager.com',
+        'email': 'manager@gigroute.app',
         'password': 'Manager123!',
         'first_name': 'Sophie',
         'last_name': 'Martin',
@@ -110,7 +110,7 @@ USERS_DATA = [
         'roles': ['MUSICIAN']
     },
     {
-        'email': 'tech@tourmanager.com',
+        'email': 'tech@gigroute.app',
         'password': 'Tech123!',
         'first_name': 'Thomas',
         'last_name': 'Petit',
@@ -126,7 +126,7 @@ USERS_DATA = [
         'roles': ['PROMOTER']
     },
     {
-        'email': 'guestlist@tourmanager.com',
+        'email': 'guestlist@gigroute.app',
         'password': 'Guest123!',
         'first_name': 'Marie',
         'last_name': 'Leroy',
@@ -371,10 +371,10 @@ TOUR_STOPS_DATA = [
 
 def get_guestlist_data(tour_stops, users):
     """Generate guestlist entries for tour stops."""
-    manager = next(u for u in users if u.email == 'manager@tourmanager.com')
+    manager = next(u for u in users if u.email == 'manager@gigroute.app')
     musician1 = next(u for u in users if u.email == 'lead@cosmictravelers.com')
     musician2 = next(u for u in users if u.email == 'drums@cosmictravelers.com')
-    guestlist_mgr = next(u for u in users if u.email == 'guestlist@tourmanager.com')
+    guestlist_mgr = next(u for u in users if u.email == 'guestlist@gigroute.app')
 
     # Paris stop guestlist
     paris_stop = next(s for s in tour_stops if s.venue.city == 'Paris')
@@ -637,18 +637,35 @@ def create_roles():
 
 
 def create_users(roles):
-    """Create demo users with assigned roles."""
+    """Create demo users with assigned roles and access levels."""
+    from app.models.user import AccessLevel
+
+    # Map role names to access levels
+    role_to_access = {
+        'ADMIN': AccessLevel.ADMIN,
+        'MANAGER': AccessLevel.MANAGER,
+        'TECH': AccessLevel.STAFF,
+        'MUSICIAN': AccessLevel.STAFF,
+        'GUESTLIST': AccessLevel.STAFF,
+        'PROMOTER': AccessLevel.EXTERNAL,
+    }
+
     print("Creating users...")
     users = []
     for user_data in USERS_DATA:
         user = User.query.filter_by(email=user_data['email']).first()
         if not user:
+            # Determine access level from highest role
+            primary_role = user_data['roles'][0] if user_data['roles'] else 'VIEWER'
+            access_level = role_to_access.get(primary_role, AccessLevel.VIEWER)
+
             user = User(
                 email=user_data['email'],
                 first_name=user_data['first_name'],
                 last_name=user_data['last_name'],
                 phone=user_data['phone'],
-                is_active=True
+                is_active=True,
+                access_level=access_level
             )
             user.set_password(user_data['password'])
 
@@ -657,6 +674,13 @@ def create_users(roles):
                     user.roles.append(roles[role_name])
 
             db.session.add(user)
+        else:
+            # Update existing user's access level if not set correctly
+            primary_role = user_data['roles'][0] if user_data['roles'] else 'VIEWER'
+            expected_level = role_to_access.get(primary_role, AccessLevel.VIEWER)
+            if user.access_level != expected_level:
+                user.access_level = expected_level
+
         users.append(user)
     db.session.commit()
     print(f"  [OK] Created {len(users)} users")
@@ -666,7 +690,7 @@ def create_users(roles):
 def create_band(users):
     """Create the demo band with members."""
     print("Creating band...")
-    manager = next(u for u in users if u.email == 'manager@tourmanager.com')
+    manager = next(u for u in users if u.email == 'manager@gigroute.app')
 
     band = Band.query.filter_by(name=BAND_DATA['name']).first()
     if not band:
@@ -938,7 +962,7 @@ def clean_database():
 def seed_all():
     """Run all seed functions."""
     print("\n" + "=" * 60)
-    print("Tour Manager - Seeding Database")
+    print("GigRoute - Seeding Database")
     print("=" * 60 + "\n")
 
     roles = create_roles()

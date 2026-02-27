@@ -1,7 +1,7 @@
 """
 Logistics management routes.
 """
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from flask import render_template, redirect, url_for, flash, request, make_response, Response
 from flask_login import login_required, current_user
 
@@ -983,7 +983,7 @@ def export_ical(stop_id):
 
     # Create calendar
     cal = Calendar()
-    cal.add('prodid', '-//Tour Manager//GigRoute//FR')
+    cal.add('prodid', '-//GigRoute//GigRoute//FR')
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')
@@ -994,13 +994,13 @@ def export_ical(stop_id):
     main_event.add('uid', f'show-{stop.id}@gigroute.app')
     main_event.add('summary', f'{tour.band_name} @ {stop.venue.name if stop.venue else "TBA"}')
 
-    # Set show time
-    show_time = stop.show_time or time(20, 30)
+    # Set show time (prefer set_time, then doors_time, fallback to 20:30)
+    show_time = stop.set_time or stop.doors_time or time(20, 30)
     event_start = datetime.combine(stop.date, show_time)
     main_event.add('dtstart', event_start)
 
-    # Estimate 2 hours show duration
-    event_end = datetime.combine(stop.date, time(show_time.hour + 2, show_time.minute))
+    # Estimate 2 hours show duration (safe overflow past midnight)
+    event_end = event_start + timedelta(hours=2)
     main_event.add('dtend', event_end)
 
     # Location
@@ -1063,10 +1063,10 @@ def export_ical(stop_id):
             call_event = Event()
             call_event.add('uid', f'{attr}-{stop.id}@gigroute.app')
             call_event.add('summary', f'{label} - {stop.venue.name if stop.venue else "TBA"}')
-            call_event.add('dtstart', datetime.combine(stop.date, call_time))
-            # 30 min duration for call times
-            end_time = time(call_time.hour, call_time.minute + 30) if call_time.minute < 30 else time(call_time.hour + 1, call_time.minute - 30)
-            call_event.add('dtend', datetime.combine(stop.date, end_time))
+            call_start = datetime.combine(stop.date, call_time)
+            call_event.add('dtstart', call_start)
+            # 30 min duration for call times (safe overflow past midnight)
+            call_event.add('dtend', call_start + timedelta(minutes=30))
             if stop.venue:
                 call_event.add('location', f"{stop.venue.name}, {stop.venue.city}")
             call_event.add('dtstamp', datetime.utcnow())
@@ -1075,7 +1075,7 @@ def export_ical(stop_id):
             from icalendar import Alarm
             alarm = Alarm()
             alarm.add('action', 'DISPLAY')
-            alarm.add('trigger', datetime.timedelta(minutes=-15))
+            alarm.add('trigger', timedelta(minutes=-15))
             alarm.add('description', f'{label} dans 15 minutes')
             call_event.add_component(alarm)
 
@@ -1220,7 +1220,7 @@ def export_tour_ical(tour_id):
 
     # Create calendar
     cal = Calendar()
-    cal.add('prodid', '-//Tour Manager//GigRoute//FR')
+    cal.add('prodid', '-//GigRoute//GigRoute//FR')
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')

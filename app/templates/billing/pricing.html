@@ -42,6 +42,9 @@
         padding: 0.25rem 1rem;
         border-radius: 1rem;
     }
+    .pricing-card {
+        color: #1a1a2e;
+    }
     .price-amount {
         font-family: 'Outfit', sans-serif;
         font-size: 3rem;
@@ -49,12 +52,13 @@
         color: #1a1a2e;
     }
     .price-period {
-        color: #6c757d;
+        color: #495057;
         font-size: 1rem;
     }
     .feature-list {
         list-style: none;
         padding: 0;
+        color: #212529;
     }
     .feature-list li {
         padding: 0.5rem 0;
@@ -105,8 +109,8 @@
 <!-- Hero Section -->
 <section class="pricing-hero text-center">
     <div class="container">
-        <h1 class="display-5 mb-3">Gerez vos tournees comme un pro</h1>
-        <p class="lead mb-0">Choisissez le plan qui correspond a vos besoins. Passez a Pro a tout moment.</p>
+        <h1 class="display-5 mb-3">Gérez vos tournées comme un pro</h1>
+        <p class="lead mb-0">Choisissez le plan qui correspond à vos besoins. Passez à Pro à tout moment.</p>
     </div>
 </section>
 
@@ -125,19 +129,19 @@
                     <ul class="feature-list flex-grow-1">
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
-                            <strong>1</strong> tournee
+                            <strong>1</strong> tournée
                         </li>
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
-                            <strong>5</strong> dates par tournee
+                            <strong>5</strong> dates par tournée
                         </li>
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
-                            Advancing (preparation)
+                            Advancing (préparation)
                         </li>
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
-                            Liste d'invites
+                            Liste d'invités
                         </li>
                         <li>
                             <i class="bi bi-x-circle me-2" aria-hidden="true"></i>
@@ -177,19 +181,19 @@
                     <ul class="feature-list flex-grow-1">
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
-                            Tournees <strong>illimitees</strong>
+                            Tournées <strong>illimitées</strong>
                         </li>
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
-                            Dates <strong>illimitees</strong>
+                            Dates <strong>illimitées</strong>
                         </li>
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
-                            Advancing (preparation)
+                            Advancing (préparation)
                         </li>
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
-                            Liste d'invites
+                            Liste d'invités
                         </li>
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
@@ -197,7 +201,7 @@
                         </li>
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
-                            <strong>API REST</strong> complete
+                            <strong>API REST</strong> complète
                         </li>
                         <li>
                             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
@@ -216,7 +220,7 @@
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-pricing-pro w-100">
                                         <i class="bi bi-lightning-fill me-1" aria-hidden="true"></i>
-                                        Passer a Pro
+                                        Passer à Pro
                                     </button>
                                 </form>
                             {% endif %}
@@ -235,7 +239,7 @@
             <div class="col-md-8 text-center">
                 <p class="text-muted">
                     <i class="bi bi-shield-check me-1" aria-hidden="true"></i>
-                    Paiement securise via Stripe. Annulation a tout moment.
+                    Paiement sécurisé via Stripe. Annulation à tout moment.
                     Pas d'engagement.
                 </p>
             </div>
@@ -246,7 +250,7 @@
 <!-- Footer with back link -->
 <section class="pricing-footer text-center">
     <div class="container">
-        <p class="text-muted mb-2">Des questions ? Contactez-nous a <a href="mailto:support@gigroute.app">support@gigroute.app</a></p>
+        <p class="text-muted mb-2">Des questions ? Contactez-nous à <a href="mailto:support@gigroute.app">support@gigroute.app</a></p>
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('main.dashboard') }}" class="text-decoration-none">
                 <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>

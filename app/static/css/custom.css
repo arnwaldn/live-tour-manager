@@ -1444,8 +1444,8 @@ a:hover {
    Responsive Styles
    ========================================================================== */
 
-/* Tablet and smaller - collapse sidebar */
-@media (max-width: 991.98px) {
+/* Mobile - hide sidebar (offcanvas-md handles below 768px) */
+@media (max-width: 767.98px) {
     .sidebar {
         transform: translateX(-100%);
     }
