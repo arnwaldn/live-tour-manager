@@ -112,6 +112,21 @@
         justify-content: space-between;
         align-items: center;
         padding: 1rem;
+        flex-shrink: 0;
+    }
+
+    /* Fix: Ensure sidebar body scrolls on mobile to access all menu items */
+    .sidebar .offcanvas-body,
+    .sidebar .sidebar-body {
+        max-height: calc(100vh - 70px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Ensure sidebar uses flex layout for proper scroll */
+    .sidebar {
+        display: flex;
+        flex-direction: column;
     }
 }
 

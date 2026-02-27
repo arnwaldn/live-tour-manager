@@ -188,7 +188,8 @@ def google_callback():
 
     except Exception as e:
         current_app.logger.error(f'Google callback error: {e}')
-        flash(f'Error completing Google authorization: {str(e)}', 'error')
+        current_app.logger.error(f'Google OAuth callback failed: {e}')
+        flash('Erreur lors de l\'autorisation Google. Veuillez réessayer.', 'error')
         return redirect(url_for('settings.integrations'))
 
 

@@ -235,7 +235,7 @@ class TestSendEmail:
             assert result is False
 
     def test_send_email_adds_prefix_to_subject(self, app, mock_mail):
-        """Test that email subject is prefixed with [Studio Palenque Tour]."""
+        """Test that email subject is prefixed with [GigRoute]."""
         send_email(
             subject='My Subject',
             recipient='test@test.com',
@@ -248,7 +248,7 @@ class TestSendEmail:
         call_args = mock_mail.send.call_args
         message = call_args[0][0]
 
-        assert '[Studio Palenque Tour]' in message.subject
+        assert '[GigRoute]' in message.subject
         assert 'My Subject' in message.subject
 
 

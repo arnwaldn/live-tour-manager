@@ -26,7 +26,7 @@ class Config:
 
     # Session
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
-    SESSION_COOKIE_SECURE = False  # Set True in production with HTTPS
+    SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
 
@@ -68,6 +68,12 @@ class Config:
     # Geoapify API Key (for international address autocomplete)
     # France uses API Adresse (free, unlimited), international uses Geoapify (3000/day free)
     GEOAPIFY_API_KEY = os.environ.get('GEOAPIFY_API_KEY')
+
+    # JWT (separate key for API tokens — falls back to SECRET_KEY if not set)
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+
+    # Fernet encryption key for sensitive settings (falls back to SECRET_KEY-derived key)
+    FERNET_KEY = os.environ.get('FERNET_KEY')
 
     # Stripe (SaaS billing)
     STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
@@ -143,12 +149,38 @@ class ProductionConfig(Config):
     @classmethod
     def init_app(cls, app):
         """Production-specific initialization with validation."""
+        import logging
+        logger = logging.getLogger(__name__)
+
         # Validate required environment variables at runtime
         if not cls.SECRET_KEY:
             raise ValueError("SECRET_KEY environment variable is required in production")
         if not cls.SQLALCHEMY_DATABASE_URI:
             raise ValueError("DATABASE_URL environment variable is required in production")
-        # Logging is configured in configure_logging() — no handler added here
+
+        # Warn about Stripe keys if any are set (billing partially configured)
+        stripe_keys = ['STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_PRO_PRICE_ID']
+        set_keys = [k for k in stripe_keys if os.environ.get(k)]
+        missing_keys = [k for k in stripe_keys if not os.environ.get(k)]
+        if set_keys and missing_keys:
+            raise ValueError(
+                f"Stripe partially configured. Missing: {', '.join(missing_keys)}. "
+                "Set all 4 Stripe keys or none."
+            )
+
+        # Warn about rate limiter using in-memory storage
+        if cls.RATELIMIT_STORAGE_URL == 'memory://':
+            logger.warning(
+                "REDIS_URL not set — rate limiter uses in-memory storage. "
+                "Each Gunicorn worker has independent counters."
+            )
+
+        # Warn about JWT key sharing SECRET_KEY
+        if not os.environ.get('JWT_SECRET_KEY'):
+            logger.warning(
+                "JWT_SECRET_KEY not set — JWT tokens signed with SECRET_KEY. "
+                "Set JWT_SECRET_KEY for key separation."
+            )
 
 
 # Configuration dictionary for easy access
