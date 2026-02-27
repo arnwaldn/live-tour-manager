@@ -1,7 +1,7 @@
 """
 Authentication routes.
 """
-from flask import render_template, redirect, url_for, flash, request, current_app
+from flask import render_template, redirect, url_for, flash, request, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
 
@@ -45,6 +45,9 @@ def login():
             # Successful login
             user.reset_failed_logins()
             db.session.commit()
+
+            # Regenerate session to prevent session fixation attacks
+            session.clear()
 
             login_user(user, remember=form.remember_me.data)
             log_login(user, success=True)
@@ -202,6 +205,7 @@ def reset_password(token):
 
 @auth_bp.route('/change-password', methods=['GET', 'POST'])
 @login_required
+@limiter.limit('5 per minute', methods=['POST'])
 def change_password():
     """Handle password change for logged-in users."""
     form = ChangePasswordForm()

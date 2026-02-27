@@ -691,7 +691,8 @@ def users_create():
                 send_invitation_email(user, current_user)
                 flash(f'Utilisateur "{user.full_name}" créé. Invitation envoyée à {user.email}.', 'success')
             except Exception as e:
-                flash(f'Utilisateur créé mais erreur lors de l\'envoi de l\'email: {str(e)}', 'warning')
+                current_app.logger.error(f'Failed to send invitation email to {user.email}: {e}')
+                flash('Utilisateur créé mais l\'envoi de l\'email d\'invitation a échoué.', 'warning')
         else:
             flash(f'Utilisateur "{user.full_name}" créé (emails désactivés).', 'success')
 
@@ -966,7 +967,8 @@ def users_resend_invite(id):
         send_invitation_email(user, current_user)
         flash(f'Invitation renvoyée à {user.email}.', 'success')
     except Exception as e:
-        flash(f'Erreur lors de l\'envoi de l\'email: {str(e)}', 'error')
+        current_app.logger.error(f'Failed to resend invitation to {user.email}: {e}')
+        flash('Erreur lors de l\'envoi de l\'email d\'invitation.', 'error')
 
     return redirect(url_for('settings.users_list'))
 
@@ -1044,7 +1046,7 @@ def professions_list():
 @requires_manager
 def professions_create():
     """Create a new profession."""
-    from app.models.profession import ProfessionCategory, AccessLevel as ProfessionAccessLevel
+    from app.models.profession import ProfessionCategory
 
     form = ProfessionCreateForm()
 
@@ -1308,7 +1310,8 @@ def users_hard_delete(id):
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Erreur lors de la suppression: {str(e)}', 'error')
+        current_app.logger.error(f'Failed to delete user {user_id}: {e}')
+        flash('Erreur lors de la suppression de l\'utilisateur.', 'error')
 
     return redirect(url_for('settings.users_list'))
 
@@ -1357,7 +1360,8 @@ def approve_user(id):
         send_approval_email(user)
         flash(f'Inscription de "{user.full_name}" approuvée. Email de confirmation envoyé.', 'success')
     except Exception as e:
-        flash(f'Inscription approuvée mais erreur lors de l\'envoi de l\'email: {str(e)}', 'warning')
+        current_app.logger.error(f'Failed to send approval email to {user.email}: {e}')
+        flash('Inscription approuvée mais l\'envoi de l\'email de confirmation a échoué.', 'warning')
 
     return redirect(url_for('settings.pending_registrations'))
 
@@ -1394,7 +1398,8 @@ def reject_user(id):
         send_rejection_email(user_email, user_name)
         flash(f'Inscription de "{user_name}" refusée. Email de notification envoyé.', 'info')
     except Exception as e:
-        flash(f'Inscription refusée mais erreur lors de l\'envoi de l\'email: {str(e)}', 'warning')
+        current_app.logger.error(f'Failed to send rejection email to {user_email}: {e}')
+        flash('Inscription refusée mais l\'envoi de l\'email de notification a échoué.', 'warning')
 
     return redirect(url_for('settings.pending_registrations'))
 

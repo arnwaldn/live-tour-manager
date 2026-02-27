@@ -563,6 +563,6 @@ def send_to_venue(stop_id):
         flash(f'Email envoyé à {recipient_email}.', 'success')
     except Exception as e:
         current_app.logger.error(f'Advancing email error: {e}')
-        flash(f'Erreur lors de l\'envoi: {e}', 'danger')
+        flash('Erreur lors de l\'envoi de l\'email. Veuillez réessayer.', 'danger')
 
     return redirect(url_for('advancing.stop_detail', stop_id=stop_id))

@@ -108,7 +108,7 @@ def admin_full_reset():
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Full reset failed: {e}')
-        flash(f'Erreur lors du reset : {e}', 'error')
+        flash('Erreur lors du reset. Consultez les logs pour plus de détails.', 'error')
 
     return redirect(url_for('main.dashboard'))
 

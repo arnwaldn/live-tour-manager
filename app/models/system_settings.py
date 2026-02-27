@@ -24,9 +24,16 @@ class SystemSettings(db.Model):
 
     @classmethod
     def _get_fernet(cls):
-        """Get Fernet instance for encryption/decryption."""
+        """Get Fernet instance for encryption/decryption.
+
+        Uses dedicated FERNET_KEY if set, otherwise derives from SECRET_KEY.
+        """
+        fernet_key = current_app.config.get('FERNET_KEY')
+        if fernet_key:
+            # Use dedicated Fernet key (must be valid base64-encoded 32-byte key)
+            return Fernet(fernet_key.encode() if isinstance(fernet_key, str) else fernet_key)
+        # Fallback: derive from SECRET_KEY
         key = current_app.config['SECRET_KEY']
-        # Derive a valid Fernet key from SECRET_KEY
         key_bytes = hashlib.sha256(key.encode()).digest()
         return Fernet(base64.urlsafe_b64encode(key_bytes))
 

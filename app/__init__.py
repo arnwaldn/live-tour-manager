@@ -231,7 +231,7 @@ def register_error_handlers(app):
     def internal_error(error):
         db.session.rollback()
         request_id = g.get('request_id', '-')
-        app.logger.error('500 Internal Server Error: %s (request_id=%s)', error, request_id)
+        app.logger.error('500 Internal Server Error: %s (request_id=%s)', type(error).__name__, request_id, exc_info=True)
         if _is_api_request():
             return jsonify({'error': {'code': 'internal_error', 'message': 'Internal server error.', 'request_id': request_id}}), 500
         return render_template('errors/500.html', request_id=request_id), 500
@@ -531,10 +531,10 @@ def register_cli_commands(app):
         print("\nKept: Users, Venues, Professions, Bands")
 
     @app.cli.command('setup-users')
-    @click.option('--admin-email', default='arnaud.porcel@gmail.com', help='Admin email')
-    @click.option('--admin-password', default='TourAdmin2026!Secure', help='Admin password')
-    @click.option('--manager-email', default='jonathan.studiopalenquegroup@gmail.com', help='Manager email')
-    @click.option('--manager-password', default='TourManager2026!Secure', help='Manager password')
+    @click.option('--admin-email', prompt='Admin email', help='Admin email', envvar='ADMIN_EMAIL')
+    @click.option('--admin-password', prompt='Admin password', hide_input=True, confirmation_prompt=True, help='Admin password', envvar='ADMIN_PASSWORD')
+    @click.option('--manager-email', prompt='Manager email', help='Manager email', envvar='MANAGER_EMAIL')
+    @click.option('--manager-password', prompt='Manager password', hide_input=True, confirmation_prompt=True, help='Manager password', envvar='MANAGER_PASSWORD')
     def setup_users(admin_email, admin_password, manager_email, manager_password):
         """Create initial admin and manager users.
 
@@ -561,8 +561,8 @@ def register_cli_commands(app):
         else:
             admin = User(
                 email=admin_email,
-                first_name='Arnaud',
-                last_name='Porcel',
+                first_name='Admin',
+                last_name='GigRoute',
                 access_level=AccessLevel.ADMIN,
                 is_active=True,
                 email_verified=True
@@ -702,8 +702,8 @@ def register_cli_commands(app):
         deleted['band_memberships'] = count
 
         # 15. User professions (for users to be deleted)
-        admin_email = 'arnaud.porcel@gmail.com'
-        manager_email = 'jonathan.studiopalenquegroup@gmail.com'
+        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@gigroute.app')
+        manager_email = os.environ.get('MANAGER_EMAIL', 'manager@gigroute.app')
 
         # Get IDs of users to keep
         keep_users = User.query.filter(
@@ -737,7 +737,9 @@ def register_cli_commands(app):
         print("  - Venues, Professions, Roles, Bands (empty)")
         print("="*60)
 
-    def _perform_full_reset(admin_email='arnaud.porcel@gmail.com'):
+    def _perform_full_reset(admin_email=None):
+        if admin_email is None:
+            admin_email = os.environ.get('ADMIN_EMAIL', 'admin@gigroute.app')
         """Core reset logic shared by CLI command and HTTP endpoint.
 
         Deletes ALL data except the admin user. Returns dict of deleted counts.
@@ -889,7 +891,7 @@ def register_cli_commands(app):
 
     @app.cli.command('full-reset')
     @click.option('--confirm', is_flag=True, help='Confirm full reset')
-    @click.option('--admin-email', default='arnaud.porcel@gmail.com', help='Admin email to keep')
+    @click.option('--admin-email', prompt='Admin email to keep', help='Admin email to keep', envvar='ADMIN_EMAIL')
     def full_reset(confirm, admin_email):
         """Full application reset. Deletes ALL data except one admin user.
 
@@ -1276,15 +1278,23 @@ def register_security_headers(app):
         # Permissions policy (formerly Feature-Policy)
         response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
 
-        # Content Security Policy (basic - can be customized further)
+        # HSTS - Force HTTPS (1 year, include subdomains)
+        if not app.debug:
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
+        # Prevent cross-domain policy loading
+        response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
+
+        # Content Security Policy
         if not app.debug:
             response.headers['Content-Security-Policy'] = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://js.stripe.com; "
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com; "
                 "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
                 "img-src 'self' data: https: blob:; "
-                "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://api-adresse.data.gouv.fr https://data.geopf.fr https://api.geoapify.com;"
+                "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://api-adresse.data.gouv.fr https://data.geopf.fr https://api.geoapify.com https://api.stripe.com; "
+                "frame-src 'self' https://js.stripe.com https://hooks.stripe.com; "
                 "frame-ancestors 'self';"
             )
 

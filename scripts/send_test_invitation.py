@@ -32,7 +32,7 @@ def send_test_invitation():
         print("="*60)
 
         # Email de destination (alias Gmail pour recevoir dans la meme boite)
-        test_email = "arnaud.porcel+test@gmail.com"
+        test_email = os.environ.get('TEST_EMAIL', 'test@example.com')
 
         # 1. Trouver le manager (celui qui invite)
         print("\n[1] Recherche du manager...")

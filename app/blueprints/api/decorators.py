@@ -18,7 +18,8 @@ def create_access_token(user_id, expires_minutes=60):
         'iat': datetime.now(timezone.utc),
         'exp': datetime.now(timezone.utc) + timedelta(minutes=expires_minutes),
     }
-    return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
+    secret = current_app.config.get('JWT_SECRET_KEY') or current_app.config['SECRET_KEY']
+    return jwt.encode(payload, secret, algorithm='HS256')
 
 
 def create_refresh_token(user_id, expires_days=30):
@@ -29,15 +30,17 @@ def create_refresh_token(user_id, expires_days=30):
         'iat': datetime.now(timezone.utc),
         'exp': datetime.now(timezone.utc) + timedelta(days=expires_days),
     }
-    return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
+    secret = current_app.config.get('JWT_SECRET_KEY') or current_app.config['SECRET_KEY']
+    return jwt.encode(payload, secret, algorithm='HS256')
 
 
 def decode_token(token):
     """Decode and validate a JWT token. Returns payload or None."""
     try:
+        secret = current_app.config.get('JWT_SECRET_KEY') or current_app.config['SECRET_KEY']
         payload = jwt.decode(
             token,
-            current_app.config['SECRET_KEY'],
+            secret,
             algorithms=['HS256'],
         )
         return payload

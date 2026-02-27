@@ -173,7 +173,8 @@ def outlook_callback():
 
     except Exception as e:
         current_app.logger.error(f'Outlook callback error: {e}')
-        flash(f'Error completing Outlook authorization: {str(e)}', 'error')
+        current_app.logger.error(f'Outlook OAuth callback failed: {e}')
+        flash('Erreur lors de l\'autorisation Outlook. Veuillez réessayer.', 'error')
         return redirect(url_for('settings.integrations'))
 
 
@@ -297,7 +298,7 @@ def refresh_microsoft_token(token):
             db.session.commit()
             return True
         else:
-            current_app.logger.error(f'Token refresh failed: {result}')
+            current_app.logger.error(f'Token refresh failed: error={result.get("error")}, codes={result.get("error_codes")}')
             return False
 
     except Exception as e:

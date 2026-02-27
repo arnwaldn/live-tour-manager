@@ -1157,7 +1157,8 @@ def export_tour_pdf(tour_id):
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        flash(f'Erreur lors de la generation du PDF: {str(e)}', 'error')
+        current_app.logger.error(f'PDF generation failed: {e}')
+        flash('Erreur lors de la génération du PDF.', 'error')
         return redirect(url_for('tours.detail', id=tour_id))
 
 
@@ -1193,7 +1194,8 @@ def export_stop_pdf(stop_id):
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        flash(f'Erreur lors de la generation du PDF: {str(e)}', 'error')
+        current_app.logger.error(f'PDF generation failed: {e}')
+        flash('Erreur lors de la génération du PDF.', 'error')
         return redirect(url_for('logistics.day_sheet', stop_id=stop_id))
 
 

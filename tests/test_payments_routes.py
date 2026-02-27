@@ -1216,7 +1216,7 @@ class TestExportCSV:
         response = client.get('/payments/export/csv')
         assert response.status_code == 200
         assert response.content_type == 'text/csv; charset=utf-8'
-        assert b'Reference' in response.data
+        assert 'Référence'.encode('utf-8') in response.data
 
     def test_export_csv_with_payments(self, client, manager_user, draft_payment, approved_payment):
         """Test CSV export includes payment data."""

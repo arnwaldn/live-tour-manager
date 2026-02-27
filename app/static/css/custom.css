@@ -131,13 +131,6 @@ a:hover {
     line-height: 1.2;
 }
 
-.navbar-credit {
-    font-size: 0.65rem;
-    color: rgba(255, 183, 45, 0.6);
-    line-height: 1;
-    margin-top: 2px;
-}
-
 .navbar .nav-link {
     color: var(--sp-white) !important;
 }
@@ -227,14 +220,6 @@ a:hover {
     display: flex;
     flex-direction: column;
     line-height: 1.2;
-}
-
-.sidebar-brand .brand-credit {
-    display: block;
-    font-size: 0.6rem;
-    color: rgba(255, 183, 45, 0.6);
-    margin-left: 52px;
-    margin-top: -2px;
 }
 
 /* Sidebar body */

@@ -358,7 +358,8 @@ def settlement_pdf(stop_id):
     try:
         pdf_bytes = generate_settlement_pdf(settlement_data)
     except Exception as e:
-        flash(f'Erreur lors de la generation du PDF: {str(e)}', 'error')
+        current_app.logger.error(f'Settlement PDF generation failed for stop {stop_id}: {e}')
+        flash('Erreur lors de la génération du PDF.', 'error')
         return redirect(url_for('reports.settlement', stop_id=stop_id))
 
     # Create filename
@@ -478,7 +479,8 @@ def accounting_bordereau(tour_id):
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        flash(f'Erreur lors de la generation du bordereau: {str(e)}', 'error')
+        current_app.logger.error(f'Bordereau PDF generation failed: {e}')
+        flash('Erreur lors de la génération du bordereau.', 'error')
         return redirect(url_for('reports.accounting_index'))
 
 
@@ -517,7 +519,8 @@ def accounting_masse_salariale(tour_id):
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        flash(f'Erreur lors de l\'export CSV: {str(e)}', 'error')
+        current_app.logger.error(f'CSV export failed: {e}')
+        flash('Erreur lors de l\'export CSV.', 'error')
         return redirect(url_for('reports.accounting_index'))
 
 
@@ -550,7 +553,8 @@ def accounting_paiements_a_effectuer():
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        flash(f'Erreur lors de l\'export CSV: {str(e)}', 'error')
+        current_app.logger.error(f'CSV export failed: {e}')
+        flash('Erreur lors de l\'export CSV.', 'error')
         return redirect(url_for('reports.accounting_index'))
 
 
@@ -593,7 +597,8 @@ def accounting_fiche_membre(user_id):
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        flash(f'Erreur lors de la generation de la fiche: {str(e)}', 'error')
+        current_app.logger.error(f'Member fiche PDF generation failed: {e}')
+        flash('Erreur lors de la génération de la fiche.', 'error')
         return redirect(url_for('reports.accounting_index'))
 
 
@@ -632,7 +637,8 @@ def accounting_budget(tour_id):
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        flash(f'Erreur lors de la generation du budget: {str(e)}', 'error')
+        current_app.logger.error(f'Budget PDF generation failed: {e}')
+        flash('Erreur lors de la génération du budget.', 'error')
         return redirect(url_for('reports.accounting_index'))
 
 
@@ -670,5 +676,6 @@ def accounting_attestation(payment_id):
             headers={'Content-Disposition': f'attachment; filename="{filename}"'}
         )
     except Exception as e:
-        flash(f'Erreur lors de la generation de l\'attestation: {str(e)}', 'error')
+        current_app.logger.error(f'Attestation PDF generation failed: {e}')
+        flash('Erreur lors de la génération de l\'attestation.', 'error')
         return redirect(url_for('reports.accounting_index'))

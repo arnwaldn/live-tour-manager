@@ -13,6 +13,15 @@ from app.extensions import csrf, limiter
 from app.services.subscription_service import SubscriptionService
 
 
+@billing_bp.route('/')
+def billing_index():
+    """Redirect billing root to dashboard or pricing."""
+    from flask_login import current_user
+    if current_user.is_authenticated:
+        return redirect(url_for('billing.dashboard'))
+    return redirect(url_for('billing.pricing'))
+
+
 @billing_bp.route('/pricing')
 def pricing():
     """Public pricing page — Free vs Pro comparison."""
@@ -110,5 +119,9 @@ def webhook():
 @login_required
 def success():
     """Post-checkout success page."""
-    session_id = request.args.get('session_id')
+    import re
+    session_id = request.args.get('session_id', '')
+    # Validate Stripe session ID format (cs_test_... or cs_live_...)
+    if session_id and not re.match(r'^cs_(test|live)_[a-zA-Z0-9]+$', session_id):
+        session_id = None
     return render_template('billing/success.html', session_id=session_id)
