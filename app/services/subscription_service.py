@@ -14,7 +14,6 @@ from app.models.user import User
 from app.models.tour import Tour
 from app.models.tour_stop import TourStop
 from app.models.band import Band
-from app.blueprints.billing.plans import get_plan_limits
 
 
 class PlanLimitExceeded(Exception):
@@ -342,6 +341,8 @@ class SubscriptionService:
         Raises:
             PlanLimitExceeded: If limit reached
         """
+        from app.blueprints.billing.plans import get_plan_limits
+
         plan = user.current_plan
         limits = get_plan_limits(plan)
 
@@ -363,6 +364,8 @@ class SubscriptionService:
         Raises:
             PlanLimitExceeded: If limit reached
         """
+        from app.blueprints.billing.plans import get_plan_limits
+
         plan = user.current_plan
         limits = get_plan_limits(plan)
 
