@@ -17,8 +17,8 @@
             <div class="input-group">
                 <input type="search" class="form-control" name="q" placeholder="Rechercher..."
                        value="{{ request.args.get('q', '') }}" aria-label="Rechercher" id="navbar-search-input">
-                <button class="btn btn-outline-gold" type="submit">
-                    <i class="bi bi-search"></i>
+                <button class="btn btn-outline-gold" type="submit" aria-label="Rechercher">
+                    <i class="bi bi-search" aria-hidden="true"></i>
                 </button>
             </div>
         </form>
@@ -27,16 +27,16 @@
         <ul class="navbar-nav ms-auto flex-row">
             <!-- Search Toggle (Mobile) -->
             <li class="nav-item d-lg-none">
-                <a class="nav-link px-2" href="{{ url_for('main.search') }}">
-                    <i class="bi bi-search"></i>
+                <a class="nav-link px-2" href="{{ url_for('main.search') }}" aria-label="Rechercher">
+                    <i class="bi bi-search" aria-hidden="true"></i>
                 </a>
             </li>
 
             <!-- Notifications -->
             <li class="nav-item dropdown" id="notifications-dropdown">
                 <a class="nav-link px-2 position-relative" href="#" role="button"
-                   data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-bell"></i>
+                   data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+                    <i class="bi bi-bell" aria-hidden="true"></i>
                     {% if unread_notifications_count > 0 %}
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notifications-badge">
                         {{ unread_notifications_count if unread_notifications_count < 100 else '99+' }}
@@ -48,8 +48,8 @@
                     <li class="dropdown-header d-flex justify-content-between align-items-center px-3 py-2">
                         <span class="fw-bold">Notifications</span>
                         {% if unread_notifications_count > 0 %}
-                        <button type="button" class="btn btn-link btn-sm p-0 text-muted" id="mark-all-read-btn" title="Tout marquer comme lu">
-                            <i class="bi bi-check2-all"></i>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-muted" id="mark-all-read-btn" title="Tout marquer comme lu" aria-label="Tout marquer comme lu">
+                            <i class="bi bi-check2-all" aria-hidden="true"></i>
                         </button>
                         {% endif %}
                     </li>

@@ -68,8 +68,8 @@
                         <div class="input-group">
                             <input type="password" name="mail_password" class="form-control" id="mail_password"
                                    placeholder="{{ '********' if config.MAIL_PASSWORD else 'Entrez le mot de passe' }}">
-                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
-                                <i class="bi bi-eye" id="toggle-icon"></i>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()" aria-label="Afficher le mot de passe">
+                                <i class="bi bi-eye" id="toggle-icon" aria-hidden="true"></i>
                             </button>
                         </div>
                         <small class="text-muted">Laissez vide pour conserver le mot de passe actuel</small>

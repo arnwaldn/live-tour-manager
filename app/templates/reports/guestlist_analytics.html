@@ -167,12 +167,12 @@
                 <thead class="table-dark">
                     <tr>
                         <th>Tournée</th>
-                        <th>Groupe</th>
+                        <th class="d-none d-md-table-cell">Groupe</th>
                         <th class="text-center">Total</th>
-                        <th class="text-center">+1</th>
-                        <th class="text-center">En attente</th>
-                        <th class="text-center">Approuvés</th>
-                        <th class="text-center">Refusés</th>
+                        <th class="text-center d-none d-md-table-cell">+1</th>
+                        <th class="text-center d-none d-lg-table-cell">En attente</th>
+                        <th class="text-center d-none d-lg-table-cell">Approuvés</th>
+                        <th class="text-center d-none d-lg-table-cell">Refusés</th>
                         <th class="text-center">Présents</th>
                         <th class="text-center">Taux présence</th>
                         <th class="text-center">Actions</th>
@@ -181,21 +181,25 @@
                 <tbody>
                     {% for stats in tour_stats %}
                     <tr>
-                        <td><strong>{{ stats.tour.name }}</strong></td>
-                        <td>{{ stats.tour.band.name if stats.tour.band else 'N/A' }}</td>
+                        <td>
+                            <strong>{{ stats.tour.name }}</strong>
+                            <br class="d-md-none">
+                            <small class="d-md-none text-muted">{{ stats.tour.band.name if stats.tour.band else 'N/A' }}</small>
+                        </td>
+                        <td class="d-none d-md-table-cell">{{ stats.tour.band.name if stats.tour.band else 'N/A' }}</td>
                         <td class="text-center">{{ stats.total_entries }}</td>
-                        <td class="text-center">{{ stats.total_plus_ones }}</td>
-                        <td class="text-center">
+                        <td class="text-center d-none d-md-table-cell">{{ stats.total_plus_ones }}</td>
+                        <td class="text-center d-none d-lg-table-cell">
                             {% if stats.pending > 0 %}
                             <span class="badge bg-warning">{{ stats.pending }}</span>
                             {% else %}
                             <span class="text-muted">0</span>
                             {% endif %}
                         </td>
-                        <td class="text-center">
+                        <td class="text-center d-none d-lg-table-cell">
                             <span class="text-success">{{ stats.approved }}</span>
                         </td>
-                        <td class="text-center">
+                        <td class="text-center d-none d-lg-table-cell">
                             {% if stats.denied > 0 %}
                             <span class="text-danger">{{ stats.denied }}</span>
                             {% else %}
@@ -221,12 +225,13 @@
                 </tbody>
                 <tfoot class="table-secondary">
                     <tr class="fw-bold">
-                        <td colspan="2">TOTAL</td>
+                        <td>TOTAL</td>
+                        <td class="d-none d-md-table-cell"></td>
                         <td class="text-center">{{ total_entries }}</td>
-                        <td class="text-center">{{ total_plus_ones }}</td>
-                        <td class="text-center">{{ total_pending }}</td>
-                        <td class="text-center">{{ total_approved }}</td>
-                        <td class="text-center">{{ total_denied }}</td>
+                        <td class="text-center d-none d-md-table-cell">{{ total_plus_ones }}</td>
+                        <td class="text-center d-none d-lg-table-cell">{{ total_pending }}</td>
+                        <td class="text-center d-none d-lg-table-cell">{{ total_approved }}</td>
+                        <td class="text-center d-none d-lg-table-cell">{{ total_denied }}</td>
                         <td class="text-center">{{ total_checked_in }}</td>
                         <td class="text-center">
                             <span class="badge bg-info">{{ "{:.0f}".format(checkin_rate) }}%</span>

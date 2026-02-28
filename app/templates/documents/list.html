@@ -70,9 +70,9 @@
                     <tr>
                         <th>Document</th>
                         <th>Type</th>
-                        <th>Propriétaire</th>
+                        <th class="d-none d-md-table-cell">Propriétaire</th>
                         <th>Expiration</th>
-                        <th>Taille</th>
+                        <th class="d-none d-md-table-cell">Taille</th>
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
@@ -115,7 +115,7 @@
                             <span class="badge bg-light text-dark">Autre</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="d-none d-md-table-cell">
                             {% if doc.owner_type == 'user' %}
                             <i class="bi bi-person me-1"></i>
                             <a href="{{ url_for('documents.by_user', user_id=doc.user_id) }}">{{ doc.owner_name }}</a>
@@ -151,7 +151,7 @@
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td>{{ doc.file_size_formatted }}</td>
+                        <td class="d-none d-md-table-cell">{{ doc.file_size_formatted }}</td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('documents.detail', id=doc.id) }}"

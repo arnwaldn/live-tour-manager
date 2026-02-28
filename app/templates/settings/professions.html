@@ -71,12 +71,12 @@
                             <table class="table table-hover mb-0">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th style="width: 100px;">Code</th>
+                                        <th class="d-none d-md-table-cell" style="width: 100px;">Code</th>
                                         <th>Nom FR</th>
-                                        <th>Nom EN</th>
-                                        <th>Accès</th>
-                                        <th>Tarif/jour</th>
-                                        <th>Per diem</th>
+                                        <th class="d-none d-lg-table-cell">Nom EN</th>
+                                        <th class="d-none d-md-table-cell">Accès</th>
+                                        <th class="d-none d-lg-table-cell">Tarif/jour</th>
+                                        <th class="d-none d-lg-table-cell">Per diem</th>
                                         <th>Statut</th>
                                         <th class="text-end">Actions</th>
                                     </tr>
@@ -84,7 +84,7 @@
                                 <tbody>
                                     {% for profession in professions %}
                                     <tr class="{% if not profession.is_active %}table-secondary{% endif %}">
-                                        <td>
+                                        <td class="d-none d-md-table-cell">
                                             <code class="{% if profession.is_active %}text-primary{% else %}text-muted{% endif %}">
                                                 {{ profession.code }}
                                             </code>
@@ -96,8 +96,8 @@
                                                title="{{ profession.description }}"></i>
                                             {% endif %}
                                         </td>
-                                        <td>{{ profession.name_en }}</td>
-                                        <td>
+                                        <td class="d-none d-lg-table-cell">{{ profession.name_en }}</td>
+                                        <td class="d-none d-md-table-cell">
                                             {% if profession.default_access_level %}
                                             <span class="badge bg-{% if profession.default_access_level == 'ADMIN' %}danger{% elif profession.default_access_level == 'MANAGER' %}primary{% elif profession.default_access_level == 'STAFF' %}info{% elif profession.default_access_level == 'VIEWER' %}secondary{% else %}warning{% endif %}">
                                                 {{ profession.default_access_level }}
@@ -106,14 +106,14 @@
                                             <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td class="d-none d-lg-table-cell">
                                             {% if profession.daily_rate %}
                                             <span class="text-success">{{ "%.0f"|format(profession.daily_rate) }} €</span>
                                             {% else %}
                                             <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td class="d-none d-lg-table-cell">
                                             {% if profession.per_diem %}
                                             <span>{{ "%.0f"|format(profession.per_diem) }} €</span>
                                             {% else %}

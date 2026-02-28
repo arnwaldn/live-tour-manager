@@ -83,6 +83,11 @@
    ========================================================================== */
 
 @media (max-width: 767.98px) {
+    /* btn-group flex-wrap for safe overflow on small screens */
+    .btn-group:not(.btn-group-vertical):not(.btn-group-sm) {
+        flex-wrap: wrap;
+    }
+
     /* Mobile: Sidebar as offcanvas overlay */
     .sidebar {
         position: fixed;
@@ -135,6 +140,19 @@
     .notification-dropdown {
         width: calc(100vw - 2rem) !important;
         max-width: 320px;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    /* Flash messages - full width on mobile */
+    .flash-messages {
+        left: 0.5rem !important;
+        right: 0.5rem !important;
+        max-width: calc(100vw - 1rem);
+    }
+
+    .flash-messages .alert {
+        word-break: break-word;
     }
 
     /* Extra small adjustments */
@@ -563,6 +581,12 @@
 
     .card:hover {
         box-shadow: var(--tm-shadow-sm);
+    }
+
+    /* Quick action buttons always visible on touch (not hover-only) */
+    .quick-actions {
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
     /* Swipe indicators */

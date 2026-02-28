@@ -269,7 +269,7 @@
 @media (max-width: 768px) {
     :root {
         --ds-time-col-width: 60px;
-        --ds-hour-height: 60px;
+        /* Keep --ds-hour-height at 80px to match server-side event positioning */
     }
 
     .day-sheet-header {
@@ -286,6 +286,23 @@
 
     .day-sheet-info {
         padding: 1rem;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .day-sheet-actions {
+        flex-wrap: wrap;
+        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+    }
+
+    .day-sheet-actions .btn {
+        flex: 1 1 calc(50% - 0.5rem);
+        min-width: 100px;
+    }
+
+    .day-sheet-legend {
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
     }
 }
 

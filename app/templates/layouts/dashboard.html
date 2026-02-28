@@ -1,6 +1,9 @@
 {% extends "layouts/base.html" %}
 
 {% block body %}
+<!-- Skip to content link for accessibility -->
+<a href="#main-content" class="visually-hidden-focusable">Aller au contenu principal</a>
+
 <!-- Navbar -->
 {% include "components/_navbar.html" %}
 
@@ -8,7 +11,7 @@
 {% include "components/_sidebar.html" %}
 
 <!-- Main content area -->
-<main class="main-content">
+<main class="main-content" id="main-content">
     <div class="main-content-inner">
         <!-- Flash Messages -->
         {% include "components/_flash_messages.html" %}

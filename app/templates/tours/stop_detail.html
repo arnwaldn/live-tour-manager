@@ -150,33 +150,33 @@
         </p>
         {% endif %}
     </div>
-    <div class="btn-group">
+    <div class="d-flex flex-wrap gap-1">
         <a href="{{ url_for('tours.day_sheet', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-gold" title="Feuille de route">
-            <i class="bi bi-calendar2-day me-1"></i>Feuille de route
+            <i class="bi bi-calendar2-day me-1"></i><span class="d-none d-lg-inline">Feuille de route</span><span class="d-lg-none">Route</span>
         </a>
         <a href="{{ url_for('tours.staff_planning', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-info" title="Planning Journée">
-            <i class="bi bi-calendar2-week me-1"></i>Planning
+            <i class="bi bi-calendar2-week me-1"></i><span class="d-none d-md-inline">Planning</span>
         </a>
         <a href="{{ url_for('tours.export_stop_ical', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-secondary" title="Ajouter au calendrier">
-            <i class="bi bi-calendar-plus me-1"></i>Calendrier
+            <i class="bi bi-calendar-plus"></i><span class="d-none d-md-inline ms-1">Calendrier</span>
         </a>
         {% if tour.band_is_manager(current_user) %}
-        <a href="{{ url_for('tours.edit_stop', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-primary">
-            <i class="bi bi-pencil me-1"></i>Modifier
+        <a href="{{ url_for('tours.edit_stop', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-primary" title="Modifier">
+            <i class="bi bi-pencil"></i><span class="d-none d-md-inline ms-1">Modifier</span>
         </a>
-        <a href="{{ url_for('tours.assign_members', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-primary">
-            <i class="bi bi-people me-1"></i>Membres
+        <a href="{{ url_for('tours.assign_members', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-primary" title="Membres">
+            <i class="bi bi-people"></i><span class="d-none d-md-inline ms-1">Membres</span>
         </a>
-        <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="btn btn-outline-primary">
-            <i class="bi bi-truck me-1"></i>Logistique
+        <a href="{{ url_for('logistics.manage', stop_id=stop.id) }}" class="btn btn-outline-primary" title="Logistique">
+            <i class="bi bi-truck"></i><span class="d-none d-lg-inline ms-1">Logistique</span>
         </a>
         {% if stop.status.value in ['draft', 'pending', 'confirmed'] %}
-        <a href="{{ url_for('tours.reschedule_stop', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-warning">
-            <i class="bi bi-arrow-repeat me-1"></i>Reporter
+        <a href="{{ url_for('tours.reschedule_stop', id=tour.id, stop_id=stop.id) }}" class="btn btn-outline-warning" title="Reporter">
+            <i class="bi bi-arrow-repeat"></i><span class="d-none d-md-inline ms-1">Reporter</span>
         </a>
         {% endif %}
         <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="btn btn-primary">
-            <i class="bi bi-person-lines-fill me-1"></i>Invités
+            <i class="bi bi-person-lines-fill me-1"></i><span class="d-none d-md-inline">Invités</span>
         </a>
         {% endif %}
     </div>

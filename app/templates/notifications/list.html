@@ -13,19 +13,20 @@
         {% endif %}
     </h1>
     {% if notifications.items %}
-    <div class="btn-group">
+    <div class="d-flex flex-wrap gap-1">
         {% if unread_count > 0 %}
         <form action="{{ url_for('notifications.mark_all_read') }}" method="POST" class="d-inline">
             <button type="submit" class="btn btn-outline-primary">
                 <i class="bi bi-check2-all me-1"></i>
-                Tout marquer comme lu
+                <span class="d-none d-md-inline">Tout marquer comme lu</span>
+                <span class="d-md-none">Tout lu</span>
             </button>
         </form>
         {% endif %}
         <div class="dropdown">
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                 <i class="bi bi-trash me-1"></i>
-                Supprimer
+                <span class="d-none d-md-inline">Supprimer</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>

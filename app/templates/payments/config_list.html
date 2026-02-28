@@ -29,12 +29,12 @@
             <thead class="table-light">
                 <tr>
                     <th>Membre</th>
-                    <th>Catégorie</th>
-                    <th>Role</th>
-                    <th>Contrat</th>
+                    <th class="d-none d-md-table-cell">Catégorie</th>
+                    <th class="d-none d-lg-table-cell">Role</th>
+                    <th class="d-none d-lg-table-cell">Contrat</th>
                     <th class="text-end">Taux</th>
-                    <th class="text-end">Per Diem</th>
-                    <th>IBAN</th>
+                    <th class="text-end d-none d-md-table-cell">Per Diem</th>
+                    <th class="d-none d-md-table-cell">IBAN</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
@@ -52,13 +52,13 @@
                             </div>
                         </div>
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                         <span class="badge bg-{{ 'success' if config.staff_category and config.staff_category.value == 'artistic' else 'info' if config.staff_category and config.staff_category.value == 'technical' else 'warning' if config.staff_category and config.staff_category.value == 'management' else 'secondary' }}">
                             {{ config.staff_category.value if config.staff_category else '-' }}
                         </span>
                     </td>
-                    <td>{{ config.staff_role.value|tr('staff_role') if config.staff_role else '-' }}</td>
-                    <td>
+                    <td class="d-none d-lg-table-cell">{{ config.staff_role.value|tr('staff_role') if config.staff_role else '-' }}</td>
+                    <td class="d-none d-lg-table-cell">
                         {% if config.is_intermittent %}
                         <span class="badge bg-purple text-white">Intermittent</span>
                         {% else %}
@@ -76,8 +76,8 @@
                         -
                         {% endif %}
                     </td>
-                    <td class="text-end">{{ "{:,.0f}".format(config.per_diem) if config.per_diem else '-' }} EUR</td>
-                    <td>
+                    <td class="text-end d-none d-md-table-cell">{{ "{:,.0f}".format(config.per_diem) if config.per_diem else '-' }} EUR</td>
+                    <td class="d-none d-md-table-cell">
                         {% if config.iban %}
                         <span class="badge bg-success">Configuré</span>
                         {% else %}

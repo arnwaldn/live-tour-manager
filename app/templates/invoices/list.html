@@ -122,12 +122,12 @@
                 <tr>
                     <th>Numero</th>
                     <th>Destinataire</th>
-                    <th>Type</th>
-                    <th>Tournée</th>
+                    <th class="d-none d-md-table-cell">Type</th>
+                    <th class="d-none d-lg-table-cell">Tournée</th>
                     <th class="text-end">Total TTC</th>
-                    <th class="text-end">Reste dû</th>
+                    <th class="text-end d-none d-md-table-cell">Reste dû</th>
                     <th>Statut</th>
-                    <th>Date</th>
+                    <th class="d-none d-md-table-cell">Date</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
@@ -145,13 +145,13 @@
                         <small class="text-muted">{{ invoice.recipient_email }}</small>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                         {% set type_labels = {'invoice': 'Facture', 'credit': 'Avoir', 'proforma': 'Proforma', 'deposit': 'Acompte', 'final': 'Solde'} %}
                         <span class="badge bg-{{ 'primary' if invoice.type.value == 'invoice' else 'danger' if invoice.type.value == 'credit' else 'info' if invoice.type.value == 'proforma' else 'secondary' }}">
                             {{ type_labels.get(invoice.type.value, invoice.type.value) }}
                         </span>
                     </td>
-                    <td>
+                    <td class="d-none d-lg-table-cell">
                         {% if invoice.tour %}
                         <small>{{ invoice.tour.name }}</small>
                         {% else %}
@@ -161,7 +161,7 @@
                     <td class="text-end fw-medium">
                         {{ "{:,.2f}".format(invoice.total_ttc) }} {{ invoice.currency }}
                     </td>
-                    <td class="text-end {{ 'text-danger fw-bold' if invoice.is_overdue else '' }}">
+                    <td class="text-end d-none d-md-table-cell {{ 'text-danger fw-bold' if invoice.is_overdue else '' }}">
                         {{ "{:,.2f}".format(invoice.amount_due) }} {{ invoice.currency }}
                     </td>
                     <td>
@@ -176,7 +176,7 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                         <small class="text-muted">
                             {{ invoice.issue_date.strftime('%d/%m/%Y') if invoice.issue_date else '-' }}
                         </small>

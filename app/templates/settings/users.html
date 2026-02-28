@@ -66,11 +66,11 @@
                 <thead class="table-dark">
                     <tr>
                         <th>Utilisateur</th>
-                        <th>Email</th>
+                        <th class="d-none d-md-table-cell">Email</th>
                         <th>Accès</th>
-                        <th>Professions</th>
+                        <th class="d-none d-lg-table-cell">Professions</th>
                         <th>Statut</th>
-                        <th>Créé le</th>
+                        <th class="d-none d-md-table-cell">Créé le</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -97,7 +97,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td>{{ user.email }}</td>
+                        <td class="d-none d-md-table-cell">{{ user.email }}</td>
                         <td>
                             <span class="badge bg-{% if user.access_level.name == 'ADMIN' %}danger{% elif user.access_level.name == 'MANAGER' %}primary{% elif user.access_level.name == 'STAFF' %}info{% elif user.access_level.name == 'VIEWER' %}secondary{% else %}warning{% endif %}">
                                 {% if user.access_level.name == 'ADMIN' %}<i class="bi bi-shield-fill-check me-1"></i>
@@ -108,7 +108,7 @@
                                 {{ user.access_level_label }}
                             </span>
                         </td>
-                        <td>
+                        <td class="d-none d-lg-table-cell">
                             {% if user.primary_profession %}
                             <span class="badge bg-{% if user.primary_profession.category.name == 'MUSICIEN' %}info{% elif user.primary_profession.category.name == 'ARTISTE' %}danger{% elif user.primary_profession.category.name == 'TECHNICIEN' %}warning text-dark{% elif user.primary_profession.category.name == 'PRODUCTION' %}primary{% elif user.primary_profession.category.name == 'SECURITE' %}dark{% else %}success{% endif %}">
                                 {{ user.primary_profession.name_fr }}
@@ -142,7 +142,7 @@
                                 {% endif %}
                             {% endif %}
                         </td>
-                        <td>{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</td>
+                        <td class="d-none d-md-table-cell">{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('settings.user_detail', id=user.id) }}"

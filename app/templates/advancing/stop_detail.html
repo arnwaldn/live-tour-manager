@@ -1,8 +1,8 @@
 {% extends "layouts/dashboard.html" %}
 
 {% block page_header %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div class="mb-3 mb-md-0">
         <h1 class="h3 mb-1">
             Advancing — {{ stop.venue_name }}
             <span class="badge bg-{{ stop.advancing_status_color }}">{{ stop.advancing_status_label }}</span>
@@ -14,22 +14,22 @@
             {% endif %}
         </p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-1 gap-md-2">
         <a href="{{ url_for('advancing.rider_detail', stop_id=stop.id) }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-list-check me-1" aria-hidden="true"></i>Rider
+            <i class="bi bi-list-check me-1" aria-hidden="true"></i><span class="d-none d-lg-inline">Rider</span><span class="d-lg-none">Rider</span>
         </a>
         <a href="{{ url_for('advancing.contacts', stop_id=stop.id) }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-person-rolodex me-1" aria-hidden="true"></i>Contacts
+            <i class="bi bi-person-rolodex" aria-hidden="true"></i><span class="d-none d-md-inline ms-1">Contacts</span>
         </a>
         <a href="{{ url_for('advancing.production_specs', stop_id=stop.id) }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-rulers me-1" aria-hidden="true"></i>Fiche tech.
+            <i class="bi bi-rulers" aria-hidden="true"></i><span class="d-none d-md-inline ms-1">Fiche tech.</span>
         </a>
         <a href="{{ url_for('advancing.export_pdf', stop_id=stop.id) }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-file-pdf me-1" aria-hidden="true"></i>PDF
+            <i class="bi bi-file-pdf" aria-hidden="true"></i><span class="d-none d-md-inline ms-1">PDF</span>
         </a>
         {% if stop.tour_id %}
         <a href="{{ url_for('advancing.tour_dashboard', tour_id=stop.tour_id) }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Dashboard
+            <i class="bi bi-arrow-left" aria-hidden="true"></i><span class="d-none d-md-inline ms-1">Dashboard</span>
         </a>
         {% endif %}
     </div>

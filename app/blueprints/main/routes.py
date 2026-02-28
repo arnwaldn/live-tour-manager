@@ -2,7 +2,7 @@
 Main blueprint routes - Dashboard and home.
 """
 from datetime import date, timedelta
-from flask import render_template, request, jsonify, redirect, url_for, flash, current_app, abort
+from flask import render_template, request, jsonify, redirect, url_for, flash, current_app, abort, send_from_directory
 from flask_login import login_required, current_user
 
 from app.blueprints.main import main_bp
@@ -17,6 +17,18 @@ def block_debug_endpoints_in_production():
         path = request.path
         if path.startswith('/health/'):
             abort(404)
+
+
+@main_bp.route('/sw.js')
+def service_worker():
+    """Serve service worker from root scope for full PWA coverage."""
+    response = send_from_directory(
+        current_app.static_folder, 'sw.js',
+        mimetype='application/javascript'
+    )
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
 
 
 @main_bp.route('/ping')
