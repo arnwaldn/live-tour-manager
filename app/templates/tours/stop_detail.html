@@ -541,6 +541,83 @@
                 <h5 class="mb-0"><i class="bi bi-ticket-perforated me-2"></i>Billetterie</h5>
             </div>
             <div class="card-body">
+                {% if stop.has_tiers %}
+                <!-- Multi-tier pricing breakdown -->
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-borderless mb-0">
+                        <thead>
+                            <tr class="border-bottom">
+                                <th class="text-muted small">Tarif</th>
+                                <th class="text-muted small text-end">Prix</th>
+                                <th class="text-muted small text-end">Vendus</th>
+                                <th class="text-muted small text-end">CA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tier in stop.ticket_tiers %}
+                            <tr>
+                                <td>{{ tier.name }}</td>
+                                <td class="text-end">{{ "{:.2f}".format(tier.price) }} €</td>
+                                <td class="text-end">{{ tier.sold }}{% if tier.quantity_available %}/{{ tier.quantity_available }}{% endif %}</td>
+                                <td class="text-end">{{ "{:.2f}".format(tier.revenue) }} €</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="border-top">
+                            <tr class="fw-bold">
+                                <td>Total</td>
+                                <td class="text-end">{{ "{:.2f}".format(stop.weighted_avg_price) }} € moy.</td>
+                                <td class="text-end">{{ stop.total_sold_tickets }}</td>
+                                <td class="text-end">{{ "{:.2f}".format(stop.gross_ticket_revenue) }} €</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                {% if stop.venue and stop.venue.capacity %}
+                <p class="mb-2">
+                    <span class="text-muted">Capacité:</span>
+                    <strong>{{ stop.venue.capacity }} places</strong>
+                </p>
+                {% endif %}
+
+                <!-- Quick-update per tier (managers only) -->
+                {% if tour.band_is_manager(current_user) %}
+                <div class="border-top pt-3 mt-3">
+                    <form action="{{ url_for('tours.update_stop_tickets', id=tour.id, stop_id=stop.id) }}"
+                          method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <label class="form-label small text-muted mb-2">
+                            <i class="bi bi-people-fill me-1"></i>Mise à jour billets vendus
+                        </label>
+                        {% for tier in stop.ticket_tiers %}
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="small text-truncate" style="min-width: 80px;">{{ tier.name }}</span>
+                            <input type="number" class="form-control form-control-sm"
+                                   name="tier_{{ tier.id }}_sold" value="{{ tier.sold }}" min="0"
+                                   {% if tier.quantity_available %}max="{{ tier.quantity_available }}"{% endif %}>
+                        </div>
+                        {% endfor %}
+                        <button type="submit" class="btn btn-primary btn-sm w-100 mt-1">
+                            <i class="bi bi-check-lg me-1"></i>Enregistrer
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                {% if stop.total_sold_tickets and stop.venue and stop.venue.capacity %}
+                {% set fill_rate = (stop.total_sold_tickets / stop.venue.capacity * 100)|round(1) %}
+                <div class="mt-2">
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar {% if fill_rate >= 75 %}bg-success{% elif fill_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                             style="width: {{ [fill_rate, 100]|min }}%"></div>
+                    </div>
+                    <small class="text-muted">Taux de remplissage: {{ fill_rate }}%</small>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <!-- Simple mode (single price) -->
                 {% if stop.ticket_price %}
                 <p class="mb-2">
                     <span class="text-muted">Prix du billet:</span>
@@ -590,6 +667,7 @@
                     <span class="text-muted">Billets vendus:</span>
                     <strong>{{ stop.sold_tickets or 0 }}</strong>
                 </p>
+                {% endif %}
                 {% endif %}
 
                 {% if stop.ticket_url %}

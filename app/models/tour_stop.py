@@ -485,6 +485,14 @@ class TourStop(db.Model):
         backref=db.backref('rescheduled_to_stop', uselist=False)
     )
 
+    # Ticket tiers (multi-tier pricing)
+    ticket_tiers = db.relationship(
+        'TicketTier',
+        back_populates='tour_stop',
+        cascade='all, delete-orphan',
+        order_by='TicketTier.sort_order'
+    )
+
     # Lineup/Programming slots (artistes programmés)
     lineup_slots = db.relationship(
         'LineupSlot',
@@ -794,6 +802,65 @@ class TourStop(db.Model):
         """Check if user can check in guests at this stop."""
         return (self.can_manage_guestlist(user) or
                 user.is_staff_or_above())
+
+    # ============================================================
+    # TICKET TIER PROPERTIES (Multi-tier pricing)
+    # ============================================================
+
+    @property
+    def has_tiers(self):
+        """Check if this stop uses multi-tier pricing."""
+        return len(self.ticket_tiers) > 0
+
+    @property
+    def total_sold_tickets(self):
+        """Total sold tickets across all tiers, or legacy sold_tickets."""
+        if self.has_tiers:
+            return sum(tier.sold for tier in self.ticket_tiers)
+        return self.sold_tickets or 0
+
+    @property
+    def total_quantity_available(self):
+        """Total quantity available across all tiers (None if any tier is unlimited)."""
+        if not self.has_tiers:
+            return None
+        if any(t.quantity_available is None for t in self.ticket_tiers):
+            return None
+        return sum(t.quantity_available for t in self.ticket_tiers)
+
+    @property
+    def gross_ticket_revenue(self):
+        """GBOR from tiers (sum of tier.price * tier.sold) or legacy calculation."""
+        if self.has_tiers:
+            return sum(float(tier.price) * tier.sold for tier in self.ticket_tiers)
+        return float(self.ticket_price or 0) * (self.sold_tickets or 0)
+
+    @property
+    def weighted_avg_price(self):
+        """Weighted average ticket price across tiers."""
+        if self.has_tiers:
+            total_sold = self.total_sold_tickets
+            if total_sold > 0:
+                return self.gross_ticket_revenue / total_sold
+            if len(self.ticket_tiers) > 0:
+                return sum(float(t.price) for t in self.ticket_tiers) / len(self.ticket_tiers)
+            return 0.0
+        return float(self.ticket_price or 0)
+
+    @property
+    def tier_breakdown(self):
+        """List of dicts for template display."""
+        return [
+            {
+                'id': t.id,
+                'name': t.name,
+                'price': float(t.price),
+                'sold': t.sold,
+                'quantity_available': t.quantity_available,
+                'revenue': float(t.price) * t.sold,
+            }
+            for t in self.ticket_tiers
+        ]
 
     # ============================================================
     # STATUS WORKFLOW METHODS (Pattern Dolibarr)

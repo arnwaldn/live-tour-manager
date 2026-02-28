@@ -23,6 +23,7 @@ from app.models.tour_stop import (
     EventType,
 )
 from app.models.lineup import LineupSlot, PerformerType, PERFORMER_TYPE_LABELS
+from app.models.ticket_tier import TicketTier
 from app.models.guestlist import GuestlistEntry
 from app.models.logistics import LogisticsInfo, LocalContact, PromotorExpenses, LogisticsAssignment
 from app.models.document import Document, DocumentType, DocumentShare, ShareType
@@ -127,6 +128,8 @@ __all__ = [
     'LineupSlot',
     'PerformerType',
     'PERFORMER_TYPE_LABELS',
+    # Ticket Tiers
+    'TicketTier',
     # Guestlist
     'GuestlistEntry',
     # Logistics

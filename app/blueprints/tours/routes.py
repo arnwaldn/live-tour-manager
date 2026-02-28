@@ -2,6 +2,7 @@
 Tour management routes.
 """
 from datetime import timedelta
+from decimal import Decimal
 
 from flask import render_template, redirect, url_for, flash, request, jsonify, Response, current_app, abort
 from flask_login import login_required, current_user
@@ -433,6 +434,27 @@ def add_stop(id, tour=None):
                 current_app.logger.warning(f"Échec géocodage adresse tour stop: {e}")
 
         db.session.add(stop)
+
+        # Process ticket tiers (multi-tier pricing)
+        tier_names = request.form.getlist('tier_name[]')
+        tier_prices = request.form.getlist('tier_price[]')
+        tier_quantities = request.form.getlist('tier_quantity[]')
+        tier_solds = request.form.getlist('tier_sold[]')
+        tier_sorts = request.form.getlist('tier_sort[]')
+        if tier_names:
+            from app.models.ticket_tier import TicketTier
+            for i, name in enumerate(tier_names):
+                if name.strip():
+                    tier = TicketTier(
+                        tour_stop=stop,
+                        name=name.strip(),
+                        price=Decimal(tier_prices[i]) if i < len(tier_prices) and tier_prices[i] else Decimal('0'),
+                        quantity_available=int(tier_quantities[i]) if i < len(tier_quantities) and tier_quantities[i] else None,
+                        sold=int(tier_solds[i]) if i < len(tier_solds) and tier_solds[i] else 0,
+                        sort_order=int(tier_sorts[i]) if i < len(tier_sorts) and tier_sorts[i] else i,
+                    )
+                    db.session.add(tier)
+
         db.session.commit()
 
         # Assigner les membres sélectionnés via checkboxes et envoyer les invitations
@@ -665,6 +687,52 @@ def edit_stop(id, stop_id, tour=None):
             stop.location_latitude = None
             stop.location_longitude = None
 
+        # Process ticket tiers (multi-tier pricing) — 3-way sync
+        tier_ids = request.form.getlist('tier_id[]')
+        tier_names = request.form.getlist('tier_name[]')
+        tier_prices = request.form.getlist('tier_price[]')
+        tier_quantities = request.form.getlist('tier_quantity[]')
+        tier_solds = request.form.getlist('tier_sold[]')
+        tier_sorts = request.form.getlist('tier_sort[]')
+
+        if tier_names:
+            from app.models.ticket_tier import TicketTier
+            submitted_ids = set()
+            for i, name in enumerate(tier_names):
+                if not name.strip():
+                    continue
+                tid = tier_ids[i] if i < len(tier_ids) and tier_ids[i] else None
+                if tid:
+                    # Update existing tier
+                    existing = TicketTier.query.get(int(tid))
+                    if existing and existing.tour_stop_id == stop.id:
+                        existing.name = name.strip()
+                        existing.price = Decimal(tier_prices[i]) if i < len(tier_prices) and tier_prices[i] else Decimal('0')
+                        existing.quantity_available = int(tier_quantities[i]) if i < len(tier_quantities) and tier_quantities[i] else None
+                        existing.sold = int(tier_solds[i]) if i < len(tier_solds) and tier_solds[i] else 0
+                        existing.sort_order = int(tier_sorts[i]) if i < len(tier_sorts) and tier_sorts[i] else i
+                        submitted_ids.add(existing.id)
+                else:
+                    # Create new tier
+                    new_tier = TicketTier(
+                        tour_stop=stop,
+                        name=name.strip(),
+                        price=Decimal(tier_prices[i]) if i < len(tier_prices) and tier_prices[i] else Decimal('0'),
+                        quantity_available=int(tier_quantities[i]) if i < len(tier_quantities) and tier_quantities[i] else None,
+                        sold=int(tier_solds[i]) if i < len(tier_solds) and tier_solds[i] else 0,
+                        sort_order=int(tier_sorts[i]) if i < len(tier_sorts) and tier_sorts[i] else i,
+                    )
+                    db.session.add(new_tier)
+            # Delete tiers removed from form
+            for tier in list(stop.ticket_tiers):
+                if tier.id not in submitted_ids:
+                    db.session.delete(tier)
+        else:
+            # No tier data submitted — delete all existing tiers
+            from app.models.ticket_tier import TicketTier
+            for tier in list(stop.ticket_tiers):
+                db.session.delete(tier)
+
         db.session.commit()
 
         # Mettre à jour les membres assignés via checkboxes
@@ -774,18 +842,38 @@ def copy_previous_crew(id, stop_id, tour=None):
 @login_required
 @tour_edit_required
 def update_stop_tickets(id, stop_id, tour=None):
-    """Quick update for sold_tickets field from stop detail page."""
+    """Quick update for sold_tickets field from stop detail page.
+
+    Supports both simple mode (single sold_tickets) and multi-tier mode
+    (tier_<id>_sold per tier).
+    """
     stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
 
-    sold_tickets = request.form.get('sold_tickets', type=int)
-    if sold_tickets is not None and sold_tickets >= 0:
-        stop.sold_tickets = sold_tickets
-        db.session.commit()
-
-        log_update('TourStop', stop.id, {'sold_tickets': sold_tickets})
-        flash('Billets vendus mis à jour.', 'success')
+    if stop.has_tiers:
+        # Multi-tier mode: update each tier individually
+        updated = []
+        for tier in stop.ticket_tiers:
+            key = f'tier_{tier.id}_sold'
+            value = request.form.get(key, type=int)
+            if value is not None and value >= 0:
+                tier.sold = value
+                updated.append(tier.id)
+        if updated:
+            db.session.commit()
+            log_update('TourStop', stop.id, {'tier_sold_updates': updated})
+            flash('Billets vendus mis à jour.', 'success')
+        else:
+            flash('Aucune donnée de billets valide.', 'error')
     else:
-        flash('Nombre de billets invalide.', 'error')
+        # Simple mode: single sold_tickets field
+        sold_tickets = request.form.get('sold_tickets', type=int)
+        if sold_tickets is not None and sold_tickets >= 0:
+            stop.sold_tickets = sold_tickets
+            db.session.commit()
+            log_update('TourStop', stop.id, {'sold_tickets': sold_tickets})
+            flash('Billets vendus mis à jour.', 'success')
+        else:
+            flash('Nombre de billets invalide.', 'error')
 
     return redirect(url_for('tours.stop_detail', id=id, stop_id=stop_id))
 
@@ -1642,7 +1730,11 @@ def staff_planning(id, stop_id, category='tous', tour=None):
     from app.models.planning_slot import PlanningSlot, CATEGORY_COLORS, CATEGORY_LABELS
     from app.models.profession import Profession, ProfessionCategory
 
-    stop = TourStop.query.filter_by(id=stop_id, tour_id=id).first_or_404()
+    stop = TourStop.query.options(
+        selectinload(TourStop.assigned_members),
+        selectinload(TourStop.venue),
+        selectinload(TourStop.tour).selectinload(Tour.band),
+    ).filter_by(id=stop_id, tour_id=id).first_or_404()
 
     # Catégories valides avec leurs métadonnées
     categories_config = [

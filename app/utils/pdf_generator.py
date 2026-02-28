@@ -169,11 +169,40 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
     # Box Office Section
     elements.append(Paragraph("BOX OFFICE (GBOR)", section_header_style))
     fill_badge = _get_fill_rate_class(s['fill_rate'])
+
+    if s.get('has_tiers') and s.get('tier_breakdown'):
+        # Multi-tier: show breakdown table
+        tier_header = [
+            Paragraph("<b>Tarif</b>", label_style),
+            Paragraph("<b>Prix</b>", label_style),
+            Paragraph("<b>Vendus</b>", label_style),
+            Paragraph("<b>CA</b>", label_style),
+        ]
+        tier_rows = [tier_header]
+        for t in s['tier_breakdown']:
+            tier_rows.append([
+                Paragraph(t['name'], value_style),
+                Paragraph(format_currency(t['price'], currency), value_style),
+                Paragraph(str(t['sold']), value_style),
+                Paragraph(format_currency(t['revenue'], currency), value_style),
+            ])
+        tier_table = Table(tier_rows, colWidths=[
+            doc.width * 0.3, doc.width * 0.2, doc.width * 0.2, doc.width * 0.3
+        ])
+        tier_table.setStyle(TableStyle([
+            ('LINEBELOW', (0, 0), (-1, 0), 0.8, LIGHT_GRAY),
+            ('LINEBELOW', (0, 1), (-1, -1), 0.3, LIGHT_GRAY),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(tier_table)
+        elements.append(Spacer(1, 4))
+
     box_data = [
         [Paragraph("Capacite salle", label_style), Paragraph(f"{s['capacity']:,} places", value_style)],
         [Paragraph("Billets vendus", label_style), Paragraph(f"{s['sold_tickets']:,}", value_style)],
         [Paragraph("Taux de remplissage", label_style), Paragraph(f"{s['fill_rate']}% ({fill_badge})", value_style)],
-        [Paragraph("Prix du billet", label_style),
+        [Paragraph("Prix moyen du billet" if s.get('has_tiers') else "Prix du billet", label_style),
          Paragraph(format_currency(s['ticket_price'], currency), value_style)],
         [Paragraph("<b>RECETTES BRUTES (GBOR)</b>", normal_style),
          Paragraph(f"<b>{format_currency(s['gross_revenue'], currency)}</b>", bold_value)],

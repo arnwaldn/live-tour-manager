@@ -382,7 +382,7 @@
         {% if stop.venue and stop.venue.capacity %}
             {% set total_capacity.value = total_capacity.value + stop.venue.capacity %}
         {% endif %}
-        {% set total_sold.value = total_sold.value + (stop.sold_tickets or 0) %}
+        {% set total_sold.value = total_sold.value + (stop.total_sold_tickets or 0) %}
         {% set total_guarantee.value = total_guarantee.value + (stop.guarantee|float or 0) %}
     {% endfor %}
 

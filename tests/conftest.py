@@ -13,6 +13,7 @@ from app.models.venue import Venue
 from app.models.tour import Tour, TourStatus
 from app.models.tour_stop import TourStop, TourStopStatus
 from app.models.guestlist import GuestlistEntry, GuestlistStatus, EntryType
+from app.models.ticket_tier import TicketTier
 
 
 # =============================================================================
@@ -451,6 +452,51 @@ def tour_with_multiple_stops(app, sample_band, sample_venue):
     tour_id = tour.id
     db.session.expire_all()
     return db.session.get(Tour, tour_id)
+
+
+# =============================================================================
+# Ticket Tier Fixtures
+# =============================================================================
+
+@pytest.fixture
+def tour_stop_with_tiers(app, sample_tour, sample_venue):
+    """Create a tour stop with 3 ticket tiers (Fosse, Assis, VIP).
+
+    Total: 400 places, GBOR = 250*35 + 120*45 + 30*80 = 8750+5400+2400 = 16550 EUR
+    Weighted avg price: 16550/400 = 41.375 EUR
+    """
+    from decimal import Decimal
+    stop = TourStop(
+        tour=sample_tour,
+        venue=sample_venue,
+        date=date.today() + timedelta(days=10),
+        doors_time=time(19, 0),
+        soundcheck_time=time(16, 0),
+        set_time=time(21, 0),
+        status=TourStopStatus.CONFIRMED,
+        guarantee=5000.00,
+        ticket_price=35.00,  # Legacy field (ignored when tiers exist)
+        sold_tickets=0,  # Legacy field
+        currency='EUR'
+    )
+    db.session.add(stop)
+    db.session.flush()
+
+    tiers = [
+        TicketTier(tour_stop=stop, name='Fosse', price=Decimal('35.00'),
+                   quantity_available=250, sold=250, sort_order=0),
+        TicketTier(tour_stop=stop, name='Assis', price=Decimal('45.00'),
+                   quantity_available=120, sold=120, sort_order=1),
+        TicketTier(tour_stop=stop, name='VIP', price=Decimal('80.00'),
+                   quantity_available=30, sold=30, sort_order=2),
+    ]
+    for t in tiers:
+        db.session.add(t)
+    db.session.commit()
+
+    stop_id = stop.id
+    db.session.expire_all()
+    return db.session.get(TourStop, stop_id)
 
 
 # =============================================================================

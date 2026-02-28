@@ -221,6 +221,19 @@ class Tour(db.Model):
                 )
                 new_tour.stops.append(new_stop)
 
+                # Clone ticket tiers (copy structure, reset sold counts)
+                for tier in stop.ticket_tiers:
+                    from app.models.ticket_tier import TicketTier
+                    new_tier = TicketTier(
+                        tour_stop=new_stop,
+                        name=tier.name,
+                        price=tier.price,
+                        quantity_available=tier.quantity_available,
+                        sold=0,
+                        sort_order=tier.sort_order,
+                    )
+                    db.session.add(new_tier)
+
         return new_tour
 
     # ============================================================

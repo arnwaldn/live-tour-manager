@@ -223,6 +223,33 @@
             <div class="settlement-section-header">
                 <i class="bi bi-ticket-perforated me-2 text-primary"></i>BOX OFFICE
             </div>
+
+            {% if settlement.has_tiers and settlement.tier_breakdown %}
+            <!-- Multi-tier breakdown -->
+            <div class="table-responsive mb-2">
+                <table class="table table-sm table-borderless mb-0" style="font-size: 0.9em;">
+                    <thead>
+                        <tr class="border-bottom">
+                            <th class="text-muted">Tarif</th>
+                            <th class="text-muted text-end">Prix</th>
+                            <th class="text-muted text-end">Vendus</th>
+                            <th class="text-muted text-end">CA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in settlement.tier_breakdown %}
+                        <tr>
+                            <td>{{ t.name }}</td>
+                            <td class="text-end">{{ format_currency(t.price, settlement.currency) }}</td>
+                            <td class="text-end">{{ t.sold }}</td>
+                            <td class="text-end">{{ format_currency(t.revenue, settlement.currency) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
             <div class="settlement-row">
                 <span class="settlement-label">Capacité salle</span>
                 <span class="settlement-value">{{ "{:,}".format(settlement.capacity) }} places</span>
@@ -247,7 +274,7 @@
                 </span>
             </div>
             <div class="settlement-row">
-                <span class="settlement-label">Prix du billet</span>
+                <span class="settlement-label">{{ "Prix moyen du billet" if settlement.has_tiers else "Prix du billet" }}</span>
                 <span class="settlement-value">{{ format_currency(settlement.ticket_price, settlement.currency) }}</span>
             </div>
             <div class="settlement-row total">

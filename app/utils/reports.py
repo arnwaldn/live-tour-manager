@@ -28,15 +28,22 @@ def calculate_stop_financials(tour_stop) -> Dict[str, Any]:
     """
     guarantee = Decimal(str(tour_stop.guarantee or 0))
     venue_rental_cost = Decimal(str(tour_stop.venue_rental_cost or 0))
-    ticket_price = Decimal(str(tour_stop.ticket_price or 0))
-    sold_tickets = tour_stop.sold_tickets or 0
     door_deal_pct = Decimal(str(tour_stop.door_deal_percentage or 0))
     ticketing_fee_pct = Decimal(str(tour_stop.ticketing_fee_percentage or 5))  # R2: Default 5%
     capacity = tour_stop.venue.capacity or 0 if tour_stop.venue else 0
     currency = tour_stop.currency or 'EUR'
 
-    # Calculate GBOR (Gross Box Office Receipts)
-    gross_ticket_revenue = ticket_price * sold_tickets
+    # Tier-aware ticket calculations
+    if tour_stop.has_tiers:
+        sold_tickets = tour_stop.total_sold_tickets
+        gross_ticket_revenue = Decimal(str(tour_stop.gross_ticket_revenue))
+        ticket_price = Decimal(str(tour_stop.weighted_avg_price))
+        tier_breakdown = tour_stop.tier_breakdown
+    else:
+        ticket_price = Decimal(str(tour_stop.ticket_price or 0))
+        sold_tickets = tour_stop.sold_tickets or 0
+        gross_ticket_revenue = ticket_price * sold_tickets
+        tier_breakdown = None
 
     # R2: Calculate ticketing fees and NBOR (Net Box Office Receipts)
     ticketing_fees = gross_ticket_revenue * (ticketing_fee_pct / 100)
@@ -57,6 +64,7 @@ def calculate_stop_financials(tour_stop) -> Dict[str, Any]:
         'guarantee': float(guarantee),
         'venue_rental_cost': float(venue_rental_cost),
         'ticket_revenue': float(gross_ticket_revenue),  # GBOR
+        'ticket_price': float(ticket_price),  # weighted avg for multi-tier
         'ticketing_fee_percentage': float(ticketing_fee_pct),  # R2
         'ticketing_fees': float(ticketing_fees),  # R2
         'net_ticket_revenue': float(net_ticket_revenue),  # R2: NBOR
@@ -66,6 +74,8 @@ def calculate_stop_financials(tour_stop) -> Dict[str, Any]:
         'sold_tickets': sold_tickets,
         'fill_rate': round(fill_rate, 1),
         'currency': currency,
+        'has_tiers': tour_stop.has_tiers,
+        'tier_breakdown': tier_breakdown,
         'date': tour_stop.date,
         'venue_name': tour_stop.venue.name if tour_stop.venue else 'N/A',
         'venue_city': tour_stop.venue.city if tour_stop.venue else 'N/A',
@@ -210,8 +220,6 @@ def calculate_settlement(tour_stop) -> Dict[str, Any]:
     """
     guarantee = Decimal(str(tour_stop.guarantee or 0))
     venue_rental_cost = Decimal(str(tour_stop.venue_rental_cost or 0))
-    ticket_price = Decimal(str(tour_stop.ticket_price or 0))
-    sold_tickets = tour_stop.sold_tickets or 0
     door_deal_pct = Decimal(str(tour_stop.door_deal_percentage or 0))
     ticketing_fee_pct = Decimal(str(tour_stop.ticketing_fee_percentage or 5))  # R2: Default 5%
     capacity = (tour_stop.venue.capacity or 0) if tour_stop.venue else 0
@@ -226,8 +234,18 @@ def calculate_settlement(tour_stop) -> Dict[str, Any]:
 
     # ===== BOX OFFICE CALCULATIONS =====
 
-    # GBOR - Gross Box Office Receipts
-    gross_revenue = ticket_price * sold_tickets
+    # Tier-aware ticket calculations
+    if tour_stop.has_tiers:
+        sold_tickets = tour_stop.total_sold_tickets
+        gross_revenue = Decimal(str(tour_stop.gross_ticket_revenue))
+        ticket_price = Decimal(str(tour_stop.weighted_avg_price))
+        tier_breakdown = tour_stop.tier_breakdown
+    else:
+        ticket_price = Decimal(str(tour_stop.ticket_price or 0))
+        sold_tickets = tour_stop.sold_tickets or 0
+        gross_revenue = ticket_price * sold_tickets
+        tier_breakdown = None
+
     fill_rate = (sold_tickets / capacity * 100) if capacity > 0 else 0
     avg_ticket_price = (gross_revenue / sold_tickets) if sold_tickets > 0 else Decimal('0')
 
@@ -312,6 +330,8 @@ def calculate_settlement(tour_stop) -> Dict[str, Any]:
         'ticket_price': float(ticket_price),
         'avg_ticket_price': float(avg_ticket_price),
         'gross_revenue': float(gross_revenue),  # GBOR
+        'has_tiers': tour_stop.has_tiers,
+        'tier_breakdown': tier_breakdown,
 
         # R2: Ticketing fees and NBOR
         'ticketing_fee_percentage': float(ticketing_fee_pct),
