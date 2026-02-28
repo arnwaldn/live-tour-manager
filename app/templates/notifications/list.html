@@ -16,6 +16,7 @@
     <div class="d-flex flex-wrap gap-1">
         {% if unread_count > 0 %}
         <form action="{{ url_for('notifications.mark_all_read') }}" method="POST" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <button type="submit" class="btn btn-outline-primary">
                 <i class="bi bi-check2-all me-1"></i>
                 <span class="d-none d-md-inline">Tout marquer comme lu</span>
@@ -104,6 +105,7 @@
                             {% if not notification.is_read %}
                             <li>
                                 <form action="{{ url_for('notifications.mark_read', id=notification.id) }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <button type="submit" class="dropdown-item">
                                         <i class="bi bi-check2 me-2"></i>Marquer comme lu
                                     </button>

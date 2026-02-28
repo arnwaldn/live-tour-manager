@@ -655,6 +655,7 @@
         Cet utilisateur n'a pas encore defini son mot de passe.
     </p>
     <form action="{{ url_for('settings.users_resend_invite', id=user.id) }}" method="POST" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <button type="submit" class="btn btn-sm btn-warning">
             <i class="bi bi-envelope me-2"></i>Renvoyer l'invitation
         </button>

@@ -278,6 +278,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <form method="POST" action="{{ url_for('tours.add_planning_slot', id=tour.id, stop_id=stop.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="category" value="{{ current_category }}">
                 <div class="modal-body">
                     <div class="mb-3">
@@ -339,6 +340,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <form id="editScheduleForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-bold" id="memberNameLabel">Membre</label>

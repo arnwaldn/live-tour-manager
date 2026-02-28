@@ -1572,3 +1572,77 @@ input[type="file"].form-control::file-selector-button {
         min-width: 150px;
     }
 }
+
+/* ==========================================================================
+   Focus-Visible — Keyboard Navigation Accessibility (EAA / WCAG 2.2)
+   Only shows focus ring on keyboard navigation, not on mouse clicks.
+   ========================================================================== */
+
+/* Global focus-visible ring for interactive elements */
+:focus-visible {
+    outline: 2px solid var(--sp-gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Buttons — slightly thicker ring */
+.btn:focus-visible {
+    outline: 2px solid var(--sp-gold);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.25);
+}
+
+/* Form controls — match existing :focus styling */
+.form-control:focus-visible,
+.form-select:focus-visible {
+    outline: none;
+    border-color: var(--sp-gold);
+    box-shadow: 0 0 0 0.2rem rgba(255, 183, 45, 0.25);
+}
+
+/* Navigation links */
+.nav-link:focus-visible,
+.navbar-nav .nav-link:focus-visible {
+    outline: 2px solid var(--sp-gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Dropdown items */
+.dropdown-item:focus-visible {
+    outline: 2px solid var(--sp-gold);
+    outline-offset: -2px;
+    background-color: rgba(255, 183, 45, 0.1);
+}
+
+/* Cards and list items */
+.card:focus-visible,
+.list-group-item:focus-visible {
+    outline: 2px solid var(--sp-gold);
+    outline-offset: 2px;
+}
+
+/* Sidebar links */
+.sidebar .nav-link:focus-visible {
+    outline: 2px solid var(--sp-gold);
+    outline-offset: -2px;
+    border-radius: 6px;
+}
+
+/* Remove default outline for mouse users */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Skip link focus */
+.skip-link:focus-visible {
+    outline: 3px solid var(--sp-gold);
+    outline-offset: 2px;
+}
+
+/* Reduced motion — simplify focus ring */
+@media (prefers-reduced-motion: reduce) {
+    :focus-visible {
+        transition: none;
+    }
+}
