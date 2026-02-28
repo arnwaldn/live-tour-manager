@@ -73,6 +73,12 @@ class ProfileForm(FlaskForm):
     dietary_restrictions = TextAreaField('Restrictions alimentaires', validators=[Optional(), Length(max=500)])
     allergies = TextAreaField('Allergies', validators=[Optional(), Length(max=500)])
 
+    # RGPD Art. 9 — Explicit consent for health data
+    health_data_consent = BooleanField(
+        "J'autorise GigRoute a traiter mes donnees de sante (allergies, restrictions alimentaires) "
+        "pour la gestion logistique de mes tournees. Je peux retirer ce consentement a tout moment."
+    )
+
     # ============ FACTURATION & PAIEMENT ============
     # Note: staff_category et staff_role supprimés - utiliser professions dans l'onglet Identité
 
@@ -137,6 +143,13 @@ class PasswordForm(FlaskForm):
         EqualTo('new_password', message='Les mots de passe ne correspondent pas.')
     ])
     submit = SubmitField('Changer le mot de passe')
+
+
+class DeleteAccountForm(FlaskForm):
+    """Account self-deletion form (RGPD Art. 17 — right to erasure)."""
+    password = PasswordField('Mot de passe', validators=[DataRequired()])
+    confirm_text = StringField('Confirmation', validators=[DataRequired()])
+    submit = SubmitField('Supprimer definitivement mon compte')
 
 
 class NotificationForm(FlaskForm):
@@ -259,9 +272,20 @@ def profile():
             current_user.emergency_contact_phone = form.emergency_contact_phone.data
             current_user.emergency_contact_email = form.emergency_contact_email.data
 
-            # Health / Dietary
-            current_user.dietary_restrictions = form.dietary_restrictions.data
-            current_user.allergies = form.allergies.data
+            # Health / Dietary — gated on RGPD Art. 9 explicit consent
+            if form.health_data_consent.data:
+                current_user.dietary_restrictions = form.dietary_restrictions.data
+                current_user.allergies = form.allergies.data
+                if not current_user.health_data_consent:
+                    current_user.health_data_consent = True
+                    current_user.health_data_consent_date = datetime.utcnow()
+            else:
+                # Consent withdrawn — clear health data
+                current_user.dietary_restrictions = None
+                current_user.allergies = None
+                current_user.medical_notes = None
+                current_user.health_data_consent = False
+                current_user.health_data_consent_date = None
 
             # ============ SAVE PAYMENT CONFIG ============
             if not payment_config:
@@ -1684,9 +1708,9 @@ def email_config_test():
 
         # Send test email
         msg = Message(
-            subject='[Test] Configuration Email Tour Manager',
+            subject='[Test] Configuration Email GigRoute',
             recipients=[current_user.email],
-            body=f'Ce message confirme que la configuration email fonctionne correctement.\n\nEnvoye depuis Tour Manager a {current_user.email}.',
+            body=f'Ce message confirme que la configuration email fonctionne correctement.\n\nEnvoye depuis GigRoute a {current_user.email}.',
             sender=sender
         )
         mail.send(msg)
@@ -1729,3 +1753,329 @@ def _reload_mail_config(app):
     # Reinitialize Flask-Mail with updated config
     mail.init_app(app)
 
+
+@settings_bp.route('/delete-account', methods=['GET', 'POST'])
+@login_required
+def delete_account():
+    """Self-service account deletion (RGPD Art. 17 — right to erasure).
+
+    Anonymizes PII and deactivates the account. Financial data is retained
+    for legal obligations (Art. 17.3.b — 10 years accounting requirement).
+    """
+    from flask_login import logout_user
+    from app.models.band import BandMembership
+    from app.models.profession import UserProfession
+    from app.models.notification import Notification
+    from app.models.payments import UserPaymentConfig
+    from app.models.user import TravelCard, user_roles
+    from app.models.oauth_token import OAuthToken
+
+    form = DeleteAccountForm()
+
+    if form.validate_on_submit():
+        # Verify password
+        if not current_user.check_password(form.password.data):
+            flash('Mot de passe incorrect.', 'error')
+            return render_template('settings/delete_account.html', form=form)
+
+        # Verify confirmation text
+        if form.confirm_text.data != 'SUPPRIMER':
+            flash('Veuillez taper SUPPRIMER pour confirmer.', 'error')
+            return render_template('settings/delete_account.html', form=form)
+
+        try:
+            user = current_user._get_current_object()
+            user_email = user.email
+
+            # Anonymize PII fields
+            import uuid
+            anon_id = uuid.uuid4().hex[:8]
+            user.first_name = 'Compte'
+            user.last_name = 'Supprime'
+            user.email = f'deleted_{anon_id}@anonymized.local'
+            user.phone = None
+            user.password_hash = 'ACCOUNT_DELETED'
+
+            # Clear personal data
+            user.date_of_birth = None
+            user.nationality = None
+            user._passport_number_encrypted = None
+            user.passport_expiry = None
+
+            # Clear travel preferences
+            user.preferred_airline = None
+            user.seat_preference = None
+            user.meal_preference = None
+            user.hotel_preferences = None
+
+            # Clear emergency contact
+            user.emergency_contact_name = None
+            user.emergency_contact_relation = None
+            user.emergency_contact_phone = None
+            user.emergency_contact_email = None
+
+            # Clear health data
+            user.dietary_restrictions = None
+            user.allergies = None
+            user.medical_notes = None
+            user.health_data_consent = False
+            user.health_data_consent_date = None
+
+            # Clear profile picture
+            user.profile_picture_data = None
+            user.profile_picture_mime = None
+
+            # Deactivate account
+            user.is_active = False
+
+            # Remove band memberships
+            BandMembership.query.filter_by(user_id=user.id).delete()
+
+            # Remove professions
+            UserProfession.query.filter_by(user_id=user.id).delete()
+
+            # Remove notifications
+            Notification.query.filter_by(user_id=user.id).delete()
+
+            # Remove payment config (IBAN, SSN, bank details)
+            UserPaymentConfig.query.filter_by(user_id=user.id).delete()
+
+            # Remove travel cards
+            TravelCard.query.filter_by(user_id=user.id).delete()
+
+            # Remove OAuth tokens
+            OAuthToken.query.filter_by(user_id=user.id).delete()
+
+            # Remove role assignments
+            db.session.execute(user_roles.delete().where(user_roles.c.user_id == user.id))
+
+            db.session.commit()
+
+            # Log the deletion
+            current_app.logger.info(f'Account self-deleted: {user_email} -> {user.email}')
+
+            # Logout
+            logout_user()
+            flash('Votre compte a ete supprime. Vos donnees personnelles ont ete anonymisees.', 'info')
+            return redirect(url_for('auth.login'))
+
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Account deletion failed: {e}')
+            flash('Erreur lors de la suppression. Veuillez reessayer ou contacter le support.', 'error')
+
+    return render_template('settings/delete_account.html', form=form)
+
+
+@settings_bp.route('/export-data')
+@login_required
+def export_data():
+    """RGPD Art. 20 — Right to data portability.
+
+    Exports all user personal data as a JSON file.
+    """
+    import json
+    from datetime import date as date_type, datetime as dt_type
+    from app.models.band import BandMembership
+    from app.models.profession import UserProfession
+    from app.models.payments import UserPaymentConfig
+    from app.models.user import TravelCard
+    from app.models.guestlist import GuestlistEntry
+    from app.models.notification import Notification
+
+    user = current_user._get_current_object()
+
+    def serialize(val):
+        if val is None:
+            return None
+        if isinstance(val, (date_type, dt_type)):
+            return val.isoformat()
+        if isinstance(val, bytes):
+            return '<binary data>'
+        if hasattr(val, 'value'):
+            return val.value
+        return str(val)
+
+    # Core profile
+    data = {
+        'export_date': dt_type.utcnow().isoformat(),
+        'profile': {
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+            'phone': user.phone,
+            'date_of_birth': serialize(user.date_of_birth),
+            'nationality': user.nationality,
+            'passport_expiry': serialize(user.passport_expiry),
+            'timezone': user.timezone,
+        },
+        'travel_preferences': {
+            'preferred_airline': user.preferred_airline,
+            'seat_preference': user.seat_preference,
+            'meal_preference': user.meal_preference,
+            'hotel_preferences': user.hotel_preferences,
+        },
+        'emergency_contact': {
+            'name': user.emergency_contact_name,
+            'relation': user.emergency_contact_relation,
+            'phone': user.emergency_contact_phone,
+            'email': user.emergency_contact_email,
+        },
+        'health_data': {
+            'dietary_restrictions': user.dietary_restrictions,
+            'allergies': user.allergies,
+            'consent_given': user.health_data_consent,
+            'consent_date': serialize(user.health_data_consent_date),
+        },
+    }
+
+    # Professions
+    profs = UserProfession.query.filter_by(user_id=user.id).all()
+    data['professions'] = [
+        {'profession_id': p.profession_id, 'is_primary': p.is_primary}
+        for p in profs
+    ]
+
+    # Band memberships
+    memberships = BandMembership.query.filter_by(user_id=user.id).all()
+    data['band_memberships'] = [
+        {'band_id': m.band_id, 'role': m.role, 'joined_at': serialize(m.joined_at)}
+        for m in memberships
+    ]
+
+    # Payment config (non-sensitive fields only)
+    config = UserPaymentConfig.query.filter_by(user_id=user.id).first()
+    if config:
+        data['payment_config'] = {
+            'staff_category': serialize(config.staff_category),
+            'staff_role': serialize(config.staff_role),
+            'contract_type': serialize(config.contract_type),
+            'bank_name': config.bank_name,
+            'account_holder': config.account_holder,
+            'billing_address': {
+                'line1': config.billing_address_line1,
+                'line2': config.billing_address_line2,
+                'city': config.billing_city,
+                'postal_code': config.billing_postal_code,
+                'country': config.billing_country,
+            },
+            'is_intermittent': config.is_intermittent,
+            'currency': config.currency,
+        }
+
+    # Travel cards
+    cards = TravelCard.query.filter_by(user_id=user.id).all()
+    data['travel_cards'] = [
+        {'card_type': c.card_type, 'card_number_last4': (c.card_number or '')[-4:]}
+        for c in cards
+    ]
+
+    # Guestlist entries created by user
+    entries = GuestlistEntry.query.filter_by(created_by_id=user.id).all()
+    data['guestlist_entries'] = [
+        {
+            'guest_name': e.guest_name,
+            'guest_email': e.guest_email,
+            'status': serialize(e.status),
+            'created_at': serialize(e.created_at),
+        }
+        for e in entries
+    ]
+
+    # Notifications (last 100)
+    notifs = Notification.query.filter_by(user_id=user.id).order_by(
+        Notification.created_at.desc()
+    ).limit(100).all()
+    data['notifications'] = [
+        {
+            'title': n.title,
+            'message': n.message,
+            'is_read': n.is_read,
+            'created_at': serialize(n.created_at),
+        }
+        for n in notifs
+    ]
+
+    response = current_app.response_class(
+        response=json.dumps(data, ensure_ascii=False, indent=2),
+        status=200,
+        mimetype='application/json',
+    )
+    response.headers['Content-Disposition'] = f'attachment; filename="gigroute-data-export-{user.id}.json"'
+    return response
+
+
+# ── Security Breach Management (RGPD Art. 33-34) ──
+
+@settings_bp.route('/breaches')
+@login_required
+def breaches_list():
+    """List all security breaches. Admin only."""
+    if not current_user.is_admin():
+        abort(403)
+
+    from app.models.security_breach import SecurityBreach
+    breaches = SecurityBreach.query.order_by(SecurityBreach.created_at.desc()).all()
+    return render_template('settings/breaches_list.html', breaches=breaches)
+
+
+@settings_bp.route('/breaches/declare', methods=['GET', 'POST'])
+@login_required
+def declare_breach():
+    """Declare a new security breach. Admin only."""
+    if not current_user.is_admin():
+        abort(403)
+
+    from app.models.security_breach import SecurityBreach, BreachSeverity
+
+    if request.method == 'POST':
+        breach = SecurityBreach(
+            title=request.form.get('title', '').strip(),
+            description=request.form.get('description', '').strip(),
+            severity=BreachSeverity(request.form.get('severity', 'medium')),
+            affected_data_types=request.form.get('affected_data_types', '').strip(),
+            estimated_affected_users=int(request.form.get('estimated_affected_users', 0) or 0),
+            remediation_actions=request.form.get('remediation_actions', '').strip(),
+            declared_by_id=current_user.id,
+        )
+        db.session.add(breach)
+        db.session.commit()
+
+        current_app.logger.warning(
+            f'SECURITY BREACH DECLARED by {current_user.email}: '
+            f'{breach.title} (severity={breach.severity.value})'
+        )
+        flash('Incident de securite declare. Rappel : notification CNIL sous 72h (Art. 33).', 'warning')
+        return redirect(url_for('settings.breaches_list'))
+
+    return render_template('settings/breach_form.html')
+
+
+@settings_bp.route('/breaches/<int:breach_id>/update-status', methods=['POST'])
+@login_required
+def update_breach_status(breach_id):
+    """Update breach status. Admin only."""
+    if not current_user.is_admin():
+        abort(403)
+
+    from app.models.security_breach import SecurityBreach, BreachStatus
+
+    breach = SecurityBreach.query.get_or_404(breach_id)
+    new_status = request.form.get('status')
+
+    try:
+        breach.status = BreachStatus(new_status)
+        if new_status == 'contained':
+            breach.contained_at = datetime.utcnow()
+        elif new_status == 'notified':
+            breach.cnil_notified_at = datetime.utcnow()
+        elif new_status == 'users_notified':
+            breach.users_notified_at = datetime.utcnow()
+
+        db.session.commit()
+        flash(f'Statut mis a jour: {new_status}', 'success')
+    except (ValueError, Exception) as e:
+        db.session.rollback()
+        flash(f'Erreur: {e}', 'error')
+
+    return redirect(url_for('settings.breaches_list'))

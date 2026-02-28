@@ -12,7 +12,6 @@
                         <!-- Logo -->
                         <div class="text-center mb-4">
                             <img src="{{ url_for('static', filename='img/logo-dark.png') }}" alt="GigRoute" height="80" class="mb-3">
-                            <h1 class="h3 mt-2 text-gold font-display">GigRoute</h1>
                             <p class="text-gray">Créez votre compte</p>
                         </div>
 
@@ -77,7 +76,7 @@
                                         <i class="bi bi-lock"></i>
                                     </span>
                                     {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""),
-                                       placeholder="••••••••") }}
+                                       placeholder="••••••••", autocomplete="new-password") }}
                                     <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                         <i class="bi bi-eye"></i>
                                     </button>
@@ -95,12 +94,19 @@
                                         <i class="bi bi-lock-fill"></i>
                                     </span>
                                     {{ form.password_confirm(class="form-control" + (" is-invalid" if form.password_confirm.errors else ""),
-                                       placeholder="••••••••") }}
+                                       placeholder="••••••••", autocomplete="new-password") }}
                                     {% if form.password_confirm.errors %}
                                     <div class="invalid-feedback">{{ form.password_confirm.errors[0] }}</div>
                                     {% endif %}
                                 </div>
                             </div>
+
+                            <p class="small text-muted mt-3 mb-3">
+                                En creant un compte, vous acceptez nos
+                                <a href="{{ url_for('main.terms') }}" class="text-decoration-none" target="_blank" rel="noopener noreferrer">CGU</a>
+                                et notre
+                                <a href="{{ url_for('main.privacy_policy') }}" class="text-decoration-none" target="_blank" rel="noopener noreferrer">Politique de confidentialite</a>.
+                            </p>
 
                             <div class="d-grid">
                                 {{ form.submit(class="btn btn-primary btn-lg") }}

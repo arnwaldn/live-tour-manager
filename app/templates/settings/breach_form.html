@@ -1,0 +1,77 @@
+{% extends "layouts/dashboard.html" %}
+
+{% block title %}Declarer un incident - GigRoute{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <a href="{{ url_for('settings.breaches_list') }}" class="btn btn-outline-secondary btn-sm mb-4">
+                <i class="bi bi-arrow-left me-1"></i> Retour
+            </a>
+
+            <div class="card border-danger">
+                <div class="card-header bg-danger bg-opacity-10">
+                    <h4 class="text-danger mb-0">
+                        <i class="bi bi-shield-exclamation me-2"></i>Declarer un incident de securite
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning small">
+                        <strong>RGPD Art. 33</strong> : Vous devez notifier la CNIL dans les <strong>72 heures</strong>
+                        suivant la prise de connaissance d'une violation de donnees personnelles.
+                    </div>
+
+                    <form method="POST" action="{{ url_for('settings.declare_breach') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Titre de l'incident</label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                   placeholder="Ex: Acces non autorise a la base de donnees">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="severity" class="form-label">Severite</label>
+                            <select class="form-select" id="severity" name="severity" required>
+                                <option value="low">Faible</option>
+                                <option value="medium" selected>Moyenne</option>
+                                <option value="high">Elevee</option>
+                                <option value="critical">Critique</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description detaillee</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" required
+                                      placeholder="Decrivez l'incident, les circonstances, et comment il a ete decouvert..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="affected_data_types" class="form-label">Types de donnees affectees</label>
+                            <input type="text" class="form-control" id="affected_data_types" name="affected_data_types"
+                                   placeholder="Ex: emails, mots de passe, IBAN, donnees de sante">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="estimated_affected_users" class="form-label">Nombre estime d'utilisateurs affectes</label>
+                            <input type="number" class="form-control" id="estimated_affected_users"
+                                   name="estimated_affected_users" min="0" value="0">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="remediation_actions" class="form-label">Actions correctives prises ou prevues</label>
+                            <textarea class="form-control" id="remediation_actions" name="remediation_actions" rows="3"
+                                      placeholder="Ex: Reset des mots de passe, revocation des tokens, patch applique..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="bi bi-shield-exclamation me-2"></i>Declarer l'incident
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

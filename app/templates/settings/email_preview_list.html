@@ -6,7 +6,7 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Preview des Templates Email</h1>
-        <a href="{{ url_for('settings.settings_index') }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('settings.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Retour
         </a>
     </div>
@@ -30,11 +30,11 @@
                 <div class="card-footer bg-transparent">
                     <div class="btn-group w-100">
                         <a href="{{ url_for('settings.email_preview', template_name=template.name) }}" 
-                           class="btn btn-primary" target="_blank">
+                           class="btn btn-primary" target="_blank" rel="noopener noreferrer">
                             <i class="bi bi-eye"></i> HTML
                         </a>
                         <a href="{{ url_for('settings.email_preview', template_name=template.name, format='txt') }}" 
-                           class="btn btn-outline-secondary" target="_blank">
+                           class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer">
                             <i class="bi bi-file-text"></i> TXT
                         </a>
                     </div>
@@ -48,9 +48,9 @@
         <h4>Options pour tour_stop_notification</h4>
         <p>Ce template accepte un parametre <code>?type=</code> pour changer le type de notification:</p>
         <ul>
-            <li><a href="{{ url_for('settings.email_preview', template_name='tour_stop_notification', type='created') }}" target="_blank">?type=created</a> - Nouvelle date</li>
-            <li><a href="{{ url_for('settings.email_preview', template_name='tour_stop_notification', type='updated') }}" target="_blank">?type=updated</a> - Date modifiee</li>
-            <li><a href="{{ url_for('settings.email_preview', template_name='tour_stop_notification', type='cancelled') }}" target="_blank">?type=cancelled</a> - Date annulee</li>
+            <li><a href="{{ url_for('settings.email_preview', template_name='tour_stop_notification', type='created') }}" target="_blank" rel="noopener noreferrer">?type=created</a> - Nouvelle date</li>
+            <li><a href="{{ url_for('settings.email_preview', template_name='tour_stop_notification', type='updated') }}" target="_blank" rel="noopener noreferrer">?type=updated</a> - Date modifiee</li>
+            <li><a href="{{ url_for('settings.email_preview', template_name='tour_stop_notification', type='cancelled') }}" target="_blank" rel="noopener noreferrer">?type=cancelled</a> - Date annulee</li>
         </ul>
     </div>
 </div>

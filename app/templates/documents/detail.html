@@ -195,7 +195,7 @@
                 {% if document.mime_type and ('image' in document.mime_type or 'pdf' in document.mime_type) %}
                 <a href="{{ url_for('documents.view', id=document.id) }}"
                    class="btn btn-primary"
-                   {% if 'image' in document.mime_type %}data-bs-toggle="modal" data-bs-target="#previewModal" onclick="event.preventDefault();"{% else %}target="_blank"{% endif %}>
+                   {% if 'image' in document.mime_type %}data-bs-toggle="modal" data-bs-target="#previewModal" onclick="event.preventDefault();"{% else %}target="_blank" rel="noopener noreferrer"{% endif %}>
                     <i class="bi bi-eye me-2"></i>Visualiser
                 </a>
                 {% endif %}

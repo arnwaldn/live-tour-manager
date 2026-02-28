@@ -1,5 +1,5 @@
 """
-Tour Manager Application Factory.
+GigRoute Application Factory.
 Creates and configures the Flask application instance.
 """
 import os
@@ -14,6 +14,30 @@ from flask import Flask, render_template, request, g
 
 from app.config import config
 from app.extensions import init_extensions, db
+
+
+def _init_sentry(app):
+    """Initialize Sentry error tracking for production."""
+    dsn = app.config.get('SENTRY_DSN') or os.environ.get('SENTRY_DSN')
+    if not dsn:
+        app.logger.info('SENTRY_DSN not set — error tracking disabled.')
+        return
+
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
+        sentry_sdk.init(
+            dsn=dsn,
+            integrations=[FlaskIntegration(), SqlalchemyIntegration()],
+            traces_sample_rate=float(os.environ.get('SENTRY_TRACES_RATE', '0.1')),
+            environment=os.environ.get('FLASK_ENV', 'production'),
+            send_default_pii=False,
+        )
+        app.logger.info('Sentry error tracking initialized.')
+    except ImportError:
+        app.logger.warning('sentry-sdk not installed — error tracking disabled.')
 
 
 def create_app(config_name=None):
@@ -34,6 +58,10 @@ def create_app(config_name=None):
     # Load configuration
     config_class = config[config_name]
     app.config.from_object(config_class)
+
+    # Initialize Sentry (production only)
+    if config_name == 'production':
+        _init_sentry(app)
 
     # Call init_app if available (production validation happens here)
     if hasattr(config_class, 'init_app'):
@@ -90,6 +118,9 @@ def create_app(config_name=None):
 
     # Add security headers
     register_security_headers(app)
+
+    # Email verification warning for sensitive operations
+    register_email_verification_guard(app)
 
     # Create database tables (development only)
     if config_name == 'development':
@@ -544,7 +575,7 @@ def register_cli_commands(app):
         from app.extensions import db
 
         print("="*60)
-        print("TOUR MANAGER - USER SETUP")
+        print("GIGROUTE - USER SETUP")
         print("="*60)
 
         created_count = 0
@@ -1257,11 +1288,11 @@ def configure_logging(app):
         app.logger.handlers.clear()
         app.logger.addHandler(stream_handler)
         app.logger.setLevel(logging.INFO)
-        app.logger.info('Tour Manager startup (JSON logging)')
+        app.logger.info('GigRoute startup (JSON logging)')
     else:
         # Development: plain text
         app.logger.setLevel(logging.DEBUG)
-        app.logger.info('Tour Manager startup (development)')
+        app.logger.info('GigRoute startup (development)')
 
 
 def register_security_headers(app):
@@ -1306,3 +1337,26 @@ def register_security_headers(app):
             )
 
         return response
+
+
+def register_email_verification_guard(app):
+    """Warn unverified users when accessing sensitive features (RGPD Art. 6)."""
+    from flask_login import current_user
+
+    SENSITIVE_PREFIXES = ('/payments', '/invoices', '/reports')
+
+    @app.before_request
+    def check_email_verification():
+        from flask import request as req
+        if (
+            current_user.is_authenticated
+            and not current_user.email_verified
+            and req.path.startswith(SENSITIVE_PREFIXES)
+            and req.method == 'GET'
+        ):
+            from flask import flash as _flash
+            _flash(
+                'Votre email n\'est pas encore verifie. '
+                'Certaines fonctionnalites peuvent etre limitees.',
+                'warning'
+            )

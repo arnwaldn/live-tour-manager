@@ -1,5 +1,5 @@
 """
-Payment models for Tour Manager - Enterprise Grade Financial Module.
+Payment models for GigRoute - Enterprise Grade Financial Module.
 Handles payments for all tour personnel: musicians, technicians, management, support staff.
 Compliant with French labor law (Intermittent du spectacle) and SEPA standards.
 """
@@ -329,17 +329,17 @@ class UserPaymentConfig(db.Model):
     holiday_rate = db.Column(db.Numeric(5, 2), default=2.00)       # Jours feries
     night_rate = db.Column(db.Numeric(5, 2), default=1.25)         # Travail de nuit
 
-    # Informations bancaires (SEPA)
-    iban = db.Column(db.String(34))
+    # Informations bancaires (SEPA) — IBAN chiffre Fernet (RGPD Art. 32)
+    _iban_encrypted = db.Column('iban', db.String(256))
     bic = db.Column(db.String(11))
     bank_name = db.Column(db.String(100))
     account_holder = db.Column(db.String(200))  # Titulaire du compte
 
-    # Informations fiscales/sociales (France)
+    # Informations fiscales/sociales (France) — N° sécu chiffré Fernet (RGPD Art. 32)
     siret = db.Column(db.String(14))                    # Si auto-entrepreneur
     siren = db.Column(db.String(9))                     # Si societe
     vat_number = db.Column(db.String(20))               # TVA intracommunautaire
-    social_security_number = db.Column(db.String(15))   # Numero securite sociale
+    _social_security_number_encrypted = db.Column('social_security_number', db.String(256))
     is_intermittent = db.Column(db.Boolean, default=False)  # Statut intermittent
     intermittent_id = db.Column(db.String(20))          # Numero Pole Emploi Spectacle
     conges_spectacle_id = db.Column(db.String(20))      # Numero Conges Spectacles
@@ -366,6 +366,54 @@ class UserPaymentConfig(db.Model):
 
     def __repr__(self):
         return f'<UserPaymentConfig user_id={self.user_id} role={self.staff_role}>'
+
+    # ── Fernet encryption properties (RGPD Art. 32) ──
+
+    @property
+    def iban(self):
+        """Decrypt IBAN on read."""
+        if not self._iban_encrypted:
+            return None
+        try:
+            from app.utils.encryption import decrypt_value
+            return decrypt_value(self._iban_encrypted)
+        except Exception:
+            return self._iban_encrypted
+
+    @iban.setter
+    def iban(self, value):
+        """Encrypt IBAN on write."""
+        if not value:
+            self._iban_encrypted = None
+            return
+        try:
+            from app.utils.encryption import encrypt_value
+            self._iban_encrypted = encrypt_value(value)
+        except Exception:
+            self._iban_encrypted = value
+
+    @property
+    def social_security_number(self):
+        """Decrypt social security number on read."""
+        if not self._social_security_number_encrypted:
+            return None
+        try:
+            from app.utils.encryption import decrypt_value
+            return decrypt_value(self._social_security_number_encrypted)
+        except Exception:
+            return self._social_security_number_encrypted
+
+    @social_security_number.setter
+    def social_security_number(self, value):
+        """Encrypt social security number on write."""
+        if not value:
+            self._social_security_number_encrypted = None
+            return
+        try:
+            from app.utils.encryption import encrypt_value
+            self._social_security_number_encrypted = encrypt_value(value)
+        except Exception:
+            self._social_security_number_encrypted = value
 
     @property
     def default_rate(self):

@@ -286,14 +286,35 @@
                             </h2>
                             <div id="healthInfo" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
                                 <div class="accordion-body">
-                                    <div class="mb-3">
-                                        <label for="dietary_restrictions" class="form-label">Restrictions alimentaires</label>
-                                        {{ form.dietary_restrictions(class="form-control", rows="2", placeholder="Végétarien, sans gluten, sans lactose...") }}
+                                    <div class="alert alert-info small mb-3">
+                                        <i class="bi bi-shield-check me-1"></i>
+                                        <strong>Donnees de sante (RGPD Art. 9)</strong> : Ces informations sont utilisees uniquement
+                                        pour la gestion logistique de vos tournees (catering, hebergement). Vous pouvez retirer
+                                        votre consentement a tout moment.
                                     </div>
-                                    <div class="mb-0">
-                                        <label for="allergies" class="form-label">Allergies</label>
-                                        {{ form.allergies(class="form-control", rows="2", placeholder="Fruits de mer, arachides, pollen...") }}
+                                    <div class="form-check mb-3">
+                                        {{ form.health_data_consent(class="form-check-input", id="health_data_consent") }}
+                                        <label class="form-check-label" for="health_data_consent">
+                                            {{ form.health_data_consent.label.text }}
+                                        </label>
                                     </div>
+                                    <div id="healthFields" {% if not form.health_data_consent.data %}style="display:none; opacity:0.5;"{% endif %}>
+                                        <div class="mb-3">
+                                            <label for="dietary_restrictions" class="form-label">Restrictions alimentaires</label>
+                                            {{ form.dietary_restrictions(class="form-control", rows="2", placeholder="Vegetarien, sans gluten, sans lactose...") }}
+                                        </div>
+                                        <div class="mb-0">
+                                            <label for="allergies" class="form-label">Allergies</label>
+                                            {{ form.allergies(class="form-control", rows="2", placeholder="Fruits de mer, arachides, pollen...") }}
+                                        </div>
+                                    </div>
+                                    <script>
+                                        document.getElementById('health_data_consent').addEventListener('change', function() {
+                                            var fields = document.getElementById('healthFields');
+                                            fields.style.display = this.checked ? 'block' : 'none';
+                                            fields.style.opacity = this.checked ? '1' : '0.5';
+                                        });
+                                    </script>
                                 </div>
                             </div>
                         </div>
@@ -432,8 +453,15 @@
                 <a href="{{ url_for('settings.password') }}" class="btn btn-outline-secondary w-100 mb-2">
                     <i class="bi bi-key me-2"></i>Changer mon mot de passe
                 </a>
-                <a href="{{ url_for('settings.notifications') }}" class="btn btn-outline-secondary w-100">
-                    <i class="bi bi-bell me-2"></i>Préférences de notification
+                <a href="{{ url_for('settings.notifications') }}" class="btn btn-outline-secondary w-100 mb-2">
+                    <i class="bi bi-bell me-2"></i>Preferences de notification
+                </a>
+                <hr>
+                <a href="{{ url_for('settings.export_data') }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="bi bi-download me-2"></i>Exporter mes donnees
+                </a>
+                <a href="{{ url_for('settings.delete_account') }}" class="btn btn-outline-danger w-100">
+                    <i class="bi bi-trash me-2"></i>Supprimer mon compte
                 </a>
             </div>
         </div>

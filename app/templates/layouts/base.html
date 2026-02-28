@@ -39,6 +39,13 @@
     </main>
     {% endblock %}
 
+    <!-- Footer with legal links -->
+    <footer class="text-center py-3 text-muted small border-top mt-auto">
+        <a href="{{ url_for('main.privacy_policy') }}" class="text-muted text-decoration-none me-3">Politique de confidentialite</a>
+        <a href="{{ url_for('main.terms') }}" class="text-muted text-decoration-none me-3">CGU</a>
+        <span>&copy; {{ current_year }} GigRoute</span>
+    </footer>
+
     <!-- Bootstrap 5.3 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->
@@ -71,6 +78,29 @@
             </div>
         </div>
     </div>
+
+    <!-- Cookie Consent Banner (ePrivacy Directive) -->
+    <div id="cookieBanner" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white p-3 shadow-lg" style="z-index: 1060; display: none;">
+        <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
+            <p class="mb-0 small">
+                Ce site utilise des cookies strictement necessaires au fonctionnement du service.
+                Aucun cookie publicitaire ou de suivi n'est utilise.
+                <a href="{{ url_for('main.privacy_policy') }}" class="text-white text-decoration-underline">En savoir plus</a>
+            </p>
+            <button id="cookieAccept" class="btn btn-light btn-sm flex-shrink-0">Compris</button>
+        </div>
+    </div>
+    <script>
+    (function() {
+        if (!localStorage.getItem('cookie_consent')) {
+            document.getElementById('cookieBanner').style.display = 'block';
+        }
+        document.getElementById('cookieAccept').addEventListener('click', function() {
+            localStorage.setItem('cookie_consent', Date.now());
+            document.getElementById('cookieBanner').style.display = 'none';
+        });
+    })();
+    </script>
 
     <!-- Service Worker Registration -->
     <script>

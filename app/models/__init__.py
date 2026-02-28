@@ -1,5 +1,5 @@
 """
-SQLAlchemy models for Tour Manager.
+SQLAlchemy models for GigRoute.
 All models are imported here for easy access.
 """
 from app.models.user import (
@@ -85,6 +85,8 @@ from app.models.subscription import (
     SubscriptionPlan,
     SubscriptionStatus,
 )
+# Security Breach (RGPD Art. 33-34)
+from app.models.security_breach import SecurityBreach, BreachSeverity, BreachStatus
 # AuditLog is in app/utils/audit.py (enriched existing model)
 
 __all__ = [
@@ -195,4 +197,8 @@ __all__ = [
     'Subscription',
     'SubscriptionPlan',
     'SubscriptionStatus',
+    # === SECURITY BREACH (RGPD Art. 33-34) ===
+    'SecurityBreach',
+    'BreachSeverity',
+    'BreachStatus',
 ]
