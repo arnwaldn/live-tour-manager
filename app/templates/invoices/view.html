@@ -141,14 +141,14 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 5%">#</th>
-                            <th style="width: 30%">Description</th>
-                            <th class="text-center">Qte</th>
-                            <th class="text-end">P.U. HT</th>
-                            <th class="text-center">TVA</th>
-                            <th class="text-end">Total HT</th>
+                            <th scope="col" style="width: 5%">#</th>
+                            <th scope="col" style="width: 30%">Description</th>
+                            <th scope="col" class="text-center">Qte</th>
+                            <th scope="col" class="text-end">P.U. HT</th>
+                            <th scope="col" class="text-center">TVA</th>
+                            <th scope="col" class="text-end">Total HT</th>
                             {% if invoice.status.value == 'draft' %}
-                            <th style="width: 5%"></th>
+                            <th scope="col" style="width: 5%"></th>
                             {% endif %}
                         </tr>
                     </thead>
@@ -237,11 +237,11 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Date</th>
-                            <th>Montant</th>
-                            <th>Mode</th>
-                            <th>Référence</th>
-                            <th>Notes</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Montant</th>
+                            <th scope="col">Mode</th>
+                            <th scope="col">Référence</th>
+                            <th scope="col">Notes</th>
                         </tr>
                     </thead>
                     <tbody>

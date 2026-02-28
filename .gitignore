@@ -97,3 +97,12 @@ nul
 
 # ATUM Audit
 audit_store/
+
+# Coverage artifacts
+coverage.json
+
+# ATUM audit config (generated)
+atum-audit.config.json
+
+# Orphan test scripts at root (tests belong in tests/)
+/test_*.py

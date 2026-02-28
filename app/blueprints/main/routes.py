@@ -1,6 +1,7 @@
 """
 Main blueprint routes - Dashboard and home.
 """
+import re
 from datetime import date, timedelta
 from flask import render_template, request, jsonify, redirect, url_for, flash, current_app, abort, send_from_directory
 from flask_login import login_required, current_user
@@ -534,27 +535,31 @@ def fix_enums():
     }
 
     try:
-        # List of enum values to ensure exist
-        entry_type_values = ['GUEST', 'ARTIST', 'INDUSTRY', 'PRESS', 'VIP', 'COMP', 'WORKING']
-        guestlist_status_values = ['PENDING', 'APPROVED', 'DENIED', 'CHECKED_IN', 'NO_SHOW']
+        # Whitelisted enum values — DDL (ALTER TYPE) does not support
+        # bind parameters in PostgreSQL, so we use string formatting
+        # but ONLY with values from this hardcoded whitelist.
+        ALLOWED_ENUM_VALUES = {
+            'entrytype': ['GUEST', 'ARTIST', 'INDUSTRY', 'PRESS', 'VIP', 'COMP', 'WORKING'],
+            'guestliststatus': ['PENDING', 'APPROVED', 'DENIED', 'CHECKED_IN', 'NO_SHOW'],
+        }
+        ALLOWED_ENUM_NAMES = frozenset(ALLOWED_ENUM_VALUES.keys())
+        VALID_IDENTIFIER = re.compile(r'^[A-Z][A-Z0-9_]*$')
 
-        # Check and add missing entry_type values
-        for value in entry_type_values:
-            try:
-                db.session.execute(text(f"ALTER TYPE entrytype ADD VALUE IF NOT EXISTS '{value}'"))
-                result['fixed'].append(f"entrytype.{value}")
-            except Exception as e:
-                if 'already exists' not in str(e).lower():
-                    result['errors'].append(f"entrytype.{value}: {str(e)}")
-
-        # Check and add missing guestliststatus values
-        for value in guestlist_status_values:
-            try:
-                db.session.execute(text(f"ALTER TYPE guestliststatus ADD VALUE IF NOT EXISTS '{value}'"))
-                result['fixed'].append(f"guestliststatus.{value}")
-            except Exception as e:
-                if 'already exists' not in str(e).lower():
-                    result['errors'].append(f"guestliststatus.{value}: {str(e)}")
+        for enum_name, allowed_values in ALLOWED_ENUM_VALUES.items():
+            assert enum_name in ALLOWED_ENUM_NAMES, f"Unknown enum: {enum_name}"
+            for value in allowed_values:
+                if not VALID_IDENTIFIER.match(value):
+                    result['errors'].append(f"{enum_name}.{value}: invalid characters")
+                    continue
+                try:
+                    # Safe: both enum_name and value come from hardcoded
+                    # constants above, validated by VALID_IDENTIFIER regex.
+                    stmt = f"ALTER TYPE {enum_name} ADD VALUE IF NOT EXISTS '{value}'"
+                    db.session.execute(text(stmt))
+                    result['fixed'].append(f"{enum_name}.{value}")
+                except Exception as e:
+                    if 'already exists' not in str(e).lower():
+                        result['errors'].append(f"{enum_name}.{value}: {str(e)}")
 
         db.session.commit()
         result['success'] = True
