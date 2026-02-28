@@ -1,5 +1,5 @@
 # =============================================================================
-# Tour Manager - Docker Compose Configuration
+# GigRoute - Docker Compose Configuration
 # Services: nginx (reverse proxy) + web (Flask/Gunicorn) + db (PostgreSQL 16)
 # =============================================================================
 # IMPORTANT: Copy .env.example to .env and configure before running!
@@ -13,7 +13,7 @@ services:
   # ---------------------------------------------------------------------------
   nginx:
     image: nginx:alpine
-    container_name: tour-manager-nginx
+    container_name: gigroute-nginx
     ports:
       - "80:80"
       - "443:443"
@@ -26,14 +26,14 @@ services:
       - web
     restart: unless-stopped
     networks:
-      - tour-manager-network
+      - gigroute-network
 
   # ---------------------------------------------------------------------------
   # Certbot (SSL certificate management)
   # ---------------------------------------------------------------------------
   certbot:
     image: certbot/certbot
-    container_name: tour-manager-certbot
+    container_name: gigroute-certbot
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
@@ -46,7 +46,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: tour-manager-web
+    container_name: gigroute-web
     # Port not exposed externally - nginx handles public traffic
     expose:
       - "8000"
@@ -56,12 +56,15 @@ services:
       # Override DATABASE_URL for Docker network
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-tour_manager}
       - REDIS_URL=redis://redis:6379/0
+      - PORT=8000
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
-      - tour-manager-network
+      - gigroute-network
     volumes:
       - ./logs:/app/logs
       - static_files:/app/app/static
@@ -71,13 +74,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
   # ---------------------------------------------------------------------------
   # PostgreSQL Database
   # ---------------------------------------------------------------------------
   db:
     image: postgres:16-alpine
-    container_name: tour-manager-db
+    container_name: gigroute-db
     env_file:
       - .env
     environment:
@@ -92,26 +103,72 @@ services:
       - "5432"
     restart: unless-stopped
     networks:
-      - tour-manager-network
+      - gigroute-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-tour_manager}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+
+  # ---------------------------------------------------------------------------
+  # Redis (for caching and rate limiting)
+  # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Database Backup (daily pg_dump with 7-day retention)
+  # ---------------------------------------------------------------------------
+  backup:
+    image: postgres:16-alpine
+    container_name: gigroute-backup
+    env_file:
+      - .env
+    environment:
+      - PGHOST=db
+      - PGUSER=${POSTGRES_USER:-postgres}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB:-tour_manager}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup_db.sh:/backup.sh:ro
+    entrypoint: /bin/sh
+    command: >
+      -c "chmod +x /backup.sh && while true; do
+        echo '[backup] Starting daily backup...';
+        /backup.sh;
+        echo '[backup] Next backup in 24h';
+        sleep 86400;
+      done"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - gigroute-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
 
   # ---------------------------------------------------------------------------
   # Redis (for caching and rate limiting)
   # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
-    container_name: tour-manager-redis
+    container_name: gigroute-redis
     # Port not exposed externally in production
     expose:
       - "6379"
     restart: unless-stopped
     networks:
-      - tour-manager-network
+      - gigroute-network
     volumes:
       - redis_data:/data
     healthcheck:
@@ -119,12 +176,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
 
 # =============================================================================
 # Networks
 # =============================================================================
 networks:
-  tour-manager-network:
+  gigroute-network:
     driver: bridge
 
 # =============================================================================

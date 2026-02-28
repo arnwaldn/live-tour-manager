@@ -4,6 +4,7 @@
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -20,8 +21,8 @@ def login(session):
     csrf = get_csrf_token(session, login_url)
     session.post(login_url, data={
         'csrf_token': csrf,
-        'email': 'manager@tourmanager.com',
-        'password': 'Manager123!'
+        'email': os.environ.get('DEBUG_EMAIL', 'manager@gigroute.app'),
+        'password': os.environ.get('DEBUG_PASSWORD', 'changeme')
     }, allow_redirects=True)
 
 session = requests.Session()

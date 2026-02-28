@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-SMTP Email Test Script for Tour Manager
+SMTP Email Test Script for GigRoute
 Verifies email configuration and sends a test email.
 
 Usage:
@@ -33,7 +33,7 @@ class Colors:
 
 def print_header():
     print(f"{Colors.BOLD}{chr(61)*60}{Colors.RESET}")
-    print(f"{Colors.BOLD}  TOUR MANAGER - TEST EMAIL SMTP{Colors.RESET}")
+    print(f"{Colors.BOLD}  GIGROUTE - TEST EMAIL SMTP{Colors.RESET}")
     print(f"{Colors.BOLD}{chr(61)*60}{Colors.RESET}")
 
 
@@ -60,7 +60,7 @@ def get_config():
         "use_tls": os.environ.get("MAIL_USE_TLS", "true").lower() == "true",
         "username": os.environ.get("MAIL_USERNAME"),
         "password": os.environ.get("MAIL_PASSWORD"),
-        "sender": os.environ.get("MAIL_DEFAULT_SENDER", "noreply@tourmanager.app"),
+        "sender": os.environ.get("MAIL_DEFAULT_SENDER", "noreply@gigroute.app"),
     }
 
 
@@ -94,12 +94,12 @@ def send_test_email(config, recipient):
     print_step("4", f"Envoi email de test a: {recipient}")
     try:
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"[TEST] Tour Manager - Email Test ({datetime.now().strftime(chr(39)+'%H:%M:%S'+chr(39))})")
+        msg["Subject"] = f"[TEST] GigRoute - Email Test ({datetime.now().strftime(chr(39)+'%H:%M:%S'+chr(39))})")
         msg["From"] = config["sender"]
         msg["To"] = recipient
         
         text = f"""
-STUDIO PALENQUE TOUR - TEST EMAIL
+GIGROUTE - TEST EMAIL
 
 Cet email confirme que votre configuration SMTP fonctionne.
 

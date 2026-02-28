@@ -81,6 +81,7 @@ tmpclaude-*
 
 # Debug artifacts
 debug-*
+scripts/debug/
 *.screenshot.png
 
 # pip install artifacts

@@ -1,4 +1,4 @@
-# Guide de Configuration OAuth - Tour Manager
+# Guide de Configuration OAuth - GigRoute
 
 Ce guide permet à l'administrateur de configurer les intégrations calendrier **une seule fois**.
 Une fois configuré, tous les utilisateurs pourront connecter leurs calendriers en un clic.
@@ -35,7 +35,7 @@ Avant de commencer, assurez-vous d'avoir :
 
 1. Allez sur [Google Cloud Console](https://console.cloud.google.com)
 2. Cliquez sur le sélecteur de projet en haut → **Nouveau projet**
-3. Nom du projet : `Tour Manager` (ou le nom de votre choix)
+3. Nom du projet : `GigRoute` (ou le nom de votre choix)
 4. Cliquez **Créer**
 
 ### Étape 2 : Activer l'API Google Calendar
@@ -50,7 +50,7 @@ Avant de commencer, assurez-vous d'avoir :
 2. Choisissez **External** (permet à tous les utilisateurs de se connecter)
 3. Cliquez **Créer**
 4. Remplissez les informations :
-   - **Nom de l'application** : Tour Manager
+   - **Nom de l'application** : GigRoute
    - **Email d'assistance** : votre email
    - **Logo** : optionnel
    - **Domaines autorisés** : ajoutez votre domaine (ex: `votredomaine.com`)
@@ -79,7 +79,7 @@ Avant de commencer, assurez-vous d'avoir :
 1. Allez dans **APIs & Services** → **Identifiants**
 2. Cliquez **+ Créer des identifiants** → **ID client OAuth**
 3. Type d'application : **Application Web**
-4. Nom : `Tour Manager Web`
+4. Nom : `GigRoute Web`
 5. **URI de redirection autorisés** : ajoutez exactement :
    ```
    https://VOTRE-DOMAINE/integrations/google/callback
@@ -120,7 +120,7 @@ GOOGLE_REDIRECT_URI=https://VOTRE-DOMAINE/integrations/google/callback
 2. Dans le menu de gauche, cliquez **App registrations**
 3. Cliquez **+ New registration**
 4. Remplissez :
-   - **Name** : `Tour Manager`
+   - **Name** : `GigRoute`
    - **Supported account types** : Choisissez **Accounts in any organizational directory and personal Microsoft accounts**
    - **Redirect URI** :
      - Platform : **Web**
@@ -151,7 +151,7 @@ Sur la page de votre app, notez :
 
 1. Dans le menu de gauche, cliquez **Certificates & secrets**
 2. Dans l'onglet **Client secrets**, cliquez **+ New client secret**
-3. Description : `Tour Manager Production`
+3. Description : `GigRoute Production`
 4. Expiration : Choisissez selon vos besoins (24 mois recommandé)
 5. Cliquez **Add**
 
@@ -185,7 +185,7 @@ Après avoir configuré les variables d'environnement :
 1. Cliquez **Connecter Google Calendar**
 2. Choisissez votre compte Google
 3. Acceptez les permissions demandées
-4. Vous devriez être redirigé vers Tour Manager avec le message "Connecté avec succès"
+4. Vous devriez être redirigé vers GigRoute avec le message "Connecté avec succès"
 
 ### Test de connexion Outlook
 
@@ -266,7 +266,7 @@ Après avoir configuré les variables d'environnement :
 
 Si vous rencontrez des problèmes :
 
-1. Vérifiez les logs de l'application (`logs/tour_manager.log`)
+1. Vérifiez les logs de l'application (`logs/gigroute.log`)
 2. Consultez la section Dépannage ci-dessus
 3. Vérifiez la documentation officielle :
    - [Google OAuth2](https://developers.google.com/identity/protocols/oauth2)

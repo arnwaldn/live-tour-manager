@@ -1,5 +1,5 @@
 # =============================================================================
-# Tour Manager - Production Dockerfile
+# GigRoute - Production Dockerfile
 # Python 3.12 + Gunicorn WSGI Server
 # =============================================================================
 
@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
-RUN groupadd -r tourmanager && useradd -r -g tourmanager tourmanager
+RUN groupadd -r gigroute && useradd -r -g gigroute gigroute
 
 # Copy requirements first for layer caching
 COPY requirements.txt .
@@ -39,10 +39,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set ownership to non-root user
-RUN chown -R tourmanager:tourmanager /app
+RUN chown -R gigroute:gigroute /app
 
 # Switch to non-root user
-USER tourmanager
+USER gigroute
 
 # Expose port
 EXPOSE 8080
@@ -51,11 +51,8 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-# DB setup at container start, then Gunicorn
-# Strategy: create tables from models (idempotent), stamp migrations, seed data
-CMD bash -c "python -c \"from app import create_app, db; app = create_app('production'); app.app_context().__enter__(); db.create_all(); print('[OK] Database tables ready')\" && \
-    flask db stamp heads && \
+# DB migrations at container start, then Gunicorn
+# Strategy: run Alembic migrations (idempotent), seed professions, start server
+CMD bash -c "flask db upgrade && \
     (flask seed-professions || true) && \
-    gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 1 --threads 2 \
-    --timeout 120 --access-logfile - --error-logfile - \
-    'app:create_app()'"
+    gunicorn -c gunicorn.conf.py 'app:create_app()'"

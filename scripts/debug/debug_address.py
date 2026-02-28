@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Debug Address Autocomplete Script"""
 
+import os
 import time
 import json
 from selenium import webdriver
@@ -37,8 +38,8 @@ def main():
         email_field = driver.find_element(By.NAME, "email")
         password_field = driver.find_element(By.NAME, "password")
 
-        email_field.send_keys("arnaud.porcel@gmail.com")
-        password_field.send_keys("manager123")
+        email_field.send_keys(os.environ.get("DEBUG_EMAIL", "manager@gigroute.app"))
+        password_field.send_keys(os.environ.get("DEBUG_PASSWORD", "changeme"))
 
         # Try multiple selectors for submit button
         try:

@@ -86,7 +86,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t tour-manager:${{ github.sha }} .
+        run: docker build -t gigroute:${{ github.sha }} .
 
       - name: Test Docker health check
         run: |
@@ -95,7 +95,7 @@ jobs:
             -e SECRET_KEY=test-key \
             -e DATABASE_URL=sqlite:///test.db \
             -p 8080:8080 \
-            tour-manager:${{ github.sha }}
+            gigroute:${{ github.sha }}
           sleep 10
           curl --fail http://localhost:8080/health || exit 1
           docker stop test-container

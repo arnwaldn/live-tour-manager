@@ -1,4 +1,4 @@
-# Tour Manager - Guide de Deploiement
+# GigRoute - Guide de Deploiement
 
 ## Table des matieres
 
@@ -35,7 +35,7 @@ git push origin main
 2. Cliquer "New Project"
 3. Selectionner "Deploy from GitHub repo"
 4. Autoriser l'acces a votre repository
-5. Selectionner `tour-manager`
+5. Selectionner `gigroute`
 
 ### Etape 3: Ajouter PostgreSQL
 
@@ -107,7 +107,7 @@ nano .env.production
 
 Variables a modifier:
 - `SECRET_KEY`: Generer avec `python scripts/generate_secret.py`
-- `DATABASE_URL`: `postgresql://postgres:VOTRE_MOT_DE_PASSE@db:5432/tour_manager`
+- `DATABASE_URL`: `postgresql://postgres:VOTRE_MOT_DE_PASSE@db:5432/gigroute`
 - `REDIS_URL`: `redis://redis:6379/0`
 - `MAIL_*`: Vos identifiants SMTP
 - `GEOAPIFY_API_KEY`: Votre cle API
@@ -119,7 +119,7 @@ Variables a modifier:
 nano nginx/nginx.conf
 
 # Remplacer VOTRE_DOMAINE par votre domaine reel
-# Exemple: ssl_certificate /etc/letsencrypt/live/tourmanager.com/fullchain.pem;
+# Exemple: ssl_certificate /etc/letsencrypt/live/gigroute.com/fullchain.pem;
 ```
 
 ### Etape 3: Obtenir les certificats SSL
@@ -235,17 +235,17 @@ Pour backup manuel:
 
 ```bash
 # Backup base de donnees
-docker-compose exec db pg_dump -U postgres tour_manager > backup_$(date +%Y%m%d).sql
+docker-compose exec db pg_dump -U postgres gigroute > backup_$(date +%Y%m%d).sql
 
 # Restauration
-docker-compose exec -T db psql -U postgres tour_manager < backup_20260128.sql
+docker-compose exec -T db psql -U postgres gigroute < backup_20260128.sql
 ```
 
 ### Backup automatique (cron)
 
 ```bash
 # Ajouter au crontab
-0 2 * * * cd /path/to/tour-manager && docker-compose exec -T db pg_dump -U postgres tour_manager > /backups/tour_manager_$(date +\%Y\%m\%d).sql
+0 2 * * * cd /path/to/gigroute && docker-compose exec -T db pg_dump -U postgres gigroute > /backups/gigroute_$(date +\%Y\%m\%d).sql
 ```
 
 ---

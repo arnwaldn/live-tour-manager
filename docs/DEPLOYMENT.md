@@ -1,6 +1,6 @@
-# Guide de Déploiement - Tour Manager
+# Guide de Déploiement - GigRoute
 
-Ce guide couvre le déploiement de Tour Manager en production avec support complet des intégrations OAuth.
+Ce guide couvre le déploiement de GigRoute en production avec support complet des intégrations OAuth.
 
 ---
 
@@ -43,7 +43,7 @@ Avant de déployer, assurez-vous d'avoir :
 
 1. Cliquez **New Project**
 2. Choisissez **Deploy from GitHub repo**
-3. Sélectionnez votre repo Tour Manager
+3. Sélectionnez votre repo GigRoute
 4. Railway détecte automatiquement que c'est une app Python/Flask
 
 ### Étape 3 : Ajouter PostgreSQL
@@ -113,7 +113,7 @@ Railway déploie automatiquement à chaque push sur la branche main.
 1. Cliquez **New** → **Web Service**
 2. Connectez votre repo GitHub
 3. Configurez :
-   - **Name** : tour-manager
+   - **Name** : gigroute
    - **Region** : Frankfurt (EU) ou proche de vos users
    - **Branch** : main
    - **Runtime** : Python 3
@@ -137,18 +137,18 @@ SECRET_KEY=<générer un secret>
 DATABASE_URL=<copié de PostgreSQL>
 GOOGLE_CLIENT_ID=xxx
 GOOGLE_CLIENT_SECRET=xxx
-GOOGLE_REDIRECT_URI=https://tour-manager.onrender.com/integrations/google/callback
+GOOGLE_REDIRECT_URI=https://gigroute.onrender.com/integrations/google/callback
 MICROSOFT_CLIENT_ID=xxx
 MICROSOFT_CLIENT_SECRET=xxx
 MICROSOFT_TENANT_ID=common
-MICROSOFT_REDIRECT_URI=https://tour-manager.onrender.com/integrations/outlook/callback
+MICROSOFT_REDIRECT_URI=https://gigroute.onrender.com/integrations/outlook/callback
 ```
 
 ### Étape 5 : Déployer
 
 Cliquez **Create Web Service**. Render déploie automatiquement.
 
-**URL finale** : `https://tour-manager.onrender.com`
+**URL finale** : `https://gigroute.onrender.com`
 
 > **Note Free Tier** : Le service s'éteint après 15 min d'inactivité et met ~30s à redémarrer.
 
@@ -190,8 +190,8 @@ apt update && apt upgrade -y
 apt install -y python3 python3-pip python3-venv postgresql nginx certbot python3-certbot-nginx git
 
 # Créer utilisateur app
-adduser tourmanager
-usermod -aG sudo tourmanager
+adduser gigroute
+usermod -aG sudo gigroute
 ```
 
 ### Étape 3 : Configurer PostgreSQL
@@ -199,21 +199,21 @@ usermod -aG sudo tourmanager
 ```bash
 sudo -u postgres psql
 
-CREATE USER tourmanager WITH PASSWORD 'motdepasse_securise';
-CREATE DATABASE tour_manager OWNER tourmanager;
+CREATE USER gigroute WITH PASSWORD 'motdepasse_securise';
+CREATE DATABASE gigroute OWNER gigroute;
 \q
 ```
 
 ### Étape 4 : Déployer l'application
 
 ```bash
-# En tant que tourmanager
-su - tourmanager
+# En tant que gigroute
+su - gigroute
 cd ~
 
 # Cloner le repo
-git clone https://github.com/votre-user/tour-manager.git
-cd tour-manager
+git clone https://github.com/votre-user/gigroute.git
+cd gigroute
 
 # Environnement virtuel
 python3 -m venv venv
@@ -227,19 +227,19 @@ nano .env  # Éditer avec vos valeurs
 
 ### Étape 5 : Configurer Gunicorn (service systemd)
 
-Créer `/etc/systemd/system/tourmanager.service` :
+Créer `/etc/systemd/system/gigroute.service` :
 
 ```ini
 [Unit]
-Description=Tour Manager Flask App
+Description=GigRoute Flask App
 After=network.target
 
 [Service]
-User=tourmanager
-WorkingDirectory=/home/tourmanager/tour-manager
-Environment="PATH=/home/tourmanager/tour-manager/venv/bin"
-EnvironmentFile=/home/tourmanager/tour-manager/.env
-ExecStart=/home/tourmanager/tour-manager/venv/bin/gunicorn -w 4 -b 127.0.0.1:5000 "app:create_app()"
+User=gigroute
+WorkingDirectory=/home/gigroute/gigroute
+Environment="PATH=/home/gigroute/gigroute/venv/bin"
+EnvironmentFile=/home/gigroute/gigroute/.env
+ExecStart=/home/gigroute/gigroute/venv/bin/gunicorn -w 4 -b 127.0.0.1:5000 "app:create_app()"
 Restart=always
 
 [Install]
@@ -247,13 +247,13 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-sudo systemctl enable tourmanager
-sudo systemctl start tourmanager
+sudo systemctl enable gigroute
+sudo systemctl start gigroute
 ```
 
 ### Étape 6 : Configurer Nginx
 
-Créer `/etc/nginx/sites-available/tourmanager` :
+Créer `/etc/nginx/sites-available/gigroute` :
 
 ```nginx
 server {
@@ -269,14 +269,14 @@ server {
     }
 
     location /static {
-        alias /home/tourmanager/tour-manager/app/static;
+        alias /home/gigroute/gigroute/app/static;
         expires 30d;
     }
 }
 ```
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/tourmanager /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/gigroute /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -302,7 +302,7 @@ Une fois votre domaine final connu, mettez à jour :
 - Ajoutez l'URI de production : `https://votredomaine.com/integrations/google/callback`
 
 **Azure Portal :**
-- App registrations → Tour Manager → Authentication
+- App registrations → GigRoute → Authentication
 - Ajoutez l'URI : `https://votredomaine.com/integrations/outlook/callback`
 
 ### 2. Initialiser la base de données
@@ -327,7 +327,7 @@ from app.extensions import db
 admin = User(
     email='admin@votredomaine.com',
     first_name='Admin',
-    last_name='Tour Manager',
+    last_name='GigRoute',
     is_active=True
 )
 admin.set_password('motdepasse_temporaire')
@@ -358,7 +358,7 @@ db.session.commit()
 - [ ] Base de données sur SSD
 
 ### Monitoring
-- [ ] Logs configurés (`logs/tour_manager.log`)
+- [ ] Logs configurés (`logs/gigroute.log`)
 - [ ] Alertes email configurées (optionnel)
 - [ ] Backups base de données automatiques
 
@@ -377,22 +377,22 @@ db.session.commit()
 
 **VPS :**
 ```bash
-cd /home/tourmanager/tour-manager
+cd /home/gigroute/gigroute
 git pull
 source venv/bin/activate
 pip install -r requirements.txt
 flask db upgrade
-sudo systemctl restart tourmanager
+sudo systemctl restart gigroute
 ```
 
 ### Backups base de données
 
 ```bash
 # Backup manuel
-pg_dump tour_manager > backup_$(date +%Y%m%d).sql
+pg_dump gigroute > backup_$(date +%Y%m%d).sql
 
 # Restauration
-psql tour_manager < backup_20240115.sql
+psql gigroute < backup_20240115.sql
 ```
 
 ---
@@ -401,6 +401,6 @@ psql tour_manager < backup_20240115.sql
 
 En cas de problème :
 
-1. Vérifiez les logs : `sudo journalctl -u tourmanager -f`
+1. Vérifiez les logs : `sudo journalctl -u gigroute -f`
 2. Testez la connexion DB : `flask shell` puis `db.session.execute(text('SELECT 1'))`
 3. Consultez `docs/OAUTH_SETUP.md` pour les erreurs OAuth

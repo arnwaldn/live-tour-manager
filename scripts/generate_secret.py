@@ -28,7 +28,7 @@ def generate_secret_key(length: int = 32) -> str:
 if __name__ == "__main__":
     key = generate_secret_key()
     print("\n" + "=" * 60)
-    print("SECRET KEY GENERATOR - Tour Manager")
+    print("SECRET KEY GENERATOR - GigRoute")
     print("=" * 60)
     print(f"\nSECRET_KEY={key}")
     print("\n" + "-" * 60)

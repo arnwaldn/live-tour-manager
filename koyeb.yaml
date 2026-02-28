@@ -1,7 +1,7 @@
-name: live-tour-manager
+name: gigroute
 type: web
 git:
-  repository: github.com/arnwaldn/live-tour-manager
+  repository: github.com/arnwaldn/gigroute
   branch: main
   builder: dockerfile
   dockerfile: Dockerfile
@@ -30,9 +30,9 @@ healthChecks:
     path: /health
     protocol: http
 scaling:
-  min: 0
-  max: 1
+  min: 1
+  max: 3
 instance_types:
-  - type: free
+  - type: nano
 regions:
   - fra

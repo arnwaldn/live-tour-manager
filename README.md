@@ -1,4 +1,4 @@
-# Tour Manager
+# GigRoute
 
 Application web professionnelle de gestion de tournée pour groupes/artistes. Gérez vos tournées, concerts, guestlists et logistique depuis une interface moderne et responsive.
 
@@ -64,8 +64,8 @@ Application web professionnelle de gestion de tournée pour groupes/artistes. G�
 
 ```bash
 # 1. Cloner le repo
-git clone https://github.com/your-repo/tour-manager.git
-cd tour-manager
+git clone https://github.com/your-repo/gigroute.git
+cd gigroute
 
 # 2. Créer l'environnement virtuel
 python -m venv venv
@@ -84,7 +84,7 @@ copy .env.example .env
 # Éditer .env avec vos valeurs
 
 # 5. Créer la base de données PostgreSQL
-# Créer une DB nommée 'tour_manager_dev'
+# Créer une DB nommée 'gigroute_dev'
 
 # 6. Initialiser la base
 flask db upgrade
@@ -103,8 +103,8 @@ L'application sera accessible sur `http://localhost:5000`
 
 ```bash
 # 1. Cloner le repo
-git clone https://github.com/your-repo/tour-manager.git
-cd tour-manager
+git clone https://github.com/your-repo/gigroute.git
+cd gigroute
 
 # 2. Configurer les variables
 cp .env.example .env
@@ -127,7 +127,7 @@ L'application sera accessible sur `http://localhost:8000`
 ## Structure du Projet
 
 ```
-tour-manager/
+gigroute/
 ├── app/
 │   ├── __init__.py              # Application factory
 │   ├── extensions.py            # Flask extensions
@@ -198,12 +198,12 @@ Après avoir exécuté `python seed_data.py` :
 
 | Email | Mot de passe | Rôle |
 |-------|--------------|------|
-| manager@tourmanager.com | Manager123! | Manager |
-| musician1@tourmanager.com | Musician123! | Musician |
-| musician2@tourmanager.com | Musician123! | Musician |
-| tech@tourmanager.com | Tech123! | Tech |
-| promoter@tourmanager.com | Promoter123! | Promoter |
-| guestlist@tourmanager.com | Guestlist123! | Guestlist Manager |
+| manager@gigroute.app | Manager123! | Manager |
+| musician1@gigroute.app | Musician123! | Musician |
+| musician2@gigroute.app | Musician123! | Musician |
+| tech@gigroute.app | Tech123! | Tech |
+| promoter@gigroute.app | Promoter123! | Promoter |
+| guestlist@gigroute.app | Guestlist123! | Guestlist Manager |
 
 ## Tests
 
@@ -224,7 +224,7 @@ pytest tests/test_routes.py
 
 | Variable | Description | Exemple |
 |----------|-------------|---------|
-| `DATABASE_URL` | URL PostgreSQL | `postgresql://user:pass@localhost/tour_manager` |
+| `DATABASE_URL` | URL PostgreSQL | `postgresql://user:pass@localhost/gigroute` |
 | `SECRET_KEY` | Clé secrète Flask | `your-secret-key-change-in-production` |
 | `FLASK_ENV` | Environnement | `development` ou `production` |
 | `MAIL_SERVER` | Serveur SMTP | `smtp.gmail.com` |
@@ -243,7 +243,7 @@ Réponse :
 {
   "status": "healthy",
   "database": "healthy",
-  "service": "tour-manager"
+  "service": "gigroute"
 }
 ```
 
