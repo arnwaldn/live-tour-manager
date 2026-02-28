@@ -497,7 +497,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 function togglePassword() {
     const input = document.getElementById('mail_password');
     const icon = document.getElementById('toggle-icon');

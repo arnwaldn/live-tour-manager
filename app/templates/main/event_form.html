@@ -342,7 +342,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const eventTypeSelect = document.getElementById('event_type');
     const tourIdSelect = document.getElementById('tour_id');

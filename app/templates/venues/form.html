@@ -249,7 +249,7 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/venue-contacts.js') }}?v=20260203"></script>
 <script src="{{ url_for('static', filename='js/address-autocomplete.js') }}?v=20260203b"></script>
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize address autocomplete
     // France: API Adresse (gratuit illimité)

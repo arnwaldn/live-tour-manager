@@ -441,7 +441,7 @@
     </footer>
     {% endif %}
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
         // Service Worker registration for PWA capabilities (optional)
         if ('serviceWorker' in navigator) {
             // Could register SW here for offline support

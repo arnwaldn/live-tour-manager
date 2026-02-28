@@ -634,7 +634,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 const tourId = {{ tour.id }};
 const stopId = {{ stop.id }};
 const csrfToken = "{{ csrf_token() }}";

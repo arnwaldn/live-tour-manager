@@ -594,7 +594,7 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map
     const map = L.map('tour-map').setView([48.8566, 2.3522], 5);

@@ -242,7 +242,7 @@
 {% endif %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Auto-uppercase code field
 document.getElementById('code').addEventListener('input', function(e) {
     e.target.value = e.target.value.toUpperCase();

@@ -182,7 +182,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const ownerType = document.getElementById('owner_type');
     const ownerUser = document.getElementById('owner_user');

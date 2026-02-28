@@ -1,19 +1,26 @@
 """
 Email utility module for GigRoute.
 Handles all email notifications using Flask-Mail.
+Supports async sending via threading and retry with exponential backoff.
 """
+import time
 import uuid
 import logging
+import threading
 from flask import render_template, current_app, url_for
 from flask_mail import Message
 from app.extensions import mail
 
 logger = logging.getLogger(__name__)
 
+# Retry configuration
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 2  # seconds (2, 4, 8 with exponential backoff)
+
 
 def send_email(subject, recipient, template, **kwargs):
     """
-    Send an email using Flask-Mail.
+    Send an email using Flask-Mail with retry logic.
 
     Args:
         subject: Email subject (will be prefixed with [GigRoute])
@@ -47,21 +54,103 @@ def send_email(subject, recipient, template, **kwargs):
         # Also create a plain text version
         msg.body = render_template(f'email/{template}.txt', **kwargs) if _template_exists(f'email/{template}.txt') else _html_to_text(msg.html)
 
-        mail.send(msg)
-        logger.info(f"[EMAIL:{email_id}] Succès - Email envoyé à {recipient}")
-        return True
+        # Send with retry
+        return _send_with_retry(msg, email_id, recipient)
     except Exception as e:
-        logger.error(f"[EMAIL:{email_id}] Échec - {recipient}: {e}")
+        logger.error(f"[EMAIL:{email_id}] Échec construction message - {recipient}: {e}")
         return False
+
+
+def _send_with_retry(msg, email_id, recipient):
+    """
+    Send a prepared Message with exponential backoff retry.
+
+    Args:
+        msg: Flask-Mail Message object (already built)
+        email_id: Tracking ID for logging
+        recipient: Recipient email for logging
+
+    Returns:
+        bool: True if sent successfully after retries
+    """
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            mail.send(msg)
+            logger.info(f"[EMAIL:{email_id}] Succès - Email envoyé à {recipient}"
+                        + (f" (tentative {attempt})" if attempt > 1 else ""))
+            return True
+        except Exception as e:
+            last_error = e
+            if attempt < MAX_RETRIES:
+                delay = RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                logger.warning(
+                    f"[EMAIL:{email_id}] Tentative {attempt}/{MAX_RETRIES} échouée "
+                    f"pour {recipient}: {e} — retry dans {delay}s"
+                )
+                time.sleep(delay)
+            else:
+                logger.error(
+                    f"[EMAIL:{email_id}] Échec définitif après {MAX_RETRIES} tentatives "
+                    f"pour {recipient}: {last_error}"
+                )
+    return False
 
 
 def send_async_email(subject, recipient, template, **kwargs):
     """
-    Send email asynchronously (placeholder for background task integration).
-    For now, falls back to synchronous sending.
+    Send email asynchronously in a background thread.
+
+    The template is rendered in the current request context before
+    dispatching to the thread, so Jinja context is preserved.
+
+    Args:
+        subject: Email subject
+        recipient: Recipient email address
+        template: Email template name
+        **kwargs: Template context variables
+
+    Returns:
+        bool: True (always — fire-and-forget, errors are logged)
     """
-    # TODO: Integrate with Celery or similar for async sending
-    return send_email(subject, recipient, template, **kwargs)
+    from app.models.user import User
+    user = User.query.filter_by(email=recipient).first()
+    if user and not user.receive_emails:
+        logger.info(f"[EMAIL] Ignoré (async) - {recipient} a désactivé la réception des emails")
+        return True
+
+    email_id = str(uuid.uuid4())[:8]
+
+    # Render templates in request context (before dispatching to thread)
+    try:
+        html_body = render_template(f'email/{template}.html', **kwargs)
+        text_body = (render_template(f'email/{template}.txt', **kwargs)
+                     if _template_exists(f'email/{template}.txt')
+                     else _html_to_text(html_body))
+        sender = current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app')
+    except Exception as e:
+        logger.error(f"[EMAIL:{email_id}] Échec rendu template (async) - {recipient}: {e}")
+        return False
+
+    msg = Message(
+        subject=f"[GigRoute] {subject}",
+        recipients=[recipient],
+        sender=sender,
+    )
+    msg.html = html_body
+    msg.body = text_body
+
+    # Dispatch to background thread with app context
+    app = current_app._get_current_object()
+
+    def _send_in_thread():
+        with app.app_context():
+            _send_with_retry(msg, email_id, recipient)
+
+    thread = threading.Thread(target=_send_in_thread, daemon=True)
+    thread.start()
+    logger.info(f"[EMAIL:{email_id}] Dispatch async pour {recipient} - {subject}")
+    return True
 
 
 def send_guestlist_notification(entry, notification_type, extra_context=None):
@@ -486,11 +575,9 @@ def send_invoice_email(invoice):
                 pdf_bytes,
             )
 
-        mail.send(msg)
-        logger.info(f"[EMAIL:{email_id}] Invoice {invoice.number} sent to {invoice.recipient_email}")
-        return True
+        return _send_with_retry(msg, email_id, invoice.recipient_email)
     except Exception as e:
-        logger.error(f"[EMAIL:{email_id}] Failed to send invoice {invoice.number}: {e}")
+        logger.error(f"[EMAIL:{email_id}] Failed to build invoice email {invoice.number}: {e}")
         return False
 
 

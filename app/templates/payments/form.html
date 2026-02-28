@@ -196,7 +196,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Auto-calculate amount from quantity * unit_rate
 document.addEventListener('DOMContentLoaded', function() {
     const quantityInput = document.getElementById('quantity');

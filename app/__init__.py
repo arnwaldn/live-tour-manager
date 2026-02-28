@@ -5,6 +5,7 @@ Creates and configures the Flask application instance.
 import os
 import json
 import logging
+import secrets
 import uuid
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
@@ -1128,7 +1129,8 @@ def register_context_processors(app):
         """Provide utility functions to templates."""
         return {
             'now': datetime.now,
-            'current_year': datetime.now().year
+            'current_year': datetime.now().year,
+            'csp_nonce': g.get('csp_nonce', ''),
         }
 
     @app.context_processor
@@ -1264,6 +1266,7 @@ def configure_logging(app):
     @app.before_request
     def assign_request_id():
         g.request_id = request.headers.get('X-Request-ID', str(uuid.uuid4())[:8])
+        g.csp_nonce = secrets.token_urlsafe(16)
 
     @app.after_request
     def log_request(response):
@@ -1323,11 +1326,12 @@ def register_security_headers(app):
         # Prevent cross-domain policy loading
         response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
 
-        # Content Security Policy
+        # Content Security Policy (nonce-based for scripts)
         if not app.debug:
+            nonce = g.get('csp_nonce', '')
             response.headers['Content-Security-Policy'] = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://js.stripe.com; "
+                f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://unpkg.com https://js.stripe.com; "
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com; "
                 "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
                 "img-src 'self' data: https: blob:; "

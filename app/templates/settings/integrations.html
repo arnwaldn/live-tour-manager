@@ -272,7 +272,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 function syncGoogle() {
     const btn = event.target.closest('button');
     const originalText = btn.innerHTML;

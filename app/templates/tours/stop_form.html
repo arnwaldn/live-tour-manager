@@ -699,7 +699,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const eventTypeSelect = document.getElementById('event_type');
     const venueSelect = document.getElementById('venue_id');
@@ -942,7 +942,7 @@ function copyPreviousCrew() {
 </script>
 <!-- Autocomplétion d'adresses -->
 <script src="{{ url_for('static', filename='js/address-autocomplete.js') }}?v=20260204"></script>
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Initialiser l'autocomplétion pour le champ d'adresse externe
     if (typeof initAddressAutocomplete === 'function') {

@@ -30,6 +30,8 @@ def app():
         yield application
         db.session.remove()
         db.drop_all()
+        # Close all connections to prevent ResourceWarning: unclosed database
+        db.engine.dispose()
 
 
 @pytest.fixture(scope='function')

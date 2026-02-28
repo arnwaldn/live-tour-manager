@@ -77,9 +77,58 @@ jobs:
         run: black --check app/ --line-length=120
         continue-on-error: true
 
-  docker:
+  # Staging validation — runs on main after tests pass
+  staging:
     runs-on: ubuntu-latest
     needs: [test, lint]
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_manager_staging
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run migrations
+        env:
+          FLASK_ENV: production
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tour_manager_staging
+          SECRET_KEY: staging-secret-key-ci-only
+        run: flask db upgrade
+
+      - name: Smoke test (production config)
+        env:
+          FLASK_ENV: production
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tour_manager_staging
+          SECRET_KEY: staging-secret-key-ci-only
+        run: |
+          python -c "from app import create_app; app = create_app('production'); client = app.test_client(); resp = client.get('/health'); assert resp.status_code == 200, f'Health check failed: {resp.status_code}'"
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [staging]
     if: github.ref == 'refs/heads/main'
 
     steps:

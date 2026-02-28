@@ -104,7 +104,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Toggle password visibility
 document.getElementById('togglePassword').addEventListener('click', function() {
     const passwordField = document.getElementById('password');

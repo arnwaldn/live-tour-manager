@@ -92,7 +92,7 @@
             <button id="cookieAccept" class="btn btn-light btn-sm flex-shrink-0">Compris</button>
         </div>
     </div>
-    <script>
+    <script nonce="{{ csp_nonce }}">
     (function() {
         if (!localStorage.getItem('cookie_consent')) {
             document.getElementById('cookieBanner').style.display = 'block';
@@ -105,7 +105,7 @@
     </script>
 
     <!-- Service Worker Registration -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js', { scope: '/' })
         .catch(function() {});

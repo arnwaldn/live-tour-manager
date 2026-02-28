@@ -439,7 +439,7 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
+<script nonce="{{ csp_nonce }}">
 function showCalendarSubscription(tourId) {
     // Fetch the calendar URL from the API
     fetch(`/tours/${tourId}/calendar-url`)

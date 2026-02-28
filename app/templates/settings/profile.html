@@ -308,7 +308,7 @@
                                             {{ form.allergies(class="form-control", rows="2", placeholder="Fruits de mer, arachides, pollen...") }}
                                         </div>
                                     </div>
-                                    <script>
+                                    <script nonce="{{ csp_nonce }}">
                                         document.getElementById('health_data_consent').addEventListener('change', function() {
                                             var fields = document.getElementById('healthFields');
                                             fields.style.display = this.checked ? 'block' : 'none';

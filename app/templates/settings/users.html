@@ -209,7 +209,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Simple search filter
 document.getElementById('searchUsers').addEventListener('keyup', function() {
     const searchTerm = this.value.toLowerCase();

@@ -404,7 +404,7 @@
 </div>
 
 {% if stop.is_today %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Update current time indicator position
 function updateCurrentTimeIndicator() {
     const indicator = document.getElementById('current-time-indicator');

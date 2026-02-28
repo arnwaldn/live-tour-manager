@@ -336,7 +336,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function editSlot(id, name, description, start, end, category, color) {
     document.getElementById('slotModalTitle').textContent = 'Modifier le créneau';
     document.getElementById('slotForm').action = '/crew/slots/' + id;

@@ -655,7 +655,7 @@
 <script src="{{ url_for('static', filename='js/airport-autocomplete.js') }}"></script>
 <script src="{{ url_for('static', filename='js/address-autocomplete.js') }}"></script>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const logisticsType = document.getElementById('logistics_type');
 

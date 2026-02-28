@@ -248,7 +248,7 @@
 <!-- Leaflet JS - Using jsdelivr (CSP whitelisted) -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 {% autoescape false %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Event type colors
     const eventTypeColors = {

@@ -335,7 +335,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Load tour stops when tour changes
     var tourSelect = document.getElementById('tour_id');

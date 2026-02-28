@@ -2,6 +2,7 @@
 Subscription service for GigRoute SaaS billing.
 Handles Stripe integration, plan limits, and subscription lifecycle.
 """
+import uuid
 from datetime import datetime
 from typing import Optional
 
@@ -70,6 +71,7 @@ class SubscriptionService:
             email=user.email,
             name=user.full_name,
             metadata={'user_id': str(user.id)},
+            idempotency_key=f"cust-create-{user.id}-{uuid.uuid4().hex[:8]}",
         )
 
         user.stripe_customer_id = customer.id
@@ -104,6 +106,7 @@ class SubscriptionService:
             success_url=f'{app_url}/billing/success?session_id={{CHECKOUT_SESSION_ID}}',
             cancel_url=f'{app_url}/billing/pricing',
             metadata={'user_id': str(user.id)},
+            idempotency_key=f"checkout-{user.id}-{uuid.uuid4().hex[:8]}",
         )
 
         return session.url

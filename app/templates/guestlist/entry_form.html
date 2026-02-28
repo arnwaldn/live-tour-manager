@@ -133,7 +133,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 /**
  * Toggle artist selection dropdown visibility based on entry type.
  * Shows the artist dropdown when entry_type='artist', hides it otherwise.

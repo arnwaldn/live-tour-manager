@@ -400,7 +400,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Édition du planning d'un membre
     document.querySelectorAll('.edit-schedule-btn').forEach(function(btn) {

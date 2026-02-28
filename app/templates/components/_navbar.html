@@ -132,7 +132,7 @@
 <div class="navbar-spacer" style="height: var(--sp-navbar-height, 60px);"></div>
 
 <!-- Search Form Protection: Prevent accidental submissions from other forms -->
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const navbarSearchForm = document.getElementById('navbar-search-form');
     const navbarSearchInput = document.getElementById('navbar-search-input');
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Notifications JavaScript -->
-<script>
+<script nonce="{{ csp_nonce }}">
 function markAsRead(notificationId) {
     fetch(`/notifications/${notificationId}/mark-read`, {
         method: 'POST',

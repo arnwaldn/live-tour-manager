@@ -664,7 +664,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 // Cache des professions pour éviter requêtes multiples
 let professionsCache = {};
 
