@@ -10,6 +10,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from datetime import date, time, timedelta
 
+from flask_mailman import EmailMessage, EmailMultiAlternatives
 from app.extensions import db
 from app.models.user import User, Role
 from app.models.band import Band, BandMembership
@@ -40,9 +41,18 @@ from app.utils.email import (
 
 @pytest.fixture
 def mock_mail(app):
-    """Mock Flask-Mail to prevent actual email sending."""
-    with patch('app.utils.email.mail') as mock:
-        mock.send = MagicMock(return_value=None)
+    """Mock Flask-Mailman to prevent actual email sending.
+
+    Patches EmailMessage.send() at class level. Each msg.send() call
+    forwards the EmailMessage instance to mock.send(msg) so tests can
+    inspect sent messages via mock.send.call_args[0][0].
+    """
+    mock = MagicMock()
+
+    def capture_send(msg_self, *args, **kwargs):
+        mock.send(msg_self)
+
+    with patch.object(EmailMultiAlternatives, 'send', capture_send):
         yield mock
 
 
@@ -221,9 +231,7 @@ class TestSendEmail:
 
     def test_send_email_failure(self, app):
         """Test email sending failure."""
-        with patch('app.utils.email.mail') as mock_mail:
-            mock_mail.send.side_effect = Exception('SMTP Error')
-
+        with patch.object(EmailMultiAlternatives, 'send', side_effect=Exception('SMTP Error')):
             result = send_email(
                 subject='Test Subject',
                 recipient='recipient@test.com',
@@ -289,7 +297,7 @@ class TestPasswordResetEmail:
         # Verify message content
         message = mock_mail.send.call_args[0][0]
         assert 'Reinitialisation' in message.subject
-        assert user_with_reset_token.email == message.recipients[0]
+        assert user_with_reset_token.email == message.to[0]
 
     def test_send_password_reset_email_contains_url(self, app, mock_mail, user_with_reset_token):
         """Test that password reset email contains the reset URL."""
@@ -299,7 +307,7 @@ class TestPasswordResetEmail:
         )
 
         message = mock_mail.send.call_args[0][0]
-        assert 'my-reset-token' in message.html
+        assert 'my-reset-token' in message.alternatives[0][0]
 
 
 # =============================================================================
@@ -318,7 +326,7 @@ class TestWelcomeEmail:
 
         message = mock_mail.send.call_args[0][0]
         assert 'Bienvenue' in message.subject
-        assert manager_user.email == message.recipients[0]
+        assert manager_user.email == message.to[0]
 
 
 # =============================================================================
@@ -340,7 +348,7 @@ class TestInvitationEmail:
 
         message = mock_mail.send.call_args[0][0]
         assert 'Invitation' in message.subject
-        assert user_with_invitation_token.email == message.recipients[0]
+        assert user_with_invitation_token.email == message.to[0]
 
     def test_send_invitation_email_contains_token(self, app, mock_mail, user_with_invitation_token, manager_user):
         """Test that invitation email contains the accept URL with token."""
@@ -350,7 +358,7 @@ class TestInvitationEmail:
         )
 
         message = mock_mail.send.call_args[0][0]
-        assert user_with_invitation_token.invitation_token in message.html
+        assert user_with_invitation_token.invitation_token in message.alternatives[0][0]
 
 
 # =============================================================================
@@ -372,7 +380,7 @@ class TestGuestlistNotification:
 
         message = mock_mail.send.call_args[0][0]
         assert 'approuvee' in message.subject.lower()
-        assert approved_guestlist_entry.guest_email == message.recipients[0]
+        assert approved_guestlist_entry.guest_email == message.to[0]
 
     def test_guestlist_notification_denied(self, app, mock_mail, denied_guestlist_entry):
         """Test denied guestlist notification."""
@@ -520,7 +528,7 @@ class TestApprovalRejectionEmail:
 
         message = mock_mail.send.call_args[0][0]
         assert 'approuvee' in message.subject.lower()
-        assert pending_user.email == message.recipients[0]
+        assert pending_user.email == message.to[0]
 
     def test_send_rejection_email_success(self, app, mock_mail):
         """Test successful rejection email."""
@@ -534,7 +542,7 @@ class TestApprovalRejectionEmail:
 
         message = mock_mail.send.call_args[0][0]
         assert 'refusee' in message.subject.lower()
-        assert 'rejected@test.com' == message.recipients[0]
+        assert 'rejected@test.com' == message.to[0]
 
 
 # =============================================================================

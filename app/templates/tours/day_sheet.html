@@ -95,10 +95,10 @@
                 <div class="info-card-value">{{ stop.venue.capacity }} places</div>
             </div>
             {% endif %}
-            {% if stop.sold_tickets %}
+            {% if stop.total_sold_tickets %}
             <div class="info-card">
                 <div class="info-card-label">Billets vendus</div>
-                <div class="info-card-value gold">{{ stop.sold_tickets }}</div>
+                <div class="info-card-value gold">{{ stop.total_sold_tickets }}</div>
             </div>
             {% endif %}
             {% if stop.set_length_minutes %}

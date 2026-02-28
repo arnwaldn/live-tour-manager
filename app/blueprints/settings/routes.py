@@ -1670,7 +1670,7 @@ def email_config():
 @requires_manager
 def email_config_test():
     """Test email configuration by sending a test email."""
-    from flask_mail import Message
+    from flask_mailman import EmailMessage
     from app.extensions import mail
     from app.models.system_settings import SystemSettings
 
@@ -1707,13 +1707,13 @@ def email_config_test():
         mail.init_app(current_app)
 
         # Send test email
-        msg = Message(
+        msg = EmailMessage(
             subject='[Test] Configuration Email GigRoute',
-            recipients=[current_user.email],
             body=f'Ce message confirme que la configuration email fonctionne correctement.\n\nEnvoye depuis GigRoute a {current_user.email}.',
-            sender=sender
+            from_email=sender,
+            to=[current_user.email],
         )
-        mail.send(msg)
+        msg.send()
 
         return {'success': True}
 
@@ -1750,7 +1750,7 @@ def _reload_mail_config(app):
     if db_config.get('MAIL_DEFAULT_SENDER'):
         app.config['MAIL_DEFAULT_SENDER'] = db_config['MAIL_DEFAULT_SENDER']
 
-    # Reinitialize Flask-Mail with updated config
+    # Reinitialize Flask-Mailman with updated config
     mail.init_app(app)
 
 

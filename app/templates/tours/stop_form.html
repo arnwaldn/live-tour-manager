@@ -334,6 +334,93 @@
                                 {% endif %}
                             </div>
 
+                            <!-- Multi-tier pricing section -->
+                            <div class="col-12 mt-3">
+                                <div class="card border-dashed">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <label class="form-label mb-0">
+                                                <i class="bi bi-tags text-primary me-1"></i>Tarifs multiples
+                                            </label>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="addTierBtn">
+                                                <i class="bi bi-plus-lg me-1"></i>Ajouter un tarif
+                                            </button>
+                                        </div>
+                                        <small class="text-muted d-block mb-2">
+                                            Si des tarifs sont ajoutés, le prix unique ci-dessus sera ignoré pour les calculs financiers.
+                                        </small>
+                                        <div id="tierRows">
+                                            {% if stop and stop.ticket_tiers %}
+                                            {% for tier in stop.ticket_tiers %}
+                                            <div class="tier-row row g-2 mb-2 align-items-end">
+                                                <input type="hidden" name="tier_id[]" value="{{ tier.id }}">
+                                                <div class="col-3">
+                                                    {% if loop.first %}<label class="form-label small mb-1">Nom</label>{% endif %}
+                                                    <input type="text" class="form-control form-control-sm" name="tier_name[]"
+                                                           value="{{ tier.name }}" placeholder="Ex: Fosse" required>
+                                                </div>
+                                                <div class="col-2">
+                                                    {% if loop.first %}<label class="form-label small mb-1">Prix €</label>{% endif %}
+                                                    <input type="number" class="form-control form-control-sm" name="tier_price[]"
+                                                           value="{{ tier.price }}" step="0.01" min="0" placeholder="0.00" required>
+                                                </div>
+                                                <div class="col-2">
+                                                    {% if loop.first %}<label class="form-label small mb-1">Places</label>{% endif %}
+                                                    <input type="number" class="form-control form-control-sm" name="tier_quantity[]"
+                                                           value="{{ tier.quantity_available or '' }}" min="0" placeholder="Illimité">
+                                                </div>
+                                                <div class="col-2">
+                                                    {% if loop.first %}<label class="form-label small mb-1">Vendus</label>{% endif %}
+                                                    <input type="number" class="form-control form-control-sm" name="tier_sold[]"
+                                                           value="{{ tier.sold }}" min="0" placeholder="0">
+                                                </div>
+                                                <div class="col-2">
+                                                    {% if loop.first %}<label class="form-label small mb-1">Ordre</label>{% endif %}
+                                                    <input type="number" class="form-control form-control-sm" name="tier_sort[]"
+                                                           value="{{ tier.sort_order }}" min="0" placeholder="0">
+                                                </div>
+                                                <div class="col-1">
+                                                    {% if loop.first %}<label class="form-label small mb-1">&nbsp;</label>{% endif %}
+                                                    <button type="button" class="btn btn-sm btn-outline-danger w-100 removeTierBtn"
+                                                            aria-label="Supprimer ce tarif">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                        <!-- Template for new tier row (cloned by JS) -->
+                                        <template id="tierRowTemplate">
+                                            <div class="tier-row row g-2 mb-2 align-items-end">
+                                                <input type="hidden" name="tier_id[]" value="">
+                                                <div class="col-3">
+                                                    <input type="text" class="form-control form-control-sm" name="tier_name[]" placeholder="Ex: Fosse" required>
+                                                </div>
+                                                <div class="col-2">
+                                                    <input type="number" class="form-control form-control-sm" name="tier_price[]" step="0.01" min="0" placeholder="0.00" required>
+                                                </div>
+                                                <div class="col-2">
+                                                    <input type="number" class="form-control form-control-sm" name="tier_quantity[]" min="0" placeholder="Illimité">
+                                                </div>
+                                                <div class="col-2">
+                                                    <input type="number" class="form-control form-control-sm" name="tier_sold[]" min="0" placeholder="0" value="0">
+                                                </div>
+                                                <div class="col-2">
+                                                    <input type="number" class="form-control form-control-sm" name="tier_sort[]" min="0" placeholder="0" value="0">
+                                                </div>
+                                                <div class="col-1">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger w-100 removeTierBtn"
+                                                            aria-label="Supprimer ce tarif">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="col-12 col-md-4">
                                 <label for="door_deal_percentage" class="form-label">
                                     <i class="bi bi-percent text-info me-1"></i>% Door Deal
@@ -958,6 +1045,31 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+
+// === Ticket Tiers dynamic rows ===
+document.addEventListener('DOMContentLoaded', function() {
+    const addBtn = document.getElementById('addTierBtn');
+    const container = document.getElementById('tierRows');
+    const template = document.getElementById('tierRowTemplate');
+    if (!addBtn || !container || !template) return;
+
+    let tierIndex = container.querySelectorAll('.tier-row').length;
+
+    addBtn.addEventListener('click', function() {
+        const clone = template.content.cloneNode(true);
+        const sortInput = clone.querySelector('[name="tier_sort[]"]');
+        if (sortInput) sortInput.value = tierIndex;
+        tierIndex++;
+        container.appendChild(clone);
+    });
+
+    container.addEventListener('click', function(e) {
+        const btn = e.target.closest('.removeTierBtn');
+        if (btn) {
+            btn.closest('.tier-row').remove();
+        }
+    });
 });
 </script>
 {% endblock %}
