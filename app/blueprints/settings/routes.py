@@ -1939,7 +1939,7 @@ def export_data():
     # Band memberships
     memberships = BandMembership.query.filter_by(user_id=user.id).all()
     data['band_memberships'] = [
-        {'band_id': m.band_id, 'role': m.role, 'joined_at': serialize(m.joined_at)}
+        {'band_id': m.band_id, 'role_in_band': m.role_in_band, 'instrument': m.instrument, 'joined_at': serialize(m.joined_at)}
         for m in memberships
     ]
 
@@ -1971,7 +1971,7 @@ def export_data():
     ]
 
     # Guestlist entries created by user
-    entries = GuestlistEntry.query.filter_by(created_by_id=user.id).all()
+    entries = GuestlistEntry.query.filter_by(requested_by_id=user.id).all()
     data['guestlist_entries'] = [
         {
             'guest_name': e.guest_name,
