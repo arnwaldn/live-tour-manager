@@ -1,4 +1,4 @@
-# Patterns Appris - Tour Manager
+# Patterns Appris - GigRoute
 
 ## 2026-01-12: Quick Start avec SQLite
 
@@ -20,7 +20,7 @@
 7. Lancer: `flask run --host=0.0.0.0 --port=5001`
 
 **Comptes demo**:
-- manager@tourmanager.com / Manager123! (MANAGER - acces complet)
+- manager@gigroute.app / Manager123! (MANAGER - acces complet)
 - lead@cosmictravelers.com / Lead123! (MUSICIAN)
 
 **Note**: Utiliser `db.create_all()` au lieu de `flask db upgrade` evite les erreurs de migration "duplicate column" avec SQLite.
