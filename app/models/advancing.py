@@ -1,5 +1,5 @@
 """
-Advancing models for Tour Manager.
+Advancing models for GigRoute.
 Handles event preparation (advancing) workflow for live shows.
 """
 import enum

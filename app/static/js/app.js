@@ -1,5 +1,5 @@
 /**
- * Tour Manager - Main JavaScript
+ * GigRoute - Main JavaScript
  * Core functionality for sidebar, modals, forms, and UI interactions
  */
 

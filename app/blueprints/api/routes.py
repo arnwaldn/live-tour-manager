@@ -22,7 +22,7 @@ from app.models.tour_stop import TourStop, TourStopMember
 from app.models.guestlist import GuestlistEntry, GuestlistStatus
 from app.models.notification import Notification
 from app.models.payments import TeamMemberPayment
-from app.models.band import Band
+from app.models.band import Band, BandMembership
 from app.models.venue import Venue
 
 
@@ -38,7 +38,17 @@ def api_list_tours():
         band_id (int): Filter by band
         page, per_page: Pagination
     """
+    user = request.api_user
     query = Tour.query.options(joinedload(Tour.band))
+
+    # Object-level authorization: non-staff see only their bands' tours
+    if not user.is_staff_or_above():
+        accessible_band_ids = db.session.query(BandMembership.band_id).filter(
+            BandMembership.user_id == user.id
+        ).union(
+            db.session.query(Band.id).filter(Band.manager_id == user.id)
+        )
+        query = query.filter(Tour.band_id.in_(accessible_band_ids))
 
     # Filters
     status = request.args.get('status')
@@ -64,7 +74,7 @@ def api_list_tours():
 def api_get_tour(tour_id):
     """Get a single tour by ID."""
     tour = Tour.query.options(joinedload(Tour.band)).get(tour_id)
-    if not tour:
+    if not tour or not tour.can_view(request.api_user):
         return api_error('not_found', 'Tour not found.', 404)
 
     return api_success(TourSchema().dump(tour))
@@ -82,7 +92,7 @@ def api_list_tour_stops(tour_id):
         page, per_page: Pagination
     """
     tour = Tour.query.get(tour_id)
-    if not tour:
+    if not tour or not tour.can_view(request.api_user):
         return api_error('not_found', 'Tour not found.', 404)
 
     query = TourStop.query.options(
@@ -114,7 +124,7 @@ def api_get_stop(stop_id):
         joinedload(TourStop.tour),
     ).get(stop_id)
 
-    if not stop:
+    if not stop or not stop.tour.can_view(request.api_user):
         return api_error('not_found', 'Tour stop not found.', 404)
 
     return api_success(TourStopSchema().dump(stop))
@@ -132,8 +142,8 @@ def api_list_guestlist(stop_id):
         q (str): Search by guest name
         page, per_page: Pagination
     """
-    stop = TourStop.query.get(stop_id)
-    if not stop:
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop or not stop.tour.can_view(request.api_user):
         return api_error('not_found', 'Tour stop not found.', 404)
 
     query = GuestlistEntry.query.filter(
@@ -163,8 +173,10 @@ def api_checkin_guest(entry_id):
 
     Only approved entries can be checked in.
     """
-    entry = GuestlistEntry.query.get(entry_id)
-    if not entry:
+    entry = GuestlistEntry.query.options(
+        joinedload(GuestlistEntry.tour_stop).joinedload(TourStop.tour)
+    ).get(entry_id)
+    if not entry or not entry.tour_stop.tour.can_view(request.api_user):
         return api_error('not_found', 'Guestlist entry not found.', 404)
 
     if entry.status != GuestlistStatus.APPROVED:
@@ -325,7 +337,16 @@ def api_list_bands():
         q (str): Search by band name
         page, per_page: Pagination
     """
+    user = request.api_user
     query = Band.query.options(joinedload(Band.manager))
+
+    # Object-level authorization: non-staff see only their bands
+    if not user.is_staff_or_above():
+        managed = db.session.query(Band.id).filter(Band.manager_id == user.id)
+        member_of = db.session.query(BandMembership.band_id).filter(
+            BandMembership.user_id == user.id
+        )
+        query = query.filter(Band.id.in_(managed.union(member_of)))
 
     search = request.args.get('q', '').strip()
     if search:

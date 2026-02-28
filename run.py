@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Tour Manager Application Entry Point.
+GigRoute Application Entry Point.
 Run this file to start the development server.
 """
 import os

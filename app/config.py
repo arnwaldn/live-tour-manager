@@ -1,5 +1,5 @@
 """
-Configuration classes for Tour Manager application.
+Configuration classes for GigRoute application.
 Supports Development, Testing, and Production environments.
 """
 import os
@@ -32,11 +32,16 @@ class Config:
 
     # Database
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'connect_args': {'client_encoding': 'utf8'},
-    }
+    # Engine options: PostgreSQL-specific settings only when not using SQLite
+    SQLALCHEMY_ENGINE_OPTIONS = (
+        {}
+        if os.environ.get('DATABASE_URL', '').startswith('sqlite')
+        else {
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+            'connect_args': {'client_encoding': 'utf8'},
+        }
+    )
 
     # Rate Limiting
     RATELIMIT_STORAGE_URL = 'memory://'
@@ -53,7 +58,7 @@ class Config:
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@tourmanager.app')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app')
 
     # Caching
     CACHE_TYPE = 'SimpleCache'
@@ -81,6 +86,9 @@ class Config:
     STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
     STRIPE_PRO_PRICE_ID = os.environ.get('STRIPE_PRO_PRICE_ID')
     APP_URL = os.environ.get('APP_URL', 'http://localhost:5000')
+
+    # Sentry (error monitoring — production only)
+    SENTRY_DSN = os.environ.get('SENTRY_DSN')
 
 
 class DevelopmentConfig(Config):
@@ -143,12 +151,23 @@ class ProductionConfig(Config):
     # Enhanced security for production
     SESSION_COOKIE_SECURE = True
 
-    # Use Redis for rate limiting in production (if available)
+    # Redis for rate limiting (REQUIRED in production for multi-worker consistency)
     RATELIMIT_STORAGE_URL = os.environ.get('REDIS_URL', 'memory://')
 
-    # Use Redis for caching in production (if available)
-    CACHE_TYPE = os.environ.get('CACHE_TYPE', 'SimpleCache')
-    CACHE_REDIS_URL = os.environ.get('REDIS_URL')
+    # Redis for caching (REQUIRED in production for multi-worker consistency)
+    _redis_url = os.environ.get('REDIS_URL')
+    CACHE_TYPE = 'RedisCache' if _redis_url else 'SimpleCache'
+    CACHE_REDIS_URL = _redis_url
+    CACHE_DEFAULT_TIMEOUT = 600
+
+    # Database connection pool (production-tuned)
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'pool_size': 10,
+        'max_overflow': 20,
+        'connect_args': {'client_encoding': 'utf8'},
+    }
 
     @classmethod
     def init_app(cls, app):
@@ -172,11 +191,19 @@ class ProductionConfig(Config):
                 "Set all 4 Stripe keys or none."
             )
 
-        # Warn about rate limiter using in-memory storage
-        if cls.RATELIMIT_STORAGE_URL == 'memory://':
+        # Warn about Redis (critical for multi-worker deployments)
+        if not os.environ.get('REDIS_URL'):
             logger.warning(
-                "REDIS_URL not set — rate limiter uses in-memory storage. "
-                "Each Gunicorn worker has independent counters."
+                "REDIS_URL not set — cache and rate limiter use in-memory storage. "
+                "Each Gunicorn worker has independent counters and cache. "
+                "Set REDIS_URL for production multi-worker consistency."
+            )
+
+        # Warn about Sentry
+        if not os.environ.get('SENTRY_DSN'):
+            logger.warning(
+                "SENTRY_DSN not set — error tracking disabled. "
+                "Set SENTRY_DSN for production error monitoring."
             )
 
         # Warn about JWT key sharing SECRET_KEY

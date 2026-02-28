@@ -2,7 +2,7 @@
  * Service Worker — GigRoute
  * Cache-first for static assets, network-first for dynamic pages.
  */
-const CACHE_NAME = 'tour-manager-v1';
+const CACHE_NAME = 'gigroute-v2';
 const STATIC_ASSETS = [
   '/static/css/style.css',
   '/static/css/responsive.css',

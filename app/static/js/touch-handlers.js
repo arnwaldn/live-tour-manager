@@ -1,5 +1,5 @@
 /**
- * Tour Manager - Touch Handlers
+ * GigRoute - Touch Handlers
  * Mobile touch interactions: swipe gestures, pull to refresh, touch feedback
  */
 

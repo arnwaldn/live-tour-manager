@@ -119,7 +119,7 @@ class User(UserMixin, db.Model):
     # Personal information
     date_of_birth = db.Column(db.Date)
     nationality = db.Column(db.String(100))
-    passport_number = db.Column(db.String(50))
+    _passport_number_encrypted = db.Column('passport_number', db.String(256))
     passport_expiry = db.Column(db.Date)
 
     # Travel preferences
@@ -141,6 +141,10 @@ class User(UserMixin, db.Model):
     dietary_restrictions = db.Column(db.Text)
     allergies = db.Column(db.Text)
     medical_notes = db.Column(db.Text)  # Private, visible only to managers
+
+    # RGPD Art. 9 — Explicit consent for health data processing
+    health_data_consent = db.Column(db.Boolean, default=False)
+    health_data_consent_date = db.Column(db.DateTime, nullable=True)
 
     # Notification preferences
     notify_new_tour = db.Column(db.Boolean, default=True)
@@ -253,6 +257,29 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f'<User {self.email}>'
+
+    @property
+    def passport_number(self):
+        """Decrypt passport number on read (RGPD Art. 32)."""
+        if not self._passport_number_encrypted:
+            return None
+        try:
+            from app.utils.encryption import decrypt_value
+            return decrypt_value(self._passport_number_encrypted)
+        except Exception:
+            return self._passport_number_encrypted
+
+    @passport_number.setter
+    def passport_number(self, value):
+        """Encrypt passport number on write (RGPD Art. 32)."""
+        if not value:
+            self._passport_number_encrypted = None
+            return
+        try:
+            from app.utils.encryption import encrypt_value
+            self._passport_number_encrypted = encrypt_value(value)
+        except Exception:
+            self._passport_number_encrypted = value
 
     @property
     def full_name(self):

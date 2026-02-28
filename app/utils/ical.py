@@ -1,5 +1,5 @@
 """
-iCal utilities for Tour Manager.
+iCal utilities for GigRoute.
 Generates proper iCal/ICS files compatible with Google Calendar, Apple Calendar, Outlook, etc.
 """
 from datetime import datetime, timedelta, date, time
@@ -22,7 +22,7 @@ def create_calendar(name, description=None):
         icalendar.Calendar object
     """
     cal = Calendar()
-    cal.add('prodid', '-//GigRoute//Tour Manager//FR')
+    cal.add('prodid', '-//GigRoute//GigRoute//FR')
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')

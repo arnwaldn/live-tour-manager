@@ -1,0 +1,106 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Conditions Generales d'Utilisation - GigRoute{% endblock %}
+
+{% block body %}
+<div class="container py-5" style="max-width: 800px;">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm mb-4">
+        <i class="bi bi-arrow-left me-1"></i> Retour
+    </a>
+
+    <h1 class="mb-4">Conditions Generales d'Utilisation</h1>
+    <p class="text-muted">Derniere mise a jour : 27 fevrier 2026</p>
+
+    <hr>
+
+    <h2>1. Objet</h2>
+    <p>
+        Les presentes Conditions Generales d'Utilisation (CGU) regissent l'utilisation
+        de la plateforme GigRoute, service de gestion de tournees musicales et d'evenements.
+    </p>
+
+    <h2>2. Acceptation</h2>
+    <p>
+        L'utilisation de GigRoute implique l'acceptation pleine et entiere des presentes CGU.
+        En creant un compte, l'utilisateur reconnait avoir pris connaissance de ces conditions.
+    </p>
+
+    <h2>3. Description du service</h2>
+    <p>GigRoute propose les fonctionnalites suivantes :</p>
+    <ul>
+        <li>Gestion de tournees et dates de concerts</li>
+        <li>Gestion des groupes et membres d'equipe</li>
+        <li>Gestion des salles de concert (venues)</li>
+        <li>Listes d'invites (guestlist) et check-in</li>
+        <li>Logistique (vols, hotels, transports)</li>
+        <li>Avancement technique (advancing) et fiches techniques</li>
+        <li>Planning d'equipe (crew scheduling)</li>
+        <li>Facturation et paiements</li>
+        <li>Rapports et statistiques</li>
+    </ul>
+
+    <h2>4. Inscription et comptes</h2>
+    <ul>
+        <li>L'inscription est realisee sur invitation ou par un administrateur.</li>
+        <li>L'utilisateur s'engage a fournir des informations exactes.</li>
+        <li>Chaque utilisateur est responsable de la securite de son mot de passe.</li>
+        <li>Les mots de passe doivent contenir au minimum 8 caracteres, dont une majuscule, une minuscule et un chiffre.</li>
+    </ul>
+
+    <h2>5. Niveaux d'acces</h2>
+    <p>L'application utilise un systeme de niveaux d'acces :</p>
+    <ul>
+        <li><strong>Administrateur</strong> : acces complet, gestion des utilisateurs</li>
+        <li><strong>Manager</strong> : gestion des tournees, budgets, paiements</li>
+        <li><strong>Staff</strong> : consultation et edition des tournees assignees</li>
+        <li><strong>Lecture seule</strong> : consultation uniquement</li>
+        <li><strong>Externe</strong> : acces limite (promoteurs, salles)</li>
+    </ul>
+
+    <h2>6. Donnees personnelles</h2>
+    <p>
+        Le traitement des donnees personnelles est decrit dans notre
+        <a href="{{ url_for('main.privacy_policy') }}">Politique de Confidentialite</a>.
+    </p>
+
+    <h2>7. Obligations de l'utilisateur</h2>
+    <ul>
+        <li>Ne pas utiliser le service a des fins illicites</li>
+        <li>Ne pas tenter d'acceder aux donnees d'autres utilisateurs sans autorisation</li>
+        <li>Respecter la propriete intellectuelle</li>
+        <li>Signaler toute faille de securite decouverte</li>
+    </ul>
+
+    <h2>8. Propriete intellectuelle</h2>
+    <p>
+        La plateforme GigRoute, son code, son design et ses contenus sont proteges
+        par le droit de la propriete intellectuelle. Les donnees saisies par les utilisateurs
+        restent leur propriete.
+    </p>
+
+    <h2>9. Limitation de responsabilite</h2>
+    <p>
+        GigRoute est fourni "en l'etat". Nous nous efforcons d'assurer la disponibilite
+        du service mais ne pouvons garantir un fonctionnement ininterrompu.
+        GigRoute ne saurait etre tenu responsable des dommages indirects lies a l'utilisation du service.
+    </p>
+
+    <h2>10. Resiliation</h2>
+    <ul>
+        <li>L'utilisateur peut supprimer son compte a tout moment depuis son profil.</li>
+        <li>L'administrateur peut desactiver ou supprimer un compte en cas de violation des CGU.</li>
+        <li>Les donnees sont traitees conformement a la politique de confidentialite apres suppression.</li>
+    </ul>
+
+    <h2>11. Droit applicable</h2>
+    <p>
+        Les presentes CGU sont soumises au droit francais.
+        En cas de litige, les tribunaux de Paris seront competents.
+    </p>
+
+    <h2>12. Contact</h2>
+    <p>
+        Pour toute question : <a href="mailto:contact@gigroute.app">contact@gigroute.app</a>
+    </p>
+</div>
+{% endblock %}

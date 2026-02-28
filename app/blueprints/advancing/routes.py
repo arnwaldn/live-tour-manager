@@ -13,13 +13,12 @@ from flask_login import login_required, current_user
 from app.blueprints.advancing import advancing_bp
 from app.blueprints.advancing.forms import (
     RiderRequirementForm, AdvancingContactForm, ProductionSpecsForm,
-    AdvancingTemplateForm, AdvancingStatusForm, ChecklistItemNoteForm
+    AdvancingStatusForm, ChecklistItemNoteForm
 )
 from app.extensions import db
 from app.models.advancing import (
-    AdvancingChecklistItem, AdvancingTemplate, RiderRequirement,
-    AdvancingContact, ChecklistCategory, RiderCategory,
-    DEFAULT_CHECKLIST_ITEMS
+    AdvancingChecklistItem, RiderRequirement,
+    AdvancingContact, ChecklistCategory, RiderCategory
 )
 from app.models.tour_stop import TourStop
 from app.models.tour import Tour
@@ -292,64 +291,6 @@ def delete_contact(contact_id):
 # TEMPLATES
 # ============================================================================
 
-@advancing_bp.route('/templates')
-@login_required
-@manager_required
-def templates_list():
-    """List advancing templates."""
-    templates = AdvancingTemplate.query.order_by(
-        AdvancingTemplate.is_default.desc(),
-        AdvancingTemplate.name
-    ).all()
-    return render_template(
-        'advancing/templates_list.html',
-        templates=templates
-    )
-
-
-@advancing_bp.route('/templates/create', methods=['GET', 'POST'])
-@login_required
-@manager_required
-def create_template():
-    """Create a new advancing template."""
-    form = AdvancingTemplateForm()
-    if form.validate_on_submit():
-        # Build items from form data (checklist items submitted as JSON or form fields)
-        items_json = request.form.get('items_json', '[]')
-        import json
-        try:
-            items = json.loads(items_json)
-        except (json.JSONDecodeError, TypeError):
-            items = DEFAULT_CHECKLIST_ITEMS  # Fallback to default
-
-        template = AdvancingService.create_template(
-            name=form.name.data,
-            items=items,
-            description=form.description.data,
-            created_by_id=current_user.id
-        )
-        flash(f'Template "{template.name}" créé.', 'success')
-        return redirect(url_for('advancing.templates_list'))
-    return render_template(
-        'advancing/template_form.html',
-        form=form,
-        default_items=DEFAULT_CHECKLIST_ITEMS
-    )
-
-
-@advancing_bp.route('/templates/<int:template_id>/delete', methods=['POST'])
-@login_required
-@manager_required
-def delete_template(template_id):
-    """Delete an advancing template."""
-    template = AdvancingTemplate.query.get_or_404(template_id)
-    if template.is_default:
-        flash('Impossible de supprimer le template par défaut.', 'danger')
-        return redirect(url_for('advancing.templates_list'))
-    db.session.delete(template)
-    db.session.commit()
-    flash('Template supprimé.', 'info')
-    return redirect(url_for('advancing.templates_list'))
 
 
 # ============================================================================

@@ -1,5 +1,5 @@
 """
-Services package for Tour Manager.
+Services package for GigRoute.
 Contains business logic separated from routes.
 """
 

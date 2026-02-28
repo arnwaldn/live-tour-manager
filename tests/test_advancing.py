@@ -556,12 +556,6 @@ class TestAdvancingRoutes:
         )
         assert response.status_code == 200
 
-    def test_templates_list_page(self, client, manager_user):
-        """Test templates list page renders."""
-        self._login(client)
-        response = client.get('/advancing/templates')
-        assert response.status_code == 200
-
     def test_add_contact_post(self, client, manager_user, sample_tour_stop):
         """Test adding a contact via POST."""
         self._login(client)

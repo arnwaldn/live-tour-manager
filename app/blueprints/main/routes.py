@@ -988,7 +988,7 @@ def health_check():
     return jsonify({
         'status': status,
         'database': db_status,
-        'service': 'tour-manager',
+        'service': 'gigroute',
         'version': '2026-02-01-v2'
     }), 200 if status == 'healthy' else 503
 
@@ -1484,6 +1484,18 @@ from app.models.tour_stop import TourStop, TourStopStatus, EventType, tour_stop_
 from app.models.guestlist import GuestlistEntry, GuestlistStatus
 from app.models.band import Band, BandMembership
 from app.models.venue import Venue
+
+
+@main_bp.route('/privacy')
+def privacy_policy():
+    """Public privacy policy page (RGPD Art. 13-14)."""
+    return render_template('legal/privacy_policy.html')
+
+
+@main_bp.route('/terms')
+def terms():
+    """Public terms of service page."""
+    return render_template('legal/terms.html')
 
 
 @main_bp.route('/')

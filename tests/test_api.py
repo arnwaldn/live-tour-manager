@@ -11,7 +11,7 @@ from app import create_app
 from app.extensions import db
 from app.models.user import User, AccessLevel, ACCESS_HIERARCHY
 from app.models.tour import Tour, TourStatus
-from app.models.band import Band
+from app.models.band import Band, BandMembership
 from app.models.venue import Venue
 from app.models.tour_stop import TourStop, TourStopStatus, TourStopMember, EventType
 from app.models.guestlist import GuestlistEntry, GuestlistStatus, EntryType
@@ -1399,3 +1399,175 @@ class TestToursExtended:
         )
         assert resp.status_code == 200
         assert resp.get_json()['meta']['total'] == 0
+
+
+# ── BOLA Authorization Tests (OWASP API1:2023) ──────────
+
+class TestBOLA:
+    """Test object-level authorization on API endpoints.
+
+    VIEWER users without band membership should NOT see resources
+    belonging to bands they are not part of.
+    """
+
+    @pytest.fixture
+    def viewer_user(self, app):
+        """Create a VIEWER-level user with no band membership."""
+        with app.app_context():
+            user = User(
+                email='viewer@example.com',
+                first_name='Viewer',
+                last_name='User',
+                access_level=AccessLevel.VIEWER,
+                is_active=True,
+                email_verified=True,
+            )
+            user.set_password('ViewerPass123!')
+            db.session.add(user)
+            db.session.commit()
+            return user.id
+
+    @pytest.fixture
+    def viewer_with_membership(self, app, viewer_user, sample_band):
+        """Add the viewer user as a member of sample_band."""
+        with app.app_context():
+            membership = BandMembership(
+                user_id=viewer_user,
+                band_id=sample_band,
+                instrument='Guitar',
+                role_in_band='Guitarist',
+            )
+            db.session.add(membership)
+            db.session.commit()
+            return viewer_user
+
+    def _viewer_token(self, client):
+        return get_auth_token(
+            client, email='viewer@example.com', password='ViewerPass123!',
+        )
+
+    # ── Tours ──
+
+    def test_viewer_without_membership_sees_no_tours(
+        self, client, viewer_user, sample_user, sample_band, sample_tour,
+    ):
+        """VIEWER not in any band should see 0 tours."""
+        token = self._viewer_token(client)
+        resp = client.get('/api/v1/tours', headers=auth_header(token))
+        assert resp.status_code == 200
+        assert resp.get_json()['meta']['total'] == 0
+
+    def test_viewer_with_membership_sees_own_tours(
+        self, client, viewer_with_membership, sample_user, sample_band,
+        sample_tour,
+    ):
+        """VIEWER who is a band member should see that band's tours."""
+        token = self._viewer_token(client)
+        resp = client.get('/api/v1/tours', headers=auth_header(token))
+        assert resp.status_code == 200
+        assert resp.get_json()['meta']['total'] >= 1
+
+    def test_viewer_cannot_get_unrelated_tour(
+        self, client, viewer_user, sample_user, sample_band, sample_tour,
+    ):
+        """VIEWER not in the band should get 404 on specific tour."""
+        token = self._viewer_token(client)
+        resp = client.get(
+            f'/api/v1/tours/{sample_tour}',
+            headers=auth_header(token),
+        )
+        assert resp.status_code == 404
+
+    def test_viewer_with_membership_can_get_tour(
+        self, client, viewer_with_membership, sample_user, sample_band,
+        sample_tour,
+    ):
+        """VIEWER who is a band member can GET that tour."""
+        token = self._viewer_token(client)
+        resp = client.get(
+            f'/api/v1/tours/{sample_tour}',
+            headers=auth_header(token),
+        )
+        assert resp.status_code == 200
+
+    # ── Tour Stops ──
+
+    def test_viewer_cannot_list_stops_of_unrelated_tour(
+        self, client, viewer_user, sample_user, sample_band, sample_tour,
+    ):
+        """VIEWER not in band gets 404 on tour stops."""
+        token = self._viewer_token(client)
+        resp = client.get(
+            f'/api/v1/tours/{sample_tour}/stops',
+            headers=auth_header(token),
+        )
+        assert resp.status_code == 404
+
+    def test_viewer_cannot_get_unrelated_stop(
+        self, client, viewer_user, sample_user, sample_band, sample_tour,
+        sample_tour_stop,
+    ):
+        """VIEWER not in band gets 404 on specific stop."""
+        token = self._viewer_token(client)
+        resp = client.get(
+            f'/api/v1/stops/{sample_tour_stop}',
+            headers=auth_header(token),
+        )
+        assert resp.status_code == 404
+
+    # ── Guestlist ──
+
+    def test_viewer_cannot_list_guestlist_of_unrelated_stop(
+        self, client, viewer_user, sample_user, sample_band, sample_tour,
+        sample_tour_stop,
+    ):
+        """VIEWER not in band gets 404 on stop's guestlist."""
+        token = self._viewer_token(client)
+        resp = client.get(
+            f'/api/v1/stops/{sample_tour_stop}/guestlist',
+            headers=auth_header(token),
+        )
+        assert resp.status_code == 404
+
+    def test_viewer_cannot_checkin_unrelated_guest(
+        self, client, viewer_user, sample_user, sample_band, sample_tour,
+        sample_tour_stop, approved_guestlist_entry,
+    ):
+        """VIEWER not in band gets 404 on guestlist checkin."""
+        token = self._viewer_token(client)
+        resp = client.post(
+            f'/api/v1/guestlist/{approved_guestlist_entry}/checkin',
+            headers=auth_header(token),
+        )
+        assert resp.status_code == 404
+
+    # ── Bands ──
+
+    def test_viewer_without_membership_sees_no_bands(
+        self, client, viewer_user, sample_user, sample_band,
+    ):
+        """VIEWER not in any band should see 0 bands."""
+        token = self._viewer_token(client)
+        resp = client.get('/api/v1/bands', headers=auth_header(token))
+        assert resp.status_code == 200
+        assert resp.get_json()['meta']['total'] == 0
+
+    def test_viewer_with_membership_sees_own_band(
+        self, client, viewer_with_membership, sample_user, sample_band,
+    ):
+        """VIEWER who is a band member should see that band."""
+        token = self._viewer_token(client)
+        resp = client.get('/api/v1/bands', headers=auth_header(token))
+        assert resp.status_code == 200
+        assert resp.get_json()['meta']['total'] >= 1
+
+    # ── Manager (staff_or_above) bypass ──
+
+    def test_manager_sees_all_tours(
+        self, client, sample_user, sample_band, sample_tour,
+    ):
+        """MANAGER should see all tours regardless of band membership."""
+        token = get_auth_token(client)
+        resp = client.get('/api/v1/tours', headers=auth_header(token))
+        assert resp.status_code == 200
+        assert resp.get_json()['meta']['total'] >= 1

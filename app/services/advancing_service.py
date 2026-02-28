@@ -1,5 +1,5 @@
 """
-Advancing service for Tour Manager.
+Advancing service for GigRoute.
 Handles business logic for event preparation (advancing) workflow.
 """
 import json

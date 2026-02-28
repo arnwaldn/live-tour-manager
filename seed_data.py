@@ -19,10 +19,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from app import create_app, db
 from app.models import (
     User, Role, Band, BandMembership, Venue, VenueContact,
-    Tour, TourStop, GuestlistEntry, LogisticsInfo, LocalContact
+    Tour, TourStop, TourStopMember, MemberAssignmentStatus,
+    GuestlistEntry, LogisticsInfo, LocalContact,
+    Profession, UserProfession,
+    PlanningSlot,
+    LineupSlot, PerformerType,
+    AdvancingChecklistItem, RiderRequirement, AdvancingContact,
+    ChecklistCategory, RiderCategory, DEFAULT_CHECKLIST_ITEMS,
+    CrewScheduleSlot, CrewAssignment, AssignmentStatus,
+    ProfessionCategory,
 )
 from app.models.tour import TourStatus
-from app.models.tour_stop import TourStopStatus
+from app.models.tour_stop import TourStopStatus, tour_stop_members
 from app.models.guestlist import GuestlistStatus, EntryType
 from app.models.logistics import LogisticsType
 
@@ -132,6 +140,15 @@ USERS_DATA = [
         'last_name': 'Leroy',
         'phone': '+33 6 56 78 90 12',
         'roles': ['GUESTLIST_MANAGER']
+    },
+    {
+        'email': 'arnaud.porcel@gmail.com',
+        'password': 'Adminnano',
+        'first_name': 'Admin',
+        'last_name': 'GigRoute',
+        'phone': '',
+        'roles': ['MANAGER'],
+        'access_level_override': 'ADMIN'
     }
 ]
 
@@ -173,6 +190,8 @@ VENUES_DATA = [
         'state': 'Île-de-France',
         'country': 'France',
         'postal_code': '75011',
+        'latitude': 48.8631,
+        'longitude': 2.3708,
         'capacity': 1500,
         'venue_type': 'Concert Hall',
         'website': 'https://www.bataclan.fr',
@@ -193,6 +212,8 @@ VENUES_DATA = [
         'state': 'Berlin',
         'country': 'Germany',
         'postal_code': '10999',
+        'latitude': 52.4988,
+        'longitude': 13.4184,
         'capacity': 1000,
         'venue_type': 'Club',
         'website': 'https://www.so36.com',
@@ -211,6 +232,8 @@ VENUES_DATA = [
         'state': 'Noord-Holland',
         'country': 'Netherlands',
         'postal_code': '1017 SG',
+        'latitude': 52.3623,
+        'longitude': 4.8839,
         'capacity': 1500,
         'venue_type': 'Concert Hall',
         'website': 'https://www.paradiso.nl',
@@ -229,6 +252,8 @@ VENUES_DATA = [
         'state': 'Greater London',
         'country': 'United Kingdom',
         'postal_code': 'SW2 1RJ',
+        'latitude': 51.4613,
+        'longitude': -0.1146,
         'capacity': 3000,
         'venue_type': 'Concert Hall',
         'website': 'https://www.electricbrixton.uk.com',
@@ -647,6 +672,7 @@ def create_users(roles):
         'TECH': AccessLevel.STAFF,
         'MUSICIAN': AccessLevel.STAFF,
         'GUESTLIST': AccessLevel.STAFF,
+        'GUESTLIST_MANAGER': AccessLevel.STAFF,
         'PROMOTER': AccessLevel.EXTERNAL,
     }
 
@@ -655,15 +681,19 @@ def create_users(roles):
     for user_data in USERS_DATA:
         user = User.query.filter_by(email=user_data['email']).first()
         if not user:
-            # Determine access level from highest role
-            primary_role = user_data['roles'][0] if user_data['roles'] else 'VIEWER'
-            access_level = role_to_access.get(primary_role, AccessLevel.VIEWER)
+            # Determine access level from highest role (or explicit override)
+            override = user_data.get('access_level_override')
+            if override:
+                access_level = AccessLevel(override.lower())
+            else:
+                primary_role = user_data['roles'][0] if user_data['roles'] else 'VIEWER'
+                access_level = role_to_access.get(primary_role, AccessLevel.VIEWER)
 
             user = User(
                 email=user_data['email'],
                 first_name=user_data['first_name'],
                 last_name=user_data['last_name'],
-                phone=user_data['phone'],
+                phone=user_data.get('phone', ''),
                 is_active=True,
                 access_level=access_level
             )
@@ -676,8 +706,12 @@ def create_users(roles):
             db.session.add(user)
         else:
             # Update existing user's access level if not set correctly
-            primary_role = user_data['roles'][0] if user_data['roles'] else 'VIEWER'
-            expected_level = role_to_access.get(primary_role, AccessLevel.VIEWER)
+            override = user_data.get('access_level_override')
+            if override:
+                expected_level = AccessLevel(override.lower())
+            else:
+                primary_role = user_data['roles'][0] if user_data['roles'] else 'VIEWER'
+                expected_level = role_to_access.get(primary_role, AccessLevel.VIEWER)
             if user.access_level != expected_level:
                 user.access_level = expected_level
 
@@ -722,6 +756,30 @@ def create_band(users):
                 db.session.add(membership)
         db.session.commit()
 
+    # Add staff/external users as band members so they pass band membership checks
+    extra_members = [
+        ('arnaud.porcel@gmail.com', 'Management', 'Admin'),
+        ('tech@gigroute.app', 'Son / Backline', 'Technicien'),
+        ('guestlist@gigroute.app', 'Production', 'Chargée de production'),
+        ('promoter@concerts.de', 'Promotion', 'Promoteur'),
+    ]
+    for email, instrument, role in extra_members:
+        user = next((u for u in users if u.email == email), None)
+        if user:
+            existing = BandMembership.query.filter_by(user_id=user.id, band_id=band.id).first()
+            if not existing:
+                membership = BandMembership(
+                    user_id=user.id,
+                    band_id=band.id,
+                    instrument=instrument,
+                    role_in_band=role,
+                    is_active=True,
+                    joined_at=datetime(2024, 1, 1)
+                )
+                db.session.add(membership)
+    db.session.commit()
+    print(f"  [OK] Added extra band members (tech, guestlist, promoter, admin)")
+
     print(f"  [OK] Created band: {band.name}")
     return band
 
@@ -740,6 +798,8 @@ def create_venues():
                 state=venue_data['state'],
                 country=venue_data['country'],
                 postal_code=venue_data['postal_code'],
+                latitude=venue_data.get('latitude'),
+                longitude=venue_data.get('longitude'),
                 capacity=venue_data['capacity'],
                 venue_type=venue_data['venue_type'],
                 website=venue_data['website'],
@@ -934,11 +994,371 @@ def create_logistics(tour_stops):
     return logistics_list
 
 
+def create_user_professions(users):
+    """Assign professions to users."""
+    print("Creating user professions...")
+
+    # Map: user email -> profession code(s)
+    assignments = {
+        'manager@gigroute.app': [('TOUR_MANAGER', True)],
+        'lead@cosmictravelers.com': [('GUITARISTE', True), ('CHANTEUR', False)],
+        'drums@cosmictravelers.com': [('BATTEUR', True)],
+        'tech@gigroute.app': [('INGE_SON_FACADE', True), ('BACKLINE', False)],
+        'promoter@concerts.de': [('BOOKER', True)],
+        'guestlist@gigroute.app': [('CHARGE_PRODUCTION', True)],
+    }
+
+    count = 0
+    for user in users:
+        profession_codes = assignments.get(user.email, [])
+        for code, is_primary in profession_codes:
+            profession = Profession.query.filter_by(code=code).first()
+            if not profession:
+                continue
+            existing = UserProfession.query.filter_by(
+                user_id=user.id, profession_id=profession.id
+            ).first()
+            if not existing:
+                up = UserProfession(
+                    user_id=user.id,
+                    profession_id=profession.id,
+                    is_primary=is_primary,
+                )
+                db.session.add(up)
+                count += 1
+    db.session.commit()
+    print(f"  [OK] Created {count} user-profession links")
+
+
+def create_tour_stop_members(tour_stops, users):
+    """Assign team members to tour stops."""
+    print("Creating tour stop members...")
+
+    manager = next(u for u in users if u.email == 'manager@gigroute.app')
+    tech = next(u for u in users if u.email == 'tech@gigroute.app')
+    musician1 = next(u for u in users if u.email == 'lead@cosmictravelers.com')
+    musician2 = next(u for u in users if u.email == 'drums@cosmictravelers.com')
+    guestlist_mgr = next(u for u in users if u.email == 'guestlist@gigroute.app')
+
+    prof_tour_mgr = Profession.query.filter_by(code='TOUR_MANAGER').first()
+    prof_guitar = Profession.query.filter_by(code='GUITARISTE').first()
+    prof_drums = Profession.query.filter_by(code='BATTEUR').first()
+    prof_sound = Profession.query.filter_by(code='INGE_SON_FACADE').first()
+    prof_prod = Profession.query.filter_by(code='CHARGE_PRODUCTION').first()
+
+    count = 0
+    for stop in tour_stops:
+        members_data = [
+            (manager, prof_tour_mgr, MemberAssignmentStatus.CONFIRMED,
+             time(8, 0), time(8, 0), time(23, 30), None, None, time(17, 30),
+             'Coordination générale'),
+            (musician1, prof_guitar, MemberAssignmentStatus.CONFIRMED,
+             stop.artist_call_time, stop.artist_call_time, stop.curfew_time, None, None, stop.catering_time,
+             None),
+            (musician2, prof_drums, MemberAssignmentStatus.CONFIRMED,
+             stop.artist_call_time, stop.artist_call_time, stop.curfew_time, None, None, stop.catering_time,
+             None),
+            (tech, prof_sound, MemberAssignmentStatus.CONFIRMED,
+             stop.crew_call_time, stop.crew_call_time, stop.curfew_time,
+             time(18, 0), time(18, 30), stop.catering_time,
+             'Gestion son façade + retours'),
+            (guestlist_mgr, prof_prod, MemberAssignmentStatus.ASSIGNED,
+             stop.doors_time, stop.doors_time, stop.curfew_time, None, None, None,
+             'Accueil guestlist'),
+        ]
+
+        for (user, prof, status, call, work_start, work_end,
+             break_start, break_end, meal, notes) in members_data:
+            existing = TourStopMember.query.filter_by(
+                tour_stop_id=stop.id, user_id=user.id
+            ).first()
+            if not existing:
+                tsm = TourStopMember(
+                    tour_stop_id=stop.id,
+                    user_id=user.id,
+                    profession_id=prof.id if prof else None,
+                    status=status,
+                    call_time=call,
+                    work_start=work_start,
+                    work_end=work_end,
+                    break_start=break_start,
+                    break_end=break_end,
+                    meal_time=meal,
+                    notes=notes,
+                    assigned_by_id=manager.id,
+                )
+                db.session.add(tsm)
+                count += 1
+
+            # Also insert into V1 table (tour_stop_members) used by planning page
+            v1_exists = db.session.execute(
+                tour_stop_members.select().where(
+                    (tour_stop_members.c.tour_stop_id == stop.id) &
+                    (tour_stop_members.c.user_id == user.id)
+                )
+            ).first()
+            if not v1_exists:
+                db.session.execute(
+                    tour_stop_members.insert().values(
+                        tour_stop_id=stop.id,
+                        user_id=user.id,
+                        assigned_at=datetime.utcnow(),
+                    )
+                )
+
+    db.session.commit()
+    print(f"  [OK] Created {count} tour stop member assignments (V1 + V2)")
+
+
+def create_planning_slots(tour_stops, users):
+    """Create planning grid slots for each tour stop, assigned to specific users."""
+    print("Creating planning slots...")
+
+    manager = next(u for u in users if u.email == 'manager@gigroute.app')
+    tech = next(u for u in users if u.email == 'tech@gigroute.app')
+    musician1 = next(u for u in users if u.email == 'lead@cosmictravelers.com')
+    musician2 = next(u for u in users if u.email == 'drums@cosmictravelers.com')
+    guestlist_mgr = next(u for u in users if u.email == 'guestlist@gigroute.app')
+
+    # Template: (category, role_name, start_h, start_m, end_h, end_m, task_description, user_email_key)
+    # user_email_key maps to one of the users above
+    slot_templates = [
+        ('technicien', 'Ingé Son', 10, 0, 16, 0, 'Installation PA + soundcheck', tech),
+        ('technicien', 'Ingé Son', 16, 0, 23, 30, 'Mix façade + retours', tech),
+        ('musicien', 'Guitariste', 16, 0, 17, 30, 'Soundcheck', musician1),
+        ('musicien', 'Guitariste', 21, 0, 22, 30, 'Concert', musician1),
+        ('musicien', 'Batteur', 16, 0, 17, 30, 'Soundcheck', musician2),
+        ('musicien', 'Batteur', 21, 0, 22, 30, 'Concert', musician2),
+        ('management', 'Tour Manager', 8, 0, 23, 30, 'Coordination générale', manager),
+        ('production', 'Accueil Guestlist', 18, 30, 22, 0, 'Gestion guestlist + accueil', guestlist_mgr),
+    ]
+
+    count = 0
+    for stop in tour_stops:
+        for cat, role, sh, sm, eh, em, desc, user in slot_templates:
+            existing = PlanningSlot.query.filter_by(
+                tour_stop_id=stop.id,
+                role_name=role,
+                start_time=time(sh, sm),
+                user_id=user.id,
+            ).first()
+            if not existing:
+                slot = PlanningSlot(
+                    tour_stop_id=stop.id,
+                    category=cat,
+                    role_name=role,
+                    start_time=time(sh, sm),
+                    end_time=time(eh, em),
+                    task_description=desc,
+                    user_id=user.id,
+                )
+                db.session.add(slot)
+                count += 1
+    db.session.commit()
+    print(f"  [OK] Created {count} planning slots")
+
+
+def create_lineup(tour_stops):
+    """Create lineup entries for each tour stop."""
+    print("Creating lineup...")
+
+    count = 0
+    for stop in tour_stops:
+        lineup_data = [
+            ('DJ Warm-up', PerformerType.DJ_SET, time(19, 30), time(20, 0), 30, 1, True, None),
+            ('Nova Waves', PerformerType.OPENING_ACT, time(20, 15), time(20, 45), 30, 2, True, 'Première partie confirmée'),
+            ('The Cosmic Travelers', PerformerType.MAIN_ARTIST, time(21, 0), time(22, 30), 90, 3, True, 'Set principal + rappel'),
+        ]
+
+        for name, ptype, start, end, length, order, confirmed, notes in lineup_data:
+            existing = LineupSlot.query.filter_by(
+                tour_stop_id=stop.id, performer_name=name
+            ).first()
+            if not existing:
+                slot = LineupSlot(
+                    tour_stop_id=stop.id,
+                    performer_name=name,
+                    performer_type=ptype,
+                    start_time=start,
+                    end_time=end,
+                    set_length_minutes=length,
+                    order=order,
+                    is_confirmed=confirmed,
+                    notes=notes,
+                )
+                db.session.add(slot)
+                count += 1
+    db.session.commit()
+    print(f"  [OK] Created {count} lineup slots")
+
+
+def create_advancing_data(tour_stops, users):
+    """Create advancing checklist, rider, and contacts for each tour stop."""
+    print("Creating advancing data...")
+
+    manager = next(u for u in users if u.email == 'manager@gigroute.app')
+    checklist_count = 0
+    rider_count = 0
+    contact_count = 0
+
+    for stop in tour_stops:
+        # --- Checklist items from DEFAULT_CHECKLIST_ITEMS ---
+        for item_data in DEFAULT_CHECKLIST_ITEMS:
+            existing = AdvancingChecklistItem.query.filter_by(
+                tour_stop_id=stop.id, label=item_data['label']
+            ).first()
+            if not existing:
+                cat = ChecklistCategory(item_data['category'])
+                item = AdvancingChecklistItem(
+                    tour_stop_id=stop.id,
+                    category=cat,
+                    label=item_data['label'],
+                    sort_order=item_data['sort_order'],
+                    is_completed=item_data['sort_order'] < 20,  # First categories done
+                    completed_by_id=manager.id if item_data['sort_order'] < 20 else None,
+                    completed_at=datetime.utcnow() if item_data['sort_order'] < 20 else None,
+                )
+                db.session.add(item)
+                checklist_count += 1
+
+        # --- Rider requirements ---
+        rider_items = [
+            (RiderCategory.SON, 'Système PA principal (L/R + subs)', 1, True, True),
+            (RiderCategory.SON, 'Console façade numérique (56 canaux min)', 1, True, True),
+            (RiderCategory.SON, 'Monitoring retour (6 wedges + 4 IEM)', 1, True, False),
+            (RiderCategory.LUMIERE, 'Kit éclairage scène (blinders + wash)', 1, True, False),
+            (RiderCategory.SCENE, 'Praticable scène 12m x 8m', 1, True, True),
+            (RiderCategory.BACKLINE, 'Ampli basse Ampeg SVT-4 PRO', 1, False, False),
+            (RiderCategory.CATERING, 'Catering 20 personnes (végétarien disponible)', 1, True, False),
+            (RiderCategory.LOGES, '2 loges climatisées (artistes + crew)', 2, True, True),
+        ]
+        for cat, req, qty, mandatory, confirmed in rider_items:
+            existing = RiderRequirement.query.filter_by(
+                tour_stop_id=stop.id, requirement=req
+            ).first()
+            if not existing:
+                rr = RiderRequirement(
+                    tour_stop_id=stop.id,
+                    category=cat,
+                    requirement=req,
+                    quantity=qty,
+                    is_mandatory=mandatory,
+                    is_confirmed=confirmed,
+                )
+                db.session.add(rr)
+                rider_count += 1
+
+        # --- Advancing contacts (from venue contacts) ---
+        if stop.venue and stop.venue.contacts:
+            for vc in stop.venue.contacts:
+                existing = AdvancingContact.query.filter_by(
+                    tour_stop_id=stop.id, name=vc.name
+                ).first()
+                if not existing:
+                    ac = AdvancingContact(
+                        tour_stop_id=stop.id,
+                        name=vc.name,
+                        role=vc.role,
+                        email=vc.email,
+                        phone=vc.phone,
+                        is_primary=vc.is_primary,
+                    )
+                    db.session.add(ac)
+                    contact_count += 1
+
+    db.session.commit()
+    print(f"  [OK] Created {checklist_count} checklist items, {rider_count} rider requirements, {contact_count} advancing contacts")
+
+
+def create_crew_schedule(tour_stops, users):
+    """Create crew schedule slots and assignments."""
+    print("Creating crew schedule...")
+
+    manager = next(u for u in users if u.email == 'manager@gigroute.app')
+    tech = next(u for u in users if u.email == 'tech@gigroute.app')
+    musician1 = next(u for u in users if u.email == 'lead@cosmictravelers.com')
+    musician2 = next(u for u in users if u.email == 'drums@cosmictravelers.com')
+
+    slot_count = 0
+    assign_count = 0
+
+    for stop in tour_stops:
+        # (task_name, desc, cat, start_h, start_m, end_h, end_m, color, assignments)
+        # assignments = list of (user, profession_code, status)
+        slots_data = [
+            ('Montage scène', 'Installation décor, backline, câblage',
+             ProfessionCategory.TECHNICIEN, 10, 0, 14, 0, '#3B82F6',
+             [(tech, 'INGE_SON_FACADE', AssignmentStatus.CONFIRMED)]),
+            ('Soundcheck', 'Balance son + lumière',
+             ProfessionCategory.TECHNICIEN, 16, 0, 17, 30, '#3B82F6',
+             [(tech, 'INGE_SON_FACADE', AssignmentStatus.CONFIRMED),
+              (musician1, 'GUITARISTE', AssignmentStatus.CONFIRMED),
+              (musician2, 'BATTEUR', AssignmentStatus.CONFIRMED)]),
+            ('Accueil public', 'Ouverture portes, contrôle billetterie',
+             ProfessionCategory.SECURITE, 18, 30, 21, 0, '#EF4444', []),
+            ('Show', 'Concert principal',
+             ProfessionCategory.MUSICIEN, 21, 0, 22, 30, '#8B5CF6',
+             [(musician1, 'GUITARISTE', AssignmentStatus.CONFIRMED),
+              (musician2, 'BATTEUR', AssignmentStatus.CONFIRMED)]),
+            ('Démontage', 'Démontage scène, chargement truck',
+             ProfessionCategory.TECHNICIEN, 22, 30, 0, 30, '#3B82F6',
+             [(tech, 'INGE_SON_FACADE', AssignmentStatus.ASSIGNED)]),
+            ('Coordination', 'Supervision générale de la journée',
+             ProfessionCategory.MANAGEMENT, 8, 0, 23, 30, '#22C55E',
+             [(manager, 'TOUR_MANAGER', AssignmentStatus.CONFIRMED)]),
+        ]
+
+        for task_name, desc, cat, sh, sm, eh, em, color, assigns in slots_data:
+            existing = CrewScheduleSlot.query.filter_by(
+                tour_stop_id=stop.id, task_name=task_name
+            ).first()
+            if not existing:
+                slot = CrewScheduleSlot(
+                    tour_stop_id=stop.id,
+                    start_time=time(sh, sm),
+                    end_time=time(eh, em),
+                    task_name=task_name,
+                    task_description=desc,
+                    profession_category=cat,
+                    color=color,
+                    created_by_id=manager.id,
+                )
+                db.session.add(slot)
+                db.session.flush()  # Get slot.id for assignments
+                slot_count += 1
+
+                for user, prof_code, status in assigns:
+                    prof = Profession.query.filter_by(code=prof_code).first()
+                    assignment = CrewAssignment(
+                        slot_id=slot.id,
+                        user_id=user.id,
+                        profession_id=prof.id if prof else None,
+                        status=status,
+                        assigned_by_id=manager.id,
+                        confirmed_at=datetime.utcnow() if status == AssignmentStatus.CONFIRMED else None,
+                    )
+                    db.session.add(assignment)
+                    assign_count += 1
+
+    db.session.commit()
+    print(f"  [OK] Created {slot_count} crew schedule slots, {assign_count} crew assignments")
+
+
 def clean_database():
     """Remove all data from database."""
     print("Cleaning database...")
 
     # Delete in order to respect foreign keys
+    CrewAssignment.query.delete()
+    CrewScheduleSlot.query.delete()
+    AdvancingContact.query.delete()
+    RiderRequirement.query.delete()
+    AdvancingChecklistItem.query.delete()
+    PlanningSlot.query.delete()
+    LineupSlot.query.delete()
+    TourStopMember.query.delete()
+    db.session.execute(tour_stop_members.delete())  # V1 table
+    UserProfession.query.delete()
     LocalContact.query.delete()
     LogisticsInfo.query.delete()
     GuestlistEntry.query.delete()
@@ -973,6 +1393,12 @@ def seed_all():
     tour_stops = create_tour_stops(tour, venues)
     create_guestlist_entries(tour_stops, users)
     create_logistics(tour_stops)
+    create_user_professions(users)
+    create_tour_stop_members(tour_stops, users)
+    create_planning_slots(tour_stops, users)
+    create_lineup(tour_stops)
+    create_advancing_data(tour_stops, users)
+    create_crew_schedule(tour_stops, users)
 
     print("\n" + "=" * 60)
     print("[OK] Seeding complete!")

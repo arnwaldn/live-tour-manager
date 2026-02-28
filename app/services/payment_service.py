@@ -1,5 +1,5 @@
 """
-Payment service for Tour Manager.
+Payment service for GigRoute.
 Handles business logic for payments, per diems, and payroll.
 """
 from datetime import datetime, date, timedelta

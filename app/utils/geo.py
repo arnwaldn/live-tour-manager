@@ -1,5 +1,5 @@
 """
-Geographic utilities for Tour Manager.
+Geographic utilities for GigRoute.
 Provides distance calculations and travel time estimations.
 """
 import math

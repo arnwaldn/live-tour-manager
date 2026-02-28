@@ -513,7 +513,11 @@
                         </tr>
                         {% if entry.details %}
                         <tr>
-                            <td colspan="2" class="small text-muted bg-light">{{ entry.details }}</td>
+                            <td colspan="2" class="small text-muted bg-light">
+                                {% if entry.details is mapping %}
+                                    {% for key, val in entry.details.items() %}{{ val }}{% if not loop.last %} · {% endif %}{% endfor %}
+                                {% else %}{{ entry.details }}{% endif %}
+                            </td>
                         </tr>
                         {% endif %}
                         {% if entry.assignments %}
@@ -552,7 +556,17 @@
                     <p class="small text-muted mb-1">Réservation: {{ entry.confirmation_number }}</p>
                     {% endif %}
                     {% if entry.details %}
-                    <p class="small mb-1">{{ entry.details }}</p>
+                    <p class="small mb-1">
+                        {% if entry.details is mapping %}
+                            {% if entry.details.address %}{{ entry.details.address }}{% endif %}
+                            {% if entry.details.phone %} · {{ entry.details.phone }}{% endif %}
+                            {% if entry.details.departure_station %}{{ entry.details.departure_station }} → {{ entry.details.arrival_station }}{% endif %}
+                            {% if entry.details.train_number %} · {{ entry.details.train_number }}{% endif %}
+                            {% if entry.details.booking_reference %}Ref: {{ entry.details.booking_reference }}{% endif %}
+                        {% else %}
+                            {{ entry.details }}
+                        {% endif %}
+                    </p>
                     {% endif %}
                     {% if entry.assignments %}
                     <div class="mt-2">
@@ -590,7 +604,7 @@
                             <td>
                                 <strong>{{ entry.provider }}</strong>
                                 {% if entry.details %}
-                                <br><small class="text-muted">{{ entry.details }}</small>
+                                <br><small class="text-muted">{% if entry.details is mapping %}{% for key, val in entry.details.items() %}{{ val }}{% if not loop.last %} · {% endif %}{% endfor %}{% else %}{{ entry.details }}{% endif %}</small>
                                 {% endif %}
                             </td>
                             <td class="text-end">

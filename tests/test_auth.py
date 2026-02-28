@@ -1049,7 +1049,7 @@ class TestHealthCheck:
 
         data = response.get_json()
         assert data['status'] == 'healthy'
-        assert data['service'] == 'tour-manager'
+        assert data['service'] == 'gigroute'
 
     def test_health_no_auth_required(self, client):
         """Test health check does not require authentication."""

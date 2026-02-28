@@ -1,5 +1,5 @@
 """
-Invoice models for Tour Manager - Enterprise Grade Financial Module.
+Invoice models for GigRoute - Enterprise Grade Financial Module.
 Compliant with French e-invoicing requirements (Sept 2026) and EN 16931 standard.
 Supports Factur-X format (PDF + embedded XML).
 """

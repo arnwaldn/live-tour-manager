@@ -1,5 +1,5 @@
 """
-PDF Generator utility for Tour Manager.
+PDF Generator utility for GigRoute.
 Uses reportlab for cloud-compatible PDF generation.
 Production-ready: works on all cloud platforms (Heroku, Railway, Render, Vercel, etc.)
 No system dependencies required (pure Python).
@@ -340,7 +340,7 @@ def generate_settlement_pdf(settlement: Dict[str, Any]) -> bytes:
 
     # Footer
     elements.append(Paragraph(
-        f"Ce document est une feuille de reglement generee par Tour Manager. "
+        f"Ce document est une feuille de reglement generee par GigRoute. "
         f"Genere le {datetime.now().strftime('%d/%m/%Y a %H:%M')} - "
         f"Reference: SETTLEMENT-{s['stop_id']}-{date_str.replace('/', '')}",
         footer_style
