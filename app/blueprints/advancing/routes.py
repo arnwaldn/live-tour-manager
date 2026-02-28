@@ -475,26 +475,28 @@ def send_to_venue(stop_id):
             return redirect(url_for('advancing.stop_detail', stop_id=stop_id))
 
     try:
-        from flask_mail import Message
+        from flask_mailman import EmailMultiAlternatives
         from app.extensions import mail
 
         data = AdvancingService.get_stop_advancing_data(stop_id)
         band_name = stop.associated_band.name if stop.associated_band else 'GigRoute'
 
-        msg = Message(
-            subject=f"Advancing - {band_name} - {stop.date.strftime('%d/%m/%Y')} - {stop.venue_name}",
-            recipients=[recipient_email],
-            sender=current_app.config.get('MAIL_DEFAULT_SENDER')
-        )
-
-        msg.html = render_template(
+        html_body = render_template(
             'advancing/email_advancing.html',
             stop=stop,
             data=data,
             band_name=band_name,
             sender_name=current_user.full_name
         )
-        mail.send(msg)
+
+        msg = EmailMultiAlternatives(
+            subject=f"Advancing - {band_name} - {stop.date.strftime('%d/%m/%Y')} - {stop.venue_name}",
+            body=f"Advancing - {band_name} - {stop.date.strftime('%d/%m/%Y')} - {stop.venue_name}",
+            from_email=current_app.config.get('MAIL_DEFAULT_SENDER'),
+            to=[recipient_email],
+        )
+        msg.attach_alternative(html_body, 'text/html')
+        msg.send()
 
         # Mark as waiting for venue
         if stop.advancing_status in ('in_progress', 'not_started'):

@@ -1,6 +1,6 @@
 """
 Email utility module for GigRoute.
-Handles all email notifications using Flask-Mail.
+Handles all email notifications using Flask-Mailman.
 Supports async sending via threading and retry with exponential backoff.
 """
 import time
@@ -8,7 +8,7 @@ import uuid
 import logging
 import threading
 from flask import render_template, current_app, url_for
-from flask_mail import Message
+from flask_mailman import EmailMessage, EmailMultiAlternatives
 from app.extensions import mail
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ RETRY_BASE_DELAY = 2  # seconds (2, 4, 8 with exponential backoff)
 
 def send_email(subject, recipient, template, **kwargs):
     """
-    Send an email using Flask-Mail with retry logic.
+    Send an email using Flask-Mailman with retry logic.
 
     Args:
         subject: Email subject (will be prefixed with [GigRoute])
@@ -44,15 +44,16 @@ def send_email(subject, recipient, template, **kwargs):
     logger.info(f"[EMAIL:{email_id}] Envoi à {recipient} - {subject} (template: {template})")
 
     try:
-        msg = Message(
-            subject=f"[GigRoute] {subject}",
-            recipients=[recipient],
-            sender=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app')
-        )
-        msg.html = render_template(f'email/{template}.html', **kwargs)
+        html_body = render_template(f'email/{template}.html', **kwargs)
+        text_body = render_template(f'email/{template}.txt', **kwargs) if _template_exists(f'email/{template}.txt') else _html_to_text(html_body)
 
-        # Also create a plain text version
-        msg.body = render_template(f'email/{template}.txt', **kwargs) if _template_exists(f'email/{template}.txt') else _html_to_text(msg.html)
+        msg = EmailMultiAlternatives(
+            subject=f"[GigRoute] {subject}",
+            body=text_body,
+            from_email=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app'),
+            to=[recipient],
+        )
+        msg.attach_alternative(html_body, 'text/html')
 
         # Send with retry
         return _send_with_retry(msg, email_id, recipient)
@@ -66,7 +67,7 @@ def _send_with_retry(msg, email_id, recipient):
     Send a prepared Message with exponential backoff retry.
 
     Args:
-        msg: Flask-Mail Message object (already built)
+        msg: EmailMessage object (already built)
         email_id: Tracking ID for logging
         recipient: Recipient email for logging
 
@@ -76,7 +77,7 @@ def _send_with_retry(msg, email_id, recipient):
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            mail.send(msg)
+            msg.send()
             logger.info(f"[EMAIL:{email_id}] Succès - Email envoyé à {recipient}"
                         + (f" (tentative {attempt})" if attempt > 1 else ""))
             return True
@@ -132,13 +133,13 @@ def send_async_email(subject, recipient, template, **kwargs):
         logger.error(f"[EMAIL:{email_id}] Échec rendu template (async) - {recipient}: {e}")
         return False
 
-    msg = Message(
+    msg = EmailMultiAlternatives(
         subject=f"[GigRoute] {subject}",
-        recipients=[recipient],
-        sender=sender,
+        body=text_body,
+        from_email=sender,
+        to=[recipient],
     )
-    msg.html = html_body
-    msg.body = text_body
+    msg.attach_alternative(html_body, 'text/html')
 
     # Dispatch to background thread with app context
     app = current_app._get_current_object()
@@ -550,12 +551,6 @@ def send_invoice_email(invoice):
         type_label = type_labels.get(invoice.type.value, 'Facture')
         subject = f"{type_label} {invoice.number}"
 
-        msg = Message(
-            subject=f"[GigRoute] {subject}",
-            recipients=[invoice.recipient_email],
-            sender=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app')
-        )
-
         # Render email body
         context = {
             'invoice': invoice,
@@ -563,16 +558,24 @@ def send_invoice_email(invoice):
             'recipient_name': invoice.recipient_name,
             'type_label': type_label,
         }
-        msg.html = render_template('email/invoice_sent.html', **context)
-        msg.body = _html_to_text(msg.html)
+        html_body = render_template('email/invoice_sent.html', **context)
+        text_body = _html_to_text(html_body)
+
+        msg = EmailMultiAlternatives(
+            subject=f"[GigRoute] {subject}",
+            body=text_body,
+            from_email=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app'),
+            to=[invoice.recipient_email],
+        )
+        msg.attach_alternative(html_body, 'text/html')
 
         # Attach PDF
         if pdf_bytes:
             safe_number = invoice.number.replace('/', '-')
             msg.attach(
                 f"{safe_number}.pdf",
-                "application/pdf",
                 pdf_bytes,
+                "application/pdf",
             )
 
         return _send_with_retry(msg, email_id, invoice.recipient_email)

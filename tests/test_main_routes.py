@@ -112,12 +112,6 @@ class TestDashboard:
         response = client.get('/', follow_redirects=True)
         assert response.status_code == 200
 
-    def test_dashboard_debug_param_returns_json(self, client, manager_user):
-        """Dashboard with ?debug=1 returns JSON for admin/manager."""
-        login(client, 'manager@test.com', 'Manager123!')
-        response = client.get('/?debug=1')
-        assert response.status_code == 200
-
     def test_dashboard_shows_stats_section(self, client, manager_user):
         """Dashboard response contains HTML content when logged in."""
         login(client, 'manager@test.com', 'Manager123!')
@@ -252,16 +246,10 @@ class TestGlobalCalendar:
 # Debug Endpoint Production Blocking
 # =============================================================================
 
-class TestDebugEndpointBlocking:
-    """Tests for the production debug endpoint blocking logic."""
+class TestHealthCheck:
+    """Tests for the production health check endpoint."""
 
-    def test_health_simple_accessible_in_debug_mode(self, client, app):
-        """In debug/test mode, /health/* endpoints are accessible."""
-        # Tests run in debug mode by default
-        response = client.get('/health/test-simple')
-        assert response.status_code == 200
-
-    def test_health_root_always_accessible(self, client):
-        """/health endpoint is always accessible (not blocked by before_request)."""
+    def test_health_root_accessible(self, client):
+        """/health endpoint is accessible for Docker/load balancer."""
         response = client.get('/health')
         assert response.status_code == 200

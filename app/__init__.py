@@ -231,7 +231,7 @@ def register_mail_config_reloader(app):
                 # Update loaded timestamp
                 app.config['_MAIL_CONFIG_LOADED_AT'] = db_timestamp
 
-                # Reinitialize Flask-Mail with new config
+                # Reinitialize Flask-Mailman with new config
                 mail.init_app(app)
         except Exception:
             pass  # Silently ignore errors (table may not exist yet)
