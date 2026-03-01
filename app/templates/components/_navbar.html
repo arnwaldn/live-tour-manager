@@ -103,6 +103,13 @@
                             {{ current_user.email }}
                         </span>
                     </li>
+                    {% if current_org %}
+                    <li>
+                        <span class="dropdown-item-text small">
+                            <i class="bi bi-building me-1"></i>{{ current_org.name }}
+                        </span>
+                    </li>
+                    {% endif %}
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <a class="dropdown-item" href="{{ url_for('settings.profile') }}">

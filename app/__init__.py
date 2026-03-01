@@ -1290,13 +1290,21 @@ def register_context_processors(app):
 
     @app.context_processor
     def utility_processor():
-        """Provide utility functions to templates."""
-        return {
+        """Provide utility functions and org context to templates."""
+        ctx = {
             'now': datetime.now,
             'current_year': datetime.now().year,
             'csp_nonce': g.get('csp_nonce', ''),
             'versioned_static': _versioned_static,
+            'current_org': None,
         }
+        if current_user.is_authenticated:
+            try:
+                from app.utils.org_context import get_current_org
+                ctx['current_org'] = get_current_org()
+            except Exception:
+                pass
+        return ctx
 
     # Per-user context cache (30s TTL) to avoid DB queries on every page render
     import time as _ctx_time

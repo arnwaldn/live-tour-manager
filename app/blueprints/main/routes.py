@@ -33,12 +33,14 @@ def ping():
 @main_bp.route('/admin/full-reset', methods=['POST'])
 @login_required
 def admin_full_reset():
-    """HTTP endpoint to trigger full application reset. Admin only.
+    """HTTP endpoint to trigger full application reset. SUPERADMIN only.
 
     Deletes ALL data except the current admin user.
     Keeps: admin user, professions, roles, system settings.
+    Restricted to superadmin to prevent cross-org data destruction.
     """
-    if not current_user.is_admin():
+    if not getattr(current_user, 'is_superadmin', False):
+        flash('Accès réservé au super-administrateur de la plateforme.', 'error')
         abort(403)
 
     from app.models.user import User, TravelCard, user_roles
@@ -254,14 +256,16 @@ def dashboard():
 def global_calendar():
     """Global calendar showing events based on user role.
 
-    - MANAGER: voit TOUS les événements de TOUS les groupes
+    - MANAGER: voit TOUS les événements de l'org
     - Autres: voient UNIQUEMENT les événements où ils sont assignés
     """
     is_manager = current_user.is_manager_or_above()
 
     if is_manager:
-        # MANAGER voit toutes les tournées
-        tours = Tour.query.order_by(Tour.start_date.desc()).all()
+        # MANAGER voit toutes les tournées de l'org
+        tours = Tour.query.join(Band).filter(
+            org_scope(Band)
+        ).order_by(Tour.start_date.desc()).all()
     else:
         # Autres rôles: tournées où l'utilisateur est:
         # 1. Explicitement assigné (tour_stop_members) OU
@@ -294,7 +298,7 @@ def global_calendar_events():
     """API endpoint for global calendar events (tour stops + standalone events).
 
     Filtrage par rôle:
-    - MANAGER: voit TOUS les événements de TOUS les groupes (admin global)
+    - MANAGER: voit TOUS les événements de l'org
     - Autres rôles: voient UNIQUEMENT les événements où ils sont assignés
     """
     from datetime import datetime
@@ -307,9 +311,15 @@ def global_calendar_events():
 
     # Build query based on user role
     if current_user.is_manager_or_above():
-        # MANAGER = voit TOUT (admin global)
-        # Pas de filtre par groupe - afficher tous les événements
-        query = TourStop.query.outerjoin(Tour, TourStop.tour_id == Tour.id)
+        # MANAGER = voit tout dans l'org
+        query = TourStop.query.outerjoin(
+            Tour, TourStop.tour_id == Tour.id
+        ).outerjoin(
+            Band, db.or_(
+                Band.id == Tour.band_id,
+                Band.id == TourStop.band_id
+            )
+        ).filter(org_scope(Band))
     else:
         # Autres rôles: événements où l'utilisateur est:
         # 1. Explicitement assigné (tour_stop_members) OU

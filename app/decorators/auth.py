@@ -7,6 +7,18 @@ from flask import abort, flash, redirect, url_for, request
 from flask_login import current_user, login_required
 
 from app.models.user import AccessLevel
+from app.utils.org_context import get_current_org_id
+
+
+def _verify_org_owns_band(band):
+    """Verify a band belongs to the user's current org. Abort 404 if not.
+
+    Superadmins bypass this check.
+    """
+    current_org = get_current_org_id()
+    if current_org and band and band.org_id and band.org_id != current_org:
+        if not getattr(current_user, 'is_superadmin', False):
+            abort(404)
 
 
 # ============================================================
@@ -189,6 +201,7 @@ def tour_access_required(f):
     """
     Decorator to verify user has access to the tour.
     Expects 'tour_id' or 'id' in route parameters.
+    Also verifies the tour's band belongs to the user's current organization.
 
     Usage:
         @tour_access_required
@@ -206,6 +219,9 @@ def tour_access_required(f):
 
         tour = Tour.query.get_or_404(tour_id)
 
+        # Verify tour's band belongs to user's current org (tenant isolation)
+        _verify_org_owns_band(tour.band)
+
         # Check if user can view this tour
         if not tour.can_view(current_user):
             flash('Vous n\'avez pas accès à cette tournée.', 'error')
@@ -221,6 +237,7 @@ def tour_edit_required(f):
     """
     Decorator to verify user can edit the tour.
     Expects 'tour_id' or 'id' in route parameters.
+    Also verifies the tour's band belongs to the user's current organization.
 
     Usage:
         @tour_edit_required
@@ -238,6 +255,9 @@ def tour_edit_required(f):
 
         tour = Tour.query.get_or_404(tour_id)
 
+        # Verify tour's band belongs to user's current org (tenant isolation)
+        _verify_org_owns_band(tour.band)
+
         # Check if user can edit this tour
         if not tour.can_edit(current_user):
             flash('Vous n\'avez pas la permission de modifier cette tournée.', 'error')
@@ -252,6 +272,7 @@ def tour_stop_access_required(f):
     """
     Decorator to verify user has access to the tour stop.
     Expects 'stop_id' in route parameters.
+    Also verifies the stop's band belongs to the user's current organization.
 
     Usage:
         @tour_stop_access_required
@@ -268,6 +289,10 @@ def tour_stop_access_required(f):
             abort(400)
 
         tour_stop = TourStop.query.get_or_404(stop_id)
+
+        # Verify stop's band belongs to user's current org (tenant isolation)
+        band = tour_stop.band if tour_stop.band else (tour_stop.tour.band if tour_stop.tour else None)
+        _verify_org_owns_band(band)
 
         # Check if user can view this tour stop
         if not tour_stop.can_view(current_user):
@@ -300,6 +325,10 @@ def guestlist_manage_required(f):
 
         tour_stop = TourStop.query.get_or_404(stop_id)
 
+        # Verify stop's band belongs to user's current org (tenant isolation)
+        band = tour_stop.band if tour_stop.band else (tour_stop.tour.band if tour_stop.tour else None)
+        _verify_org_owns_band(band)
+
         # Check if user can manage guestlist
         if not tour_stop.can_manage_guestlist(current_user):
             flash('Vous n\'avez pas la permission de gérer la guestlist.', 'error')
@@ -330,6 +359,10 @@ def check_in_required(f):
             abort(400)
 
         tour_stop = TourStop.query.get_or_404(stop_id)
+
+        # Verify stop's band belongs to user's current org (tenant isolation)
+        band = tour_stop.band if tour_stop.band else (tour_stop.tour.band if tour_stop.tour else None)
+        _verify_org_owns_band(band)
 
         # Check if user can check in guests
         if not tour_stop.can_check_in_guests(current_user):
