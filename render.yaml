@@ -6,6 +6,7 @@ services:
     name: gigroute
     runtime: python
     buildCommand: chmod +x build.sh && ./build.sh
+    preDeployCommand: "flask db upgrade && (flask init-db || true) && (flask seed-professions || true)"
     startCommand: gunicorn -c gunicorn.conf.py 'app:create_app()'
     envVars:
       - key: FLASK_ENV
