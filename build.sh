@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
 # GigRoute - Build Script (Render.com)
-# Installs Python dependencies only. Database migrations run via preDeployCommand
-# (Render's internal network is not available during build phase)
+# Installs Python dependencies only. Database migrations run at startup
+# via startCommand (free tier has no preDeployCommand or internal networking)
 # =============================================================================
 set -o errexit  # Exit on error
 
@@ -18,5 +18,5 @@ pip install -r requirements.txt
 echo ""
 echo "============================================"
 echo "  Build completed successfully!"
-echo "  DB migrations will run in pre-deploy step."
+echo "  DB migrations will run at startup (startCommand)."
 echo "============================================"
