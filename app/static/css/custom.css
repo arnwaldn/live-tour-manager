@@ -1646,3 +1646,164 @@ input[type="file"].form-control::file-selector-button {
         transition: none;
     }
 }
+
+/* ==========================================================================
+   Auth Pages — Login, Register, Forgot/Reset Password
+   ========================================================================== */
+
+.auth-page {
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(255, 183, 45, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(255, 183, 45, 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 100%, rgba(255, 207, 107, 0.03) 0%, transparent 40%),
+        var(--sp-bg-dark);
+    min-height: 100vh;
+}
+
+.auth-card {
+    background: rgba(26, 26, 34, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 183, 45, 0.15);
+    border-radius: 1rem;
+    box-shadow:
+        0 0 40px rgba(255, 183, 45, 0.06),
+        0 25px 50px rgba(0, 0, 0, 0.4);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.auth-card:hover {
+    border-color: rgba(255, 183, 45, 0.25);
+    box-shadow:
+        0 0 60px rgba(255, 183, 45, 0.08),
+        0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Auth page logo */
+.auth-card img[alt="GigRoute"] {
+    filter: drop-shadow(0 2px 8px rgba(255, 183, 45, 0.2));
+    max-width: 240px;
+    height: auto !important;
+}
+
+/* Auth form inputs — elevated look */
+.auth-card .form-control {
+    background-color: rgba(15, 15, 20, 0.6);
+    border-color: rgba(255, 183, 45, 0.12);
+    padding: 0.625rem 0.875rem;
+    font-size: 0.95rem;
+    border-radius: 0.5rem;
+}
+
+.auth-card .form-control:focus {
+    background-color: rgba(15, 15, 20, 0.8);
+    border-color: var(--sp-gold);
+    box-shadow: 0 0 0 3px rgba(255, 183, 45, 0.15);
+}
+
+.auth-card .input-group-text {
+    background-color: rgba(15, 15, 20, 0.6);
+    border-color: rgba(255, 183, 45, 0.12);
+    color: var(--sp-gold);
+    border-radius: 0.5rem 0 0 0.5rem;
+}
+
+.auth-card .input-group .form-control {
+    border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.auth-card .input-group .btn {
+    border-color: rgba(255, 183, 45, 0.12);
+    border-radius: 0 0.5rem 0.5rem 0;
+}
+
+/* Auth CTA button */
+.auth-card .btn-primary {
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 0.5rem;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 14px rgba(255, 183, 45, 0.3);
+    transition: all 0.2s ease;
+}
+
+.auth-card .btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(255, 183, 45, 0.4);
+    transform: translateY(-1px);
+}
+
+.auth-card .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(255, 183, 45, 0.25);
+}
+
+/* Auth form labels */
+.auth-card .form-label {
+    color: var(--sp-gray-light);
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Auth links */
+.auth-card a {
+    color: var(--sp-gold);
+    transition: color 0.2s ease;
+}
+
+.auth-card a:hover {
+    color: var(--sp-gold-light);
+}
+
+/* Subtitle text */
+.auth-card .text-gray {
+    color: var(--sp-gray) !important;
+    font-size: 0.95rem;
+}
+
+/* Form check (remember me) */
+.auth-card .form-check-input:checked {
+    background-color: var(--sp-gold);
+    border-color: var(--sp-gold);
+}
+
+/* Password toggle button */
+.auth-card .btn-outline-secondary {
+    border-color: rgba(255, 183, 45, 0.12);
+    color: var(--sp-gray);
+    background-color: rgba(15, 15, 20, 0.6);
+}
+
+.auth-card .btn-outline-secondary:hover {
+    color: var(--sp-gold);
+    background-color: rgba(255, 183, 45, 0.08);
+    border-color: rgba(255, 183, 45, 0.2);
+}
+
+/* Footer below auth card */
+.auth-page .text-gray.small a {
+    color: var(--sp-gray) !important;
+    transition: color 0.2s ease;
+}
+
+.auth-page .text-gray.small a:hover {
+    color: var(--sp-gold) !important;
+}
+
+/* Hide global footer on auth pages (they have their own) */
+body:has(.auth-page) > footer {
+    display: none;
+}
+
+/* Mobile adjustments for auth */
+@media (max-width: 576px) {
+    .auth-card .card-body {
+        padding: 1.5rem !important;
+    }
+
+    .auth-card img[alt="GigRoute"] {
+        max-width: 180px;
+    }
+}
