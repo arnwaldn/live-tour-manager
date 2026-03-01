@@ -1,8 +1,7 @@
-# Render.com Blueprint - GigRoute
-# Deploy: https://render.com/deploy?repo=https://github.com/arnwaldn/gigroute
+# Render.com Blueprint - GigRoute Beta
+# Deploy: render.com > New Blueprint Instance > Connect this repo
 
 services:
-  # Web Service
   - type: web
     name: gigroute
     runtime: python
@@ -11,33 +10,14 @@ services:
     envVars:
       - key: FLASK_ENV
         value: production
-      - key: FLASK_DEBUG
-        value: "false"
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
         fromDatabase:
           name: gigroute-db
           property: connectionString
-      - key: REDIS_URL
-        fromService:
-          name: gigroute-redis
-          type: redis
-          property: connectionString
-      - key: CACHE_TYPE
-        value: RedisCache
-      - key: CACHE_REDIS_URL
-        fromService:
-          name: gigroute-redis
-          type: redis
-          property: connectionString
-      - key: RATELIMIT_STORAGE_URL
-        fromService:
-          name: gigroute-redis
-          type: redis
-          property: connectionString
       - key: PYTHON_VERSION
-        value: "3.12.0"
+        value: "3.13.2"
     healthCheckPath: /health
     plan: free
 
@@ -46,7 +26,3 @@ databases:
     plan: free
     databaseName: gigroute
     user: gigroute
-
-  - name: gigroute-redis
-    type: redis
-    plan: free
