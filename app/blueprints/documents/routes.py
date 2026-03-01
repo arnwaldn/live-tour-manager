@@ -15,7 +15,7 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
-from app.utils.org_context import get_current_org_id, org_filter_kwargs
+from app.utils.org_context import get_current_org_id, org_filter_kwargs, get_org_users, get_org_tours
 from app.models.document import Document, DocumentType, DocumentShare, ShareType
 from app.models.user import User
 from app.models.band import Band
@@ -106,8 +106,8 @@ def index():
     """List all documents with filtering."""
     form = DocumentFilterForm(request.args, meta={'csrf': False})
 
-    # Get all active users for filter dropdown
-    all_users = User.query.filter_by(is_active=True).order_by(User.first_name).all()
+    # Get org users for filter dropdown
+    all_users = get_org_users().order_by(User.first_name).all()
     form.user_id.choices = [('', 'Tous les utilisateurs')] + [
         (str(u.id), u.full_name) for u in all_users
     ]
@@ -201,10 +201,10 @@ def upload():
     """Upload a new document."""
     form = DocumentUploadForm()
 
-    # Populate owner choices
-    users = User.query.filter_by(is_active=True).order_by(User.first_name).all()
+    # Populate owner choices (org-scoped)
+    users = get_org_users().order_by(User.first_name).all()
     bands = Band.query.filter_by(**org_filter_kwargs()).order_by(Band.name).all()
-    tours = Tour.query.order_by(Tour.start_date.desc()).all()
+    tours = get_org_tours().order_by(Tour.start_date.desc()).all()
 
     if form.validate_on_submit():
         file = form.file.data
@@ -570,8 +570,7 @@ def share_document(id):
 
     # GET: Afficher le formulaire de partage
     # Récupérer les utilisateurs avec qui on peut partager
-    all_users = User.query.filter(
-        User.is_active == True,
+    all_users = get_org_users().filter(
         User.id != current_user.id
     ).order_by(User.first_name).all()
 

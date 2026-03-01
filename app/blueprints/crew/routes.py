@@ -22,6 +22,7 @@ from app.models.crew_schedule import (
 from app.models.profession import Profession, ProfessionCategory
 from app.models.user import User
 from app.utils.notifications import create_notification
+from app.utils.org_context import get_org_users
 from app.models.notification import NotificationType, NotificationCategory
 
 
@@ -198,7 +199,7 @@ def schedule(stop_id):
     external_contacts = []
     professions = []
     if can_edit:
-        users = User.query.filter_by(is_active=True).order_by(User.first_name).all()
+        users = get_org_users().order_by(User.first_name).all()
         external_contacts = ExternalContact.query.order_by(ExternalContact.last_name).all()
         professions = Profession.query.order_by(Profession.name_fr).all()
 

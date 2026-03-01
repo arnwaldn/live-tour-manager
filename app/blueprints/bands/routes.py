@@ -16,7 +16,7 @@ from app.models.user import User
 from app.extensions import db
 from app.decorators import requires_manager, band_access_required
 from app.utils.audit import log_create, log_update, log_delete
-from app.utils.org_context import get_current_org_id, org_filter_kwargs
+from app.utils.org_context import get_current_org_id, org_filter_kwargs, get_org_users
 
 
 # Logo upload settings
@@ -241,9 +241,8 @@ def invite_member(id, band=None):
     
     # Récupérer les utilisateurs disponibles (pas déjà membres, pas le manager)
     excluded_ids = existing_member_ids + [band.manager_id]
-    available_users = User.query.filter(
+    available_users = get_org_users().filter(
         User.id.notin_(excluded_ids),
-        User.is_active == True
     ).order_by(User.last_name, User.first_name).all()
 
     # Peupler le SelectField avec les utilisateurs disponibles

@@ -72,3 +72,48 @@ def clear_current_org():
     """Clear org context from session (called at logout)."""
     from flask import session
     session.pop('current_org_id', None)
+
+
+def get_org_users(active_only=True):
+    """Get a query for users belonging to the current organization.
+
+    Joins through OrganizationMembership to filter by org.
+    Falls back to all users when no org context is set (pre-migration compat).
+
+    Args:
+        active_only: If True, only return active users (default True).
+
+    Returns:
+        SQLAlchemy query (call .all(), .order_by(), etc. on result)
+    """
+    from app.models.user import User
+    from app.models.organization import OrganizationMembership
+
+    org_id = get_current_org_id()
+    query = User.query
+    if org_id:
+        query = query.join(OrganizationMembership).filter(
+            OrganizationMembership.org_id == org_id,
+        )
+    if active_only:
+        query = query.filter(User.is_active == True)  # noqa: E712
+    return query
+
+
+def get_org_tours():
+    """Get a query for tours belonging to the current organization.
+
+    Joins through Band to filter by org_id.
+    Falls back to all tours when no org context is set (pre-migration compat).
+
+    Returns:
+        SQLAlchemy query (call .all(), .order_by(), etc. on result)
+    """
+    from app.models.tour import Tour
+    from app.models.band import Band
+
+    org_id = get_current_org_id()
+    query = Tour.query
+    if org_id:
+        query = query.join(Band).filter(Band.org_id == org_id)
+    return query

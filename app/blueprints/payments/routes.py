@@ -30,6 +30,7 @@ from app.models.user import User
 from app.models.tour import Tour
 from app.models.tour_stop import TourStop
 from app.utils.audit import log_action, log_create, log_update
+from app.utils.org_context import get_org_users, get_org_tours
 
 
 def manager_required(f):
@@ -60,10 +61,10 @@ def index():
 
     # Populate select fields
     form.tour_id.choices = [(0, 'Toutes les tournées')] + [
-        (t.id, t.name) for t in Tour.query.order_by(Tour.start_date.desc()).all()
+        (t.id, t.name) for t in get_org_tours().order_by(Tour.start_date.desc()).all()
     ]
     form.user_id.choices = [(0, 'Tous les membres')] + [
-        (u.id, u.full_name) for u in User.query.filter_by(is_active=True).order_by(User.last_name).all()
+        (u.id, u.full_name) for u in get_org_users().order_by(User.last_name).all()
     ]
 
     # Build query
@@ -165,10 +166,10 @@ def add():
 
     # Populate select fields
     form.user_id.choices = [(0, '-- Sélectionner --')] + [
-        (u.id, f"{u.full_name} ({u.email})") for u in User.query.filter_by(is_active=True).order_by(User.last_name).all()
+        (u.id, f"{u.full_name} ({u.email})") for u in get_org_users().order_by(User.last_name).all()
     ]
     form.tour_id.choices = [(0, '-- Optionnel --')] + [
-        (t.id, t.name) for t in Tour.query.order_by(Tour.start_date.desc()).all()
+        (t.id, t.name) for t in get_org_tours().order_by(Tour.start_date.desc()).all()
     ]
     form.tour_stop_id.choices = [(0, '-- Optionnel --')]
 
@@ -236,10 +237,10 @@ def edit(payment_id):
 
     # Populate select fields
     form.user_id.choices = [(0, '-- Sélectionner --')] + [
-        (u.id, f"{u.full_name} ({u.email})") for u in User.query.filter_by(is_active=True).order_by(User.last_name).all()
+        (u.id, f"{u.full_name} ({u.email})") for u in get_org_users().order_by(User.last_name).all()
     ]
     form.tour_id.choices = [(0, '-- Optionnel --')] + [
-        (t.id, t.name) for t in Tour.query.order_by(Tour.start_date.desc()).all()
+        (t.id, t.name) for t in get_org_tours().order_by(Tour.start_date.desc()).all()
     ]
     form.tour_stop_id.choices = [(0, '-- Optionnel --')]
 
@@ -484,7 +485,7 @@ def batch_per_diems():
 
     form.tour_id.choices = [(0, '-- Sélectionner --')] + [
         (t.id, f"{t.name} ({t.start_date.strftime('%d/%m/%Y')} - {t.end_date.strftime('%d/%m/%Y') if t.end_date else '?'})")
-        for t in Tour.query.order_by(Tour.start_date.desc()).all()
+        for t in get_org_tours().order_by(Tour.start_date.desc()).all()
     ]
 
     if form.validate_on_submit():
@@ -705,9 +706,8 @@ def export_sepa():
 def config_list():
     """List all user payment configurations."""
     configs = UserPaymentConfig.query.join(User).order_by(User.last_name).all()
-    users_without_config = User.query.filter(
+    users_without_config = get_org_users().filter(
         ~User.id.in_([c.user_id for c in configs]),
-        User.is_active == True
     ).all()
 
     return render_template(

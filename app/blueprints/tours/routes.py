@@ -25,8 +25,7 @@ from app.utils.audit import log_create, log_update, log_delete
 from app.utils.email import send_tour_stop_notification
 from app.utils.geo import calculate_stops_distances, get_tour_total_distance
 from app.utils.geocoding import geocode_address
-from app.utils.org_context import get_current_org_id, org_filter_kwargs
-from app.models.organization import OrganizationMembership
+from app.utils.org_context import get_current_org_id, org_filter_kwargs, get_org_users
 from app.blueprints.logistics.routes import get_visible_logistics
 
 
@@ -52,13 +51,7 @@ def get_users_by_category(users_list=None, assigned_ids=None):
 
     # Utiliser la liste fournie ou récupérer les utilisateurs de l'org courante
     if users_list is None:
-        org_id = get_current_org_id()
-        if org_id:
-            users_list = User.query.join(OrganizationMembership).filter(
-                OrganizationMembership.org_id == org_id,
-            ).order_by(User.first_name, User.last_name).all()
-        else:
-            users_list = User.query.order_by(User.first_name, User.last_name).all()
+        users_list = get_org_users().order_by(User.first_name, User.last_name).all()
 
     if not users_list:
         return [], []
@@ -361,14 +354,7 @@ def add_stop(id, tour=None):
     form.venue_id.choices = [(0, '-- Aucune salle --')] + [(v.id, f'{v.name} - {v.city}') for v in venues]
 
     # Récupérer les utilisateurs actifs de l'organisation courante
-    org_id = get_current_org_id()
-    if org_id:
-        all_users = User.query.join(OrganizationMembership).filter(
-            OrganizationMembership.org_id == org_id,
-            User.is_active == True,
-        ).all()
-    else:
-        all_users = User.query.filter_by(is_active=True).all()
+    all_users = get_org_users().all()
 
     # Présélectionner les membres du groupe par défaut (modifiable par l'utilisateur)
     band_member_ids = []
@@ -623,14 +609,7 @@ def edit_stop(id, stop_id, tour=None):
     form.venue_id.choices = [(0, '-- Aucune salle --')] + [(v.id, f'{v.name} - {v.city}') for v in venues]
 
     # Récupérer les utilisateurs actifs de l'organisation courante
-    org_id = get_current_org_id()
-    if org_id:
-        all_users = User.query.join(OrganizationMembership).filter(
-            OrganizationMembership.org_id == org_id,
-            User.is_active == True,
-        ).all()
-    else:
-        all_users = User.query.filter_by(is_active=True).all()
+    all_users = get_org_users().all()
     # IDs des membres déjà assignés à cette date
     assigned_ids = [m.id for m in stop.assigned_members]
     # Grouper par catégorie de métier pour l'interface d'assignation
@@ -1503,14 +1482,7 @@ def assign_members(id, stop_id, tour=None):
         member_ids = request.form.getlist('member_ids', type=int)
 
         # Valider que tous les member_ids sont des utilisateurs actifs de l'org
-        org_id = get_current_org_id()
-        if org_id:
-            all_active_users = User.query.join(OrganizationMembership).filter(
-                OrganizationMembership.org_id == org_id,
-                User.is_active == True,
-            ).all()
-        else:
-            all_active_users = User.query.filter_by(is_active=True).all()
+        all_active_users = get_org_users().all()
         valid_member_ids = {u.id for u in all_active_users}
         invalid_ids = [mid for mid in member_ids if mid not in valid_member_ids]
         if invalid_ids:
@@ -1558,14 +1530,7 @@ def assign_members(id, stop_id, tour=None):
     invitations = {inv.user_id: inv for inv in MissionInvitation.get_for_stop(stop.id)}
 
     # Grouper les membres par catégorie de profession (org-scoped)
-    org_id = get_current_org_id()
-    if org_id:
-        all_users = User.query.join(OrganizationMembership).filter(
-            OrganizationMembership.org_id == org_id,
-            User.is_active == True,
-        ).all()
-    else:
-        all_users = User.query.filter_by(is_active=True).all()
+    all_users = get_org_users().all()
     assigned_ids_set = set(m.id for m in stop.assigned_members)
     categories_data, users_without_profession = get_users_by_category(
         all_users,

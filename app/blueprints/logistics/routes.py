@@ -17,6 +17,7 @@ from app.utils.geocoding import geocode_address
 from app.extensions import db
 from app.decorators import tour_access_required, tour_edit_required
 from app.utils.audit import log_create, log_update, log_delete
+from app.utils.org_context import get_org_users
 
 
 def get_visible_logistics(stop, user):
@@ -118,7 +119,7 @@ def add_logistics(stop_id):
     form = LogisticsInfoForm()
 
     # Load available users for assignment
-    available_users = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
+    available_users = get_org_users().order_by(User.first_name, User.last_name).all()
     form.assigned_users.choices = [(u.id, f"{u.first_name} {u.last_name}") for u in available_users]
 
     if form.validate_on_submit():
@@ -270,7 +271,7 @@ def edit_logistics(id):
     form = LogisticsInfoForm(obj=logistics)
 
     # Load available users for assignment
-    available_users = User.query.filter_by(is_active=True).order_by(User.first_name, User.last_name).all()
+    available_users = get_org_users().order_by(User.first_name, User.last_name).all()
     form.assigned_users.choices = [(u.id, f"{u.first_name} {u.last_name}") for u in available_users]
 
     # Pre-fill select fields with current values
@@ -1399,7 +1400,7 @@ def assign_user(id):
     form = LogisticsAssignmentForm()
 
     # Populate user choices - all active users
-    users = User.query.filter_by(is_active=True).order_by(User.last_name, User.first_name).all()
+    users = get_org_users().order_by(User.last_name, User.first_name).all()
     form.user_id.choices = [(0, '-- Sélectionner --')] + [
         (u.id, f"{u.first_name} {u.last_name}") for u in users
     ]

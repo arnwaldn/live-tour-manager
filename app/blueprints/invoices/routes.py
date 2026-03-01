@@ -26,6 +26,7 @@ from app.models.tour import Tour
 from app.models.tour_stop import TourStop
 from app.models.user import User
 from app.utils.audit import log_create, log_update, log_action
+from app.utils.org_context import get_org_users, get_org_tours
 
 
 def manager_required(f):
@@ -54,7 +55,7 @@ def index():
 
     # Populate select fields
     form.tour_id.choices = [(0, 'Toutes les tournées')] + [
-        (t.id, t.name) for t in Tour.query.order_by(Tour.start_date.desc()).all()
+        (t.id, t.name) for t in get_org_tours().order_by(Tour.start_date.desc()).all()
     ]
 
     # Build query
@@ -108,11 +109,11 @@ def add():
 
     # Populate choices
     form.tour_id.choices = [(0, '-- Optionnel --')] + [
-        (t.id, t.name) for t in Tour.query.order_by(Tour.start_date.desc()).all()
+        (t.id, t.name) for t in get_org_tours().order_by(Tour.start_date.desc()).all()
     ]
     form.tour_stop_id.choices = [(0, '-- Optionnel --')]
     form.recipient_id.choices = [(0, '-- Saisie manuelle --')] + [
-        (u.id, u.full_name) for u in User.query.filter_by(is_active=True).order_by(User.last_name).all()
+        (u.id, u.full_name) for u in get_org_users().order_by(User.last_name).all()
     ]
 
     if request.method == 'GET':
@@ -236,7 +237,7 @@ def edit(invoice_id):
 
     # Populate choices
     form.tour_id.choices = [(0, '-- Optionnel --')] + [
-        (t.id, t.name) for t in Tour.query.order_by(Tour.start_date.desc()).all()
+        (t.id, t.name) for t in get_org_tours().order_by(Tour.start_date.desc()).all()
     ]
     form.tour_stop_id.choices = [(0, '-- Optionnel --')]
     if invoice.tour_id:
@@ -246,7 +247,7 @@ def edit(invoice_id):
             for s in stops
         ]
     form.recipient_id.choices = [(0, '-- Saisie manuelle --')] + [
-        (u.id, u.full_name) for u in User.query.filter_by(is_active=True).order_by(User.last_name).all()
+        (u.id, u.full_name) for u in get_org_users().order_by(User.last_name).all()
     ]
 
     if form.validate_on_submit():
