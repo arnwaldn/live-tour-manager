@@ -411,6 +411,13 @@ def by_user(user_id):
     """List documents for a specific user."""
     user = User.query.get_or_404(user_id)
 
+    # Verify user belongs to current org
+    from app.models.organization import OrganizationMembership
+    current_org = get_current_org_id()
+    if current_org:
+        if not OrganizationMembership.query.filter_by(user_id=user_id, org_id=current_org).first():
+            abort(404)
+
     # Security: only allow viewing own documents or if manager
     if user_id != current_user.id and not current_user.is_manager_or_above():
         abort(403)
@@ -530,6 +537,13 @@ def share_document(id):
             return redirect(url_for('documents.share_document', id=id))
 
         recipient = User.query.get_or_404(user_id)
+
+        # Verify recipient belongs to current org
+        from app.models.organization import OrganizationMembership
+        current_org = get_current_org_id()
+        if current_org:
+            if not OrganizationMembership.query.filter_by(user_id=user_id, org_id=current_org).first():
+                abort(404)
 
         # Vérifier que le destinataire n'est pas l'utilisateur courant
         if recipient.id == current_user.id:

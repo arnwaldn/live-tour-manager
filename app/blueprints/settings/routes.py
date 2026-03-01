@@ -519,6 +519,7 @@ def delete_profile_picture():
 
 
 @settings_bp.route('/profile/picture/<int:user_id>')
+@login_required
 def serve_profile_picture(user_id):
     """Serve profile picture from database with caching."""
     user = User.query.get_or_404(user_id)
@@ -1247,6 +1248,7 @@ def professions_delete(id):
 def add_travel_card(id):
     """Add a travel card to a user (manager only)."""
     user = User.query.get_or_404(id)
+    _verify_user_in_org(id)
     form = TravelCardForm()
 
     if form.validate_on_submit():
@@ -1400,7 +1402,8 @@ def pending_registrations():
     """List all pending user registrations awaiting approval."""
     # Get users who are inactive and have no invitation token
     # (invitation_token means they were invited by a manager, not self-registered)
-    pending_users = User.query.filter(
+    from app.utils.org_context import get_org_users
+    pending_users = get_org_users(active_only=False).filter(
         User.is_active == False,
         User.invitation_token.is_(None)
     ).order_by(User.created_at.desc()).all()

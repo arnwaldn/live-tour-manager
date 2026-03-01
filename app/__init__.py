@@ -1334,10 +1334,11 @@ def register_context_processors(app):
 
         data = dict(defaults)
         try:
-            # Pending registrations (managers only)
+            # Pending registrations (managers only, org-scoped)
             if current_user.is_manager_or_above():
                 from app.models.user import User
-                data['pending_registrations_count'] = User.query.filter(
+                from app.utils.org_context import get_org_users
+                data['pending_registrations_count'] = get_org_users(active_only=False).filter(
                     User.is_active == False,
                     User.invitation_token.is_(None)
                 ).count()

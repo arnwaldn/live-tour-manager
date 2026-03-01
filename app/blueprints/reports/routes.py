@@ -2,7 +2,7 @@
 Reports routes for GigRoute.
 Includes general stats and financial reports.
 """
-from flask import render_template, redirect, url_for, flash, Response, request
+from flask import render_template, redirect, url_for, flash, Response, request, abort
 from flask_login import login_required, current_user
 
 from sqlalchemy.orm import selectinload, joinedload
@@ -447,9 +447,10 @@ def accounting_index():
         Tour.start_date.desc()
     ).all()
 
-    # Get team members with payment configs
+    # Get team members with payment configs (org-scoped)
     from app.models.payments import UserPaymentConfig
-    team_members = User.query.join(UserPaymentConfig).all()
+    from app.utils.org_context import get_org_users
+    team_members = get_org_users().join(UserPaymentConfig).all()
 
     return render_template(
         'reports/accounting_index.html',
@@ -585,6 +586,14 @@ def accounting_fiche_membre(user_id):
         return redirect(url_for('reports.index'))
 
     user = User.query.get_or_404(user_id)
+
+    # Verify user belongs to current org
+    from app.utils.org_context import get_current_org_id
+    from app.models.organization import OrganizationMembership
+    current_org = get_current_org_id()
+    if current_org:
+        if not OrganizationMembership.query.filter_by(user_id=user_id, org_id=current_org).first():
+            abort(404)
 
     # Get optional date filters
     from datetime import datetime

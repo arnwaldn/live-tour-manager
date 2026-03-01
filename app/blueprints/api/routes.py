@@ -42,6 +42,11 @@ def api_list_tours():
     user = request.api_user
     query = Tour.query.options(joinedload(Tour.band))
 
+    # Org-scoped: only tours from bands in user's org
+    org_id = get_current_org_id()
+    if org_id:
+        query = query.join(Band).filter(Band.org_id == org_id)
+
     # Object-level authorization: non-staff see only their bands' tours
     if not user.is_staff_or_above():
         accessible_band_ids = db.session.query(BandMembership.band_id).filter(
@@ -340,6 +345,11 @@ def api_list_bands():
     """
     user = request.api_user
     query = Band.query.options(joinedload(Band.manager))
+
+    # Org-scoped: only bands in user's org
+    org_id = get_current_org_id()
+    if org_id:
+        query = query.filter(Band.org_id == org_id)
 
     # Object-level authorization: non-staff see only their bands
     if not user.is_staff_or_above():

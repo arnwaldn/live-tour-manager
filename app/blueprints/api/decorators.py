@@ -103,13 +103,24 @@ def get_current_api_user():
 
 
 def jwt_required(f):
-    """Decorator: require valid JWT access token."""
+    """Decorator: require valid JWT access token.
+
+    Also sets org context from the user's first org membership
+    so that org-scoped helpers (get_current_org_id, get_org_users, etc.)
+    work correctly for API requests.
+    """
     @wraps(f)
     def decorated(*args, **kwargs):
         user, error = get_current_api_user()
         if error:
             return error
         request.api_user = user
+
+        # Set org context for API requests (session-less)
+        from flask import session
+        if not session.get('current_org_id') and user.org_memberships:
+            session['current_org_id'] = user.org_memberships[0].org_id
+
         return f(*args, **kwargs)
     return decorated
 
