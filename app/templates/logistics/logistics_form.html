@@ -651,9 +651,9 @@
 
 {% block extra_js %}
 {# Autocomplete scripts #}
-<script src="{{ url_for('static', filename='js/airports-data.js') }}"></script>
-<script src="{{ url_for('static', filename='js/airport-autocomplete.js') }}"></script>
-<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}"></script>
+<script src="{{ versioned_static('js/airports-data.js') }}"></script>
+<script src="{{ versioned_static('js/airport-autocomplete.js') }}"></script>
+<script src="{{ versioned_static('js/address-autocomplete.js') }}"></script>
 
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {

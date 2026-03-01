@@ -1028,7 +1028,7 @@ function copyPreviousCrew() {
 {% endif %}
 </script>
 <!-- Autocomplétion d'adresses -->
-<script src="{{ url_for('static', filename='js/address-autocomplete.js') }}?v=20260204"></script>
+<script src="{{ versioned_static('js/address-autocomplete.js') }}"></script>
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Initialiser l'autocomplétion pour le champ d'adresse externe
