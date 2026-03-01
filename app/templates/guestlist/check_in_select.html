@@ -41,7 +41,7 @@
                         <div>
                             <i class="bi bi-calendar-event me-2"></i>
                             {{ stop.date.strftime('%d/%m/%Y') }}
-                            <small class="text-muted d-block">{{ stop.venue.name if stop.venue else 'Lieu TBD' }}</small>
+                            <small class="text-muted d-block">{{ stop.venue_name }}</small>
                         </div>
                         {% set approved = stop.guestlist_entries|selectattr('status.value', 'equalto', 'approved')|list|length %}
                         {% set checked_in = stop.guestlist_entries|selectattr('status.value', 'equalto', 'checked_in')|list|length %}

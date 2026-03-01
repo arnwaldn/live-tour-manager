@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
         {
             id: '{{ stop.id }}',
             {% set event_type = stop.event_type.value if stop.event_type else 'show' %}
-            title: {% if stop.venue %}{{ stop.venue.name|tojson }}{% elif event_type == 'day_off' %}'Jour off'{% elif event_type == 'travel' %}'Voyage'{% elif event_type == 'studio' %}'Studio'{% elif event_type == 'promo' %}'Promo'{% elif event_type == 'rehearsal' %}'Répétition'{% elif event_type == 'press' %}'Presse'{% elif event_type == 'meet_greet' %}'Meet & Greet'{% elif event_type == 'photo_video' %}'Photo/Vidéo'{% else %}'Autre'{% endif %},
+            title: {% if stop.venue %}{{ stop.venue.name|tojson }}{% elif stop.location_address or stop.location_city %}{{ stop.venue_name|tojson }}{% elif event_type == 'day_off' %}'Jour off'{% elif event_type == 'travel' %}'Voyage'{% elif event_type == 'studio' %}'Studio'{% elif event_type == 'promo' %}'Promo'{% elif event_type == 'rehearsal' %}'Répétition'{% elif event_type == 'press' %}'Presse'{% elif event_type == 'meet_greet' %}'Meet & Greet'{% elif event_type == 'photo_video' %}'Photo/Vidéo'{% else %}'Autre'{% endif %},
             start: '{{ stop.date.strftime("%Y-%m-%d") }}',
             backgroundColor: eventTypeColors['{{ event_type }}'] || '#198754',
             textColor: {% if event_type in ['rehearsal', 'photo_video', 'other'] %}'#212529'{% else %}'#ffffff'{% endif %},
@@ -215,9 +215,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 stopId: {{ stop.id }},
                 eventType: '{{ event_type }}',
                 hasVenue: {{ 'true' if stop.venue else 'false' }},
-                venue: {{ (stop.venue.name if stop.venue else "")|tojson }},
-                city: {{ (stop.venue.city if stop.venue else "")|tojson }},
-                country: {{ (stop.venue.country if stop.venue else "")|tojson }},
+                venue: {{ (stop.venue.name if stop.venue else (stop.location_address or ""))|tojson }},
+                city: {{ (stop.venue.city if stop.venue else (stop.location_city or ""))|tojson }},
+                country: {{ (stop.venue.country if stop.venue else (stop.location_country or ""))|tojson }},
                 status: '{{ stop.status.value }}',
                 loadInTime: '{{ stop.load_in_time.strftime("%H:%M") if stop.load_in_time else "" }}',
                 crewCallTime: '{{ stop.crew_call_time.strftime("%H:%M") if stop.crew_call_time else "" }}',
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }{% if stop.is_rescheduled and stop.original_date %},
         {
             id: '{{ stop.id }}-ghost',
-            title: {% if stop.venue %}{{ ("[REPORTÉ] " ~ stop.venue.name)|tojson }}{% else %}'[REPORTÉ] Concert'{% endif %},
+            title: {% if stop.venue %}{{ ("[REPORTÉ] " ~ stop.venue.name)|tojson }}{% elif stop.location_address or stop.location_city %}{{ ("[REPORTÉ] " ~ stop.venue_name)|tojson }}{% else %}'[REPORTÉ] Concert'{% endif %},
             start: '{{ stop.original_date.strftime("%Y-%m-%d") }}',
             classNames: ['rescheduled-ghost'],
             extendedProps: {

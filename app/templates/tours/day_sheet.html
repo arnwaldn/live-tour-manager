@@ -67,6 +67,11 @@
                         <i class="bi bi-geo-alt me-1"></i>
                         {{ stop.venue.name }} · {{ stop.venue.city }}, {{ stop.venue.country }}
                     </div>
+                    {% elif stop.location_address or stop.location_city %}
+                    <div class="venue">
+                        <i class="bi bi-geo-alt me-1"></i>
+                        {{ stop.display_location }}
+                    </div>
                     {% endif %}
                 </div>
                 <div class="text-end">

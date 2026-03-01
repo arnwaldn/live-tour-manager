@@ -22,6 +22,11 @@
         <span class="label">Lieu :</span>
         <span class="value">{{ tour_stop.venue.name }}, {{ tour_stop.venue.city }}</span>
     </p>
+    {% elif tour_stop.location_address or tour_stop.location_city %}
+    <p>
+        <span class="label">Lieu :</span>
+        <span class="value">{{ tour_stop.display_location }}</span>
+    </p>
     {% endif %}
     {% if band %}
     <p>

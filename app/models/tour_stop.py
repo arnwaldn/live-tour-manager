@@ -551,8 +551,13 @@ class TourStop(db.Model):
 
     @property
     def venue_name(self):
-        """Get venue name safely (returns placeholder if venue is None)."""
-        return self.venue.name if self.venue else 'Lieu TBD'
+        """Get venue name safely (returns external location or placeholder if venue is None)."""
+        if self.venue:
+            return self.venue.name
+        if self.location_address or self.location_city:
+            parts = [self.location_address, self.location_city]
+            return ", ".join(filter(None, parts))
+        return 'Lieu TBD'
 
     @property
     def venue_city(self):

@@ -146,7 +146,7 @@
                             <strong>{{ guest.guest_name }}</strong>
                             <br>
                             <small class="text-muted">
-                                {{ guest.tour_stop.venue.name }} - {{ guest.tour_stop.date.strftime('%d/%m/%Y') }}
+                                {{ guest.tour_stop.venue_name }} - {{ guest.tour_stop.date.strftime('%d/%m/%Y') }}
                             </small>
                         </div>
                         <span class="badge bg-{{ 'success' if guest.status.value == 'approved' else 'warning' if guest.status.value == 'pending' else 'secondary' }}">
