@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <!-- Leaflet CSS - Using jsdelivr (CSP whitelisted) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="{{ versioned_static('css/vendor/leaflet.min.css') }}">
 <style>
 #venueMap {
     height: 250px;
@@ -301,7 +301,7 @@
 {% block extra_js %}
 {% if venue.has_coordinates %}
 <!-- Leaflet JS - Using jsdelivr (CSP whitelisted) -->
-<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script nonce="{{ csp_nonce }}" src="{{ versioned_static('js/vendor/leaflet.min.js') }}"></script>
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map centered on venue

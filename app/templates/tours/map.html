@@ -4,7 +4,7 @@
 
 {% block extra_css %}
 <!-- Leaflet CSS - Using jsdelivr (CSP whitelisted) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="{{ versioned_static('css/vendor/leaflet.min.css') }}">
 <style>
 #tourMap {
     height: calc(100vh - 280px);
@@ -246,7 +246,7 @@
 
 {% block extra_js %}
 <!-- Leaflet JS - Using jsdelivr (CSP whitelisted) -->
-<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script nonce="{{ csp_nonce }}" src="{{ versioned_static('js/vendor/leaflet.min.js') }}"></script>
 {% autoescape false %}
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {

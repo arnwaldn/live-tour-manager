@@ -448,7 +448,7 @@
 
 {% block extra_js %}
 <!-- ApexCharts -->
-<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script nonce="{{ csp_nonce }}" src="{{ versioned_static('js/vendor/apexcharts.min.js') }}"></script>
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Chart color palette
