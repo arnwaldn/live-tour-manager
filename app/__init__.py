@@ -1124,6 +1124,28 @@ def register_context_processors(app):
     from datetime import datetime
     from flask_login import current_user
 
+    # Build a static file version map at startup (file mtime as cache buster)
+    _static_versions = {}
+    static_folder = app.static_folder
+    if static_folder and os.path.isdir(static_folder):
+        for root, _dirs, files in os.walk(static_folder):
+            for fname in files:
+                filepath = os.path.join(root, fname)
+                rel = os.path.relpath(filepath, static_folder).replace('\\', '/')
+                try:
+                    _static_versions[rel] = int(os.path.getmtime(filepath))
+                except OSError:
+                    pass
+
+    def _versioned_static(filename):
+        """Return static URL with cache-busting version query param."""
+        from flask import url_for as flask_url_for
+        url = flask_url_for('static', filename=filename)
+        version = _static_versions.get(filename, '')
+        if version:
+            url += f'?v={version}'
+        return url
+
     @app.context_processor
     def utility_processor():
         """Provide utility functions to templates."""
@@ -1131,6 +1153,7 @@ def register_context_processors(app):
             'now': datetime.now,
             'current_year': datetime.now().year,
             'csp_nonce': g.get('csp_nonce', ''),
+            'versioned_static': _versioned_static,
         }
 
     @app.context_processor

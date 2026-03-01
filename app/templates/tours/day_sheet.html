@@ -3,7 +3,7 @@
 {% block title %}Feuille de route - {{ stop.date.strftime('%d/%m/%Y') }} - {{ tour.name }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/day_sheet.css') }}">
+<link rel="stylesheet" href="{{ versioned_static('css/day_sheet.css') }}">
 <style>
 /* Additional page-specific styles */
 .day-sheet-wrapper {
