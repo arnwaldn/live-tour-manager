@@ -120,7 +120,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+<!-- FullCalendar 6.x uses JS-based styling, no external CSS needed -->
 <style>
     #calendar {
         max-width: 100%;
@@ -170,8 +170,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/fr.global.min.js"></script>
+<script nonce="{{ csp_nonce }}" src="{{ versioned_static('js/vendor/fullcalendar.min.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ versioned_static('js/vendor/fullcalendar-core-fr.min.js') }}"></script>
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');

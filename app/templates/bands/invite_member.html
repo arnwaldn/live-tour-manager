@@ -3,7 +3,7 @@
 {% block title %}Inviter un membre - {{ band.name }} - GigRoute{% endblock %}
 
 {% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+<link href="{{ versioned_static('css/vendor/tom-select.bootstrap5.css') }}" rel="stylesheet">
 <style>
     .ts-wrapper {
         background-color: var(--bs-body-bg);
@@ -108,7 +108,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script nonce="{{ csp_nonce }}" src="{{ versioned_static('js/vendor/tom-select.min.js') }}"></script>
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     new TomSelect('#user_id', {

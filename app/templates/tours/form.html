@@ -16,7 +16,7 @@
 
 {% block extra_css %}
 {% if not band %}
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+<link href="{{ versioned_static('css/vendor/tom-select.bootstrap5.css') }}" rel="stylesheet">
 <style>
 .ts-wrapper { background: var(--bs-body-bg); }
 .ts-wrapper .ts-control { background: var(--bs-body-bg); border-color: var(--bs-border-color); color: var(--bs-body-color); }
@@ -135,7 +135,7 @@
 
 {% block extra_js %}
 {% if not band %}
-<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script nonce="{{ csp_nonce }}" src="{{ versioned_static('js/vendor/tom-select.min.js') }}"></script>
 {% endif %}
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
