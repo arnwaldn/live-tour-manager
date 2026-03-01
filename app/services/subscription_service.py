@@ -54,8 +54,10 @@ class SubscriptionService:
                 return org_sub
 
             # Create org-level subscription
+            # user_id included for backward compat (NOT NULL in legacy schema)
             subscription = Subscription(
                 org_id=org_id,
+                user_id=user.id,
                 plan=SubscriptionPlan.FREE,
                 status=SubscriptionStatus.ACTIVE,
             )
