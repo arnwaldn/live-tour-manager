@@ -2,7 +2,7 @@
  * Service Worker — GigRoute
  * Cache-first for static assets, network-first for dynamic pages.
  */
-const CACHE_NAME = 'gigroute-v2';
+const CACHE_NAME = 'gigroute-v3';
 const STATIC_ASSETS = [
   '/static/css/style.css',
   '/static/css/responsive.css',
@@ -45,6 +45,9 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
+
+  // Skip cross-origin requests (CDN scripts, external APIs, fonts, etc.)
+  if (url.origin !== self.location.origin) return;
 
   // Skip API calls (always network)
   if (url.pathname.startsWith('/api/')) return;
