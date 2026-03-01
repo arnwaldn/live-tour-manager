@@ -71,6 +71,10 @@ def create_app(config_name=None):
     # Initialize extensions
     init_extensions(app)
 
+    # Enable response compression (gzip)
+    from flask_compress import Compress
+    Compress(app)
+
     # Initialize Stripe API key
     if app.config.get('STRIPE_SECRET_KEY'):
         import stripe
@@ -196,11 +200,19 @@ def register_mail_config_reloader(app):
     In multi-worker environments (e.g., Gunicorn with multiple workers),
     when one worker updates the mail config, other workers need to detect
     and reload the new configuration. This hook checks for config changes
-    on each request by comparing timestamps.
+    at most once every 60 seconds to avoid unnecessary DB queries.
     """
+    import time as _time
+    _last_mail_check = [0.0]  # mutable container for closure
+
     @app.before_request
     def check_mail_config():
-        """Check if mail config needs reloading from database."""
+        """Check if mail config needs reloading from database (throttled)."""
+        now = _time.monotonic()
+        if now - _last_mail_check[0] < 60:
+            return
+        _last_mail_check[0] = now
+
         try:
             from app.models.system_settings import SystemSettings
             from app.extensions import mail
@@ -1156,53 +1168,62 @@ def register_context_processors(app):
             'versioned_static': _versioned_static,
         }
 
+    # Per-user context cache (30s TTL) to avoid DB queries on every page render
+    import time as _ctx_time
+    _user_ctx_cache = {}  # {user_id: {'data': dict, 'ts': float}}
+    _CTX_CACHE_TTL = 30  # seconds
+
     @app.context_processor
-    def pending_registrations_processor():
-        """Provide pending registrations count to templates (managers only)."""
-        pending_count = 0
-        if current_user.is_authenticated and current_user.is_manager_or_above():
-            try:
+    def user_context_processor():
+        """Provide pending registrations, notifications, and billing to templates.
+
+        Cached per-user for 30 seconds to avoid 3-4 DB queries per page render.
+        """
+        defaults = {
+            'pending_registrations_count': 0,
+            'unread_notifications_count': 0,
+            'recent_notifications': [],
+            'current_plan': 'free',
+        }
+        if not current_user.is_authenticated:
+            return defaults
+
+        uid = current_user.id
+        now = _ctx_time.monotonic()
+        cached = _user_ctx_cache.get(uid)
+        if cached and (now - cached['ts']) < _CTX_CACHE_TTL:
+            return cached['data']
+
+        data = dict(defaults)
+        try:
+            # Pending registrations (managers only)
+            if current_user.is_manager_or_above():
                 from app.models.user import User
-                # Count users who are inactive and have no invitation token
-                # (invitation_token means they were invited, not self-registered)
-                pending_count = User.query.filter(
+                data['pending_registrations_count'] = User.query.filter(
                     User.is_active == False,
                     User.invitation_token.is_(None)
                 ).count()
-            except Exception:
-                # Table might not exist or DB connection issue
-                pending_count = 0
-        return {'pending_registrations_count': pending_count}
 
-    @app.context_processor
-    def notifications_processor():
-        """Provide notifications data to templates."""
-        unread_count = 0
-        recent_notifications = []
-        if current_user.is_authenticated:
-            try:
-                from app.models.notification import Notification
-                unread_count = Notification.get_unread_count(current_user.id)
-                recent_notifications = Notification.get_recent(current_user.id, limit=5)
-            except Exception:
-                # Table might not exist or DB connection issue
-                unread_count = 0
-                recent_notifications = []
-        return {
-            'unread_notifications_count': unread_count,
-            'recent_notifications': recent_notifications
-        }
+            # Notifications
+            from app.models.notification import Notification
+            data['unread_notifications_count'] = Notification.get_unread_count(uid)
+            data['recent_notifications'] = Notification.get_recent(uid, limit=5)
 
-    @app.context_processor
-    def billing_processor():
-        """Provide billing/plan data to templates."""
-        current_plan = 'free'
-        if current_user.is_authenticated:
-            try:
-                current_plan = current_user.current_plan
-            except Exception:
-                current_plan = 'free'
-        return {'current_plan': current_plan}
+            # Billing
+            data['current_plan'] = current_user.current_plan
+        except Exception:
+            pass  # Table might not exist or DB connection issue
+
+        _user_ctx_cache[uid] = {'data': data, 'ts': now}
+
+        # Evict stale entries (keep cache bounded)
+        if len(_user_ctx_cache) > 100:
+            cutoff = now - _CTX_CACHE_TTL * 2
+            stale = [k for k, v in _user_ctx_cache.items() if v['ts'] < cutoff]
+            for k in stale:
+                del _user_ctx_cache[k]
+
+        return data
 
     @app.context_processor
     def pdf_availability_processor():
@@ -1327,6 +1348,11 @@ def register_security_headers(app):
     @app.after_request
     def add_security_headers(response):
         """Add security headers to every response."""
+        # Cache-Control for static assets (versioned_static adds ?v= for busting)
+        if request.path.startswith('/static'):
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+            return response
+
         # Prevent MIME type sniffing
         response.headers['X-Content-Type-Options'] = 'nosniff'
 
@@ -1355,8 +1381,8 @@ def register_security_headers(app):
             response.headers['Content-Security-Policy'] = (
                 "default-src 'self'; "
                 f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://unpkg.com https://js.stripe.com; "
-                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com; "
-                "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+                "font-src 'self' https://cdn.jsdelivr.net; "
                 "img-src 'self' data: https: blob:; "
                 "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://api-adresse.data.gouv.fr https://data.geopf.fr https://api.geoapify.com https://api.stripe.com; "
                 "frame-src 'self' https://js.stripe.com https://hooks.stripe.com; "

@@ -7,8 +7,8 @@ import multiprocessing
 # Bind
 bind = f"0.0.0.0:{os.environ.get('PORT', '8080')}"
 
-# Workers: 2 * CPU + 1 (minimum 2, capped at 4 for small instances)
-workers = min(multiprocessing.cpu_count() * 2 + 1, 4)
+# Workers: 2 for free tier (512MB RAM), scale up for paid plans
+workers = int(os.environ.get('WEB_CONCURRENCY', 2))
 threads = 2
 
 # Preload app to save memory (shared code across workers)

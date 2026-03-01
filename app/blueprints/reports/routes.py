@@ -5,6 +5,8 @@ Includes general stats and financial reports.
 from flask import render_template, redirect, url_for, flash, Response, request
 from flask_login import login_required, current_user
 
+from sqlalchemy.orm import selectinload, joinedload
+
 from app.blueprints.reports import reports_bp
 from app.models.tour import Tour
 from app.models.guestlist import GuestlistEntry, GuestlistStatus
@@ -41,10 +43,10 @@ def index():
     user_bands = current_user.bands + current_user.managed_bands
     user_band_ids = [b.id for b in user_bands]
 
-    # Get tours for stats
-    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).order_by(
-        Tour.start_date.desc()
-    ).all()
+    # Get tours for stats (eager-load stops + guestlist to avoid N+1)
+    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).options(
+        selectinload(Tour.stops).selectinload(TourStop.guestlist_entries),
+    ).order_by(Tour.start_date.desc()).all()
 
     # Calculate stats
     stats = {
@@ -76,10 +78,11 @@ def financial():
     user_bands = current_user.bands + current_user.managed_bands
     user_band_ids = [b.id for b in user_bands]
 
-    # Get all tours
-    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).order_by(
-        Tour.start_date.desc()
-    ).all()
+    # Get all tours (eager-load stops + venue/tiers for financial calcs)
+    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).options(
+        selectinload(Tour.stops).joinedload(TourStop.venue),
+        selectinload(Tour.stops).selectinload(TourStop.ticket_tiers),
+    ).order_by(Tour.start_date.desc()).all()
 
     # Calculate multi-tour summary
     summary = calculate_multi_tour_summary(tours)
@@ -91,7 +94,10 @@ def financial():
 @login_required
 def financial_tour(tour_id):
     """Detailed financial report for a specific tour."""
-    tour = Tour.query.get_or_404(tour_id)
+    tour = Tour.query.options(
+        selectinload(Tour.stops).joinedload(TourStop.venue),
+        selectinload(Tour.stops).selectinload(TourStop.ticket_tiers),
+    ).get_or_404(tour_id)
 
     # Check access
     user_bands = current_user.bands + current_user.managed_bands
@@ -118,7 +124,10 @@ def financial_tour(tour_id):
 @login_required
 def export_financial_csv(tour_id):
     """Export tour financial report as CSV."""
-    tour = Tour.query.get_or_404(tour_id)
+    tour = Tour.query.options(
+        selectinload(Tour.stops).joinedload(TourStop.venue),
+        selectinload(Tour.stops).selectinload(TourStop.ticket_tiers),
+    ).get_or_404(tour_id)
 
     # Check access
     user_bands = current_user.bands + current_user.managed_bands
@@ -157,10 +166,10 @@ def guestlist_analytics():
     user_bands = current_user.bands + current_user.managed_bands
     user_band_ids = [b.id for b in user_bands]
 
-    # Get all tours
-    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).order_by(
-        Tour.start_date.desc()
-    ).all()
+    # Get all tours (eager-load stops + guestlist to avoid N+1)
+    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).options(
+        selectinload(Tour.stops).selectinload(TourStop.guestlist_entries),
+    ).order_by(Tour.start_date.desc()).all()
 
     # Calculate guestlist stats by tour
     tour_stats = []
@@ -211,10 +220,12 @@ def financial_dashboard():
     user_bands = current_user.bands + current_user.managed_bands
     user_band_ids = [b.id for b in user_bands]
 
-    # Get all tours
-    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).order_by(
-        Tour.start_date.desc()
-    ).all()
+    # Get all tours (eager-load stops + venue/tiers/expenses for KPIs + settlements)
+    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).options(
+        selectinload(Tour.stops).joinedload(TourStop.venue),
+        selectinload(Tour.stops).selectinload(TourStop.ticket_tiers),
+        selectinload(Tour.stops).joinedload(TourStop.promotor_expenses),
+    ).order_by(Tour.start_date.desc()).all()
 
     # Calculate advanced KPIs
     kpis = calculate_dashboard_kpis(tours)
@@ -252,10 +263,12 @@ def settlements_list():
     user_bands = current_user.bands + current_user.managed_bands
     user_band_ids = [b.id for b in user_bands]
 
-    # Get all tours
-    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).order_by(
-        Tour.start_date.desc()
-    ).all()
+    # Get all tours (eager-load stops + venue/tiers/expenses for settlements)
+    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).options(
+        selectinload(Tour.stops).joinedload(TourStop.venue),
+        selectinload(Tour.stops).selectinload(TourStop.ticket_tiers),
+        selectinload(Tour.stops).joinedload(TourStop.promotor_expenses),
+    ).order_by(Tour.start_date.desc()).all()
 
     # Collecter TOUS les stops (sans filtre de date)
     all_settlements = []
@@ -386,9 +399,10 @@ def dashboard_chart_data():
     user_bands = current_user.bands + current_user.managed_bands
     user_band_ids = [b.id for b in user_bands]
 
-    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).order_by(
-        Tour.start_date.desc()
-    ).all()
+    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).options(
+        selectinload(Tour.stops).joinedload(TourStop.venue),
+        selectinload(Tour.stops).selectinload(TourStop.ticket_tiers),
+    ).order_by(Tour.start_date.desc()).all()
 
     kpis = calculate_dashboard_kpis(tours)
 
