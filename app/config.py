@@ -160,12 +160,12 @@ class ProductionConfig(Config):
     CACHE_REDIS_URL = _redis_url
     CACHE_DEFAULT_TIMEOUT = 600
 
-    # Database connection pool (production-tuned)
+    # Database connection pool (sized for free tier: 2 workers × 8 = 16 max)
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
         'pool_recycle': 300,
-        'pool_size': 10,
-        'max_overflow': 20,
+        'pool_size': 3,
+        'max_overflow': 5,
         'connect_args': {'client_encoding': 'utf8'},
     }
 

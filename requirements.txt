@@ -31,6 +31,9 @@ Flask-Mailman>=1.1.0
 # Caching
 Flask-Caching==2.1.0
 
+# Response Compression
+flask-compress>=1.17
+
 # Timezone
 pytz==2023.3
 
