@@ -316,15 +316,16 @@
                                 <div class="form-text">Coût de location du lieu</div>
                             </div>
 
-                            <div class="col-12 col-md-4">
-                                <label for="ticket_price" class="form-label">Prix du billet</label>
+                            <!-- Single-price fields (disabled when tiers exist) -->
+                            <div class="col-12 col-md-4" id="singlePriceField">
+                                <label for="ticket_price" class="form-label">Prix du billet (unique)</label>
                                 <div class="input-group">
                                     {{ form.ticket_price(class="form-control", placeholder="0.00") }}
                                     <span class="input-group-text">€</span>
                                 </div>
                             </div>
 
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-4" id="singleSoldField">
                                 <label for="sold_tickets" class="form-label">
                                     <i class="bi bi-ticket-perforated-fill text-success me-1"></i>Billets vendus
                                 </label>
@@ -336,7 +337,7 @@
 
                             <!-- Multi-tier pricing section -->
                             <div class="col-12 mt-3">
-                                <div class="card border-dashed">
+                                <div class="card border-dashed" id="tierSection">
                                     <div class="card-body py-2 px-3">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <label class="form-label mb-0">
@@ -346,41 +347,46 @@
                                                 <i class="bi bi-plus-lg me-1"></i>Ajouter un tarif
                                             </button>
                                         </div>
-                                        <small class="text-muted d-block mb-2">
-                                            Si des tarifs sont ajoutés, le prix unique ci-dessus sera ignoré pour les calculs financiers.
-                                        </small>
+                                        <div id="tierDisabledNotice" class="alert alert-info py-2 small mb-2 d-none">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Les tarifs multiples remplacent le prix unique et les billets vendus ci-dessus.
+                                        </div>
+
+                                        <!-- Persistent column headers -->
+                                        <div class="row g-2 mb-1 d-none" id="tierHeaders">
+                                            <div class="col-4 col-md-3"><span class="form-label small text-muted mb-0">Nom du tarif</span></div>
+                                            <div class="col-3 col-md-3"><span class="form-label small text-muted mb-0">Prix €</span></div>
+                                            <div class="col-2"><span class="form-label small text-muted mb-0">Places</span></div>
+                                            <div class="col-2"><span class="form-label small text-muted mb-0">Vendus</span></div>
+                                            <div class="col-1"></div>
+                                        </div>
+
                                         <div id="tierRows">
                                             {% if stop and stop.ticket_tiers %}
                                             {% for tier in stop.ticket_tiers %}
-                                            <div class="tier-row row g-2 mb-2 align-items-end">
+                                            <div class="tier-row row g-2 mb-2 align-items-center">
                                                 <input type="hidden" name="tier_id[]" value="{{ tier.id }}">
-                                                <div class="col-3">
-                                                    {% if loop.first %}<label class="form-label small mb-1">Nom</label>{% endif %}
+                                                <input type="hidden" name="tier_sort[]" value="{{ tier.sort_order }}">
+                                                <div class="col-4 col-md-3">
                                                     <input type="text" class="form-control form-control-sm" name="tier_name[]"
-                                                           value="{{ tier.name }}" placeholder="Ex: Fosse" required>
+                                                           value="{{ tier.name }}" placeholder="Ex: Fosse, Balcon..." required>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="number" class="form-control form-control-sm tier-price" name="tier_price[]"
+                                                               value="{{ tier.price }}" step="0.01" min="0" placeholder="0.00" required>
+                                                        <span class="input-group-text">€</span>
+                                                    </div>
                                                 </div>
                                                 <div class="col-2">
-                                                    {% if loop.first %}<label class="form-label small mb-1">Prix €</label>{% endif %}
-                                                    <input type="number" class="form-control form-control-sm" name="tier_price[]"
-                                                           value="{{ tier.price }}" step="0.01" min="0" placeholder="0.00" required>
+                                                    <input type="number" class="form-control form-control-sm tier-quantity" name="tier_quantity[]"
+                                                           value="{{ tier.quantity_available or '' }}" min="0" placeholder="Illim.">
                                                 </div>
                                                 <div class="col-2">
-                                                    {% if loop.first %}<label class="form-label small mb-1">Places</label>{% endif %}
-                                                    <input type="number" class="form-control form-control-sm" name="tier_quantity[]"
-                                                           value="{{ tier.quantity_available or '' }}" min="0" placeholder="Illimité">
-                                                </div>
-                                                <div class="col-2">
-                                                    {% if loop.first %}<label class="form-label small mb-1">Vendus</label>{% endif %}
-                                                    <input type="number" class="form-control form-control-sm" name="tier_sold[]"
+                                                    <input type="number" class="form-control form-control-sm tier-sold" name="tier_sold[]"
                                                            value="{{ tier.sold }}" min="0" placeholder="0">
                                                 </div>
-                                                <div class="col-2">
-                                                    {% if loop.first %}<label class="form-label small mb-1">Ordre</label>{% endif %}
-                                                    <input type="number" class="form-control form-control-sm" name="tier_sort[]"
-                                                           value="{{ tier.sort_order }}" min="0" placeholder="0">
-                                                </div>
                                                 <div class="col-1">
-                                                    {% if loop.first %}<label class="form-label small mb-1">&nbsp;</label>{% endif %}
                                                     <button type="button" class="btn btn-sm btn-outline-danger w-100 removeTierBtn"
                                                             aria-label="Supprimer ce tarif">
                                                         <i class="bi bi-x-lg"></i>
@@ -390,24 +396,43 @@
                                             {% endfor %}
                                             {% endif %}
                                         </div>
+
+                                        <!-- Live totals row -->
+                                        <div class="row g-2 mt-1 pt-2 border-top d-none" id="tierTotals">
+                                            <div class="col-4 col-md-3">
+                                                <span class="small fw-bold text-muted">Total</span>
+                                            </div>
+                                            <div class="col-3">
+                                                <span class="small fw-bold" id="tierTotalRevenue">0,00 €</span>
+                                            </div>
+                                            <div class="col-2">
+                                                <span class="small fw-bold" id="tierTotalPlaces">-</span>
+                                            </div>
+                                            <div class="col-2">
+                                                <span class="small fw-bold" id="tierTotalSold">0</span>
+                                            </div>
+                                            <div class="col-1"></div>
+                                        </div>
+
                                         <!-- Template for new tier row (cloned by JS) -->
                                         <template id="tierRowTemplate">
-                                            <div class="tier-row row g-2 mb-2 align-items-end">
+                                            <div class="tier-row row g-2 mb-2 align-items-center">
                                                 <input type="hidden" name="tier_id[]" value="">
+                                                <input type="hidden" name="tier_sort[]" value="0">
+                                                <div class="col-4 col-md-3">
+                                                    <input type="text" class="form-control form-control-sm" name="tier_name[]" placeholder="Ex: Fosse, Balcon..." required>
+                                                </div>
                                                 <div class="col-3">
-                                                    <input type="text" class="form-control form-control-sm" name="tier_name[]" placeholder="Ex: Fosse" required>
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="number" class="form-control form-control-sm tier-price" name="tier_price[]" step="0.01" min="0" placeholder="0.00" required>
+                                                        <span class="input-group-text">€</span>
+                                                    </div>
                                                 </div>
                                                 <div class="col-2">
-                                                    <input type="number" class="form-control form-control-sm" name="tier_price[]" step="0.01" min="0" placeholder="0.00" required>
+                                                    <input type="number" class="form-control form-control-sm tier-quantity" name="tier_quantity[]" min="0" placeholder="Illim.">
                                                 </div>
                                                 <div class="col-2">
-                                                    <input type="number" class="form-control form-control-sm" name="tier_quantity[]" min="0" placeholder="Illimité">
-                                                </div>
-                                                <div class="col-2">
-                                                    <input type="number" class="form-control form-control-sm" name="tier_sold[]" min="0" placeholder="0" value="0">
-                                                </div>
-                                                <div class="col-2">
-                                                    <input type="number" class="form-control form-control-sm" name="tier_sort[]" min="0" placeholder="0" value="0">
+                                                    <input type="number" class="form-control form-control-sm tier-sold" name="tier_sold[]" min="0" placeholder="0" value="0">
                                                 </div>
                                                 <div class="col-1">
                                                     <button type="button" class="btn btn-sm btn-outline-danger w-100 removeTierBtn"
@@ -1047,29 +1072,121 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// === Ticket Tiers dynamic rows ===
+// === Ticket Tiers dynamic rows + UX ===
 document.addEventListener('DOMContentLoaded', function() {
     const addBtn = document.getElementById('addTierBtn');
     const container = document.getElementById('tierRows');
     const template = document.getElementById('tierRowTemplate');
+    const headers = document.getElementById('tierHeaders');
+    const totals = document.getElementById('tierTotals');
+    const notice = document.getElementById('tierDisabledNotice');
+    const singlePriceField = document.getElementById('singlePriceField');
+    const singleSoldField = document.getElementById('singleSoldField');
+    const form = document.querySelector('form');
     if (!addBtn || !container || !template) return;
 
-    let tierIndex = container.querySelectorAll('.tier-row').length;
+    function hasTiers() {
+        return container.querySelectorAll('.tier-row').length > 0;
+    }
+
+    function toggleSinglePriceFields() {
+        const tiersExist = hasTiers();
+        const priceInput = singlePriceField ? singlePriceField.querySelector('input') : null;
+        const soldInput = singleSoldField ? singleSoldField.querySelector('input') : null;
+
+        if (tiersExist) {
+            if (priceInput) { priceInput.disabled = true; priceInput.classList.add('text-muted'); }
+            if (soldInput) { soldInput.disabled = true; soldInput.classList.add('text-muted'); }
+            if (singlePriceField) singlePriceField.style.opacity = '0.5';
+            if (singleSoldField) singleSoldField.style.opacity = '0.5';
+            if (notice) notice.classList.remove('d-none');
+            if (headers) headers.classList.remove('d-none');
+            if (totals) totals.classList.remove('d-none');
+        } else {
+            if (priceInput) { priceInput.disabled = false; priceInput.classList.remove('text-muted'); }
+            if (soldInput) { soldInput.disabled = false; soldInput.classList.remove('text-muted'); }
+            if (singlePriceField) singlePriceField.style.opacity = '1';
+            if (singleSoldField) singleSoldField.style.opacity = '1';
+            if (notice) notice.classList.add('d-none');
+            if (headers) headers.classList.add('d-none');
+            if (totals) totals.classList.add('d-none');
+        }
+    }
+
+    function updateTierTotals() {
+        const rows = container.querySelectorAll('.tier-row');
+        let totalRevenue = 0, totalPlaces = 0, totalSold = 0;
+        let hasUnlimited = false;
+
+        rows.forEach(function(row) {
+            const price = parseFloat(row.querySelector('.tier-price')?.value) || 0;
+            const qty = row.querySelector('.tier-quantity')?.value;
+            const sold = parseInt(row.querySelector('.tier-sold')?.value) || 0;
+
+            if (qty && parseInt(qty) > 0) {
+                totalPlaces += parseInt(qty);
+            } else {
+                hasUnlimited = true;
+            }
+            totalSold += sold;
+            totalRevenue += price * sold;
+        });
+
+        if (totals) {
+            document.getElementById('tierTotalRevenue').textContent =
+                totalRevenue.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+            document.getElementById('tierTotalPlaces').textContent =
+                hasUnlimited ? totalPlaces + '+' : (totalPlaces > 0 ? totalPlaces.toString() : '-');
+            document.getElementById('tierTotalSold').textContent = totalSold.toString();
+        }
+    }
+
+    function updateSortOrders() {
+        container.querySelectorAll('.tier-row').forEach(function(row, i) {
+            const sortInput = row.querySelector('[name="tier_sort[]"]');
+            if (sortInput) sortInput.value = i;
+        });
+    }
+
+    // Re-enable disabled fields before form submit so values are sent
+    if (form) {
+        form.addEventListener('submit', function() {
+            updateSortOrders();
+            var inputs = form.querySelectorAll('input[disabled]');
+            inputs.forEach(function(input) { input.disabled = false; });
+        });
+    }
 
     addBtn.addEventListener('click', function() {
         const clone = template.content.cloneNode(true);
-        const sortInput = clone.querySelector('[name="tier_sort[]"]');
-        if (sortInput) sortInput.value = tierIndex;
-        tierIndex++;
         container.appendChild(clone);
+        updateSortOrders();
+        toggleSinglePriceFields();
+        updateTierTotals();
     });
 
     container.addEventListener('click', function(e) {
         const btn = e.target.closest('.removeTierBtn');
         if (btn) {
             btn.closest('.tier-row').remove();
+            updateSortOrders();
+            toggleSinglePriceFields();
+            updateTierTotals();
         }
     });
+
+    // Live update totals on input change
+    container.addEventListener('input', function(e) {
+        if (e.target.classList.contains('tier-price') ||
+            e.target.classList.contains('tier-quantity') ||
+            e.target.classList.contains('tier-sold')) {
+            updateTierTotals();
+        }
+    });
+
+    // Initialize on page load
+    toggleSinglePriceFields();
+    updateTierTotals();
 });
 </script>
 {% endblock %}

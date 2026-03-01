@@ -219,12 +219,12 @@ def financial_dashboard():
     # Calculate advanced KPIs
     kpis = calculate_dashboard_kpis(tours)
 
-    # Get upcoming shows that need settlement (confirmed, with sold_tickets > 0)
+    # Get upcoming shows that need settlement (with tickets sold via single or multi-tier)
     from datetime import date
     upcoming_settlements = []
     for tour in tours:
         for stop in tour.stops:
-            if stop.date and stop.date >= date.today() and stop.sold_tickets and stop.sold_tickets > 0:
+            if stop.date and stop.date >= date.today() and stop.total_sold_tickets > 0:
                 settlement = calculate_settlement(stop)
                 upcoming_settlements.append(settlement)
 
