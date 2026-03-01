@@ -48,7 +48,8 @@ flask db upgrade || {
 echo "Migrations applied successfully."
 
 echo ""
-echo "=== Step 4: Seeding default data ==="
+echo "=== Step 4: Initializing default data ==="
+flask init-db || echo "Roles already initialized or table not ready"
 flask seed-professions || echo "Professions already seeded or table not ready"
 
 echo ""
