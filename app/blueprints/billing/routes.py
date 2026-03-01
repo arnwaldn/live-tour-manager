@@ -36,18 +36,24 @@ def dashboard():
     from app.models.tour_stop import TourStop
     from app.models.band import Band
     from app.blueprints.billing.plans import get_plan_limits
+    from app.utils.org_context import get_current_org_id
 
-    SubscriptionService.ensure_subscription_exists(current_user)
+    subscription = SubscriptionService.ensure_subscription_exists(current_user)
 
     plan = current_user.current_plan
     limits = get_plan_limits(plan)
 
-    # Usage stats — tours managed by this user (via band.manager_id)
-    tour_count = Tour.query.join(Band).filter(Band.manager_id == current_user.id).count()
+    # Usage stats — count by org (or by user if no org context)
+    org_id = get_current_org_id()
+    if org_id:
+        tour_count = Tour.query.join(Band).filter(Band.org_id == org_id).count()
+        tours = Tour.query.join(Band).filter(Band.org_id == org_id).all()
+    else:
+        tour_count = Tour.query.join(Band).filter(Band.manager_id == current_user.id).count()
+        tours = Tour.query.join(Band).filter(Band.manager_id == current_user.id).all()
 
     # For stop count, show the tour with the most stops
     max_stops = 0
-    tours = Tour.query.join(Band).filter(Band.manager_id == current_user.id).all()
     for tour in tours:
         stop_count = TourStop.query.filter_by(tour_id=tour.id).count()
         if stop_count > max_stops:
@@ -59,7 +65,7 @@ def dashboard():
         limits=limits,
         tour_count=tour_count,
         max_stops=max_stops,
-        subscription=current_user.subscription,
+        subscription=subscription,
     )
 
 

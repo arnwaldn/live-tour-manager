@@ -12,6 +12,10 @@ class Venue(db.Model):
     __tablename__ = 'venues'
 
     id = db.Column(db.Integer, primary_key=True)
+
+    # Organization (tenant isolation)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False, index=True)
+
     name = db.Column(db.String(100), nullable=False, index=True)
     address = db.Column(db.String(255))
     city = db.Column(db.String(100), nullable=False, index=True)
@@ -46,6 +50,8 @@ class Venue(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    organization = db.relationship('Organization', back_populates='venues')
+
     contacts = db.relationship(
         'VenueContact',
         back_populates='venue',

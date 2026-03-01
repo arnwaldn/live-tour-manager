@@ -16,6 +16,7 @@ from app.blueprints.api.schemas import (
 )
 from app.blueprints.api.helpers import paginate_query, api_error, api_success
 from app.extensions import db, limiter
+from app.utils.org_context import get_current_org_id
 from app.models.user import AccessLevel
 from app.models.tour import Tour
 from app.models.tour_stop import TourStop, TourStopMember
@@ -370,7 +371,9 @@ def api_list_venues():
         country (str): Filter by country
         page, per_page: Pagination
     """
-    query = Venue.query
+    # Org-scoped venue list (get_current_org_id may return None for API/JWT auth — Phase 2)
+    org_id = get_current_org_id()
+    query = Venue.query.filter_by(org_id=org_id) if org_id else Venue.query
 
     search = request.args.get('q', '').strip()
     if search:

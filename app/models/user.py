@@ -163,6 +163,9 @@ class User(UserMixin, db.Model):
     # Stripe billing
     stripe_customer_id = db.Column(db.String(255), unique=True, nullable=True)
 
+    # Platform superadmin (GigRoute team — can access all orgs for support/debug)
+    is_superadmin = db.Column(db.Boolean, default=False, nullable=False)
+
     # ============================================================
     # NEW: Access Level & Professional Identity (v2.0)
     # ============================================================
@@ -197,6 +200,13 @@ class User(UserMixin, db.Model):
         back_populates='user',
         cascade='all, delete-orphan',
         lazy='selectin'  # Optimized: loads all professions in 1 query instead of N+1
+    )
+
+    # Organization memberships (multi-tenancy)
+    org_memberships = db.relationship(
+        'OrganizationMembership',
+        back_populates='user',
+        cascade='all, delete-orphan',
     )
 
     band_memberships = db.relationship(
@@ -454,19 +464,76 @@ class User(UserMixin, db.Model):
         return [membership.band for membership in self.band_memberships]
 
     # ============================================================
+    # ORGANIZATION HELPERS (multi-tenancy)
+    # ============================================================
+
+    @property
+    def organizations(self):
+        """Get all organizations this user belongs to."""
+        return [m.organization for m in self.org_memberships]
+
+    @property
+    def current_org(self):
+        """Get the user's current organization (from session context)."""
+        from flask import session
+        org_id = session.get('current_org_id')
+        if org_id:
+            from app.models.organization import Organization
+            return Organization.query.get(org_id)
+        # Fallback: first org membership
+        if self.org_memberships:
+            return self.org_memberships[0].organization
+        return None
+
+    @property
+    def current_org_id(self):
+        """Get current org ID from session (avoids loading full org object)."""
+        from flask import session
+        org_id = session.get('current_org_id')
+        if org_id:
+            return org_id
+        if self.org_memberships:
+            return self.org_memberships[0].org_id
+        return None
+
+    def get_org_role(self, org=None):
+        """Get user's role in an organization."""
+        if org is None:
+            org = self.current_org
+        if org is None:
+            return None
+        m = org.get_membership(self)
+        return m.role if m else None
+
+    # ============================================================
     # BILLING / SUBSCRIPTION HELPERS
     # ============================================================
 
     @property
     def current_plan(self):
-        """Get the user's current plan name ('free' or 'pro')."""
+        """Get the user's current plan name ('free' or 'pro').
+
+        Delegates to org subscription when available (multi-tenancy),
+        falls back to user subscription for backward compatibility.
+        """
+        # Try org-level subscription first
+        org = self.current_org
+        if org and hasattr(org, 'subscription') and org.subscription and org.subscription.is_active:
+            return org.subscription.plan.value
+        # Fallback to user-level subscription (backward compat during migration)
         if self.subscription and self.subscription.is_active:
             return self.subscription.plan.value
         return 'free'
 
     @property
     def is_pro(self):
-        """Check if user has an active Pro subscription."""
+        """Check if user has an active Pro subscription.
+
+        Delegates to org subscription when available.
+        """
+        org = self.current_org
+        if org and hasattr(org, 'subscription') and org.subscription:
+            return org.subscription.is_pro
         return self.subscription is not None and self.subscription.is_pro
 
     # ============================================================

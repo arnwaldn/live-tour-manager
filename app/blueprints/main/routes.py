@@ -8,6 +8,7 @@ from flask_login import login_required, current_user
 from app.blueprints.main import main_bp
 from app.blueprints.main.forms import StandaloneEventForm
 from app.extensions import db
+from app.utils.org_context import get_current_org_id, org_filter_kwargs, org_scope
 
 
 @main_bp.route('/sw.js')
@@ -161,19 +162,19 @@ def terms():
 def dashboard():
     """Main dashboard - adapted to user's role."""
 
-    # Admin sees ALL bands (consistent with bands/routes.py behavior)
+    # Admin sees all bands in current org
     is_admin = current_user.is_admin()
     if is_admin:
-        user_bands = Band.query.order_by(Band.name).all()
+        user_bands = Band.query.filter_by(**org_filter_kwargs()).order_by(Band.name).all()
         user_band_ids = [b.id for b in user_bands]
     else:
         # Get user's bands (as member or manager) - using direct queries for reliability
         # 1. Bands where user is manager (via Band.manager_id)
-        managed_bands = Band.query.filter_by(manager_id=current_user.id).all()
+        managed_bands = Band.query.filter_by(manager_id=current_user.id, **org_filter_kwargs()).all()
 
         # 2. Bands where user is member (via BandMembership)
         member_band_ids = [m.band_id for m in BandMembership.query.filter_by(user_id=current_user.id).all()]
-        member_bands = Band.query.filter(Band.id.in_(member_band_ids)).all() if member_band_ids else []
+        member_bands = Band.query.filter(Band.id.in_(member_band_ids), org_scope(Band)).all() if member_band_ids else []
 
         # 3. Combine and deduplicate by ID
         user_bands_dict = {b.id: b for b in member_bands + managed_bands}
@@ -520,9 +521,10 @@ def search():
         Tour.name.ilike(f'%{query}%')
     ).limit(10).all()
 
-    # Search venues
+    # Search venues (org-scoped)
     from app.models.venue import Venue
     results['venues'] = Venue.query.filter(
+        org_scope(Venue),
         Venue.name.ilike(f'%{query}%') |
         Venue.city.ilike(f'%{query}%')
     ).limit(10).all()
@@ -576,8 +578,8 @@ def add_standalone_event():
         (t.id, f"{t.name} ({t.band.name})") for t in all_tours
     ]
 
-    # Venue selector
-    venues = Venue.query.order_by(Venue.name).all()
+    # Venue selector (org-scoped)
+    venues = Venue.query.filter_by(**org_filter_kwargs()).order_by(Venue.name).all()
     form.venue_id.choices = [(0, '-- Sans salle --')] + [
         (v.id, f"{v.name} - {v.city}, {v.country}") for v in venues
     ]
@@ -664,8 +666,8 @@ def edit_standalone_event(event_id):
         (t.id, f"{t.name} ({t.band.name})") for t in all_tours
     ]
 
-    # Venue selector
-    venues = Venue.query.order_by(Venue.name).all()
+    # Venue selector (org-scoped)
+    venues = Venue.query.filter_by(**org_filter_kwargs()).order_by(Venue.name).all()
     form.venue_id.choices = [(0, '-- Sans salle --')] + [
         (v.id, f"{v.name} - {v.city}, {v.country}") for v in venues
     ]

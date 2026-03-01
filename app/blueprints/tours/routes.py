@@ -25,6 +25,7 @@ from app.utils.audit import log_create, log_update, log_delete
 from app.utils.email import send_tour_stop_notification
 from app.utils.geo import calculate_stops_distances, get_tour_total_distance
 from app.utils.geocoding import geocode_address
+from app.utils.org_context import get_current_org_id, org_filter_kwargs
 from app.blueprints.logistics.routes import get_visible_logistics
 
 
@@ -125,10 +126,10 @@ def get_users_by_category(users_list=None, assigned_ids=None):
 @login_required
 def index():
     """List all tours for user's bands."""
-    # Admin voit toutes les tournées
+    # Admin voit toutes les tournées de l'org
     if current_user.is_admin():
-        user_bands = Band.query.all()
-        query = Tour.query
+        user_bands = Band.query.filter_by(**org_filter_kwargs()).all()
+        query = Tour.query.filter(Tour.band_id.in_([b.id for b in user_bands]))
     else:
         user_bands = current_user.bands + current_user.managed_bands
         user_band_ids = [b.id for b in user_bands]
@@ -167,7 +168,7 @@ def create_tour():
     form.band_id.choices = [(b.id, b.name) for b in managed_bands]
 
     if form.validate_on_submit():
-        band = Band.query.get(form.band_id.data)
+        band = Band.query.filter_by(id=form.band_id.data, **org_filter_kwargs()).first()
         if not band or not band.is_manager(current_user):
             flash('Groupe invalide.', 'error')
             return redirect(url_for('tours.index'))
@@ -198,7 +199,7 @@ def create_tour():
 @check_tour_limit
 def create(band_id):
     """Create a new tour for a band."""
-    band = Band.query.get_or_404(band_id)
+    band = Band.query.filter_by(id=band_id, **org_filter_kwargs()).first_or_404()
 
     if not band.is_manager(current_user):
         flash('Seul le manager peut créer une tournée.', 'error')
@@ -348,8 +349,8 @@ def add_stop(id, tour=None):
     """Add a stop to the tour."""
     form = TourStopForm()
 
-    # Populate venue choices with empty option for non-venue events
-    venues = Venue.query.order_by(Venue.name).all()
+    # Populate venue choices with empty option for non-venue events (org-scoped)
+    venues = Venue.query.filter_by(**org_filter_kwargs()).order_by(Venue.name).all()
     form.venue_id.choices = [(0, '-- Aucune salle --')] + [(v.id, f'{v.name} - {v.city}') for v in venues]
 
     # Récupérer TOUS les utilisateurs actifs pour permettre d'assigner n'importe qui au concert
@@ -603,8 +604,8 @@ def edit_stop(id, stop_id, tour=None):
     form.status.data = stop.status.value
     form.event_type.data = stop.event_type.value if stop.event_type else 'show'
 
-    # Populate venue choices with empty option
-    venues = Venue.query.order_by(Venue.name).all()
+    # Populate venue choices with empty option (org-scoped)
+    venues = Venue.query.filter_by(**org_filter_kwargs()).order_by(Venue.name).all()
     form.venue_id.choices = [(0, '-- Aucune salle --')] + [(v.id, f'{v.name} - {v.city}') for v in venues]
 
     # Récupérer TOUS les utilisateurs actifs pour permettre d'assigner n'importe qui au concert

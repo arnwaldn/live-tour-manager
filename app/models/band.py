@@ -22,6 +22,9 @@ class Band(db.Model):
     website = db.Column(db.String(255))
     social_links = db.Column(db.JSON, default=dict)  # {facebook, instagram, twitter, etc.}
 
+    # Organization (tenant isolation)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False, index=True)
+
     # Manager relationship
     manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
@@ -30,6 +33,8 @@ class Band(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    organization = db.relationship('Organization', back_populates='bands')
+
     manager = db.relationship(
         'User',
         back_populates='managed_bands',

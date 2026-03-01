@@ -11,9 +11,11 @@ from app.blueprints.auth.forms import (
     ResetPasswordForm, ChangePasswordForm
 )
 from app.blueprints.settings.forms import SetPasswordForm
-from app.models.user import User, Role
+from app.models.user import User, Role, AccessLevel
+from app.models.organization import Organization, OrganizationMembership, OrgRole
 from app.extensions import db, limiter
 from app.utils.audit import log_login, log_logout, log_create
+from app.utils.org_context import set_current_org
 from app.utils.email import send_password_reset_email, send_registration_notification, send_welcome_email
 
 
@@ -51,6 +53,10 @@ def login():
 
             login_user(user, remember=form.remember_me.data)
             log_login(user, success=True)
+
+            # Set org context from user's first membership
+            if user.org_memberships:
+                set_current_org(user.org_memberships[0].org_id)
 
             flash(f'Bienvenue, {user.first_name}!', 'success')
 
@@ -94,35 +100,51 @@ def register():
     form = RegistrationForm()
 
     if form.validate_on_submit():
-        # Create new user (inactive until manager approval)
+        # Create new user — active immediately (they own the new org)
         user = User(
             email=form.email.data.lower(),
             first_name=form.first_name.data,
             last_name=form.last_name.data,
             phone=form.phone.data or None,
-            is_active=False,  # Requires manager approval
-            email_verified=False
+            is_active=True,
+            email_verified=False,
+            access_level=AccessLevel.ADMIN  # Org owner gets admin access
         )
         user.set_password(form.password.data)
 
-        # Assign default role (MUSICIAN)
-        default_role = Role.query.filter_by(name='MUSICIAN').first()
-        if default_role:
-            user.roles.append(default_role)
-
         db.session.add(user)
+        db.session.flush()  # Get user.id
+
+        # Create the user's organization (workspace)
+        org_name = f"Équipe de {user.full_name}"
+        org = Organization(
+            name=org_name,
+            slug=Organization.generate_slug(org_name),
+            email=user.email,
+            created_by_id=user.id
+        )
+        db.session.add(org)
+        db.session.flush()  # Get org.id
+
+        # Make user the OWNER of the new org
+        membership = OrganizationMembership(
+            user_id=user.id,
+            org_id=org.id,
+            role=OrgRole.OWNER
+        )
+        db.session.add(membership)
         db.session.commit()
 
         log_create('User', user.id, {'email': user.email})
+        log_create('Organization', org.id, {'name': org.name, 'owner_id': user.id})
 
-        # Notify managers of new registration
-        try:
-            send_registration_notification(user)
-        except Exception as e:
-            current_app.logger.error(f'Email notification inscription échoué: {e}')
+        # Auto-login the new user
+        login_user(user)
+        set_current_org(org.id)
+        log_login(user, success=True)
 
-        flash('Votre inscription est en attente d\'approbation par un manager.', 'info')
-        return redirect(url_for('auth.pending_approval'))
+        flash(f'Bienvenue {user.first_name} ! Votre espace de travail a été créé.', 'success')
+        return redirect(url_for('main.dashboard'))
 
     return render_template('auth/register.html', form=form)
 

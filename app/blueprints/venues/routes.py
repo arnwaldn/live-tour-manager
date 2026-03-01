@@ -12,6 +12,7 @@ from app.extensions import db
 from sqlalchemy import func
 from app.decorators import requires_manager
 from app.utils.audit import log_create, log_update, log_delete
+from app.utils.org_context import get_current_org_id, org_filter_kwargs, org_scope
 
 
 def process_contacts_from_form(venue, form_data):
@@ -86,7 +87,7 @@ def index():
     type_filter = request.args.get('venue_type')  # BUG FIX: était 'type', template envoie 'venue_type'
     search = request.args.get('q', '').strip()
 
-    query = Venue.query
+    query = Venue.query.filter_by(**org_filter_kwargs())
 
     if city_filter:
         query = query.filter(Venue.city.ilike(f'%{city_filter}%'))
@@ -103,9 +104,11 @@ def index():
 
     venues = query.order_by(Venue.name).all()
 
-    # Get unique cities for filter dropdown
+    # Get unique cities for filter dropdown (scoped to current org)
     # Note: On utilise title() en Python car initcap() n'existe pas dans SQLite
-    raw_cities = db.session.query(Venue.city).distinct().order_by(Venue.city).all()
+    raw_cities = db.session.query(Venue.city).filter(
+        org_scope(Venue)
+    ).distinct().order_by(Venue.city).all()
     cities = sorted(set(c[0].title() for c in raw_cities if c[0]))
 
     return render_template(
@@ -136,6 +139,7 @@ def create():
                 country = country[:half]
 
         venue = Venue(
+            org_id=get_current_org_id(),  # None OK here: column set at creation time
             name=form.name.data,
             address=form.address.data,
             city=form.city.data.title() if form.city.data else None,  # BUG FIX: Normalise casse ville
@@ -182,7 +186,7 @@ def create():
 @login_required
 def detail(id):
     """View venue details."""
-    venue = Venue.query.get_or_404(id)
+    venue = Venue.query.filter_by(id=id, **org_filter_kwargs()).first_or_404()
     return render_template('venues/detail.html', venue=venue)
 
 
@@ -191,7 +195,7 @@ def detail(id):
 @requires_manager
 def edit(id):
     """Edit a venue."""
-    venue = Venue.query.get_or_404(id)
+    venue = Venue.query.filter_by(id=id, **org_filter_kwargs()).first_or_404()
     form = VenueForm(obj=venue)
 
     if form.validate_on_submit():
@@ -249,7 +253,7 @@ def edit(id):
 @requires_manager
 def delete(id):
     """Delete a venue."""
-    venue = Venue.query.get_or_404(id)
+    venue = Venue.query.filter_by(id=id, **org_filter_kwargs()).first_or_404()
 
     # Check if venue has any tour stops
     if venue.tour_stops:
@@ -272,7 +276,7 @@ def delete(id):
 @requires_manager
 def add_contact(id):
     """Add a contact to a venue."""
-    venue = Venue.query.get_or_404(id)
+    venue = Venue.query.filter_by(id=id, **org_filter_kwargs()).first_or_404()
     form = VenueContactForm()
 
     if form.validate_on_submit():
@@ -300,7 +304,7 @@ def add_contact(id):
 @requires_manager
 def edit_contact(id, contact_id):
     """Edit a venue contact."""
-    venue = Venue.query.get_or_404(id)
+    venue = Venue.query.filter_by(id=id, **org_filter_kwargs()).first_or_404()
     contact = VenueContact.query.filter_by(id=contact_id, venue_id=id).first_or_404()
 
     form = VenueContactForm(obj=contact)
@@ -322,6 +326,8 @@ def edit_contact(id, contact_id):
 @requires_manager
 def delete_contact(id, contact_id):
     """Delete a venue contact."""
+    # Verify venue belongs to current org
+    Venue.query.filter_by(id=id, **org_filter_kwargs()).first_or_404()
     contact = VenueContact.query.filter_by(id=contact_id, venue_id=id).first_or_404()
 
     contact_name = contact.name

@@ -29,11 +29,22 @@ class Subscription(db.Model):
     __tablename__ = 'subscriptions'
 
     id = db.Column(db.Integer, primary_key=True)
+
+    # Organization-level billing (multi-tenancy — nullable during migration)
+    org_id = db.Column(
+        db.Integer,
+        db.ForeignKey('organizations.id', ondelete='CASCADE'),
+        unique=True,
+        nullable=True,
+        index=True,
+    )
+
+    # User-level billing (kept for backward compatibility during migration)
     user_id = db.Column(
         db.Integer,
         db.ForeignKey('users.id', ondelete='CASCADE'),
         unique=True,
-        nullable=False,
+        nullable=True,
         index=True,
     )
 
@@ -64,6 +75,10 @@ class Subscription(db.Model):
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.utcnow)
 
     # Relationships
+    organization = db.relationship(
+        'Organization',
+        backref=db.backref('subscription', uselist=False),
+    )
     user = db.relationship('User', backref=db.backref('subscription', uselist=False))
 
     def __repr__(self):
@@ -117,6 +132,7 @@ class Subscription(db.Model):
         """Serialize subscription to dict."""
         return {
             'id': self.id,
+            'org_id': self.org_id,
             'user_id': self.user_id,
             'plan': self.plan.value,
             'status': self.status.value,

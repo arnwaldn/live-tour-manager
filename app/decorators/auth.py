@@ -146,6 +146,7 @@ def band_access_required(f):
     """
     Decorator to verify user has access to the band.
     Expects 'band_id' or 'id' in route parameters.
+    Also verifies the band belongs to the user's current organization.
 
     Usage:
         @band_access_required
@@ -156,12 +157,20 @@ def band_access_required(f):
     @login_required
     def decorated_function(*args, **kwargs):
         from app.models.band import Band
+        from app.utils.org_context import get_current_org_id
 
         band_id = kwargs.get('band_id') or kwargs.get('id')
         if not band_id:
             abort(400)
 
         band = Band.query.get_or_404(band_id)
+
+        # Verify band belongs to user's current org (tenant isolation)
+        current_org = get_current_org_id()
+        if current_org and band.org_id and band.org_id != current_org:
+            # Superadmins can bypass org check
+            if not getattr(current_user, 'is_superadmin', False):
+                abort(404)  # 404 not 403 — don't leak existence
 
         # Allow access if user is admin, manager, member, or has manage_band permission
         if not (band.has_access(current_user) or

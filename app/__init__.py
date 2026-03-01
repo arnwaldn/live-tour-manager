@@ -127,6 +127,9 @@ def create_app(config_name=None):
     # Email verification warning for sensitive operations
     register_email_verification_guard(app)
 
+    # Organization context (multi-tenancy)
+    register_org_context(app)
+
     # Create database tables (development only)
     if config_name == 'development':
         with app.app_context():
@@ -969,6 +972,108 @@ def register_cli_commands(app):
         print("  - Professions, Roles, System Settings")
         print("=" * 60)
 
+    # ─── Multi-Tenancy CLI Commands ──────────────────────────────────
+
+    @app.cli.command('setup-org')
+    @click.option('--name', default='GigRoute', help='Default organization name')
+    @click.option('--slug', default='gigroute', help='Default organization slug')
+    def setup_org(name, slug):
+        """Create default organization and assign all existing data to it.
+
+        Run this after the multi-tenancy migration to backfill org_id on all
+        existing bands, venues, users, and subscriptions.
+        """
+        from app.models.organization import Organization, OrganizationMembership, OrgRole
+        from app.models.user import User
+        from app.models.band import Band
+        from app.models.venue import Venue
+        from app.models.subscription import Subscription
+        from app.extensions import db
+
+        print("=" * 60)
+        print("GIGROUTE - SETUP DEFAULT ORGANIZATION")
+        print("=" * 60)
+
+        # Check if org already exists
+        existing = Organization.query.filter_by(slug=slug).first()
+        if existing:
+            print(f"[SKIP] Organization '{existing.name}' (slug={slug}) already exists (id={existing.id}).")
+            org = existing
+        else:
+            org = Organization(name=name, slug=slug)
+            db.session.add(org)
+            db.session.flush()
+            print(f"[CREATED] Organization '{name}' (id={org.id})")
+
+        # Assign all users to org
+        users = User.query.all()
+        user_count = 0
+        for user in users:
+            existing_membership = OrganizationMembership.query.filter_by(
+                user_id=user.id, org_id=org.id
+            ).first()
+            if existing_membership:
+                continue
+            # First user (or admin) becomes OWNER, others become MEMBER
+            role = OrgRole.OWNER if user.is_admin() else OrgRole.MEMBER
+            membership = OrganizationMembership(
+                user_id=user.id, org_id=org.id, role=role
+            )
+            db.session.add(membership)
+            user_count += 1
+
+        # Assign all bands to org
+        band_count = Band.query.filter(
+            (Band.org_id.is_(None))
+        ).update({Band.org_id: org.id}, synchronize_session=False)
+
+        # Assign all venues to org
+        venue_count = Venue.query.filter(
+            (Venue.org_id.is_(None))
+        ).update({Venue.org_id: org.id}, synchronize_session=False)
+
+        # Assign subscriptions to org
+        sub_count = Subscription.query.filter(
+            (Subscription.org_id.is_(None))
+        ).update({Subscription.org_id: org.id}, synchronize_session=False)
+
+        # Set creator
+        if not org.created_by_id:
+            admin = User.query.filter_by(access_level='admin').first()
+            if admin:
+                org.created_by_id = admin.id
+
+        db.session.commit()
+
+        print(f"\n[OK] Assigned to org '{org.name}' (id={org.id}):")
+        print(f"  - {user_count} user membership(s) created")
+        print(f"  - {band_count} band(s) linked")
+        print(f"  - {venue_count} venue(s) linked")
+        print(f"  - {sub_count} subscription(s) linked")
+        print("=" * 60)
+
+    @app.cli.command('set-superadmin')
+    @click.argument('email')
+    def set_superadmin(email):
+        """Set a user as platform superadmin.
+
+        Superadmin = GigRoute platform team. Can access all orgs for support/debug.
+        Distinct from AccessLevel.ADMIN which is org-level admin.
+
+        Usage: flask set-superadmin admin@gigroute.app
+        """
+        from app.models.user import User
+        from app.extensions import db
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            print(f"[ERROR] User with email '{email}' not found.")
+            return
+
+        user.is_superadmin = True
+        db.session.commit()
+        print(f"[OK] {user.full_name} ({email}) is now a platform superadmin.")
+
 
 # ─── French i18n: Template Filters ──────────────────────────────────
 
@@ -1076,6 +1181,31 @@ TRANSLATIONS = {
         'backline': 'Backline', 'catering': 'Catering', 'loges': 'Loges'
     }
 }
+
+
+def register_org_context(app):
+    """Register before_request hook to enforce organization context for multi-tenancy."""
+    from flask_login import current_user
+    from flask import session
+
+    @app.before_request
+    def ensure_org_context():
+        """Auto-set organization context in session for authenticated users.
+
+        Gracefully handles the pre-migration case where the
+        organization_memberships table doesn't exist yet.
+        """
+        if not current_user.is_authenticated:
+            return
+        if session.get('current_org_id'):
+            return
+        # Auto-set org from user's first membership
+        try:
+            if current_user.org_memberships:
+                session['current_org_id'] = current_user.org_memberships[0].org_id
+        except Exception:
+            # Table doesn't exist yet (pre-migration) — silently skip
+            pass
 
 
 def register_template_filters(app):

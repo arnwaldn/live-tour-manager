@@ -11,9 +11,10 @@ from app.services.subscription_service import SubscriptionService, PlanLimitExce
 
 
 def plan_required(plan_name):
-    """Decorator: require a specific plan (e.g., 'pro').
+    """Decorator: require a specific plan (e.g., 'pro') at the org level.
 
-    Redirects to pricing page with flash message if user doesn't have the plan.
+    Redirects to pricing page with flash message if org doesn't have the plan.
+    Falls back to user plan for backward compatibility.
 
     Usage:
         @plan_required('pro')
@@ -28,10 +29,11 @@ def plan_required(plan_name):
 
             SubscriptionService.ensure_subscription_exists(current_user)
 
+            # current_plan already delegates to org subscription (see User model)
             if current_user.current_plan != plan_name:
                 flash(
-                    f'Cette fonctionnalite necessite le plan Pro. '
-                    f'Mettez a niveau pour y acceder.',
+                    'Cette fonctionnalité nécessite le plan Pro. '
+                    'Mettez à niveau pour y accéder.',
                     'warning'
                 )
                 return redirect(url_for('billing.pricing'))

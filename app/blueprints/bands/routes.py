@@ -16,6 +16,7 @@ from app.models.user import User
 from app.extensions import db
 from app.decorators import requires_manager, band_access_required
 from app.utils.audit import log_create, log_update, log_delete
+from app.utils.org_context import get_current_org_id, org_filter_kwargs
 
 
 # Logo upload settings
@@ -82,9 +83,9 @@ def delete_logo_file(filename):
 @login_required
 def index():
     """List all bands accessible to the user."""
-    # Admin voit tous les groupes
+    # Admin voit tous les groupes de l'org
     if current_user.is_admin():
-        all_bands = Band.query.order_by(Band.name).all()
+        all_bands = Band.query.filter_by(**org_filter_kwargs()).order_by(Band.name).all()
         return render_template(
             'bands/list.html',
             managed_bands=all_bands,
@@ -116,6 +117,7 @@ def create():
             logo_path = save_logo_file(form.logo_file.data)
 
         band = Band(
+            org_id=get_current_org_id(),
             name=form.name.data,
             genre=form.genre.data,
             bio=form.bio.data,

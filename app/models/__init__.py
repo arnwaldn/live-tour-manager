@@ -2,6 +2,7 @@
 SQLAlchemy models for GigRoute.
 All models are imported here for easy access.
 """
+from app.models.organization import Organization, OrganizationMembership, OrgRole, ORG_ROLE_LABELS
 from app.models.user import (
     User, Role, user_roles,
     AccessLevel, ACCESS_LEVEL_LABELS, ACCESS_LEVEL_DESCRIPTIONS, ACCESS_HIERARCHY
@@ -91,6 +92,11 @@ from app.models.security_breach import SecurityBreach, BreachSeverity, BreachSta
 # AuditLog is in app/utils/audit.py (enriched existing model)
 
 __all__ = [
+    # Organization (multi-tenancy)
+    'Organization',
+    'OrganizationMembership',
+    'OrgRole',
+    'ORG_ROLE_LABELS',
     # User & Auth
     'User',
     'Role',

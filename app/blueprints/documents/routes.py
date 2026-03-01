@@ -15,6 +15,7 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
+from app.utils.org_context import get_current_org_id, org_filter_kwargs
 from app.models.document import Document, DocumentType, DocumentShare, ShareType
 from app.models.user import User
 from app.models.band import Band
@@ -202,7 +203,7 @@ def upload():
 
     # Populate owner choices
     users = User.query.filter_by(is_active=True).order_by(User.first_name).all()
-    bands = Band.query.order_by(Band.name).all()
+    bands = Band.query.filter_by(**org_filter_kwargs()).order_by(Band.name).all()
     tours = Tour.query.order_by(Tour.start_date.desc()).all()
 
     if form.validate_on_submit():
@@ -429,7 +430,7 @@ def by_user(user_id):
 @login_required
 def by_band(band_id):
     """List documents for a specific band."""
-    band = Band.query.get_or_404(band_id)
+    band = Band.query.filter_by(id=band_id, **org_filter_kwargs()).first_or_404()
 
     # Security: verify user is member of this band
     user_bands = current_user.bands + current_user.managed_bands

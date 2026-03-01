@@ -29,7 +29,20 @@ from app.models.band import Band
 from app.models.guestlist import GuestlistEntry
 from app.models.payments import UserPaymentConfig, StaffCategory, StaffRole, ContractType, PaymentFrequency
 from app.decorators import requires_manager, requires_admin
+from app.models.organization import OrganizationMembership, OrgRole
+from app.utils.org_context import get_current_org_id
 from app.utils.email import send_invitation_email, send_registration_notification, send_approval_email, send_rejection_email
+
+
+def _verify_user_in_org(user_id):
+    """Verify a user belongs to the current org. Abort 404 if not."""
+    current_org = get_current_org_id()
+    if current_org:
+        is_member = OrganizationMembership.query.filter_by(
+            user_id=user_id, org_id=current_org
+        ).first()
+        if not is_member:
+            abort(404)
 
 
 class ProfileForm(FlaskForm):
@@ -568,8 +581,16 @@ def notifications():
 @login_required
 @requires_manager
 def users_list():
-    """List all users."""
-    users = User.query.order_by(User.created_at.desc()).all()
+    """List all users in the current organization."""
+    current_org = get_current_org_id()
+    if current_org:
+        # Get user IDs that belong to the current org
+        org_user_ids = db.session.query(OrganizationMembership.user_id).filter(
+            OrganizationMembership.org_id == current_org
+        )
+        users = User.query.filter(User.id.in_(org_user_ids)).order_by(User.created_at.desc()).all()
+    else:
+        users = User.query.order_by(User.created_at.desc()).all()
     return render_template('settings/users.html', users=users)
 
 
@@ -579,6 +600,8 @@ def users_list():
 def user_detail(id):
     """View user profile with documents (manager only)."""
     user = User.query.get_or_404(id)
+    _verify_user_in_org(id)
+
     documents = Document.query.filter_by(user_id=id).order_by(Document.created_at.desc()).all()
     return render_template('settings/user_detail.html', user=user, documents=documents)
 
@@ -658,6 +681,16 @@ def users_create():
         db.session.add(user)
         db.session.flush()  # Get user.id before commit
 
+        # Add user to current organization
+        current_org = get_current_org_id()
+        if current_org:
+            org_membership = OrganizationMembership(
+                user_id=user.id,
+                org_id=current_org,
+                role=OrgRole.MEMBER
+            )
+            db.session.add(org_membership)
+
         # Create UserPaymentConfig if any payment field is filled
         if any([form.contract_type.data, form.iban.data, form.show_rate.data, form.daily_rate.data]):
             payment_config = UserPaymentConfig(user_id=user.id)
@@ -709,16 +742,28 @@ def users_create():
 
         db.session.commit()
 
+        # Build invitation link (always available as fallback)
+        invite_url = url_for('auth.accept_invite', token=user.invitation_token, _external=True)
+
         # Send invitation email (filtered by receive_emails preference in send_email)
+        email_sent = False
         if form.receive_emails.data:
             try:
                 send_invitation_email(user, current_user)
+                email_sent = True
                 flash(f'Utilisateur "{user.full_name}" créé. Invitation envoyée à {user.email}.', 'success')
             except Exception as e:
                 current_app.logger.error(f'Failed to send invitation email to {user.email}: {e}')
                 flash('Utilisateur créé mais l\'envoi de l\'email d\'invitation a échoué.', 'warning')
         else:
             flash(f'Utilisateur "{user.full_name}" créé (emails désactivés).', 'success')
+
+        # Always show the invitation link (useful when SMTP is not configured)
+        if not email_sent:
+            flash(
+                f'Lien d\'invitation (valide 72h) : {invite_url}',
+                'info'
+            )
 
         return redirect(url_for('settings.users_list'))
 
@@ -743,6 +788,7 @@ def users_create():
 def users_edit(id):
     """Edit an existing user."""
     user = User.query.get_or_404(id)
+    _verify_user_in_org(id)
 
     form = UserEditForm(original_email=user.email, obj=user)
 
@@ -958,6 +1004,7 @@ def users_edit(id):
 def users_delete(id):
     """Deactivate a user (soft delete)."""
     user = User.query.get_or_404(id)
+    _verify_user_in_org(id)
 
     # Prevent deleting yourself
     if user.id == current_user.id:
@@ -976,6 +1023,7 @@ def users_delete(id):
 def users_resend_invite(id):
     """Resend invitation email to a user."""
     user = User.query.get_or_404(id)
+    _verify_user_in_org(id)
 
     # Only resend if user hasn't set their password yet
     if user.email_verified:
@@ -1283,6 +1331,7 @@ def users_hard_delete(id):
     from app.models.user import TravelCard
 
     user = User.query.get_or_404(id)
+    _verify_user_in_org(id)
 
     # 1. Prevent self-deletion
     if user.id == current_user.id:
@@ -1365,6 +1414,7 @@ def pending_registrations():
 def approve_user(id):
     """Approve a pending user registration."""
     user = User.query.get_or_404(id)
+    _verify_user_in_org(id)
 
     # Verify this is a pending registration
     if user.is_active:
@@ -1396,6 +1446,7 @@ def approve_user(id):
 def reject_user(id):
     """Reject and delete a pending user registration."""
     user = User.query.get_or_404(id)
+    _verify_user_in_org(id)
 
     # Verify this is a pending registration
     if user.is_active:

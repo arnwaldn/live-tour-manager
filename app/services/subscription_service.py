@@ -15,6 +15,7 @@ from app.models.user import User
 from app.models.tour import Tour
 from app.models.tour_stop import TourStop
 from app.models.band import Band
+from app.utils.org_context import get_current_org_id
 
 
 class PlanLimitExceeded(Exception):
@@ -34,7 +35,10 @@ class SubscriptionService:
 
     @staticmethod
     def ensure_subscription_exists(user: User) -> Subscription:
-        """Ensure user has a Subscription record. Creates FREE if none exists.
+        """Ensure user's org has a Subscription record. Creates FREE if none exists.
+
+        Checks org subscription first, falls back to user subscription for
+        backward compatibility during migration.
 
         Args:
             user: User to check
@@ -42,6 +46,24 @@ class SubscriptionService:
         Returns:
             Existing or newly created Subscription
         """
+        # Check org-level subscription first
+        org_id = get_current_org_id()
+        if org_id:
+            org_sub = Subscription.query.filter_by(org_id=org_id).first()
+            if org_sub:
+                return org_sub
+
+            # Create org-level subscription
+            subscription = Subscription(
+                org_id=org_id,
+                plan=SubscriptionPlan.FREE,
+                status=SubscriptionStatus.ACTIVE,
+            )
+            db.session.add(subscription)
+            db.session.commit()
+            return subscription
+
+        # Fallback: user-level subscription (pre-migration compatibility)
         if user.subscription:
             return user.subscription
 
@@ -95,6 +117,11 @@ class SubscriptionService:
         customer_id = SubscriptionService.get_or_create_stripe_customer(user)
         app_url = current_app.config['APP_URL']
 
+        org_id = get_current_org_id()
+        metadata = {'user_id': str(user.id)}
+        if org_id:
+            metadata['org_id'] = str(org_id)
+
         session = stripe.checkout.Session.create(
             customer=customer_id,
             payment_method_types=['card'],
@@ -105,7 +132,7 @@ class SubscriptionService:
             mode='subscription',
             success_url=f'{app_url}/billing/success?session_id={{CHECKOUT_SESSION_ID}}',
             cancel_url=f'{app_url}/billing/pricing',
-            metadata={'user_id': str(user.id)},
+            metadata=metadata,
             idempotency_key=f"checkout-{user.id}-{uuid.uuid4().hex[:8]}",
         )
 
@@ -137,19 +164,26 @@ class SubscriptionService:
         stripe_subscription_id: str,
         stripe_customer_id: str,
         current_period_end: Optional[datetime] = None,
+        org_id: Optional[int] = None,
     ) -> Subscription:
-        """Activate Pro plan for a user after successful checkout.
+        """Activate Pro plan for a user's org after successful checkout.
 
         Args:
-            user: User to upgrade
+            user: User who initiated the upgrade
             stripe_subscription_id: Stripe subscription ID
             stripe_customer_id: Stripe customer ID
             current_period_end: Subscription period end datetime
+            org_id: Organization ID (from webhook metadata)
 
         Returns:
             Updated Subscription
         """
         subscription = SubscriptionService.ensure_subscription_exists(user)
+
+        # Link to org if provided and not already linked
+        if org_id and not subscription.org_id:
+            subscription.org_id = org_id
+
         subscription.plan = SubscriptionPlan.PRO
         subscription.status = SubscriptionStatus.ACTIVE
         subscription.stripe_subscription_id = stripe_subscription_id
@@ -247,7 +281,8 @@ class SubscriptionService:
     @staticmethod
     def _handle_checkout_completed(session_data: dict) -> None:
         """Process checkout.session.completed event."""
-        user_id = session_data.get('metadata', {}).get('user_id')
+        metadata = session_data.get('metadata', {})
+        user_id = metadata.get('user_id')
         if not user_id:
             current_app.logger.warning('Checkout completed without user_id metadata')
             return
@@ -259,14 +294,16 @@ class SubscriptionService:
 
         subscription_id = session_data.get('subscription')
         customer_id = session_data.get('customer')
+        org_id = metadata.get('org_id')
 
         if subscription_id and customer_id:
             SubscriptionService.activate_pro(
                 user=user,
                 stripe_subscription_id=subscription_id,
                 stripe_customer_id=customer_id,
+                org_id=int(org_id) if org_id else None,
             )
-            current_app.logger.info(f'Pro activated for user {user.email}')
+            current_app.logger.info(f'Pro activated for user {user.email} (org_id={org_id})')
 
     @staticmethod
     def _handle_subscription_updated(sub_data: dict) -> None:
@@ -336,7 +373,9 @@ class SubscriptionService:
 
     @staticmethod
     def check_tour_limit(user: User) -> None:
-        """Check if user can create another tour.
+        """Check if user's org can create another tour.
+
+        Counts tours in the current organization, not per-user.
 
         Args:
             user: User attempting to create a tour
@@ -352,7 +391,14 @@ class SubscriptionService:
         if limits.max_tours is None:
             return  # Unlimited
 
-        current_count = Tour.query.join(Band).filter(Band.manager_id == user.id).count()
+        # Count tours in the org, not per user
+        org_id = get_current_org_id()
+        if org_id:
+            current_count = Tour.query.join(Band).filter(Band.org_id == org_id).count()
+        else:
+            # Fallback: count by user (pre-migration)
+            current_count = Tour.query.join(Band).filter(Band.manager_id == user.id).count()
+
         if current_count >= limits.max_tours:
             raise PlanLimitExceeded('tournees', current_count, limits.max_tours)
 
