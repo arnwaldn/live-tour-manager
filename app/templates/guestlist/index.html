@@ -40,7 +40,7 @@
                         <div>
                             <i class="bi bi-calendar-event me-2"></i>
                             {{ stop.date.strftime('%d/%m/%Y') }}
-                            <small class="text-muted d-block">{{ stop.venue.name if stop.venue else 'Lieu TBD' }}</small>
+                            <small class="text-muted d-block">{{ stop.venue_name }}</small>
                         </div>
                         <span class="badge bg-primary rounded-pill">
                             {{ stop.guestlist_entries|length }}

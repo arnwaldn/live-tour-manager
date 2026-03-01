@@ -301,7 +301,7 @@
 {% block extra_js %}
 {% if venue.has_coordinates %}
 <!-- Leaflet JS - Using jsdelivr (CSP whitelisted) -->
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map centered on venue

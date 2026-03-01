@@ -143,6 +143,10 @@
         <p class="text-muted mb-0">
             <i class="bi bi-geo-alt me-1"></i>{{ stop.venue.name }} · {{ stop.venue.city }}, {{ stop.venue.country }}
         </p>
+        {% elif stop.location_address or stop.location_city %}
+        <p class="text-muted mb-0">
+            <i class="bi bi-geo-alt me-1"></i>{{ stop.display_location }}
+        </p>
         {% else %}
         <p class="text-muted mb-0">
             <i class="bi bi-{{ 'moon' if event_type_value == 'day_off' else 'airplane' if event_type_value == 'travel' else 'calendar' }} me-1"></i>
@@ -405,6 +409,31 @@
                         <i class="bi bi-eye me-1"></i>Voir la fiche salle
                     </a>
                 </div>
+            </div>
+        </div>
+        {% elif stop.location_address or stop.location_city %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Lieu</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <i class="bi bi-geo-alt me-1"></i>
+                    {% if stop.location_address %}{{ stop.location_address }}<br>{% endif %}
+                    {{ stop.location_city }}{% if stop.location_country %}, {{ stop.location_country }}{% endif %}
+                </p>
+                {% if stop.location_notes %}
+                <p class="mb-2 text-muted">
+                    <i class="bi bi-info-circle me-1"></i>{{ stop.location_notes }}
+                </p>
+                {% endif %}
+                {% if stop.has_coordinates %}
+                <div class="mt-3 pt-3 border-top">
+                    <a href="{{ url_for('tours.tour_map', id=stop.tour.id) }}" class="btn btn-sm btn-primary me-2">
+                        <i class="bi bi-map me-1"></i>Carte
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endif %}

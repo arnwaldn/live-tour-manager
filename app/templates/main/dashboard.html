@@ -112,9 +112,9 @@
                        class="list-group-item list-group-item-action px-0">
                         <div class="d-flex w-100 justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-1">{{ stop.venue.name }}</h6>
+                                <h6 class="mb-1">{{ stop.venue_name }}</h6>
                                 <small class="text-muted">
-                                    <i class="bi bi-geo-alt me-1"></i>{{ stop.venue.city }}
+                                    <i class="bi bi-geo-alt me-1"></i>{{ stop.venue_city }}
                                     {% if stop.set_time %}
                                     <span class="ms-2">
                                         <i class="bi bi-clock me-1"></i>{{ stop.set_time.strftime('%H:%M') }}
@@ -160,11 +160,11 @@
                        class="list-group-item list-group-item-action px-0">
                         <div class="d-flex w-100 justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-1">{{ stop.venue.name }}</h6>
+                                <h6 class="mb-1">{{ stop.venue_name }}</h6>
                                 <small class="text-muted">
                                     <i class="bi bi-calendar me-1"></i>{{ stop.date.strftime('%d/%m/%Y') }}
                                     <span class="ms-2">
-                                        <i class="bi bi-geo-alt me-1"></i>{{ stop.venue.city }}
+                                        <i class="bi bi-geo-alt me-1"></i>{{ stop.venue_city }}
                                     </span>
                                 </small>
                             </div>
@@ -279,7 +279,7 @@
                             <strong>{{ entry.guest_name }}</strong>
                             <br>
                             <small class="text-muted">
-                                {{ entry.tour_stop.venue.name }} - {{ entry.tour_stop.date.strftime('%d/%m') }}
+                                {{ entry.tour_stop.venue_name }} - {{ entry.tour_stop.date.strftime('%d/%m') }}
                             </small>
                         </div>
                         <div class="btn-group btn-group-sm">

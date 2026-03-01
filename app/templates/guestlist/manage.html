@@ -1,14 +1,14 @@
 {% extends "layouts/dashboard.html" %}
 {% from "components/_pagination.html" import render_pagination %}
 
-{% block title %}Invités - {{ stop.venue.name }} - GigRoute{% endblock %}
+{% block title %}Invités - {{ stop.venue_name }} - GigRoute{% endblock %}
 
 {% block breadcrumb %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{{ url_for('tours.index') }}">Tournées</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('tours.detail', id=stop.tour.id) }}">{{ stop.tour.name }}</a></li>
-        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}">{{ stop.venue.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}">{{ stop.venue_name }}</a></li>
         <li class="breadcrumb-item active">Invités</li>
     </ol>
 </nav>
@@ -19,7 +19,7 @@
     <div class="mb-3 mb-md-0">
         <h1 class="h2 mb-1">Invités</h1>
         <p class="text-muted mb-0">
-            {{ stop.venue.name }} · {{ stop.date.strftime('%d/%m/%Y') }}
+            {{ stop.venue_name }} · {{ stop.date.strftime('%d/%m/%Y') }}
         </p>
     </div>
     <div class="d-flex flex-wrap gap-2">

@@ -425,8 +425,8 @@
                     <a href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}" class="text-decoration-none">
                         <div class="timeline-dot" title="{{ stop.event_label }}"></div>
                         <div class="timeline-date">{{ stop.date.strftime('%d/%m') }}</div>
-                        <div class="timeline-city">{{ stop.venue.city if stop.venue else stop.event_label }}</div>
-                        <div class="timeline-venue">{{ stop.venue.name if stop.venue else '' }}</div>
+                        <div class="timeline-city">{{ stop.venue.city if stop.venue else (stop.location_city or stop.event_label) }}</div>
+                        <div class="timeline-venue">{{ stop.venue.name if stop.venue else (stop.location_address or '') }}</div>
                     </a>
                 </div>
                 {% endfor %}
@@ -593,7 +593,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize map
