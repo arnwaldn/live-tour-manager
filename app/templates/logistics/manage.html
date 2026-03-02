@@ -641,8 +641,8 @@
                 {% endif %}
             </div>
             <div class="card-body pt-0">
-                {% if local_contacts %}
-                {% for contact in local_contacts %}
+                {% if contacts %}
+                {% for contact in contacts %}
                 <div class="contact-card {% if contact.is_primary %}primary{% endif %}">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
