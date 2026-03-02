@@ -218,7 +218,7 @@
     </div>
     <div class="card-body">
         {% if tour_data.stops_data %}
-        <div class="table-responsive">
+        <div class="table-responsive table-responsive-stack">
             <table class="table table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
@@ -236,29 +236,29 @@
                 <tbody>
                     {% for stop in tour_data.stops_data %}
                     <tr>
-                        <td>
+                        <td data-label="Date">
                             <strong>{{ stop.date.strftime('%d/%m/%Y') if stop.date else 'N/A' }}</strong>
                         </td>
-                        <td>{{ stop.venue_name }}</td>
-                        <td>{{ stop.venue_city }}</td>
-                        <td class="text-center">
+                        <td data-label="Salle">{{ stop.venue_name }}</td>
+                        <td data-label="Ville">{{ stop.venue_city }}</td>
+                        <td data-label="Statut" class="text-center">
                             {% set status_class = 'success' if stop.status == 'confirmed' else ('warning' if stop.status == 'pending' else 'secondary') %}
                             <span class="badge bg-{{ status_class }}">{{ stop.status|capitalize }}</span>
                         </td>
-                        <td class="text-end">
+                        <td data-label="Cachet" class="text-end">
                             {{ "{:,.2f}".format(stop.guarantee) }}
                             <small class="text-muted">{{ stop.currency }}</small>
                         </td>
-                        <td class="text-end">
+                        <td data-label="Billetterie" class="text-end">
                             {{ "{:,.2f}".format(stop.ticket_revenue) }}
                         </td>
-                        <td class="text-end">
+                        <td data-label="Part Porte" class="text-end">
                             {{ "{:,.2f}".format(stop.door_deal_revenue) }}
                         </td>
-                        <td class="text-end">
+                        <td data-label="Total" class="text-end">
                             <strong class="text-success">{{ "{:,.2f}".format(stop.total_estimated_revenue) }}</strong>
                         </td>
-                        <td class="text-center">
+                        <td data-label="Remplissage" class="text-center">
                             {% set fill_class = 'success' if stop.fill_rate >= 80 else ('warning' if stop.fill_rate >= 50 else 'danger') %}
                             <div class="d-flex align-items-center justify-content-center">
                                 <div class="progress flex-grow-1 me-2" style="height: 8px; max-width: 60px;">

@@ -99,7 +99,7 @@
     </div>
     <div class="card-body">
         {% if summary.tours %}
-        <div class="table-responsive">
+        <div class="table-responsive table-responsive-stack">
             <table class="table table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
@@ -115,28 +115,28 @@
                 <tbody>
                     {% for tour in summary.tours %}
                     <tr>
-                        <td>
+                        <td data-label="Tournée">
                             <strong>{{ tour.tour_name }}</strong>
                             <br class="d-md-none">
                             <small class="d-md-none text-muted">{{ tour.band_name }} - {{ tour.num_stops }} dates</small>
                         </td>
-                        <td class="d-none d-md-table-cell">{{ tour.band_name }}</td>
-                        <td class="text-center d-none d-md-table-cell">
+                        <td data-label="Groupe" class="d-none d-md-table-cell">{{ tour.band_name }}</td>
+                        <td data-label="Dates" class="text-center d-none d-md-table-cell">
                             <small class="text-muted">{{ tour.num_stops }} dates</small>
                         </td>
-                        <td class="text-end d-none d-lg-table-cell">
+                        <td data-label="Cachet Total" class="text-end d-none d-lg-table-cell">
                             <span class="text-success">{{ "{:,.2f}".format(tour.total_guarantee) }}</span>
                             <small class="text-muted">{{ tour.currency }}</small>
                         </td>
-                        <td class="text-end">
+                        <td data-label="Revenus Estimés" class="text-end">
                             <strong class="text-primary">{{ "{:,.2f}".format(tour.total_estimated_revenue) }}</strong>
                             <small class="text-muted">{{ tour.currency }}</small>
                         </td>
-                        <td class="text-center">
+                        <td data-label="Remplissage" class="text-center">
                             {% set fill_class = 'success' if tour.avg_fill_rate >= 80 else ('warning' if tour.avg_fill_rate >= 50 else 'danger') %}
                             <span class="badge bg-{{ fill_class }}">{{ tour.avg_fill_rate }}%</span>
                         </td>
-                        <td class="text-center">
+                        <td data-label="" class="text-center">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('reports.financial_tour', tour_id=tour.tour_id) }}"
                                    class="btn btn-outline-primary" title="Voir détail">

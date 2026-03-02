@@ -212,7 +212,7 @@
             </div>
             <div class="card-body p-0">
                 {% if venue.tour_stops %}
-                <div class="table-responsive">
+                <div class="table-responsive table-responsive-stack">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
@@ -225,13 +225,13 @@
                         <tbody>
                             {% for stop in venue.tour_stops|sort(attribute='date', reverse=True) %}
                             {% if loop.index <= 10 %}
-                            <tr>
-                                <td>
+                            <tr data-href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}">
+                                <td data-label="Date">
                                     <strong>{{ stop.date.strftime('%d/%m/%Y') }}</strong>
                                 </td>
-                                <td>{{ stop.tour.name }}</td>
-                                <td class="d-none d-md-table-cell">{{ stop.tour.band_name }}</td>
-                                <td>
+                                <td data-label="Tournée">{{ stop.tour.name }}</td>
+                                <td class="d-none d-md-table-cell" data-label="Groupe">{{ stop.tour.band_name }}</td>
+                                <td data-label="">
                                     <a href="{{ url_for('tours.stop_detail', id=stop.tour.id, stop_id=stop.id) }}"
                                        class="btn btn-sm btn-outline-primary" aria-label="Voir le concert">
                                         <i class="bi bi-eye"></i>

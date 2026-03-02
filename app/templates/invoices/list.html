@@ -116,7 +116,7 @@
 <!-- Invoices Table -->
 {% if invoices %}
 <div class="card border-0 shadow-sm">
-    <div class="table-responsive">
+    <div class="table-responsive table-responsive-stack">
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
@@ -125,46 +125,42 @@
                     <th scope="col" class="d-none d-md-table-cell">Type</th>
                     <th scope="col" class="d-none d-lg-table-cell">Tournée</th>
                     <th scope="col" class="text-end">Total TTC</th>
-                    <th scope="col" class="text-end d-none d-md-table-cell">Reste dû</th>
                     <th scope="col">Statut</th>
                     <th scope="col" class="d-none d-md-table-cell">Date</th>
-                    <th scope="col" class="text-end">Actions</th>
+                    <th scope="col" class="text-end d-none d-sm-table-cell">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for invoice in invoices %}
-                <tr>
-                    <td>
+                <tr data-href="{{ url_for('invoices.view', invoice_id=invoice.id) }}">
+                    <td data-label="Numéro">
                         <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="text-decoration-none fw-medium">
                             {{ invoice.number }}
                         </a>
                     </td>
-                    <td>
+                    <td data-label="Destinataire">
                         <div class="fw-medium">{{ invoice.recipient_name }}</div>
                         {% if invoice.recipient_email %}
                         <small class="text-muted">{{ invoice.recipient_email }}</small>
                         {% endif %}
                     </td>
-                    <td class="d-none d-md-table-cell">
+                    <td data-label="Type" class="d-none d-md-table-cell">
                         {% set type_labels = {'invoice': 'Facture', 'credit': 'Avoir', 'proforma': 'Proforma', 'deposit': 'Acompte', 'final': 'Solde'} %}
                         <span class="badge bg-{{ 'primary' if invoice.type.value == 'invoice' else 'danger' if invoice.type.value == 'credit' else 'info' if invoice.type.value == 'proforma' else 'secondary' }}">
                             {{ type_labels.get(invoice.type.value, invoice.type.value) }}
                         </span>
                     </td>
-                    <td class="d-none d-lg-table-cell">
+                    <td data-label="Tournée" class="d-none d-lg-table-cell">
                         {% if invoice.tour %}
                         <small>{{ invoice.tour.name }}</small>
                         {% else %}
                         <small class="text-muted">-</small>
                         {% endif %}
                     </td>
-                    <td class="text-end fw-medium">
+                    <td data-label="Total TTC" class="text-end fw-medium">
                         {{ "{:,.2f}".format(invoice.total_ttc) }} {{ invoice.currency }}
                     </td>
-                    <td class="text-end d-none d-md-table-cell {{ 'text-danger fw-bold' if invoice.is_overdue else '' }}">
-                        {{ "{:,.2f}".format(invoice.amount_due) }} {{ invoice.currency }}
-                    </td>
-                    <td>
+                    <td data-label="Statut">
                         {% set status_labels = {'draft': 'Brouillon', 'validated': 'Validée', 'sent': 'Envoyée', 'paid': 'Payée', 'partial': 'Partiel', 'overdue': 'En retard', 'disputed': 'Contestée', 'cancelled': 'Annulée', 'credited': 'Avoir'} %}
                         {% set status_colors = {'draft': 'secondary', 'validated': 'info', 'sent': 'primary', 'paid': 'success', 'partial': 'warning', 'overdue': 'danger', 'disputed': 'dark', 'cancelled': 'secondary', 'credited': 'secondary'} %}
                         <span class="badge bg-{{ status_colors.get(invoice.status.value, 'secondary') }}">
@@ -176,12 +172,12 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td class="d-none d-md-table-cell">
+                    <td data-label="Date" class="d-none d-md-table-cell">
                         <small class="text-muted">
                             {{ invoice.issue_date.strftime('%d/%m/%Y') if invoice.issue_date else '-' }}
                         </small>
                     </td>
-                    <td class="text-end">
+                    <td class="text-end d-none d-sm-table-cell">
                         <div class="btn-group btn-group-sm">
                             <a href="{{ url_for('invoices.view', invoice_id=invoice.id) }}" class="btn btn-outline-primary" title="Voir" aria-label="Voir">
                                 <i class="bi bi-eye"></i>

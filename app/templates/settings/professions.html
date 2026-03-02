@@ -67,7 +67,7 @@
                      aria-labelledby="heading{{ category.name }}" data-bs-parent="#professionsAccordion">
                     <div class="accordion-body p-0">
                         {% if professions %}
-                        <div class="table-responsive">
+                        <div class="table-responsive table-responsive-stack">
                             <table class="table table-hover mb-0">
                                 <thead class="table-dark">
                                     <tr>
@@ -84,20 +84,20 @@
                                 <tbody>
                                     {% for profession in professions %}
                                     <tr class="{% if not profession.is_active %}table-secondary{% endif %}">
-                                        <td class="d-none d-md-table-cell">
+                                        <td data-label="Code" class="d-none d-md-table-cell">
                                             <code class="{% if profession.is_active %}text-primary{% else %}text-muted{% endif %}">
                                                 {{ profession.code }}
                                             </code>
                                         </td>
-                                        <td>
+                                        <td data-label="Nom FR">
                                             <strong>{{ profession.name_fr }}</strong>
                                             {% if profession.description %}
                                             <i class="bi bi-info-circle text-muted ms-1" data-bs-toggle="tooltip"
                                                title="{{ profession.description }}"></i>
                                             {% endif %}
                                         </td>
-                                        <td class="d-none d-lg-table-cell">{{ profession.name_en }}</td>
-                                        <td class="d-none d-md-table-cell">
+                                        <td data-label="Nom EN" class="d-none d-lg-table-cell">{{ profession.name_en }}</td>
+                                        <td data-label="Accès" class="d-none d-md-table-cell">
                                             {% if profession.default_access_level %}
                                             <span class="badge bg-{% if profession.default_access_level == 'ADMIN' %}danger{% elif profession.default_access_level == 'MANAGER' %}primary{% elif profession.default_access_level == 'STAFF' %}info{% elif profession.default_access_level == 'VIEWER' %}secondary{% else %}warning{% endif %}">
                                                 {{ profession.default_access_level }}
@@ -106,28 +106,28 @@
                                             <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td class="d-none d-lg-table-cell">
+                                        <td data-label="Tarif/jour" class="d-none d-lg-table-cell">
                                             {% if profession.daily_rate %}
                                             <span class="text-success">{{ "%.0f"|format(profession.daily_rate) }} €</span>
                                             {% else %}
                                             <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td class="d-none d-lg-table-cell">
+                                        <td data-label="Per diem" class="d-none d-lg-table-cell">
                                             {% if profession.per_diem %}
                                             <span>{{ "%.0f"|format(profession.per_diem) }} €</span>
                                             {% else %}
                                             <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Statut">
                                             {% if profession.is_active %}
                                             <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
                                             {% else %}
                                             <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>Inactive</span>
                                             {% endif %}
                                         </td>
-                                        <td class="text-end">
+                                        <td data-label="" class="text-end">
                                             <div class="btn-group btn-group-sm">
                                                 <a href="{{ url_for('settings.professions_edit', id=profession.id) }}"
                                                    class="btn btn-outline-primary" title="Modifier" aria-label="Modifier">

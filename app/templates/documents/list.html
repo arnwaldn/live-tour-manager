@@ -64,7 +64,7 @@
 {% if documents %}
 <div class="card">
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive table-responsive-stack">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
@@ -78,8 +78,8 @@
                 </thead>
                 <tbody>
                     {% for doc in documents %}
-                    <tr>
-                        <td>
+                    <tr data-href="{{ url_for('documents.detail', id=doc.id) }}">
+                        <td data-label="Document">
                             <div class="d-flex align-items-center">
                                 {% if doc.mime_type and 'pdf' in doc.mime_type %}
                                 <i class="bi bi-file-earmark-pdf text-danger me-2 fs-4"></i>
@@ -98,7 +98,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Type">
                             {% if doc.document_type.value == 'passport' %}
                             <span class="badge bg-primary">Passeport</span>
                             {% elif doc.document_type.value == 'visa' %}
@@ -115,7 +115,7 @@
                             <span class="badge bg-light text-dark">Autre</span>
                             {% endif %}
                         </td>
-                        <td class="d-none d-md-table-cell">
+                        <td class="d-none d-md-table-cell" data-label="Propriétaire">
                             {% if doc.owner_type == 'user' %}
                             <i class="bi bi-person me-1"></i>
                             <a href="{{ url_for('documents.by_user', user_id=doc.user_id) }}">{{ doc.owner_name }}</a>
@@ -129,7 +129,7 @@
                             <span class="text-muted">Non attribué</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Expiration">
                             {% if doc.expiry_date %}
                                 {% if doc.expiry_status == 'expired' %}
                                 <span class="badge bg-danger">
@@ -151,8 +151,8 @@
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td class="d-none d-md-table-cell">{{ doc.file_size_formatted }}</td>
-                        <td class="text-center">
+                        <td class="d-none d-md-table-cell" data-label="Taille">{{ doc.file_size_formatted }}</td>
+                        <td class="text-center" data-label="Actions">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('documents.detail', id=doc.id) }}"
                                    class="btn btn-outline-primary" title="Détails" aria-label="Détails">

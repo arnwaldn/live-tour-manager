@@ -48,7 +48,7 @@
     </div>
     <div class="card-body p-0">
         {% if settlements %}
-        <div class="table-responsive">
+        <div class="table-responsive table-responsive-stack">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
@@ -65,7 +65,7 @@
                     {% for s in settlements %}
                     {% set is_past = s.date and s.date < today %}
                     <tr class="{{ 'table-light text-muted' if is_past else '' }}">
-                        <td>
+                        <td data-label="Date">
                             {% if s.date %}
                             <span class="{{ 'text-muted' if is_past else '' }}">
                                 {{ s.date.strftime('%d/%m/%Y') }}
@@ -77,26 +77,26 @@
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Salle">
                             <strong>{{ s.venue_name }}</strong>
                             <br>
                             <small class="text-muted">{{ s.venue_city }}{% if s.venue_country %}, {{ s.venue_country }}{% endif %}</small>
                         </td>
-                        <td>
+                        <td data-label="Artiste/Tour">
                             <span class="fw-medium">{{ s.band_name }}</span>
                             {% if s.tour_name and s.tour_name != 'Événement Libre' %}
                             <br>
                             <small class="text-muted">{{ s.tour_name }}</small>
                             {% endif %}
                         </td>
-                        <td class="text-end">
+                        <td data-label="Recettes Brutes" class="text-end">
                             {% if s.gross_revenue > 0 %}
                             <span class="text-success">{{ format_currency(s.gross_revenue, s.currency) }}</span>
                             {% else %}
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td class="text-end">
+                        <td data-label="Paiement Artiste" class="text-end">
                             <strong class="{{ 'text-primary' if s.artist_payment > 0 else 'text-muted' }}">
                                 {{ format_currency(s.artist_payment, s.currency) if s.artist_payment > 0 else '-' }}
                             </strong>
@@ -110,7 +110,7 @@
                             <small class="text-muted">Cachet</small>
                             {% endif %}
                         </td>
-                        <td class="text-center">
+                        <td data-label="Remplissage" class="text-center">
                             {% if s.capacity > 0 %}
                             {% set fill_class = 'success' if s.fill_rate >= 75 else ('warning' if s.fill_rate >= 50 else 'secondary') %}
                             <span class="badge bg-{{ fill_class }}">{{ s.fill_rate }}%</span>
@@ -120,7 +120,7 @@
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td class="text-center">
+                        <td data-label="" class="text-center">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('reports.settlement', stop_id=s.stop_id) }}"
                                    class="btn btn-outline-primary" title="Voir le détail">

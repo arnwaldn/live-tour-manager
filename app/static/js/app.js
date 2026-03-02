@@ -201,6 +201,15 @@
             });
         });
 
+        // Clickable rows via data-href (mobile-friendly: tap row to navigate)
+        document.querySelectorAll('tr[data-href]').forEach(function(row) {
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', function(e) {
+                if (e.target.closest('a, button, input, .dropdown, .btn-group, .form-check')) return;
+                window.location.href = row.dataset.href;
+            });
+        });
+
         // Select all checkbox
         document.querySelectorAll('[data-select-all]').forEach(function(selectAll) {
             const table = selectAll.closest('table');

@@ -16,7 +16,7 @@
             {{ invoice.number }}
         </h1>
     </div>
-    <div class="btn-group mt-3 mt-md-0">
+    <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0">
         {% if invoice.status.value == 'draft' %}
         <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-outline-primary">
             <i class="bi bi-pencil me-1"></i>Modifier
@@ -38,14 +38,14 @@
         <form action="{{ url_for('invoices.send_email_invoice', invoice_id=invoice.id) }}" method="POST" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-primary" title="Envoyer par email a {{ invoice.recipient_email }}">
-                <i class="bi bi-envelope me-1"></i>Envoyer par email
+                <i class="bi bi-envelope me-1"></i>Envoyer
             </button>
         </form>
         {% endif %}
         <form action="{{ url_for('invoices.mark_sent', invoice_id=invoice.id) }}" method="POST" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-primary">
-                <i class="bi bi-send me-1"></i>Marquer envoyee
+                <i class="bi bi-send me-1"></i>Envoyee
             </button>
         </form>
         <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
@@ -137,7 +137,7 @@
                 {% endif %}
             </div>
             {% if invoice.lines %}
-            <div class="table-responsive">
+            <div class="table-responsive table-responsive-stack">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
@@ -155,16 +155,16 @@
                     <tbody>
                         {% for line in invoice.lines %}
                         <tr>
-                            <td class="text-muted">{{ line.line_number }}</td>
-                            <td>
+                            <td data-label="#" class="text-muted">{{ line.line_number }}</td>
+                            <td data-label="Description">
                                 <strong>{{ line.description }}</strong>
                                 {% if line.reference %}<br><small class="text-muted">Ref: {{ line.reference }}</small>{% endif %}
                                 {% if line.detail %}<br><small class="text-muted">{{ line.detail }}</small>{% endif %}
                             </td>
-                            <td class="text-center">{{ line.quantity }} {{ line.unit }}</td>
-                            <td class="text-end">{{ "{:,.2f}".format(line.unit_price_ht) }} EUR</td>
-                            <td class="text-center">{{ line.vat_rate }}%</td>
-                            <td class="text-end fw-medium">{{ "{:,.2f}".format(line.total_ht) }} EUR</td>
+                            <td data-label="Qté" class="text-center">{{ line.quantity }} {{ line.unit }}</td>
+                            <td data-label="P.U. HT" class="text-end">{{ "{:,.2f}".format(line.unit_price_ht) }} EUR</td>
+                            <td data-label="TVA" class="text-center">{{ line.vat_rate }}%</td>
+                            <td data-label="Total HT" class="text-end fw-medium">{{ "{:,.2f}".format(line.total_ht) }} EUR</td>
                             {% if invoice.status.value == 'draft' %}
                             <td>
                                 <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer" aria-label="Supprimer"
@@ -233,7 +233,7 @@
             <div class="card-header bg-transparent">
                 <h5 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Historique des paiements</h5>
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive table-responsive-stack">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
@@ -247,11 +247,11 @@
                     <tbody>
                         {% for p in invoice.payments %}
                         <tr>
-                            <td>{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
-                            <td class="fw-medium text-success">{{ "{:,.2f}".format(p.amount) }} EUR</td>
-                            <td>{{ p.payment_method or '-' }}</td>
-                            <td><small>{{ p.reference or p.bank_reference or '-' }}</small></td>
-                            <td><small class="text-muted">{{ p.notes or '' }}</small></td>
+                            <td data-label="Date">{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td data-label="Montant" class="fw-medium text-success">{{ "{:,.2f}".format(p.amount) }} EUR</td>
+                            <td data-label="Mode">{{ p.payment_method or '-' }}</td>
+                            <td data-label="Réf"><small>{{ p.reference or p.bank_reference or '-' }}</small></td>
+                            <td data-label="Notes"><small class="text-muted">{{ p.notes or '' }}</small></td>
                         </tr>
                         {% endfor %}
                     </tbody>

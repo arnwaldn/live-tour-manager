@@ -424,7 +424,7 @@
                 {% endif %}
 
                 <!-- Crew Details Table -->
-                <div class="table-responsive">
+                <div class="table-responsive table-responsive-stack">
                     <table class="table table-sm mb-0">
                         <thead class="table-light">
                             <tr>
@@ -436,19 +436,19 @@
                         <tbody>
                             {% for member in crew_members %}
                             <tr>
-                                <td>
+                                <td data-label="Membre">
                                     <strong>{{ member.full_name }}</strong>
                                     {% if member.phone %}
                                     <br><small class="text-muted"><a href="tel:{{ member.phone }}">{{ member.phone }}</a></small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Repas">
                                     {% set meal = member.meal_preference or 'standard' %}
                                     <span class="badge bg-{{ meal_colors.get(meal, 'secondary') }}">
                                         {{ meal_labels.get(meal, meal|capitalize) }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Siège">
                                     {% if member.seat_preference %}
                                     {% set seat_labels = {'window': 'Fenetre', 'aisle': 'Couloir', 'no_preference': '-'} %}
                                     {{ seat_labels.get(member.seat_preference, member.seat_preference) }}

@@ -162,7 +162,7 @@
         <h5 class="mb-0"><i class="bi bi-table me-2"></i>Détail par tournée</h5>
     </div>
     <div class="card-body">
-        <div class="table-responsive">
+        <div class="table-responsive table-responsive-stack">
             <table class="table table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
@@ -181,40 +181,40 @@
                 <tbody>
                     {% for stats in tour_stats %}
                     <tr>
-                        <td>
+                        <td data-label="Tournée">
                             <strong>{{ stats.tour.name }}</strong>
                             <br class="d-md-none">
                             <small class="d-md-none text-muted">{{ stats.tour.band.name if stats.tour.band else 'N/A' }}</small>
                         </td>
-                        <td class="d-none d-md-table-cell">{{ stats.tour.band.name if stats.tour.band else 'N/A' }}</td>
-                        <td class="text-center">{{ stats.total_entries }}</td>
-                        <td class="text-center d-none d-md-table-cell">{{ stats.total_plus_ones }}</td>
-                        <td class="text-center d-none d-lg-table-cell">
+                        <td data-label="Groupe" class="d-none d-md-table-cell">{{ stats.tour.band.name if stats.tour.band else 'N/A' }}</td>
+                        <td data-label="Total" class="text-center">{{ stats.total_entries }}</td>
+                        <td data-label="+1" class="text-center d-none d-md-table-cell">{{ stats.total_plus_ones }}</td>
+                        <td data-label="En attente" class="text-center d-none d-lg-table-cell">
                             {% if stats.pending > 0 %}
                             <span class="badge bg-warning">{{ stats.pending }}</span>
                             {% else %}
                             <span class="text-muted">0</span>
                             {% endif %}
                         </td>
-                        <td class="text-center d-none d-lg-table-cell">
+                        <td data-label="Approuvés" class="text-center d-none d-lg-table-cell">
                             <span class="text-success">{{ stats.approved }}</span>
                         </td>
-                        <td class="text-center d-none d-lg-table-cell">
+                        <td data-label="Refusés" class="text-center d-none d-lg-table-cell">
                             {% if stats.denied > 0 %}
                             <span class="text-danger">{{ stats.denied }}</span>
                             {% else %}
                             <span class="text-muted">0</span>
                             {% endif %}
                         </td>
-                        <td class="text-center">
+                        <td data-label="Présents" class="text-center">
                             <span class="badge bg-primary">{{ stats.checked_in }}</span>
                         </td>
-                        <td class="text-center">
+                        <td data-label="Taux présence" class="text-center">
                             {% set presence_rate = (stats.checked_in / stats.approved * 100) if stats.approved > 0 else 0 %}
                             {% set rate_class = 'success' if presence_rate >= 80 else ('warning' if presence_rate >= 50 else 'danger') %}
                             <span class="badge bg-{{ rate_class }}">{{ "{:.0f}".format(presence_rate) }}%</span>
                         </td>
-                        <td class="text-center">
+                        <td data-label="" class="text-center">
                             <a href="{{ url_for('tours.detail', id=stats.tour.id) }}"
                                class="btn btn-sm btn-outline-primary" title="Voir tournée">
                                 <i class="bi bi-eye"></i>

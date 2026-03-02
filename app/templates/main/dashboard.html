@@ -22,9 +22,9 @@
 
 {% block content %}
 <!-- Stats Cards -->
-<div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
     <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
+        <a href="{{ url_for('tours.index') }}" class="card h-100 border-0 shadow-sm stat-card-link">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-shrink-0">
@@ -36,12 +36,13 @@
                         <h3 class="h2 mb-0">{{ stats.total_tours }}</h3>
                         <p class="text-muted small mb-0">Tournées actives</p>
                     </div>
+                    <i class="bi bi-chevron-right text-muted ms-2"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
+        <a href="{{ url_for('main.global_calendar') }}" class="card h-100 border-0 shadow-sm stat-card-link">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-shrink-0">
@@ -53,12 +54,13 @@
                         <h3 class="h2 mb-0">{{ stats.upcoming_shows }}</h3>
                         <p class="text-muted small mb-0">Concerts à venir</p>
                     </div>
+                    <i class="bi bi-chevron-right text-muted ms-2"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
+        <a href="{{ url_for('guestlist.index') }}" class="card h-100 border-0 shadow-sm stat-card-link">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-shrink-0">
@@ -70,12 +72,13 @@
                         <h3 class="h2 mb-0">{{ stats.pending_guestlist }}</h3>
                         <p class="text-muted small mb-0">Invités en attente</p>
                     </div>
+                    <i class="bi bi-chevron-right text-muted ms-2"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col">
-        <div class="card h-100 border-0 shadow-sm">
+        <a href="{{ url_for('bands.index') }}" class="card h-100 border-0 shadow-sm stat-card-link">
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="flex-shrink-0">
@@ -87,9 +90,10 @@
                         <h3 class="h2 mb-0">{{ stats.total_bands }}</h3>
                         <p class="text-muted small mb-0">Groupes</p>
                     </div>
+                    <i class="bi bi-chevron-right text-muted ms-2"></i>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
@@ -207,10 +211,13 @@
                     <i class="bi bi-music-note-list me-2 text-info"></i>
                     Tournées actives
                 </h5>
+                <a href="{{ url_for('tours.index') }}" class="btn btn-sm btn-outline-primary">
+                    Voir tout
+                </a>
             </div>
             <div class="card-body">
                 {% if active_tours %}
-                <div class="table-responsive">
+                <div class="table-responsive table-responsive-stack">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
@@ -223,19 +230,19 @@
                         </thead>
                         <tbody>
                             {% for tour in active_tours %}
-                            <tr>
-                                <td>
+                            <tr data-href="{{ url_for('tours.detail', id=tour.id) }}">
+                                <td data-label="Tournée">
                                     <strong>{{ tour.name }}</strong>
                                     <br class="d-md-none">
                                     <small class="text-muted d-md-none">{{ tour.band_name }}</small>
                                 </td>
-                                <td class="d-none d-md-table-cell">{{ tour.band_name }}</td>
-                                <td class="d-none d-sm-table-cell">
+                                <td data-label="Groupe" class="d-none d-md-table-cell">{{ tour.band_name }}</td>
+                                <td data-label="Dates" class="d-none d-sm-table-cell">
                                     <small>
                                         {{ tour.start_date.strftime('%d/%m') }} - {{ tour.end_date.strftime('%d/%m/%Y') }}
                                     </small>
                                 </td>
-                                <td>
+                                <td data-label="Statut">
                                     <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' }}">
                                         {{ tour.status.value|tr('tour_status') }}
                                     </span>

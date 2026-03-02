@@ -77,11 +77,10 @@
     </div>
 
     <!-- Cookie Consent Banner (ePrivacy Directive) -->
-    <div id="cookieBanner" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white p-3 shadow-lg" style="z-index: 1060; display: none;">
-        <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-2">
-            <p class="mb-0 small">
-                Ce site utilise des cookies strictement necessaires au fonctionnement du service.
-                Aucun cookie publicitaire ou de suivi n'est utilise.
+    <div id="cookieBanner" class="position-fixed bottom-0 start-0 end-0 bg-dark text-white py-2 px-3 shadow-lg" style="z-index: 1060; display: none;">
+        <div class="container d-flex align-items-center justify-content-between gap-2">
+            <p class="mb-0 small flex-grow-1">
+                Cookies strictement necessaires uniquement.
                 <a href="{{ url_for('main.privacy_policy') }}" class="text-white text-decoration-underline">En savoir plus</a>
             </p>
             <button id="cookieAccept" class="btn btn-light btn-sm flex-shrink-0">Compris</button>

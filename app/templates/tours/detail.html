@@ -208,7 +208,7 @@
             </div>
             <div class="card-body p-0">
                 {% if tour.stops %}
-                <div class="table-responsive">
+                <div class="table-responsive table-responsive-stack">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
@@ -222,13 +222,13 @@
                         </thead>
                         <tbody>
                             {% for stop in tour.stops|sort(attribute='date') %}
-                            <tr>
-                                <td>
+                            <tr data-href="{{ url_for('tours.stop_detail', id=tour.id, stop_id=stop.id) }}">
+                                <td data-label="Date">
                                     <strong>{{ stop.date.strftime('%d/%m/%Y') }}</strong>
                                     <br class="d-md-none">
                                     <small class="d-md-none text-muted">{{ stop.venue_name }}</small>
                                 </td>
-                                <td class="d-none d-md-table-cell">
+                                <td data-label="Salle" class="d-none d-md-table-cell">
                                     {% if stop.venue_id_safe %}
                                     <a href="{{ url_for('venues.detail', id=stop.venue_id_safe) }}">
                                         {{ stop.venue_name }}
@@ -239,7 +239,7 @@
                                     <br>
                                     <small class="text-muted">{{ stop.venue_city }}</small>
                                 </td>
-                                <td class="d-none d-lg-table-cell">
+                                <td data-label="Horaires" class="d-none d-lg-table-cell">
                                     {% if stop.doors_time %}
                                     <small>Portes: {{ stop.doors_time.strftime('%H:%M') }}</small>
                                     {% endif %}
@@ -247,7 +247,7 @@
                                     <br><small>Concert: {{ stop.set_time.strftime('%H:%M') }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Invités">
                                     <a href="{{ url_for('guestlist.manage', stop_id=stop.id) }}" class="text-decoration-none">
                                         {{ stop.guestlist_entries|length }}
                                         {% set pending = stop.guestlist_entries|selectattr('status.value', 'equalto', 'pending')|list|length %}
@@ -256,7 +256,7 @@
                                         {% endif %}
                                     </a>
                                 </td>
-                                <td>
+                                <td data-label="Statut">
                                     {% set stop_status_labels = {'draft': 'Brouillon', 'pending': 'En négociation', 'confirmed': 'Confirmé', 'performed': 'Réalisé', 'settled': 'Soldé', 'canceled': 'Annulé', 'rescheduled': 'Reporté'} %}
                                     <span class="badge bg-{{ 'success' if stop.status.value == 'confirmed' else 'warning' if stop.status.value == 'pending' else 'info' if stop.status.value == 'advanced' else 'danger' if stop.status.value == 'cancelled' else 'secondary' }}">
                                         {{ stop_status_labels.get(stop.status.value, stop.status.value) }}

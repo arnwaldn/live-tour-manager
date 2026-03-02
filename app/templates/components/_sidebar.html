@@ -3,10 +3,11 @@
      id="sidebarOffcanvas" aria-labelledby="sidebarLabel">
     <div class="sidebar-header offcanvas-header">
         <div class="d-flex align-items-center w-100">
-            <a href="{{ url_for('main.dashboard') }}" class="sidebar-brand text-decoration-none">
+            <a href="{{ url_for('main.dashboard') }}" class="sidebar-brand text-decoration-none d-none d-md-flex">
                 <img src="{{ url_for('static', filename='img/logo-dark.png') }}" alt="GigRoute" height="40" class="brand-icon">
                 <span class="brand-text" id="sidebarLabel">GigRoute</span>
             </a>
+            <span class="fw-semibold d-md-none" id="sidebarLabel">Menu</span>
             <button type="button" class="btn-close btn-close-white d-md-none ms-auto" data-bs-dismiss="offcanvas"
                     data-bs-target="#sidebarOffcanvas" aria-label="Close"></button>
         </div>
