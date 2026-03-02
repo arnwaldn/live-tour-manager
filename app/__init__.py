@@ -130,10 +130,10 @@ def create_app(config_name=None):
     # Organization context (multi-tenancy)
     register_org_context(app)
 
-    # Create database tables (development only)
-    if config_name == 'development':
-        with app.app_context():
-            db.create_all()
+    # Create any tables not yet covered by Alembic migrations.
+    # db.create_all() is idempotent — it only creates tables that don't exist.
+    with app.app_context():
+        db.create_all()
 
     # Auto-seed professions if table is empty
     with app.app_context():

@@ -17,29 +17,29 @@ depends_on = None
 
 
 def _table_exists(table_name):
-    """Check if a table already exists (db.create_all() may have created it)."""
+    """Check if a table already exists (dialect-agnostic: works on SQLite + PostgreSQL)."""
     conn = op.get_bind()
-    result = conn.execute(sa.text(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=:name"
-    ), {'name': table_name})
-    return result.fetchone() is not None
+    inspector = sa.inspect(conn)
+    return table_name in inspector.get_table_names()
 
 
 def _column_exists(table_name, column_name):
-    """Check if a column already exists on a table."""
+    """Check if a column already exists on a table (dialect-agnostic)."""
     conn = op.get_bind()
-    result = conn.execute(sa.text(f"PRAGMA table_info({table_name})"))
-    columns = [row[1] for row in result.fetchall()]
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns(table_name)]
     return column_name in columns
 
 
 def _index_exists(index_name):
-    """Check if an index already exists."""
+    """Check if an index already exists (dialect-agnostic)."""
     conn = op.get_bind()
-    result = conn.execute(sa.text(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name=:name"
-    ), {'name': index_name})
-    return result.fetchone() is not None
+    inspector = sa.inspect(conn)
+    for table_name in inspector.get_table_names():
+        indexes = inspector.get_indexes(table_name)
+        if any(idx['name'] == index_name for idx in indexes):
+            return True
+    return False
 
 
 def upgrade():
