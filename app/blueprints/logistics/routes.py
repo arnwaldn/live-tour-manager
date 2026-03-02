@@ -48,17 +48,6 @@ def get_visible_logistics(stop, user):
 @login_required
 def manage(stop_id):
     """View logistics for a tour stop."""
-    import traceback as _tb
-    try:
-        return _manage_impl(stop_id)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).error('Logistics manage error: %s\n%s', e, _tb.format_exc())
-        return f'<pre>DEBUG (temp): {_tb.format_exc()}</pre>', 500
-
-
-def _manage_impl(stop_id):
-    """Internal implementation of manage view."""
     # Eager-load logistics and local_contacts to avoid N+1
     stop = TourStop.query.options(
         selectinload(TourStop.logistics),
@@ -88,6 +77,19 @@ def _manage_impl(stop_id):
             logistics_by_type[type_name] = []
         logistics_by_type[type_name].append(item)
 
+    # Pre-sort by category (None-safe: items without datetime sort last)
+    _sort_key = lambda x: (x.start_datetime is None, x.start_datetime or datetime.max)
+    transport_entries = sorted(
+        [i for i in visible_logistics if i.is_transport], key=_sort_key
+    )
+    accommodation_entries = sorted(
+        [i for i in visible_logistics if i.is_accommodation], key=_sort_key
+    )
+    service_entries = sorted(
+        [i for i in visible_logistics if not i.is_transport and not i.is_accommodation],
+        key=_sort_key
+    )
+
     # Calculate costs by type (only for visible items)
     costs_by_type = {}
     total_cost = 0
@@ -108,6 +110,9 @@ def _manage_impl(stop_id):
         stop=stop,
         logistics_by_type=logistics_by_type,
         logistics_entries=visible_logistics,
+        transport_entries=transport_entries,
+        accommodation_entries=accommodation_entries,
+        service_entries=service_entries,
         costs_by_type=costs_by_type,
         total_cost=total_cost,
         contacts=contacts,
