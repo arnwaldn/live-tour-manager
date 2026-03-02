@@ -1533,7 +1533,7 @@ def register_security_headers(app):
                 "default-src 'self'; "
                 f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://unpkg.com https://js.stripe.com; "
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
-                "font-src 'self' https://cdn.jsdelivr.net; "
+                "font-src 'self' https://cdn.jsdelivr.net data:; "
                 "img-src 'self' data: https: blob:; "
                 "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://api-adresse.data.gouv.fr https://data.geopf.fr https://api.geoapify.com https://api.stripe.com; "
                 "frame-src 'self' https://js.stripe.com https://hooks.stripe.com; "
