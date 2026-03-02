@@ -144,7 +144,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for doc in expiring_docs|sort(attribute='expiry_date') %}
+                    {% for doc in expiring_docs|selectattr('expiry_date')|sort(attribute='expiry_date') %}
                     <tr class="{% if doc.days_until_expiry <= 30 %}table-warning{% endif %}">
                         <td data-label="Document">
                             <strong>{{ doc.name }}</strong>

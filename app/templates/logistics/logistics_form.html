@@ -356,8 +356,7 @@
 
                                 <div class="col-12 col-md-6">
                                     <label for="country" class="form-label">Pays</label>
-                                    {{ form.country(class="form-control" + (" is-invalid" if form.country.errors else ""),
-                                       placeholder="France",
+                                    {{ form.country(class="form-select" + (" is-invalid" if form.country.errors else ""),
                                        id="logistics_country") }}
                                     {% if form.country.errors %}
                                     <div class="invalid-feedback">{{ form.country.errors[0] }}</div>

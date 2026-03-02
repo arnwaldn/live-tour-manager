@@ -201,7 +201,10 @@
                             </div>
                             <div class="col-12 col-md-3">
                                 <label for="location_country" class="form-label">Pays</label>
-                                {{ form.location_country(class="form-control", placeholder="France", id="location_country") }}
+                                {{ form.location_country(class="form-select" + (" is-invalid" if form.location_country.errors else ""), id="location_country") }}
+                                {% for error in form.location_country.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
                             </div>
                             <div class="col-12">
                                 <label for="location_notes" class="form-label">Notes sur le lieu</label>
