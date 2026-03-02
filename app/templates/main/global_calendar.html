@@ -16,17 +16,17 @@
     <h1 class="h2 mb-0">
         <i class="bi bi-calendar3 me-2"></i>Calendrier Global
     </h1>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-sm-auto">
         <!-- Tour filter -->
-        <select id="tour-filter" class="form-select" style="width: auto;">
+        <select id="tour-filter" class="form-select" style="min-width: 0;">
             <option value="">Toutes les tournées</option>
             {% for tour in tours %}
             <option value="{{ tour.id }}">{{ tour.name }} ({{ tour.band_name }})</option>
             {% endfor %}
         </select>
         <!-- Add event button -->
-        <a href="{{ url_for('main.add_standalone_event') }}" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-1"></i>Ajouter un événement
+        <a href="{{ url_for('main.add_standalone_event') }}" class="btn btn-primary text-nowrap">
+            <i class="bi bi-plus-lg me-1"></i>Ajouter
         </a>
     </div>
 </div>
