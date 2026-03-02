@@ -151,9 +151,7 @@
     <!-- Main Content -->
     <div class="col-12 col-lg-8">
 
-        {% set transport_entries = logistics_entries|selectattr('is_transport')|list %}
-        {% set accommodation_entries = logistics_entries|selectattr('is_accommodation')|list %}
-        {% set service_entries = logistics_entries|rejectattr('is_transport')|rejectattr('is_accommodation')|list %}
+        {# transport_entries, accommodation_entries, service_entries are pre-sorted by the view #}
 
         <!-- Empty state for non-managers with no assigned logistics -->
         {% if not logistics_entries and not is_manager %}
@@ -176,7 +174,7 @@
             <span class="badge bg-primary ms-2">{{ transport_entries|length }}</span>
         </div>
 
-        {% for entry in transport_entries|sort(attribute='start_datetime') %}
+        {% for entry in transport_entries %}
         <div class="card logistics-card transport mb-3 border-0 shadow-sm">
             <div class="card-body">
                 <div class="d-flex align-items-start">
@@ -329,7 +327,7 @@
             <span class="badge bg-success ms-2">{{ accommodation_entries|length }}</span>
         </div>
 
-        {% for entry in accommodation_entries|sort(attribute='start_datetime') %}
+        {% for entry in accommodation_entries %}
         <div class="card logistics-card accommodation mb-3 border-0 shadow-sm">
             <div class="card-body">
                 <div class="d-flex align-items-start">
@@ -486,7 +484,7 @@
             <span class="badge bg-warning text-dark ms-2">{{ service_entries|length }}</span>
         </div>
 
-        {% for entry in service_entries|sort(attribute='start_datetime') %}
+        {% for entry in service_entries %}
         <div class="card logistics-card service mb-3 border-0 shadow-sm">
             <div class="card-body">
                 <div class="d-flex align-items-start">
