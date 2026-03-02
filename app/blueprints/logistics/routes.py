@@ -1085,7 +1085,7 @@ def export_ical(stop_id):
     # Add transport events
     for logistics in stop.logistics:
         if logistics.logistics_type in [LogisticsType.FLIGHT, LogisticsType.TRAIN, LogisticsType.BUS]:
-            if logistics.departure_time:
+            if logistics.start_datetime:
                 transport_event = Event()
                 transport_event.add('uid', f'transport-{logistics.id}@gigroute.app')
 
@@ -1097,20 +1097,20 @@ def export_ical(stop_id):
                     summary += f' ({logistics.confirmation_number})'
 
                 transport_event.add('summary', summary)
-                transport_event.add('dtstart', datetime.combine(stop.date, logistics.departure_time))
+                transport_event.add('dtstart', logistics.start_datetime)
 
-                if logistics.arrival_time:
-                    transport_event.add('dtend', datetime.combine(stop.date, logistics.arrival_time))
+                if logistics.end_datetime:
+                    transport_event.add('dtend', logistics.end_datetime)
 
-                if logistics.departure_location:
-                    transport_event.add('location', logistics.departure_location)
+                if logistics.pickup_location:
+                    transport_event.add('location', logistics.pickup_location)
 
                 # Description with all details
                 transport_desc = []
-                if logistics.departure_location:
-                    transport_desc.append(f"Depart: {logistics.departure_location}")
-                if logistics.arrival_location:
-                    transport_desc.append(f"Arrivee: {logistics.arrival_location}")
+                if logistics.pickup_location:
+                    transport_desc.append(f"Depart: {logistics.pickup_location}")
+                if logistics.dropoff_location:
+                    transport_desc.append(f"Arrivee: {logistics.dropoff_location}")
                 if logistics.confirmation_number:
                     transport_desc.append(f"Ref: {logistics.confirmation_number}")
                 if logistics.notes:
