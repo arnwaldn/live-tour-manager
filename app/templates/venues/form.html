@@ -93,8 +93,8 @@
 
                         <div class="col-12 col-md-4">
                             <label for="country" class="form-label">Pays <span class="text-danger">*</span></label>
-                            {{ form.country(class="form-control" + (" is-invalid" if form.country.errors else ""),
-                               placeholder="France", id="country") }}
+                            {{ form.country(class="form-select" + (" is-invalid" if form.country.errors else ""),
+                               id="country") }}
                             {% if form.country.errors %}
                             <div class="invalid-feedback">{{ form.country.errors[0] }}</div>
                             {% endif %}

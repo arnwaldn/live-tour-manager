@@ -98,7 +98,7 @@
                         </div>
                         <div class="col-md-4">
                             <label for="issuer_country" class="form-label">Pays</label>
-                            {{ form.issuer_country(class="form-control" + (" is-invalid" if form.issuer_country.errors else ""), id="issuer_country") }}
+                            {{ form.issuer_country(class="form-select" + (" is-invalid" if form.issuer_country.errors else ""), id="issuer_country") }}
                             {% for error in form.issuer_country.errors %}
                             <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
@@ -177,7 +177,7 @@
                         </div>
                         <div class="col-md-4">
                             <label for="recipient_country" class="form-label">Pays</label>
-                            {{ form.recipient_country(class="form-control" + (" is-invalid" if form.recipient_country.errors else ""), id="recipient_country") }}
+                            {{ form.recipient_country(class="form-select" + (" is-invalid" if form.recipient_country.errors else ""), id="recipient_country") }}
                             {% for error in form.recipient_country.errors %}
                             <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}

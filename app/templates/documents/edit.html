@@ -55,7 +55,10 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">{{ form.issuing_country.label.text }}</label>
-                            {{ form.issuing_country(class="form-control", placeholder="Ex: France") }}
+                            {{ form.issuing_country(class="form-select" + (" is-invalid" if form.issuing_country.errors else "")) }}
+                            {% for error in form.issuing_country.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
                         </div>
                     </div>
 
