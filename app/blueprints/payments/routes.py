@@ -70,7 +70,7 @@ def _org_payments_query():
 
 def _get_org_payment_or_404(payment_id):
     """Get a payment by ID, verifying it belongs to the current org."""
-    payment = _get_org_payment_or_404(payment_id)
+    payment = TeamMemberPayment.query.get_or_404(payment_id)
     org_id = get_current_org_id()
     if org_id:
         membership = OrganizationMembership.query.filter_by(

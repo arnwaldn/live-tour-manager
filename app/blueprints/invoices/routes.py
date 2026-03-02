@@ -62,7 +62,7 @@ def _org_invoices_query():
 
 def _get_org_invoice_or_404(invoice_id):
     """Get an invoice by ID, verifying it belongs to the current org."""
-    invoice = _get_org_invoice_or_404(invoice_id)
+    invoice = Invoice.query.get_or_404(invoice_id)
     org_id = get_current_org_id()
     if not org_id:
         abort(403)
