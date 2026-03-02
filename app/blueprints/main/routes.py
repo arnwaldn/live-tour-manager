@@ -160,6 +160,7 @@ def terms():
 
 
 @main_bp.route('/')
+@main_bp.route('/dashboard')
 @login_required
 def dashboard():
     """Main dashboard - adapted to user's role."""
