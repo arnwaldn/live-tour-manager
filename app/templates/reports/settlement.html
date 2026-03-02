@@ -175,7 +175,7 @@
 {% endblock %}
 
 {% block page_header %}
-<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4 no-print">
     <h1 class="h2 mb-0">
         <i class="bi bi-file-earmark-text me-2 text-primary"></i>Feuille de Règlement
     </h1>
@@ -226,7 +226,7 @@
 
             {% if settlement.has_tiers and settlement.tier_breakdown %}
             <!-- Multi-tier breakdown -->
-            <div class="table-responsive mb-2">
+            <div class="table-responsive table-responsive-stack mb-2">
                 <table class="table table-sm table-borderless mb-0" style="font-size: 0.9em;">
                     <thead>
                         <tr class="border-bottom">
@@ -239,10 +239,10 @@
                     <tbody>
                         {% for t in settlement.tier_breakdown %}
                         <tr>
-                            <td>{{ t.name }}</td>
-                            <td class="text-end">{{ format_currency(t.price, settlement.currency) }}</td>
-                            <td class="text-end">{{ t.sold }}</td>
-                            <td class="text-end">{{ format_currency(t.revenue, settlement.currency) }}</td>
+                            <td data-label="Tarif">{{ t.name }}</td>
+                            <td data-label="Prix" class="text-end">{{ format_currency(t.price, settlement.currency) }}</td>
+                            <td data-label="Vendus" class="text-end">{{ t.sold }}</td>
+                            <td data-label="CA" class="text-end">{{ format_currency(t.revenue, settlement.currency) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

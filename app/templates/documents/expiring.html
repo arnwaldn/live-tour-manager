@@ -54,7 +54,7 @@
         <h5 class="mb-0"><i class="bi bi-x-circle me-2"></i>Documents expirés ({{ expired_docs|length }})</h5>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive table-responsive-stack">
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
@@ -69,13 +69,13 @@
                 <tbody>
                     {% for doc in expired_docs %}
                     <tr class="table-danger">
-                        <td>
+                        <td data-label="Document">
                             <strong>{{ doc.name }}</strong>
                             {% if doc.document_number %}
                             <br><small class="text-muted">{{ doc.document_number }}</small>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Type">
                             {% if doc.document_type.value == 'passport' %}
                             <span class="badge bg-primary">Passeport</span>
                             {% elif doc.document_type.value == 'visa' %}
@@ -88,7 +88,7 @@
                             <span class="badge bg-light text-dark">{{ doc.document_type.value }}</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Propriétaire">
                             {% if doc.owner_type == 'user' %}
                             <i class="bi bi-person me-1"></i>{{ doc.owner_name }}
                             {% elif doc.owner_type == 'band' %}
@@ -99,11 +99,11 @@
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td>{{ doc.expiry_date.strftime('%d/%m/%Y') }}</td>
-                        <td>
+                        <td data-label="Date expiration">{{ doc.expiry_date.strftime('%d/%m/%Y') }}</td>
+                        <td data-label="Expiré depuis">
                             <span class="badge bg-danger">{{ -doc.days_until_expiry }} jours</span>
                         </td>
-                        <td class="text-center">
+                        <td data-label="" class="text-center">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('documents.detail', id=doc.id) }}"
                                    class="btn btn-outline-primary" title="Détails">
@@ -131,7 +131,7 @@
         <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Expirent bientôt ({{ expiring_docs|length }})</h5>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive table-responsive-stack">
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
@@ -146,13 +146,13 @@
                 <tbody>
                     {% for doc in expiring_docs|sort(attribute='expiry_date') %}
                     <tr class="{% if doc.days_until_expiry <= 30 %}table-warning{% endif %}">
-                        <td>
+                        <td data-label="Document">
                             <strong>{{ doc.name }}</strong>
                             {% if doc.document_number %}
                             <br><small class="text-muted">{{ doc.document_number }}</small>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Type">
                             {% if doc.document_type.value == 'passport' %}
                             <span class="badge bg-primary">Passeport</span>
                             {% elif doc.document_type.value == 'visa' %}
@@ -165,7 +165,7 @@
                             <span class="badge bg-light text-dark">{{ doc.document_type.value }}</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Propriétaire">
                             {% if doc.owner_type == 'user' %}
                             <i class="bi bi-person me-1"></i>{{ doc.owner_name }}
                             {% elif doc.owner_type == 'band' %}
@@ -176,8 +176,8 @@
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td>{{ doc.expiry_date.strftime('%d/%m/%Y') }}</td>
-                        <td>
+                        <td data-label="Date expiration">{{ doc.expiry_date.strftime('%d/%m/%Y') }}</td>
+                        <td data-label="Jours restants">
                             {% if doc.days_until_expiry <= 30 %}
                             <span class="badge bg-danger">{{ doc.days_until_expiry }} jours</span>
                             {% elif doc.days_until_expiry <= 60 %}
@@ -186,7 +186,7 @@
                             <span class="badge bg-info">{{ doc.days_until_expiry }} jours</span>
                             {% endif %}
                         </td>
-                        <td class="text-center">
+                        <td data-label="" class="text-center">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('documents.detail', id=doc.id) }}"
                                    class="btn btn-outline-primary" title="Détails">

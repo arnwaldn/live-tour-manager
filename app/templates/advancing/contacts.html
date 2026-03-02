@@ -1,7 +1,7 @@
 {% extends "layouts/dashboard.html" %}
 
 {% block page_header %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
     <div>
         <h1 class="h3 mb-1">Contacts salle — {{ stop.venue_name }}</h1>
         <p class="text-muted mb-0">{{ stop.date|format_date_fr('full') }} — {{ stop.venue_city }}</p>
@@ -17,7 +17,7 @@
     <div class="col-lg-8">
         {% if contacts %}
         <div class="card border-0 shadow-sm">
-            <div class="table-responsive">
+            <div class="table-responsive table-responsive-stack">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
@@ -31,24 +31,24 @@
                     <tbody>
                         {% for contact in contacts %}
                         <tr>
-                            <td>
+                            <td data-label="Nom">
                                 {{ contact.name }}
                                 {% if contact.is_primary %}
                                 <span class="badge bg-warning text-dark ms-1">Principal</span>
                                 {% endif %}
                             </td>
-                            <td>{{ contact.role or '-' }}</td>
-                            <td>
+                            <td data-label="Rôle">{{ contact.role or '-' }}</td>
+                            <td data-label="Email">
                                 {% if contact.email %}
                                 <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
                                 {% else %}-{% endif %}
                             </td>
-                            <td>
+                            <td data-label="Téléphone">
                                 {% if contact.phone %}
                                 <a href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
                                 {% else %}-{% endif %}
                             </td>
-                            <td>
+                            <td data-label="">
                                 <form method="post" action="{{ url_for('advancing.delete_contact', contact_id=contact.id) }}" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger"

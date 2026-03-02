@@ -9,7 +9,7 @@
 
         <!-- Brand -->
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.dashboard') }}">
-            <img src="{{ url_for('static', filename='img/logo-dark.png') }}" alt="GigRoute" height="48">
+            <img src="{{ url_for('static', filename='img/logo-dark.png') }}" alt="GigRoute" class="navbar-logo">
         </a>
 
         <!-- Search (Desktop) -->
@@ -135,8 +135,28 @@
     </div>
 </nav>
 
-<!-- Spacer for fixed navbar -->
-<div class="navbar-spacer" style="height: var(--sp-navbar-height, 60px);"></div>
+<!-- Spacer for fixed navbar (height set dynamically by JS) -->
+<div class="navbar-spacer" id="navbar-spacer"></div>
+
+<!-- Dynamic navbar spacer: measures actual navbar height and updates CSS variable -->
+<script nonce="{{ csp_nonce }}">
+(function() {
+    function updateNavbarSpacer() {
+        var navbar = document.querySelector('.navbar.fixed-top');
+        var spacer = document.getElementById('navbar-spacer');
+        if (navbar && spacer) {
+            var h = navbar.offsetHeight;
+            spacer.style.height = h + 'px';
+            document.documentElement.style.setProperty('--tm-navbar-height', h + 'px');
+        }
+    }
+    document.addEventListener('DOMContentLoaded', updateNavbarSpacer);
+    window.addEventListener('resize', updateNavbarSpacer);
+    window.addEventListener('orientationchange', function() {
+        setTimeout(updateNavbarSpacer, 100);
+    });
+})();
+</script>
 
 <!-- Search Form Protection: Prevent accidental submissions from other forms -->
 <script nonce="{{ csp_nonce }}">

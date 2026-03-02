@@ -478,7 +478,7 @@
             </div>
             <div class="card-body p-0">
                 {% if documents %}
-                <div class="table-responsive">
+                <div class="table-responsive table-responsive-stack">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
@@ -491,7 +491,7 @@
                         <tbody>
                             {% for doc in documents %}
                             <tr>
-                                <td>
+                                <td data-label="Document">
                                     {% set ext = doc.name.split('.')[-1].lower() if '.' in doc.name else '' %}
                                     {% if ext in ['pdf'] %}
                                     <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
@@ -507,7 +507,7 @@
                                     <br><small class="text-muted">{{ doc.description[:50] }}{% if doc.description|length > 50 %}...{% endif %}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Type">
                                     {% set type_labels = {
                                         'passport': 'Passeport',
                                         'visa': 'Visa',
@@ -517,7 +517,7 @@
                                     } %}
                                     <span class="badge bg-secondary">{{ type_labels.get(doc.document_type.value, doc.document_type.value) }}</span>
                                 </td>
-                                <td class="d-none d-md-table-cell">
+                                <td data-label="Expiration" class="d-none d-md-table-cell">
                                     {% if doc.expiry_date %}
                                         {% set today = now() %}
                                         {% if doc.expiry_date.date() < today.date() %}
@@ -535,7 +535,7 @@
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end">
+                                <td data-label="Actions" class="text-end">
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ url_for('documents.download', id=doc.id) }}"
                                            class="btn btn-outline-primary" title="Télécharger">

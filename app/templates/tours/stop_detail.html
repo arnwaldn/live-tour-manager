@@ -515,7 +515,7 @@
             </div>
             <div class="card-body">
                 {% if stop.logistics %}
-                <div class="table-responsive">
+                <div class="table-responsive table-responsive-stack">
                     <table class="table table-sm mb-0">
                         <thead>
                             <tr>
@@ -528,12 +528,12 @@
                         <tbody>
                             {% for logistics in stop.logistics %}
                             <tr>
-                                <td>
+                                <td data-label="Type">
                                     <i class="bi bi-{{ 'airplane' if logistics.logistics_type.value == 'flight' else 'building' if logistics.logistics_type.value == 'hotel' else 'car-front' if logistics.logistics_type.value == 'ground_transport' else 'box' }} me-2"></i>
                                     {{ logistics.logistics_type.value|tr('logistics_type') }}
                                 </td>
-                                <td>{{ logistics.start_datetime.strftime('%d/%m/%Y') if logistics.start_datetime else '-' }}</td>
-                                <td>
+                                <td data-label="Date">{{ logistics.start_datetime.strftime('%d/%m/%Y') if logistics.start_datetime else '-' }}</td>
+                                <td data-label="Heures">
                                     {% if logistics.start_datetime %}
                                         {{ logistics.start_datetime.strftime('%H:%M') }}
                                         {% if logistics.end_datetime %} - {{ logistics.end_datetime.strftime('%H:%M') }}{% endif %}
@@ -541,7 +541,7 @@
                                         -
                                     {% endif %}
                                 </td>
-                                <td class="d-none d-md-table-cell">
+                                <td data-label="Personnes" class="d-none d-md-table-cell">
                                     {% if logistics.assignments %}
                                         {% for assignment in logistics.assignments %}
                                             <span class="badge bg-secondary me-1">{{ assignment.user.first_name }} {{ assignment.user.last_name[0] }}.</span>
@@ -572,7 +572,7 @@
             <div class="card-body">
                 {% if stop.has_tiers %}
                 <!-- Multi-tier pricing breakdown -->
-                <div class="table-responsive mb-3">
+                <div class="table-responsive table-responsive-stack mb-3">
                     <table class="table table-sm table-borderless mb-0">
                         <thead>
                             <tr class="border-bottom">
@@ -585,19 +585,19 @@
                         <tbody>
                             {% for tier in stop.ticket_tiers %}
                             <tr>
-                                <td>{{ tier.name }}</td>
-                                <td class="text-end">{{ "{:.2f}".format(tier.price) }} €</td>
-                                <td class="text-end">{{ tier.sold }}{% if tier.quantity_available %}/{{ tier.quantity_available }}{% endif %}</td>
-                                <td class="text-end">{{ "{:.2f}".format(tier.revenue) }} €</td>
+                                <td data-label="Tarif">{{ tier.name }}</td>
+                                <td data-label="Prix" class="text-end">{{ "{:.2f}".format(tier.price) }} €</td>
+                                <td data-label="Vendus" class="text-end">{{ tier.sold }}{% if tier.quantity_available %}/{{ tier.quantity_available }}{% endif %}</td>
+                                <td data-label="CA" class="text-end">{{ "{:.2f}".format(tier.revenue) }} €</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                         <tfoot class="border-top">
                             <tr class="fw-bold">
-                                <td>Total</td>
-                                <td class="text-end">{{ "{:.2f}".format(stop.weighted_avg_price) }} € moy.</td>
-                                <td class="text-end">{{ stop.total_sold_tickets }}</td>
-                                <td class="text-end">{{ "{:.2f}".format(stop.gross_ticket_revenue) }} €</td>
+                                <td data-label="Tarif">Total</td>
+                                <td data-label="Prix" class="text-end">{{ "{:.2f}".format(stop.weighted_avg_price) }} € moy.</td>
+                                <td data-label="Vendus" class="text-end">{{ stop.total_sold_tickets }}</td>
+                                <td data-label="CA" class="text-end">{{ "{:.2f}".format(stop.gross_ticket_revenue) }} €</td>
                             </tr>
                         </tfoot>
                     </table>

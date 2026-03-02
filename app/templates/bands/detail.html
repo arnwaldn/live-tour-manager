@@ -138,37 +138,37 @@
             </div>
             <div class="card-body">
                 {% if band.tours %}
-                <div class="table-responsive">
+                <div class="table-responsive table-responsive-stack">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th scope="col">Nom</th>
                                 <th scope="col" class="d-none d-md-table-cell">Dates</th>
-                                <th scope="col">Dates</th>
+                                <th scope="col">Concerts</th>
                                 <th scope="col">Statut</th>
                                 <th scope="col"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for tour in band.tours|sort(attribute='start_date', reverse=True) %}
-                            <tr>
-                                <td>
+                            <tr data-href="{{ url_for('tours.detail', id=tour.id) }}">
+                                <td data-label="Tournée">
                                     <strong>{{ tour.name }}</strong>
                                     <br class="d-md-none">
                                     <small class="d-md-none text-muted">
                                         {{ tour.start_date.strftime('%d/%m') }} - {{ tour.end_date.strftime('%d/%m/%Y') }}
                                     </small>
                                 </td>
-                                <td class="d-none d-md-table-cell">
+                                <td class="d-none d-md-table-cell" data-label="Dates">
                                     {{ tour.start_date.strftime('%d/%m/%Y') }} - {{ tour.end_date.strftime('%d/%m/%Y') }}
                                 </td>
-                                <td>{{ tour.stops|length }} dates</td>
-                                <td>
+                                <td data-label="Concerts">{{ tour.stops|length }} dates</td>
+                                <td data-label="Statut">
                                     <span class="badge bg-{{ 'success' if tour.status.value == 'active' else 'primary' if tour.status.value == 'confirmed' else 'secondary' }}">
                                         {{ tour.status.value|tr('tour_status') }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="">
                                     <a href="{{ url_for('tours.detail', id=tour.id) }}" class="btn btn-sm btn-outline-primary" aria-label="Voir la tournée">
                                         <i class="bi bi-eye"></i>
                                     </a>

@@ -64,7 +64,7 @@
 {% endblock %}
 
 {% block page_header %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
     <h1 class="h2 mb-0">
         <i class="bi bi-graph-up-arrow me-2 text-primary"></i>Tableau de bord financier
     </h1>
@@ -266,7 +266,7 @@
     </div>
     <div class="card-body">
         {% if upcoming_settlements %}
-        <div class="table-responsive">
+        <div class="table-responsive table-responsive-stack">
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr class="text-muted small">
@@ -283,27 +283,27 @@
                 <tbody>
                     {% for s in upcoming_settlements %}
                     <tr class="settlement-row">
-                        <td>
+                        <td data-label="Date">
                             <strong>{{ s.date.strftime('%d/%m/%Y') }}</strong>
                         </td>
-                        <td>
+                        <td data-label="Salle">
                             {{ s.venue_name }}<br>
                             <small class="text-muted">{{ s.venue_city }}</small>
                         </td>
-                        <td>
+                        <td data-label="Tournée">
                             <span class="badge bg-light text-dark">{{ s.tour_name }}</span>
                         </td>
-                        <td class="text-center">
+                        <td data-label="Billets" class="text-center">
                             {{ s.sold_tickets }} / {{ s.capacity }}
                         </td>
-                        <td class="text-center">
+                        <td data-label="Remplissage" class="text-center">
                             {% set fill_class = 'badge-fill-high' if s.fill_rate >= 75 else ('badge-fill-medium' if s.fill_rate >= 50 else 'badge-fill-low') %}
                             <span class="badge {{ fill_class }}">{{ s.fill_rate }}%</span>
                         </td>
-                        <td class="text-end">
+                        <td data-label="Recettes" class="text-end">
                             <strong>{{ format_currency(s.gross_revenue, s.currency) }}</strong>
                         </td>
-                        <td class="text-end">
+                        <td data-label="Paiement Artiste" class="text-end">
                             <strong class="text-success">{{ format_currency(s.artist_payment, s.currency) }}</strong>
                             <br>
                             <small class="text-muted">
@@ -314,7 +314,7 @@
                                 {% endif %}
                             </small>
                         </td>
-                        <td class="text-center">
+                        <td data-label="" class="text-center">
                             <a href="{{ url_for('reports.settlement', stop_id=s.stop_id) }}"
                                class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-file-earmark-text"></i> Settlement

@@ -16,7 +16,7 @@
 
 {% if shares %}
 <div class="card">
-    <div class="table-responsive">
+    <div class="table-responsive table-responsive-stack">
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
@@ -31,7 +31,7 @@
             <tbody>
                 {% for share in shares %}
                 <tr>
-                    <td>
+                    <td data-label="Document">
                         {% if share.document.mime_type and 'pdf' in share.document.mime_type %}
                         <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
                         {% elif share.document.mime_type and 'image' in share.document.mime_type %}
@@ -47,7 +47,7 @@
                         <br>
                         <small class="text-muted">{{ share.document.file_size_formatted }}</small>
                     </td>
-                    <td>
+                    <td data-label="Type">
                         {% if share.document.document_type.value == 'passport' %}
                         <span class="badge bg-primary">Passeport</span>
                         {% elif share.document.document_type.value == 'visa' %}
@@ -60,10 +60,10 @@
                         <span class="badge bg-secondary">{{ share.document.document_type.value }}</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td data-label="Partagé par">
                         <i class="bi bi-person me-1"></i>{{ share.shared_by.full_name }}
                     </td>
-                    <td>
+                    <td data-label="Permission">
                         {% if share.share_type.value == 'edit' %}
                         <span class="badge bg-warning text-dark">
                             <i class="bi bi-pencil me-1"></i>Modification
@@ -74,10 +74,10 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td data-label="Date">
                         <small>{{ share.shared_at.strftime('%d/%m/%Y') }}</small>
                     </td>
-                    <td class="text-end">
+                    <td data-label="" class="text-end">
                         <div class="btn-group btn-group-sm">
                             <a href="{{ url_for('documents.detail', id=share.document.id) }}"
                                class="btn btn-outline-primary" title="Voir">
