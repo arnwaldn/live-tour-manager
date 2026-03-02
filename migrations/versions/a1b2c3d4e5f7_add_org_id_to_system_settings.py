@@ -53,9 +53,15 @@ def upgrade():
 
     # 1. Add org_id column (nullable — NULL means global/default)
     if not _column_exists('system_settings', 'org_id'):
-        op.add_column('system_settings',
-                       sa.Column('org_id', sa.Integer(),
-                                 sa.ForeignKey('organizations.id'), nullable=True))
+        conn = op.get_bind()
+        if conn.dialect.name == 'sqlite':
+            # SQLite: add column without FK constraint (SQLite ignores FK by default)
+            op.add_column('system_settings',
+                           sa.Column('org_id', sa.Integer(), nullable=True))
+        else:
+            op.add_column('system_settings',
+                           sa.Column('org_id', sa.Integer(),
+                                     sa.ForeignKey('organizations.id'), nullable=True))
 
     # 2. Drop old unique constraint on key alone
     #    SQLite doesn't support DROP CONSTRAINT, so we handle both dialects
