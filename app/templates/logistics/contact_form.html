@@ -43,21 +43,43 @@
 
                     <div class="mb-3">
                         <label for="role" class="form-label">Rôle / Fonction</label>
-                        {{ form.role(class="form-control" + (" is-invalid" if form.role.errors else ""),
-                           placeholder="Ex: Régisseur, Promoteur local, Chauffeur...") }}
+                        {{ form.role(class="form-select" + (" is-invalid" if form.role.errors else "")) }}
                         {% if form.role.errors %}
                         <div class="invalid-feedback">{{ form.role.errors[0] }}</div>
                         {% endif %}
                     </div>
 
                     <div class="mb-3">
-                        <label for="phone" class="form-label">Téléphone</label>
+                        <label for="company" class="form-label">Entreprise</label>
+                        {{ form.company(class="form-control" + (" is-invalid" if form.company.errors else ""),
+                           placeholder="Nom de l'entreprise") }}
+                        {% if form.company.errors %}
+                        <div class="invalid-feedback">{{ form.company.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">
+                            Téléphone <span class="text-danger">*</span>
+                        </label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-telephone"></i></span>
                             {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""),
                                placeholder="+33 6 12 34 56 78") }}
                             {% if form.phone.errors %}
                             <div class="invalid-feedback">{{ form.phone.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone_secondary" class="form-label">Téléphone secondaire</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                            {{ form.phone_secondary(class="form-control" + (" is-invalid" if form.phone_secondary.errors else ""),
+                               placeholder="+33 6 98 76 54 32") }}
+                            {% if form.phone_secondary.errors %}
+                            <div class="invalid-feedback">{{ form.phone_secondary.errors[0] }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -74,12 +96,20 @@
                         </div>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label for="notes" class="form-label">Notes</label>
                         {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""),
                            rows="2", placeholder="Informations complémentaires sur ce contact...") }}
                         {% if form.notes.errors %}
                         <div class="invalid-feedback">{{ form.notes.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="is_primary" class="form-label">Contact principal ?</label>
+                        {{ form.is_primary(class="form-select" + (" is-invalid" if form.is_primary.errors else "")) }}
+                        {% if form.is_primary.errors %}
+                        <div class="invalid-feedback">{{ form.is_primary.errors[0] }}</div>
                         {% endif %}
                     </div>
 
