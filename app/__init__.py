@@ -130,10 +130,12 @@ def create_app(config_name=None):
     # Organization context (multi-tenancy)
     register_org_context(app)
 
-    # Create any tables not yet covered by Alembic migrations.
-    # db.create_all() is idempotent — it only creates tables that don't exist.
-    with app.app_context():
-        db.create_all()
+    # In development, create tables directly (convenient for rapid iteration).
+    # In production, use 'flask ensure-tables' AFTER 'flask db upgrade' to avoid
+    # conflicts between db.create_all() and Alembic's transactional DDL.
+    if config_name == 'development':
+        with app.app_context():
+            db.create_all()
 
     # Auto-seed professions if table is empty
     with app.app_context():
@@ -292,6 +294,16 @@ def register_error_handlers(app):
 
 def register_cli_commands(app):
     """Register custom CLI commands."""
+
+    @app.cli.command('ensure-tables')
+    def ensure_tables():
+        """Create any model tables not yet covered by Alembic migrations.
+
+        Run AFTER 'flask db upgrade' in production to fill gaps.
+        db.create_all() is idempotent — only creates tables that don't exist.
+        """
+        db.create_all()
+        click.echo('All model tables ensured.')
 
     @app.cli.command('init-db')
     def init_db():
