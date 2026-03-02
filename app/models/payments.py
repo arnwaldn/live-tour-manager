@@ -162,7 +162,7 @@ class TeamMemberPayment(db.Model):
 
     # Classification du beneficiaire
     staff_category = db.Column(db.Enum(StaffCategory), nullable=False)
-    staff_role = db.Column(db.Enum(StaffRole), nullable=False)
+    staff_role = db.Column(db.Enum(StaffRole), nullable=True)
 
     # Paiement
     payment_type = db.Column(db.Enum(PaymentType), nullable=False)

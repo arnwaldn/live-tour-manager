@@ -251,7 +251,7 @@ class Invoice(db.Model):
         if errors:
             raise ValueError(f"Validation impossible: {', '.join(errors)}")
 
-        if not self.number:
+        if not self.number or self.number.startswith('BROUILLON'):
             self.number = Invoice.generate_number(self.type)
 
         self.status = InvoiceStatus.VALIDATED
