@@ -49,7 +49,7 @@ class Invoice(db.Model):
     __tablename__ = 'invoices'
 
     id = db.Column(db.Integer, primary_key=True)
-    number = db.Column(db.String(20), unique=True, nullable=False, index=True)  # FACT-2026-00001
+    number = db.Column(db.String(30), unique=True, nullable=False, index=True)  # FACT-2026-00001 or BROUILLON-*
     type = db.Column(db.Enum(InvoiceType), default=InvoiceType.INVOICE, nullable=False)
 
     # Reference facture creditee (pour avoir)

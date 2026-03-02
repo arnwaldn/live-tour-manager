@@ -221,7 +221,13 @@ def add():
             status=InvoiceStatus.DRAFT,
         )
         db.session.add(invoice)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Invoice creation failed: {e}')
+            flash('Erreur lors de la creation de la facture. Veuillez reessayer.', 'danger')
+            return render_template('invoices/form.html', form=form, title='Nouvelle facture', action='create')
 
         log_create('invoice', invoice.id, details=f'Facture brouillon creee: {invoice.number}')
         flash('Facture creee en brouillon. Ajoutez des lignes puis validez.', 'success')
