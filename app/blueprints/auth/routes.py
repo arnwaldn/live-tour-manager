@@ -143,6 +143,12 @@ def register():
         set_current_org(org.id)
         log_login(user, success=True)
 
+        # Send welcome email (non-blocking — don't prevent registration on failure)
+        try:
+            send_welcome_email(user)
+        except Exception as e:
+            current_app.logger.warning(f'Email de bienvenue échoué pour {user.email}: {e}')
+
         flash(f'Bienvenue {user.first_name} ! Votre espace de travail a été créé.', 'success')
         return redirect(url_for('main.dashboard'))
 

@@ -1,12 +1,19 @@
 """
 Email utility module for GigRoute.
-Handles all email notifications using Flask-Mailman.
-Supports async sending via threading and retry with exponential backoff.
+Handles all email notifications with per-organization SMTP support.
+
+Architecture:
+- If the current org has custom SMTP config → send via smtplib directly (thread-safe)
+- Otherwise → fall back to Flask-Mailman global config
+- Supports async sending via threading and retry with exponential backoff.
 """
 import time
 import uuid
 import logging
+import smtplib
 import threading
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from flask import render_template, current_app, url_for
 from flask_mailman import EmailMessage, EmailMultiAlternatives
 from app.extensions import mail
@@ -18,9 +25,58 @@ MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2  # seconds (2, 4, 8 with exponential backoff)
 
 
+def _get_org_smtp_config():
+    """Get SMTP config for the current organization.
+
+    Returns a dict with SMTP settings if the org has custom config,
+    or None to use the global Flask-Mailman backend.
+    """
+    from app.utils.org_context import get_current_org_id
+    from app.models.system_settings import SystemSettings
+
+    org_id = get_current_org_id()
+    if not org_id:
+        return None
+
+    config = SystemSettings.get_mail_config(org_id=org_id)
+
+    # Only use org config if server AND credentials are set
+    if config.get('MAIL_SERVER') and config.get('MAIL_USERNAME') and config.get('MAIL_PASSWORD'):
+        return config
+    return None
+
+
+def _send_via_smtplib(sender, recipient, subject, text_body, html_body, smtp_config):
+    """Send email directly via smtplib using org-specific SMTP config.
+
+    Thread-safe: each call creates its own SMTP connection.
+    """
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = sender
+    msg['To'] = recipient
+
+    msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
+    msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+
+    server = smtp_config['MAIL_SERVER']
+    port = int(smtp_config.get('MAIL_PORT') or 587)
+    use_tls = str(smtp_config.get('MAIL_USE_TLS', 'true')).lower() == 'true'
+    username = smtp_config['MAIL_USERNAME']
+    password = smtp_config['MAIL_PASSWORD']
+
+    with smtplib.SMTP(server, port, timeout=30) as smtp:
+        smtp.ehlo()
+        if use_tls:
+            smtp.starttls()
+            smtp.ehlo()
+        smtp.login(username, password)
+        smtp.sendmail(sender, [recipient], msg.as_string())
+
+
 def send_email(subject, recipient, template, **kwargs):
     """
-    Send an email using Flask-Mailman with retry logic.
+    Send an email with per-org SMTP support and retry logic.
 
     Args:
         subject: Email subject (will be prefixed with [GigRoute])
@@ -36,44 +92,72 @@ def send_email(subject, recipient, template, **kwargs):
     user = User.query.filter_by(email=recipient).first()
     if user and not user.receive_emails:
         logger.info(f"[EMAIL] Ignoré - {recipient} a désactivé la réception des emails")
-        return True  # Return True to avoid triggering error handling
+        return True
 
-    # Generate unique email ID for tracking
     email_id = str(uuid.uuid4())[:8]
-
     logger.info(f"[EMAIL:{email_id}] Envoi à {recipient} - {subject} (template: {template})")
 
     try:
         html_body = render_template(f'email/{template}.html', **kwargs)
         text_body = render_template(f'email/{template}.txt', **kwargs) if _template_exists(f'email/{template}.txt') else _html_to_text(html_body)
 
-        msg = EmailMultiAlternatives(
-            subject=f"[GigRoute] {subject}",
-            body=text_body,
-            from_email=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app'),
-            to=[recipient],
-        )
-        msg.attach_alternative(html_body, 'text/html')
+        full_subject = f"[GigRoute] {subject}"
 
-        # Send with retry
-        return _send_with_retry(msg, email_id, recipient)
+        # Check for org-specific SMTP config
+        org_smtp = _get_org_smtp_config()
+
+        if org_smtp:
+            sender = org_smtp.get('MAIL_DEFAULT_SENDER') or org_smtp['MAIL_USERNAME']
+            return _send_with_retry_smtplib(
+                sender, recipient, full_subject, text_body, html_body,
+                org_smtp, email_id
+            )
+        else:
+            # Fallback to Flask-Mailman global backend
+            sender = current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app')
+            msg = EmailMultiAlternatives(
+                subject=full_subject,
+                body=text_body,
+                from_email=sender,
+                to=[recipient],
+            )
+            msg.attach_alternative(html_body, 'text/html')
+            return _send_with_retry(msg, email_id, recipient)
+
     except Exception as e:
         logger.error(f"[EMAIL:{email_id}] Échec construction message - {recipient}: {e}")
         return False
 
 
+def _send_with_retry_smtplib(sender, recipient, subject, text_body, html_body,
+                              smtp_config, email_id):
+    """Send via smtplib with exponential backoff retry."""
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            _send_via_smtplib(sender, recipient, subject, text_body, html_body, smtp_config)
+            logger.info(f"[EMAIL:{email_id}] Succès (smtplib) - Email envoyé à {recipient}"
+                        + (f" (tentative {attempt})" if attempt > 1 else ""))
+            return True
+        except Exception as e:
+            last_error = e
+            if attempt < MAX_RETRIES:
+                delay = RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                logger.warning(
+                    f"[EMAIL:{email_id}] Tentative {attempt}/{MAX_RETRIES} échouée (smtplib) "
+                    f"pour {recipient}: {e} — retry dans {delay}s"
+                )
+                time.sleep(delay)
+            else:
+                logger.error(
+                    f"[EMAIL:{email_id}] Échec définitif (smtplib) après {MAX_RETRIES} "
+                    f"tentatives pour {recipient}: {last_error}"
+                )
+    return False
+
+
 def _send_with_retry(msg, email_id, recipient):
-    """
-    Send a prepared Message with exponential backoff retry.
-
-    Args:
-        msg: EmailMessage object (already built)
-        email_id: Tracking ID for logging
-        recipient: Recipient email for logging
-
-    Returns:
-        bool: True if sent successfully after retries
-    """
+    """Send a Flask-Mailman Message with exponential backoff retry."""
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -104,15 +188,7 @@ def send_async_email(subject, recipient, template, **kwargs):
 
     The template is rendered in the current request context before
     dispatching to the thread, so Jinja context is preserved.
-
-    Args:
-        subject: Email subject
-        recipient: Recipient email address
-        template: Email template name
-        **kwargs: Template context variables
-
-    Returns:
-        bool: True (always — fire-and-forget, errors are logged)
+    Org SMTP config is captured before thread dispatch.
     """
     from app.models.user import User
     user = User.query.filter_by(email=recipient).first()
@@ -122,31 +198,43 @@ def send_async_email(subject, recipient, template, **kwargs):
 
     email_id = str(uuid.uuid4())[:8]
 
-    # Render templates in request context (before dispatching to thread)
     try:
         html_body = render_template(f'email/{template}.html', **kwargs)
         text_body = (render_template(f'email/{template}.txt', **kwargs)
                      if _template_exists(f'email/{template}.txt')
                      else _html_to_text(html_body))
-        sender = current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app')
     except Exception as e:
         logger.error(f"[EMAIL:{email_id}] Échec rendu template (async) - {recipient}: {e}")
         return False
 
-    msg = EmailMultiAlternatives(
-        subject=f"[GigRoute] {subject}",
-        body=text_body,
-        from_email=sender,
-        to=[recipient],
-    )
-    msg.attach_alternative(html_body, 'text/html')
+    full_subject = f"[GigRoute] {subject}"
 
-    # Dispatch to background thread with app context
-    app = current_app._get_current_object()
+    # Capture org SMTP config in request context (before thread dispatch)
+    org_smtp = _get_org_smtp_config()
 
-    def _send_in_thread():
-        with app.app_context():
-            _send_with_retry(msg, email_id, recipient)
+    if org_smtp:
+        sender = org_smtp.get('MAIL_DEFAULT_SENDER') or org_smtp['MAIL_USERNAME']
+
+        def _send_in_thread():
+            _send_with_retry_smtplib(
+                sender, recipient, full_subject, text_body, html_body,
+                org_smtp, email_id
+            )
+    else:
+        sender = current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@gigroute.app')
+        msg = EmailMultiAlternatives(
+            subject=full_subject,
+            body=text_body,
+            from_email=sender,
+            to=[recipient],
+        )
+        msg.attach_alternative(html_body, 'text/html')
+
+        app = current_app._get_current_object()
+
+        def _send_in_thread():
+            with app.app_context():
+                _send_with_retry(msg, email_id, recipient)
 
     thread = threading.Thread(target=_send_in_thread, daemon=True)
     thread.start()

@@ -1676,42 +1676,41 @@ def email_preview(template_name):
 @login_required
 @requires_manager
 def email_config():
-    """Configure SMTP settings via web interface."""
+    """Configure SMTP settings via web interface (org-scoped)."""
     from app.models.system_settings import SystemSettings
 
+    org_id = get_current_org_id()
+
     if request.method == 'POST':
-        # Save settings
-        SystemSettings.set('MAIL_SERVER', request.form.get('mail_server'), user_id=current_user.id)
-        SystemSettings.set('MAIL_PORT', request.form.get('mail_port'), user_id=current_user.id)
-        SystemSettings.set('MAIL_USE_TLS', 'true' if request.form.get('mail_use_tls') else 'false', user_id=current_user.id)
-        SystemSettings.set('MAIL_USERNAME', request.form.get('mail_username'), user_id=current_user.id)
+        # Save settings for current org
+        SystemSettings.set('MAIL_SERVER', request.form.get('mail_server'), user_id=current_user.id, org_id=org_id)
+        SystemSettings.set('MAIL_PORT', request.form.get('mail_port'), user_id=current_user.id, org_id=org_id)
+        SystemSettings.set('MAIL_USE_TLS', 'true' if request.form.get('mail_use_tls') else 'false', user_id=current_user.id, org_id=org_id)
+        SystemSettings.set('MAIL_USERNAME', request.form.get('mail_username'), user_id=current_user.id, org_id=org_id)
 
         # Only update password if provided
         password = request.form.get('mail_password')
         if password:
-            SystemSettings.set('MAIL_PASSWORD', password, encrypted=True, user_id=current_user.id)
+            SystemSettings.set('MAIL_PASSWORD', password, encrypted=True, user_id=current_user.id, org_id=org_id)
 
-        SystemSettings.set('MAIL_DEFAULT_SENDER', request.form.get('mail_default_sender'), user_id=current_user.id)
+        SystemSettings.set('MAIL_DEFAULT_SENDER', request.form.get('mail_default_sender'), user_id=current_user.id, org_id=org_id)
 
         # Update timestamp to trigger reload on all workers
-        SystemSettings.touch_mail_config()
+        SystemSettings.touch_mail_config(org_id=org_id)
 
         db.session.commit()
-
-        # Reload mail config in current app
-        _reload_mail_config(current_app)
 
         flash('Configuration email mise a jour.', 'success')
         return redirect(url_for('settings.email_config'))
 
-    # GET: Load current config (DB takes priority over .env)
+    # GET: Load current config (org-specific with fallback to global, then app config)
     config = {
-        'MAIL_SERVER': SystemSettings.get('MAIL_SERVER') or current_app.config.get('MAIL_SERVER'),
-        'MAIL_PORT': SystemSettings.get('MAIL_PORT') or current_app.config.get('MAIL_PORT'),
-        'MAIL_USE_TLS': SystemSettings.get('MAIL_USE_TLS', 'true'),
-        'MAIL_USERNAME': SystemSettings.get('MAIL_USERNAME') or current_app.config.get('MAIL_USERNAME'),
-        'MAIL_PASSWORD': SystemSettings.get('MAIL_PASSWORD') or current_app.config.get('MAIL_PASSWORD'),
-        'MAIL_DEFAULT_SENDER': SystemSettings.get('MAIL_DEFAULT_SENDER') or current_app.config.get('MAIL_DEFAULT_SENDER'),
+        'MAIL_SERVER': SystemSettings.get('MAIL_SERVER', org_id=org_id) or current_app.config.get('MAIL_SERVER'),
+        'MAIL_PORT': SystemSettings.get('MAIL_PORT', org_id=org_id) or current_app.config.get('MAIL_PORT'),
+        'MAIL_USE_TLS': SystemSettings.get('MAIL_USE_TLS', 'true', org_id=org_id),
+        'MAIL_USERNAME': SystemSettings.get('MAIL_USERNAME', org_id=org_id) or current_app.config.get('MAIL_USERNAME'),
+        'MAIL_PASSWORD': SystemSettings.get('MAIL_PASSWORD', org_id=org_id) or current_app.config.get('MAIL_PASSWORD'),
+        'MAIL_DEFAULT_SENDER': SystemSettings.get('MAIL_DEFAULT_SENDER', org_id=org_id) or current_app.config.get('MAIL_DEFAULT_SENDER'),
     }
 
     email_configured = bool(config['MAIL_USERNAME'] and config['MAIL_PASSWORD'])
@@ -1723,89 +1722,58 @@ def email_config():
 @login_required
 @requires_manager
 def email_config_test():
-    """Test email configuration by sending a test email."""
-    from flask_mailman import EmailMessage
-    from app.extensions import mail
+    """Test email configuration by sending a test email via smtplib.
+
+    Uses smtplib directly to avoid modifying global Flask-Mailman config
+    (which would cause race conditions in multi-worker deployments).
+    """
     from app.models.system_settings import SystemSettings
 
+    org_id = get_current_org_id()
+
     try:
-        # Temporarily apply form values for testing
-        original_config = {
-            'MAIL_SERVER': current_app.config.get('MAIL_SERVER'),
-            'MAIL_PORT': current_app.config.get('MAIL_PORT'),
-            'MAIL_USE_TLS': current_app.config.get('MAIL_USE_TLS'),
-            'MAIL_USERNAME': current_app.config.get('MAIL_USERNAME'),
-            'MAIL_PASSWORD': current_app.config.get('MAIL_PASSWORD'),
-            'MAIL_DEFAULT_SENDER': current_app.config.get('MAIL_DEFAULT_SENDER'),
-        }
+        server = request.form.get('mail_server')
+        port = int(request.form.get('mail_port', 587))
+        use_tls = request.form.get('mail_use_tls') == 'on'
+        username = request.form.get('mail_username')
+        sender = request.form.get('mail_default_sender') or username
 
-        # Apply form values temporarily
-        current_app.config['MAIL_SERVER'] = request.form.get('mail_server')
-        current_app.config['MAIL_PORT'] = int(request.form.get('mail_port', 587))
-        current_app.config['MAIL_USE_TLS'] = request.form.get('mail_use_tls') == 'on'
-        current_app.config['MAIL_USERNAME'] = request.form.get('mail_username')
-
-        # Use form password if provided, otherwise use existing
+        # Use form password if provided, otherwise use saved password
         form_password = request.form.get('mail_password')
         if form_password:
-            current_app.config['MAIL_PASSWORD'] = form_password
+            password = form_password
         else:
-            # Try DB password, then fall back to original
-            db_password = SystemSettings.get('MAIL_PASSWORD')
-            current_app.config['MAIL_PASSWORD'] = db_password or original_config['MAIL_PASSWORD']
+            password = SystemSettings.get('MAIL_PASSWORD', org_id=org_id)
 
-        sender = request.form.get('mail_default_sender') or request.form.get('mail_username')
-        current_app.config['MAIL_DEFAULT_SENDER'] = sender
+        if not all([server, username, password]):
+            return {'success': False, 'error': 'Serveur, identifiant et mot de passe requis.'}
 
-        # Reinitialize mail with new config
-        mail.init_app(current_app)
+        # Send test email via smtplib (thread-safe, no global state mutation)
+        import smtplib
+        from email.mime.text import MIMEText
 
-        # Send test email
-        msg = EmailMessage(
-            subject='[Test] Configuration Email GigRoute',
-            body=f'Ce message confirme que la configuration email fonctionne correctement.\n\nEnvoye depuis GigRoute a {current_user.email}.',
-            from_email=sender,
-            to=[current_user.email],
+        msg = MIMEText(
+            f'Ce message confirme que la configuration email fonctionne correctement.\n\n'
+            f'Envoyé depuis GigRoute à {current_user.email}.',
+            'plain', 'utf-8'
         )
-        msg.send()
+        msg['Subject'] = '[Test] Configuration Email GigRoute'
+        msg['From'] = sender
+        msg['To'] = current_user.email
+
+        with smtplib.SMTP(server, port, timeout=30) as smtp:
+            smtp.ehlo()
+            if use_tls:
+                smtp.starttls()
+                smtp.ehlo()
+            smtp.login(username, password)
+            smtp.sendmail(sender, [current_user.email], msg.as_string())
 
         return {'success': True}
 
     except Exception as e:
         current_app.logger.error(f'Email test failed: {e}')
         return {'success': False, 'error': str(e)}
-
-    finally:
-        # Restore original config
-        for key, value in original_config.items():
-            if value is not None:
-                current_app.config[key] = value
-        # Reinitialize mail with original config
-        mail.init_app(current_app)
-
-
-def _reload_mail_config(app):
-    """Reload mail configuration from database into app config."""
-    from app.models.system_settings import SystemSettings
-    from app.extensions import mail
-
-    db_config = SystemSettings.get_mail_config()
-
-    if db_config.get('MAIL_SERVER'):
-        app.config['MAIL_SERVER'] = db_config['MAIL_SERVER']
-    if db_config.get('MAIL_PORT'):
-        app.config['MAIL_PORT'] = int(db_config['MAIL_PORT'])
-    if db_config.get('MAIL_USE_TLS') is not None:
-        app.config['MAIL_USE_TLS'] = db_config['MAIL_USE_TLS'] == 'true'
-    if db_config.get('MAIL_USERNAME'):
-        app.config['MAIL_USERNAME'] = db_config['MAIL_USERNAME']
-    if db_config.get('MAIL_PASSWORD'):
-        app.config['MAIL_PASSWORD'] = db_config['MAIL_PASSWORD']
-    if db_config.get('MAIL_DEFAULT_SENDER'):
-        app.config['MAIL_DEFAULT_SENDER'] = db_config['MAIL_DEFAULT_SENDER']
-
-    # Reinitialize Flask-Mailman with updated config
-    mail.init_app(app)
 
 
 @settings_bp.route('/delete-account', methods=['GET', 'POST'])

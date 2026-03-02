@@ -93,6 +93,25 @@
         </div>
     </div>
 
+    <!-- Email Configuration (Manager only) -->
+    {% if current_user.is_manager_or_above() %}
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-envelope-at me-2 text-danger"></i>Configuration Email
+                </h5>
+                <p class="card-text text-muted">
+                    Configurer le serveur SMTP pour l'envoi d'emails (notifications, invitations, factures).
+                </p>
+                <a href="{{ url_for('settings.email_config') }}" class="btn btn-outline-danger">
+                    <i class="bi bi-gear me-2"></i>Configurer
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Users Management (Manager only) -->
     {% if current_user.is_manager_or_above() %}
     <div class="col">
