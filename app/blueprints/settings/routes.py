@@ -1748,8 +1748,10 @@ def email_config_test():
         if not all([server, username, password]):
             return {'success': False, 'error': 'Serveur, identifiant et mot de passe requis.'}
 
-        # Send test email via smtplib (thread-safe, no global state mutation)
+        # Send test email via smtplib in a thread with hard 15s timeout
+        # to prevent blocking the Gunicorn worker on unresponsive SMTP servers
         import smtplib
+        import threading
         from email.mime.text import MIMEText
 
         msg = MIMEText(
@@ -1761,19 +1763,41 @@ def email_config_test():
         msg['From'] = sender
         msg['To'] = current_user.email
 
-        with smtplib.SMTP(server, port, timeout=30) as smtp:
-            smtp.ehlo()
-            if use_tls:
-                smtp.starttls()
-                smtp.ehlo()
-            smtp.login(username, password)
-            smtp.sendmail(sender, [current_user.email], msg.as_string())
+        result = {'success': False, 'error': 'Timeout: le serveur SMTP ne répond pas (15s).'}
 
-        return {'success': True}
+        def _smtp_test():
+            with smtplib.SMTP(server, port, timeout=10) as smtp:
+                smtp.ehlo()
+                if use_tls:
+                    smtp.starttls()
+                    smtp.ehlo()
+                smtp.login(username, password)
+                smtp.sendmail(sender, [current_user.email], msg.as_string())
+            result['success'] = True
+            result['error'] = None
+
+        thread = threading.Thread(target=_smtp_test)
+        thread.start()
+        thread.join(timeout=15)
+
+        if thread.is_alive():
+            # Thread still running — SMTP server unresponsive, return timeout
+            current_app.logger.warning(f'SMTP test timeout after 15s for {server}:{port}')
+            return {'success': False, 'error': 'Timeout: le serveur SMTP ne répond pas après 15 secondes. Vérifiez le serveur et le port.'}
+
+        return result
 
     except Exception as e:
         current_app.logger.error(f'Email test failed: {e}')
-        return {'success': False, 'error': str(e)}
+        error_msg = str(e)
+        # Provide user-friendly error messages for common SMTP errors
+        if 'Authentication' in error_msg or '535' in error_msg:
+            error_msg = "Authentification échouée. Vérifiez l'identifiant et le mot de passe d'application."
+        elif 'Connection refused' in error_msg:
+            error_msg = f"Connexion refusée sur {server}:{port}. Vérifiez le serveur et le port."
+        elif 'getaddrinfo' in error_msg or 'Name or service not known' in error_msg:
+            error_msg = f"Serveur SMTP introuvable: {server}. Vérifiez l'adresse."
+        return {'success': False, 'error': error_msg}
 
 
 @settings_bp.route('/delete-account', methods=['GET', 'POST'])
