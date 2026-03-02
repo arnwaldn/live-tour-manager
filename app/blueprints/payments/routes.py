@@ -145,45 +145,51 @@ def index():
 @manager_required
 def dashboard():
     """Financial dashboard with KPIs."""
-    # Pending approvals (org-scoped)
-    pending_approvals = _org_payments_query().filter_by(
-        status=PaymentStatus.PENDING_APPROVAL
-    ).count()
+    try:
+        # Pending approvals (org-scoped)
+        pending_approvals = _org_payments_query().filter_by(
+            status=PaymentStatus.PENDING_APPROVAL
+        ).count()
 
-    # Total to pay this month
-    today = date.today()
-    first_of_month = today.replace(day=1)
-    monthly_payments = _org_payments_query().filter(
-        TeamMemberPayment.status.in_([PaymentStatus.APPROVED, PaymentStatus.SCHEDULED]),
-        TeamMemberPayment.due_date >= first_of_month,
-        TeamMemberPayment.due_date <= today.replace(day=28)
-    ).all()
-    monthly_total = sum(p.amount for p in monthly_payments)
-
-    # Payments by category (org-scoped)
-    category_totals = {}
-    for category in StaffCategory:
-        cat_payments = _org_payments_query().filter(
-            TeamMemberPayment.staff_category == category,
-            TeamMemberPayment.status != PaymentStatus.CANCELLED
+        # Total to pay this month
+        today = date.today()
+        first_of_month = today.replace(day=1)
+        monthly_payments = _org_payments_query().filter(
+            TeamMemberPayment.status.in_([PaymentStatus.APPROVED, PaymentStatus.SCHEDULED]),
+            TeamMemberPayment.due_date >= first_of_month,
+            TeamMemberPayment.due_date <= today.replace(day=28)
         ).all()
-        category_totals[category.value] = float(sum(p.amount for p in cat_payments))
+        monthly_total = sum(p.amount for p in monthly_payments)
 
-    # Recent payments — eager-load user and tour to avoid N+1 (org-scoped)
-    recent_payments = _org_payments_query().options(
-        joinedload(TeamMemberPayment.user),
-        joinedload(TeamMemberPayment.tour),
-    ).order_by(
-        TeamMemberPayment.created_at.desc()
-    ).limit(10).all()
+        # Payments by category (org-scoped)
+        category_totals = {}
+        for category in StaffCategory:
+            cat_payments = _org_payments_query().filter(
+                TeamMemberPayment.staff_category == category,
+                TeamMemberPayment.status != PaymentStatus.CANCELLED
+            ).all()
+            category_totals[category.value] = float(sum(p.amount for p in cat_payments))
 
-    return render_template(
-        'payments/dashboard.html',
-        pending_approvals=pending_approvals,
-        monthly_total=monthly_total,
-        category_totals=category_totals,
-        recent_payments=recent_payments
-    )
+        # Recent payments — eager-load user and tour to avoid N+1 (org-scoped)
+        recent_payments = _org_payments_query().options(
+            joinedload(TeamMemberPayment.user),
+            joinedload(TeamMemberPayment.tour),
+        ).order_by(
+            TeamMemberPayment.created_at.desc()
+        ).limit(10).all()
+
+        return render_template(
+            'payments/dashboard.html',
+            pending_approvals=pending_approvals,
+            monthly_total=monthly_total,
+            category_totals=category_totals,
+            recent_payments=recent_payments
+        )
+    except Exception as e:
+        current_app.logger.error(f'Payments dashboard error: {e}', exc_info=True)
+        db.session.rollback()
+        flash(f'Erreur tableau de bord: {e}', 'danger')
+        return redirect(url_for('payments.index'))
 
 
 # ============================================================================
@@ -372,20 +378,26 @@ def submit_for_approval(payment_id):
 @manager_required
 def approval_queue():
     """View payments pending approval."""
-    payments = _org_payments_query().options(
-        joinedload(TeamMemberPayment.user),
-        joinedload(TeamMemberPayment.tour),
-    ).filter_by(
-        status=PaymentStatus.PENDING_APPROVAL
-    ).order_by(TeamMemberPayment.created_at).all()
+    try:
+        payments = _org_payments_query().options(
+            joinedload(TeamMemberPayment.user),
+            joinedload(TeamMemberPayment.tour),
+        ).filter_by(
+            status=PaymentStatus.PENDING_APPROVAL
+        ).order_by(TeamMemberPayment.created_at).all()
 
-    total_pending = sum(p.amount for p in payments)
+        total_pending = sum(p.amount for p in payments)
 
-    return render_template(
-        'payments/approval_queue.html',
-        payments=payments,
-        total_pending=total_pending
-    )
+        return render_template(
+            'payments/approval_queue.html',
+            payments=payments,
+            total_pending=total_pending
+        )
+    except Exception as e:
+        current_app.logger.error(f'Approval queue error: {e}', exc_info=True)
+        db.session.rollback()
+        flash(f'Erreur file approbation: {e}', 'danger')
+        return redirect(url_for('payments.index'))
 
 
 @payments_bp.route('/<int:payment_id>/approve', methods=['POST'])
