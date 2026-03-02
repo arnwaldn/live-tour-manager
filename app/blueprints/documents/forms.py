@@ -7,6 +7,7 @@ from wtforms import StringField, SelectField, TextAreaField, DateField
 from wtforms.validators import DataRequired, Optional, Length
 
 from app.models.document import DocumentType
+from app.utils.countries import COUNTRY_CHOICES_FULL
 
 
 class DocumentUploadForm(FlaskForm):
@@ -65,9 +66,10 @@ class DocumentUploadForm(FlaskForm):
         format='%Y-%m-%d'
     )
 
-    issuing_country = StringField(
+    issuing_country = SelectField(
         'Pays d\'emission',
-        validators=[Optional(), Length(max=100)]
+        choices=COUNTRY_CHOICES_FULL,
+        validators=[Optional()]
     )
 
     # Owner selection
@@ -134,9 +136,10 @@ class DocumentEditForm(FlaskForm):
         format='%Y-%m-%d'
     )
 
-    issuing_country = StringField(
+    issuing_country = SelectField(
         'Pays d\'emission',
-        validators=[Optional(), Length(max=100)]
+        choices=COUNTRY_CHOICES_FULL,
+        validators=[Optional()]
     )
 
 

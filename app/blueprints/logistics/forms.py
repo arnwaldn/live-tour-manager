@@ -8,6 +8,7 @@ from wtforms import (
     TimeField, EmailField, SelectMultipleField, HiddenField
 )
 from wtforms.validators import DataRequired, Length, Optional, NumberRange, Email
+from app.utils.countries import COUNTRY_CHOICES_FULL
 from wtforms.widgets import ListWidget, CheckboxInput
 
 
@@ -66,8 +67,8 @@ class LogisticsInfoForm(FlaskForm):
     city = StringField('Ville', validators=[
         Length(max=100)
     ])
-    country = StringField('Pays', validators=[
-        Length(max=100)
+    country = SelectField('Pays', choices=COUNTRY_CHOICES_FULL, validators=[
+        Optional(),
     ])
     # GPS coordinates (filled by frontend autocomplete)
     latitude = HiddenField('Latitude')

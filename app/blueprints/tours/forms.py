@@ -7,6 +7,7 @@ from wtforms import (
     DecimalField, TimeField, IntegerField, SubmitField, BooleanField
 )
 from wtforms.validators import DataRequired, Length, Optional, NumberRange, URL, ValidationError
+from app.utils.countries import COUNTRY_CHOICES_FULL
 
 
 class TourForm(FlaskForm):
@@ -80,9 +81,8 @@ class TourStopForm(FlaskForm):
         Optional(),
         Length(max=100)
     ])
-    location_country = StringField('Pays', validators=[
+    location_country = SelectField('Pays', choices=COUNTRY_CHOICES_FULL, validators=[
         Optional(),
-        Length(max=100)
     ])
     location_notes = TextAreaField('Notes sur le lieu', validators=[
         Length(max=500)

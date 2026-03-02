@@ -7,6 +7,7 @@ from wtforms import (
     IntegerField, SubmitField, HiddenField, FloatField
 )
 from wtforms.validators import DataRequired, Length, URL, Optional, Email, NumberRange
+from app.utils.countries import COUNTRY_CHOICES_FULL
 
 
 class VenueForm(FlaskForm):
@@ -27,9 +28,8 @@ class VenueForm(FlaskForm):
     state_province = StringField('Région/État', validators=[
         Length(max=100)
     ])
-    country = StringField('Pays', validators=[
+    country = SelectField('Pays', choices=COUNTRY_CHOICES_FULL, validators=[
         DataRequired(message='Le pays est requis'),
-        Length(max=100)
     ], default='France')
     postal_code = StringField('Code postal', validators=[
         Length(max=20)

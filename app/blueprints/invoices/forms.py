@@ -11,6 +11,7 @@ from wtforms import (
 from wtforms.validators import DataRequired, Length, Optional, NumberRange
 
 from app.models.invoices import InvoiceStatus, InvoiceType, VATRate
+from app.utils.countries import COUNTRY_CHOICES
 
 
 class InvoiceFilterForm(FlaskForm):
@@ -66,7 +67,7 @@ class InvoiceForm(FlaskForm):
     issuer_address_line2 = StringField('Complement adresse', validators=[Optional(), Length(max=200)])
     issuer_city = StringField('Ville', validators=[DataRequired(), Length(max=100)])
     issuer_postal_code = StringField('Code postal', validators=[DataRequired(), Length(max=20)])
-    issuer_country = StringField('Pays', validators=[Optional(), Length(max=2)], default='FR')
+    issuer_country = SelectField('Pays', choices=COUNTRY_CHOICES, validators=[Optional()], default='FR')
     issuer_siren = StringField('SIREN', validators=[Optional(), Length(min=9, max=9)])
     issuer_siret = StringField('SIRET', validators=[
         DataRequired(message="SIRET de l'emetteur obligatoire"), Length(min=14, max=14)
@@ -91,7 +92,7 @@ class InvoiceForm(FlaskForm):
     recipient_address_line2 = StringField('Complement adresse', validators=[Optional(), Length(max=200)])
     recipient_city = StringField('Ville', validators=[DataRequired(), Length(max=100)])
     recipient_postal_code = StringField('Code postal', validators=[DataRequired(), Length(max=20)])
-    recipient_country = StringField('Pays', validators=[Optional(), Length(max=2)], default='FR')
+    recipient_country = SelectField('Pays', choices=COUNTRY_CHOICES, validators=[Optional()], default='FR')
     recipient_siren = StringField('SIREN', validators=[Optional(), Length(min=9, max=9)])
     recipient_siret = StringField('SIRET', validators=[Optional(), Length(max=14)])
     recipient_vat = StringField('TVA intracommunautaire', validators=[Optional(), Length(max=20)])
