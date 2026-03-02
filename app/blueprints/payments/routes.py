@@ -27,10 +27,11 @@ from app.models.payments import (
     PaymentFrequency, ContractType, DEFAULT_RATES, get_category_for_role
 )
 from app.models.user import User
+from app.models.organization import OrganizationMembership
 from app.models.tour import Tour
 from app.models.tour_stop import TourStop
 from app.utils.audit import log_action, log_create, log_update
-from app.utils.org_context import get_org_users, get_org_tours
+from app.utils.org_context import get_org_users, get_org_tours, get_current_org_id
 
 
 def manager_required(f):
@@ -46,6 +47,38 @@ def manager_required(f):
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def _org_payments_query():
+    """Build a TeamMemberPayment query scoped to the current org.
+
+    Joins Payment.user → OrganizationMembership to filter by org.
+    Falls back to unscoped query when no org context is set.
+    """
+    query = TeamMemberPayment.query
+    org_id = get_current_org_id()
+    if org_id:
+        query = query.join(User, TeamMemberPayment.user_id == User.id).join(
+            OrganizationMembership,
+            db.and_(
+                OrganizationMembership.user_id == User.id,
+                OrganizationMembership.org_id == org_id,
+            )
+        )
+    return query
+
+
+def _get_org_payment_or_404(payment_id):
+    """Get a payment by ID, verifying it belongs to the current org."""
+    payment = _get_org_payment_or_404(payment_id)
+    org_id = get_current_org_id()
+    if org_id:
+        membership = OrganizationMembership.query.filter_by(
+            user_id=payment.user_id, org_id=org_id
+        ).first()
+        if not membership:
+            abort(404)
+    return payment
 
 
 # ============================================================================
@@ -67,8 +100,8 @@ def index():
         (u.id, u.full_name) for u in get_org_users().order_by(User.last_name).all()
     ]
 
-    # Build query
-    query = TeamMemberPayment.query
+    # Build query (org-scoped)
+    query = _org_payments_query()
 
     # Apply filters
     if form.tour_id.data and form.tour_id.data != 0:
@@ -112,32 +145,32 @@ def index():
 @manager_required
 def dashboard():
     """Financial dashboard with KPIs."""
-    # Pending approvals
-    pending_approvals = TeamMemberPayment.query.filter_by(
+    # Pending approvals (org-scoped)
+    pending_approvals = _org_payments_query().filter_by(
         status=PaymentStatus.PENDING_APPROVAL
     ).count()
 
     # Total to pay this month
     today = date.today()
     first_of_month = today.replace(day=1)
-    monthly_payments = TeamMemberPayment.query.filter(
+    monthly_payments = _org_payments_query().filter(
         TeamMemberPayment.status.in_([PaymentStatus.APPROVED, PaymentStatus.SCHEDULED]),
         TeamMemberPayment.due_date >= first_of_month,
         TeamMemberPayment.due_date <= today.replace(day=28)
     ).all()
     monthly_total = sum(p.amount for p in monthly_payments)
 
-    # Payments by category
+    # Payments by category (org-scoped)
     category_totals = {}
     for category in StaffCategory:
-        total = db.session.query(db.func.sum(TeamMemberPayment.amount)).filter(
+        cat_payments = _org_payments_query().filter(
             TeamMemberPayment.staff_category == category,
             TeamMemberPayment.status != PaymentStatus.CANCELLED
-        ).scalar() or Decimal('0')
-        category_totals[category.value] = float(total)
+        ).all()
+        category_totals[category.value] = float(sum(p.amount for p in cat_payments))
 
-    # Recent payments — eager-load user and tour to avoid N+1
-    recent_payments = TeamMemberPayment.query.options(
+    # Recent payments — eager-load user and tour to avoid N+1 (org-scoped)
+    recent_payments = _org_payments_query().options(
         joinedload(TeamMemberPayment.user),
         joinedload(TeamMemberPayment.tour),
     ).order_by(
@@ -217,7 +250,7 @@ def add():
 @manager_required
 def detail(payment_id):
     """View payment details."""
-    payment = TeamMemberPayment.query.get_or_404(payment_id)
+    payment = _get_org_payment_or_404(payment_id)
     return render_template('payments/detail.html', payment=payment)
 
 
@@ -226,7 +259,7 @@ def detail(payment_id):
 @manager_required
 def edit(payment_id):
     """Edit an existing payment."""
-    payment = TeamMemberPayment.query.get_or_404(payment_id)
+    payment = _get_org_payment_or_404(payment_id)
 
     # Cannot edit paid or cancelled payments
     if payment.status in [PaymentStatus.PAID, PaymentStatus.CANCELLED]:
@@ -291,7 +324,7 @@ def edit(payment_id):
 @manager_required
 def delete(payment_id):
     """Delete a draft payment."""
-    payment = TeamMemberPayment.query.get_or_404(payment_id)
+    payment = _get_org_payment_or_404(payment_id)
 
     if payment.status != PaymentStatus.DRAFT:
         flash('Seuls les paiements en brouillon peuvent être supprimés.', 'warning')
@@ -316,7 +349,7 @@ def delete(payment_id):
 @manager_required
 def submit_for_approval(payment_id):
     """Submit a payment for approval."""
-    payment = TeamMemberPayment.query.get_or_404(payment_id)
+    payment = _get_org_payment_or_404(payment_id)
 
     if payment.status != PaymentStatus.DRAFT:
         flash('Ce paiement ne peut pas être soumis.', 'warning')
@@ -339,7 +372,7 @@ def submit_for_approval(payment_id):
 @manager_required
 def approval_queue():
     """View payments pending approval."""
-    payments = TeamMemberPayment.query.options(
+    payments = _org_payments_query().options(
         joinedload(TeamMemberPayment.user),
         joinedload(TeamMemberPayment.tour),
     ).filter_by(
@@ -360,7 +393,7 @@ def approval_queue():
 @manager_required
 def approve(payment_id):
     """Approve a payment."""
-    payment = TeamMemberPayment.query.get_or_404(payment_id)
+    payment = _get_org_payment_or_404(payment_id)
 
     if payment.status != PaymentStatus.PENDING_APPROVAL:
         flash('Ce paiement ne peut pas être approuvé.', 'warning')
@@ -378,7 +411,7 @@ def approve(payment_id):
     flash(f'Paiement {payment.reference} approuvé.', 'success')
 
     # Return to queue if there are more
-    if TeamMemberPayment.query.filter_by(status=PaymentStatus.PENDING_APPROVAL).count() > 0:
+    if _org_payments_query().filter_by(status=PaymentStatus.PENDING_APPROVAL).count() > 0:
         return redirect(url_for('payments.approval_queue'))
 
     return redirect(url_for('payments.detail', payment_id=payment_id))
@@ -389,7 +422,7 @@ def approve(payment_id):
 @manager_required
 def reject(payment_id):
     """Reject a payment."""
-    payment = TeamMemberPayment.query.get_or_404(payment_id)
+    payment = _get_org_payment_or_404(payment_id)
     reason = request.form.get('reason', '')
 
     if payment.status != PaymentStatus.PENDING_APPROVAL:
@@ -413,7 +446,7 @@ def reject(payment_id):
 @manager_required
 def mark_paid(payment_id):
     """Mark a payment as paid."""
-    payment = TeamMemberPayment.query.get_or_404(payment_id)
+    payment = _get_org_payment_or_404(payment_id)
 
     if payment.status not in [PaymentStatus.APPROVED, PaymentStatus.SCHEDULED]:
         flash('Ce paiement ne peut pas être marqué comme payé.', 'warning')
@@ -443,7 +476,7 @@ def mark_paid(payment_id):
 @manager_required
 def cancel(payment_id):
     """Annuler un paiement approuve ou programme."""
-    payment = TeamMemberPayment.query.get_or_404(payment_id)
+    payment = _get_org_payment_or_404(payment_id)
 
     # Autoriser l'annulation pour: PENDING_APPROVAL, APPROVED, SCHEDULED
     cancellable_statuses = [
@@ -575,11 +608,20 @@ def batch_approve():
         return redirect(url_for('payments.approval_queue'))
 
     approved_count = 0
+    org_id = get_current_org_id()
     for pid in payment_ids:
         payment = TeamMemberPayment.query.get(int(pid))
-        if payment and payment.status == PaymentStatus.PENDING_APPROVAL:
-            payment.approve(current_user.id)  # P-C2 fix: pass user_id, not user object
-            approved_count += 1
+        if not payment or payment.status != PaymentStatus.PENDING_APPROVAL:
+            continue
+        # Verify payment belongs to current org
+        if org_id:
+            membership = OrganizationMembership.query.filter_by(
+                user_id=payment.user_id, org_id=org_id
+            ).first()
+            if not membership:
+                continue
+        payment.approve(current_user.id)
+        approved_count += 1
 
     db.session.commit()
 
@@ -608,12 +650,12 @@ def export_csv():
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
 
-    query = TeamMemberPayment.query
+    query = _org_payments_query()
 
     if tour_id:
-        query = query.filter_by(tour_id=tour_id)
+        query = query.filter(TeamMemberPayment.tour_id == tour_id)
     if status:
-        query = query.filter_by(status=PaymentStatus(status))
+        query = query.filter(TeamMemberPayment.status == PaymentStatus(status))
     if date_from:
         query = query.filter(TeamMemberPayment.work_date >= date_from)
     if date_to:
@@ -675,8 +717,8 @@ def export_csv():
 @manager_required
 def export_sepa():
     """Export approved payments as SEPA XML file."""
-    # Get approved payments ready for SEPA export
-    payments = TeamMemberPayment.query.filter(
+    # Get approved payments ready for SEPA export (org-scoped)
+    payments = _org_payments_query().filter(
         TeamMemberPayment.status.in_([PaymentStatus.APPROVED, PaymentStatus.SCHEDULED]),
         TeamMemberPayment.payment_method == PaymentMethod.SEPA
     ).all()
@@ -705,7 +747,18 @@ def export_sepa():
 @manager_required
 def config_list():
     """List all user payment configurations."""
-    configs = UserPaymentConfig.query.join(User).order_by(User.last_name).all()
+    # Org-scoped: only show configs for users in current org
+    org_id = get_current_org_id()
+    configs_query = UserPaymentConfig.query.join(User)
+    if org_id:
+        configs_query = configs_query.join(
+            OrganizationMembership,
+            db.and_(
+                OrganizationMembership.user_id == User.id,
+                OrganizationMembership.org_id == org_id,
+            )
+        )
+    configs = configs_query.order_by(User.last_name).all()
     users_without_config = get_org_users().filter(
         ~User.id.in_([c.user_id for c in configs]),
     ).all()
@@ -821,9 +874,9 @@ def tour_summary(tour_id):
     """Financial summary for a tour."""
     tour = Tour.query.get_or_404(tour_id)
 
-    payments = TeamMemberPayment.query.options(
+    payments = _org_payments_query().options(
         joinedload(TeamMemberPayment.user),
-    ).filter_by(tour_id=tour_id).all()
+    ).filter(TeamMemberPayment.tour_id == tour_id).all()
 
     # Group by category
     by_category = {}

@@ -25,8 +25,9 @@ from app.models.invoices import (
 from app.models.tour import Tour
 from app.models.tour_stop import TourStop
 from app.models.user import User
+from app.models.organization import OrganizationMembership
 from app.utils.audit import log_create, log_update, log_action
-from app.utils.org_context import get_org_users, get_org_tours
+from app.utils.org_context import get_org_users, get_org_tours, get_current_org_id
 
 
 def manager_required(f):
@@ -40,6 +41,38 @@ def manager_required(f):
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def _org_invoices_query():
+    """Return Invoice query scoped to the current organization.
+
+    Joins Invoice → User (created_by) → OrganizationMembership to ensure
+    only invoices created by members of the current org are returned.
+    """
+    org_id = get_current_org_id()
+    if not org_id:
+        abort(403)
+    return (
+        Invoice.query
+        .join(User, Invoice.created_by_id == User.id)
+        .join(OrganizationMembership, OrganizationMembership.user_id == User.id)
+        .filter(OrganizationMembership.org_id == org_id)
+    )
+
+
+def _get_org_invoice_or_404(invoice_id):
+    """Get an invoice by ID, verifying it belongs to the current org."""
+    invoice = _get_org_invoice_or_404(invoice_id)
+    org_id = get_current_org_id()
+    if not org_id:
+        abort(403)
+    membership = OrganizationMembership.query.filter_by(
+        user_id=invoice.created_by_id,
+        org_id=org_id
+    ).first()
+    if not membership:
+        abort(404)
+    return invoice
 
 
 # ============================================================================
@@ -58,8 +91,8 @@ def index():
         (t.id, t.name) for t in get_org_tours().order_by(Tour.start_date.desc()).all()
     ]
 
-    # Build query
-    query = Invoice.query
+    # Build query (org-scoped)
+    query = _org_invoices_query()
 
     # Apply filters
     if form.tour_id.data and form.tour_id.data != 0:
@@ -209,7 +242,7 @@ def add():
 @manager_required
 def view(invoice_id):
     """View invoice details."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
     payment_form = InvoicePaymentForm()
     payment_form.payment_date.data = date.today()
 
@@ -227,7 +260,7 @@ def view(invoice_id):
 @manager_required
 def edit(invoice_id):
     """Edit an invoice (DRAFT only)."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     if invoice.status != InvoiceStatus.DRAFT:
         flash('Seules les factures en brouillon peuvent etre modifiees.', 'warning')
@@ -346,7 +379,7 @@ def edit(invoice_id):
 @manager_required
 def delete(invoice_id):
     """Delete an invoice (DRAFT only)."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     if invoice.status != InvoiceStatus.DRAFT:
         flash('Seules les factures en brouillon peuvent etre supprimees.', 'danger')
@@ -370,7 +403,7 @@ def delete(invoice_id):
 @manager_required
 def add_line(invoice_id):
     """Add a line to an invoice (AJAX or form post)."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     if invoice.status != InvoiceStatus.DRAFT:
         flash('Impossible de modifier une facture validee.', 'warning')
@@ -418,7 +451,7 @@ def add_line(invoice_id):
 @manager_required
 def delete_line(invoice_id, line_id):
     """Delete an invoice line."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     if invoice.status != InvoiceStatus.DRAFT:
         flash('Impossible de modifier une facture validee.', 'warning')
@@ -453,7 +486,7 @@ def delete_line(invoice_id, line_id):
 @manager_required
 def validate_invoice(invoice_id):
     """Validate an invoice (assign number, lock from editing)."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     if invoice.status != InvoiceStatus.DRAFT:
         flash('Cette facture est deja validee.', 'warning')
@@ -479,7 +512,7 @@ def validate_invoice(invoice_id):
 @manager_required
 def mark_sent(invoice_id):
     """Mark invoice as sent."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     try:
         invoice.mark_as_sent()
@@ -501,7 +534,7 @@ def mark_sent(invoice_id):
 @manager_required
 def record_payment(invoice_id):
     """Record a payment on an invoice."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
     form = InvoicePaymentForm()
 
     if invoice.status in [InvoiceStatus.CANCELLED, InvoiceStatus.CREDITED, InvoiceStatus.DRAFT]:
@@ -546,7 +579,7 @@ def record_payment(invoice_id):
 @manager_required
 def cancel(invoice_id):
     """Cancel an invoice."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     if invoice.status in [InvoiceStatus.PAID, InvoiceStatus.CANCELLED, InvoiceStatus.CREDITED]:
         flash('Cette facture ne peut pas etre annulee.', 'warning')
@@ -569,7 +602,7 @@ def cancel(invoice_id):
 @manager_required
 def mark_overdue(invoice_id):
     """Mark an invoice as overdue."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     if invoice.is_overdue and invoice.status not in [
         InvoiceStatus.PAID, InvoiceStatus.CANCELLED, InvoiceStatus.CREDITED
@@ -590,7 +623,7 @@ def mark_overdue(invoice_id):
 @manager_required
 def download_pdf(invoice_id):
     """Generate and download invoice as PDF."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     from app.utils.pdf_generator import generate_invoice_pdf, PDF_AVAILABLE
     if not PDF_AVAILABLE:
@@ -618,7 +651,7 @@ def download_pdf(invoice_id):
 @manager_required
 def send_email_invoice(invoice_id):
     """Send invoice by email to recipient with PDF attached."""
-    invoice = Invoice.query.get_or_404(invoice_id)
+    invoice = _get_org_invoice_or_404(invoice_id)
 
     if invoice.status == InvoiceStatus.DRAFT:
         flash('Veuillez valider la facture avant de l\'envoyer par email.', 'warning')
@@ -653,7 +686,11 @@ def send_email_invoice(invoice_id):
 @invoices_bp.route('/api/tour-stops/<int:tour_id>')
 @login_required
 def api_tour_stops(tour_id):
-    """Return tour stops for dynamic dropdown."""
+    """Return tour stops for dynamic dropdown (org-scoped via tour)."""
+    # Verify tour belongs to current org before returning stops
+    tour = get_org_tours().filter(Tour.id == tour_id).first()
+    if not tour:
+        abort(404)
     stops = TourStop.query.filter_by(tour_id=tour_id).order_by(TourStop.date).all()
     return jsonify([{
         'id': s.id,
