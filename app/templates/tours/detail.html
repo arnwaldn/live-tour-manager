@@ -437,8 +437,7 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
-{{ super() }}
+{% block extra_js %}
 <script nonce="{{ csp_nonce }}">
 function showCalendarSubscription(tourId) {
     // Fetch the calendar URL from the API
