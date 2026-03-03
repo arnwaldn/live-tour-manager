@@ -133,7 +133,7 @@
 {% endif %}
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const selectAllCheckbox = document.getElementById('selectAll');
