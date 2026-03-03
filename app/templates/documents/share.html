@@ -107,7 +107,7 @@
                             </small>
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-danger"
-                                onclick="showConfirmModal('{{ url_for('documents.remove_share', id=document.id, share_id=share.id) }}', 'Retirer le partage avec {{ share.shared_to.full_name }} ? Cette personne n\'aura plus accès au document.', 'Retirer')">
+                                data-confirm-url="{{ url_for('documents.remove_share', id=document.id, share_id=share.id) }}" data-confirm-message="Retirer le partage avec {{ share.shared_to.full_name }} ? Cette personne n'aura plus accès au document." data-confirm-btn="Retirer">
                             <i class="bi bi-x-lg"></i>
                         </button>
                     </div>

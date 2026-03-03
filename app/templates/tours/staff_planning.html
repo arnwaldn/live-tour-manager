@@ -121,7 +121,7 @@
                             {% if can_edit %}
                             <td data-label="">
                                 <button type="button" class="btn btn-sm btn-outline-danger"
-                                        onclick="showConfirmModal('{{ url_for('tours.delete_planning_slot', id=tour.id, stop_id=stop.id, slot_id=slot.id) }}?category={{ current_category }}', 'Supprimer ce créneau ?', 'Supprimer')">
+                                        data-confirm-url="{{ url_for('tours.delete_planning_slot', id=tour.id, stop_id=stop.id, slot_id=slot.id) }}?category={{ current_category }}" data-confirm-message="Supprimer ce créneau ?" data-confirm-btn="Supprimer">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>

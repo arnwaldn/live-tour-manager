@@ -147,7 +147,7 @@
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer"
-                                            onclick="showConfirmModal('{{ url_for('tours.delete_lineup_slot', id=tour.id, stop_id=stop.id, slot_id=slot.id) }}', 'Supprimer {{ slot.performer_name }} de la programmation ?', 'Supprimer')">
+                                            data-confirm-url="{{ url_for('tours.delete_lineup_slot', id=tour.id, stop_id=stop.id, slot_id=slot.id) }}" data-confirm-message="Supprimer {{ slot.performer_name }} de la programmation ?" data-confirm-btn="Supprimer">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>

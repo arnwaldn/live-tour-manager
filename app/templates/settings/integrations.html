@@ -73,10 +73,10 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-primary" onclick="syncGoogle()">
+                    <button type="button" class="btn btn-primary" id="syncGoogleBtn">
                         <i class="bi bi-arrow-repeat me-1"></i>Synchroniser
                     </button>
-                    <button type="button" class="btn btn-outline-danger" onclick="disconnectGoogle()">
+                    <button type="button" class="btn btn-outline-danger" id="disconnectGoogleBtn">
                         <i class="bi bi-x-circle me-1"></i>Déconnecter
                     </button>
                 </div>
@@ -137,10 +137,10 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-primary" onclick="syncOutlook()">
+                    <button type="button" class="btn btn-primary" id="syncOutlookBtn">
                         <i class="bi bi-arrow-repeat me-1"></i>Synchroniser
                     </button>
-                    <button type="button" class="btn btn-outline-danger" onclick="disconnectOutlook()">
+                    <button type="button" class="btn btn-outline-danger" id="disconnectOutlookBtn">
                         <i class="bi bi-x-circle me-1"></i>Déconnecter
                     </button>
                 </div>
@@ -238,7 +238,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-danger" onclick="doDisconnectGoogle()">
+                <button type="button" class="btn btn-danger" id="doDisconnectGoogleBtn">
                     <i class="bi bi-x-circle me-1"></i>Déconnecter
                 </button>
             </div>
@@ -262,7 +262,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-danger" onclick="doDisconnectOutlook()">
+                <button type="button" class="btn btn-danger" id="doDisconnectOutlookBtn">
                     <i class="bi bi-x-circle me-1"></i>Déconnecter
                 </button>
             </div>
@@ -273,7 +273,7 @@
 
 {% block extra_js %}
 <script nonce="{{ csp_nonce }}">
-function syncGoogle() {
+function syncGoogle(event) {
     const btn = event.target.closest('button');
     const originalText = btn.innerHTML;
     btn.disabled = true;
@@ -330,7 +330,7 @@ function doDisconnectGoogle() {
     });
 }
 
-function syncOutlook() {
+function syncOutlook(event) {
     const btn = event.target.closest('button');
     const originalText = btn.innerHTML;
     btn.disabled = true;
@@ -396,5 +396,13 @@ function showToast(type, message) {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
 }
+
+// Wire buttons via addEventListener (CSP-compliant, no inline handlers)
+document.getElementById('syncGoogleBtn')?.addEventListener('click', syncGoogle);
+document.getElementById('disconnectGoogleBtn')?.addEventListener('click', disconnectGoogle);
+document.getElementById('doDisconnectGoogleBtn')?.addEventListener('click', doDisconnectGoogle);
+document.getElementById('syncOutlookBtn')?.addEventListener('click', syncOutlook);
+document.getElementById('disconnectOutlookBtn')?.addEventListener('click', disconnectOutlook);
+document.getElementById('doDisconnectOutlookBtn')?.addEventListener('click', doDisconnectOutlook);
 </script>
 {% endblock %}

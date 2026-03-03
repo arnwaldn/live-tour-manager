@@ -525,7 +525,7 @@
                     </div>
                     {% if can_edit %}
                     <button class="btn btn-sm btn-outline-primary add-slot-btn"
-                            onclick="openAddSlotModal({{ member.id }}, '{{ member.name }}', '{{ category.key }}')"
+                            data-add-slot data-member-id="{{ member.id }}" data-member-name="{{ member.name }}" data-category="{{ category.key }}"
                             title="Ajouter un créneau">
                         <i class="bi bi-plus"></i>
                     </button>
@@ -551,7 +551,7 @@
 
                     <div class="task-bar cat-{{ category.key }}"
                          style="left: {{ start_pos }}%; width: {{ width }}%;"
-                         onclick="openEditSlotModal({{ slot.id }})"
+                         data-edit-slot="{{ slot.id }}"
                          title="{{ slot.task_description }} ({{ slot.start_time.strftime('%H:%M') }}-{{ slot.end_time.strftime('%H:%M') }})">
                         <span class="task-time">{{ slot.start_time.strftime('%H:%M') }}-{{ slot.end_time.strftime('%H:%M') }}</span>
                         <span class="task-name">{{ slot.task_description }}</span>
@@ -619,7 +619,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-danger d-none" id="deleteSlotBtn" onclick="deleteSlot()">
+                    <button type="button" class="btn btn-danger d-none" id="deleteSlotBtn">
                         <i class="bi bi-trash me-1"></i> Supprimer
                     </button>
                     <button type="submit" class="btn btn-primary">
@@ -767,6 +767,21 @@ function doDeleteSlot(slotId) {
         alert('Erreur lors de la suppression');
     });
 }
+
+// Wire event listeners
+document.addEventListener('click', function(e) {
+    var addBtn = e.target.closest('[data-add-slot]');
+    if (addBtn) {
+        openAddSlotModal(addBtn.dataset.memberId, addBtn.dataset.memberName, addBtn.dataset.category);
+        return;
+    }
+    var editEl = e.target.closest('[data-edit-slot]');
+    if (editEl) {
+        openEditSlotModal(editEl.dataset.editSlot);
+        return;
+    }
+});
+document.getElementById('deleteSlotBtn')?.addEventListener('click', deleteSlot);
 </script>
 
 <!-- Delete Slot Modal -->

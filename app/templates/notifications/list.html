@@ -32,14 +32,14 @@
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>
                     <button type="button" class="dropdown-item"
-                            onclick="showConfirmModal('{{ url_for('notifications.delete_read_notifications') }}', 'Supprimer toutes les notifications lues ?', 'Supprimer')">
+                            data-confirm-url="{{ url_for('notifications.delete_read_notifications') }}" data-confirm-message="Supprimer toutes les notifications lues ?" data-confirm-btn="Supprimer">
                         <i class="bi bi-check-circle me-2"></i>
                         Supprimer les lues
                     </button>
                 </li>
                 <li>
                     <button type="button" class="dropdown-item text-danger"
-                            onclick="showConfirmModal('{{ url_for('notifications.delete_all_notifications') }}', 'Supprimer TOUTES les notifications ? Cette action est irréversible.', 'Tout supprimer')">
+                            data-confirm-url="{{ url_for('notifications.delete_all_notifications') }}" data-confirm-message="Supprimer TOUTES les notifications ? Cette action est irréversible." data-confirm-btn="Tout supprimer">
                         <i class="bi bi-trash me-2"></i>
                         Tout supprimer
                     </button>
@@ -115,7 +115,7 @@
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <button type="button" class="dropdown-item text-danger"
-                                        onclick="showConfirmModal('{{ url_for('notifications.delete_notification', id=notification.id) }}', 'Supprimer cette notification ?', 'Supprimer')">
+                                        data-confirm-url="{{ url_for('notifications.delete_notification', id=notification.id) }}" data-confirm-message="Supprimer cette notification ?" data-confirm-btn="Supprimer">
                                     <i class="bi bi-trash me-2"></i>Supprimer
                                 </button>
                             </li>

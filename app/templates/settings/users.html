@@ -165,13 +165,13 @@
                                 {% endif %}
                                 {% if user.is_active %}
                                 <button type="button" class="btn btn-outline-danger" title="Désactiver" aria-label="Désactiver"
-                                        onclick="showConfirmModal('{{ url_for('settings.users_delete', id=user.id) }}', 'Désactiver {{ user.full_name }} ? L\'utilisateur ne pourra plus accéder à l\'application.', 'Désactiver')">
+                                        data-confirm-url="{{ url_for('settings.users_delete', id=user.id) }}" data-confirm-message="Désactiver {{ user.full_name }} ? L'utilisateur ne pourra plus accéder à l'application." data-confirm-btn="Désactiver">
                                     <i class="bi bi-person-x"></i>
                                 </button>
                                 {% else %}
                                 <!-- Utilisateur inactif - proposer suppression définitive -->
                                 <button type="button" class="btn btn-danger" title="Supprimer définitivement" aria-label="Supprimer définitivement"
-                                        onclick="showConfirmModal('{{ url_for('settings.users_hard_delete', id=user.id) }}', 'Supprimer définitivement {{ user.full_name }} ? Toutes ses données seront perdues. Cette action est IRRÉVERSIBLE.', 'Supprimer')">
+                                        data-confirm-url="{{ url_for('settings.users_hard_delete', id=user.id) }}" data-confirm-message="Supprimer définitivement {{ user.full_name }} ? Toutes ses données seront perdues. Cette action est IRRÉVERSIBLE." data-confirm-btn="Supprimer">
                                     <i class="bi bi-trash3-fill"></i>
                                 </button>
                                 {% endif %}

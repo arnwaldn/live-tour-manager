@@ -62,7 +62,7 @@
                         <td data-label="">
                             <form method="POST" action="{{ url_for('settings.update_breach_status', breach_id=b.id) }}" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <select name="status" class="form-select form-select-sm d-inline-block" style="width: auto;" onchange="this.form.submit()">
+                                <select name="status" class="form-select form-select-sm d-inline-block" style="width: auto;" data-auto-submit>
                                     {% for s in ['declared', 'investigating', 'contained', 'notified', 'users_notified', 'closed'] %}
                                     <option value="{{ s }}" {{ 'selected' if b.status.value == s }}>{{ s }}</option>
                                     {% endfor %}

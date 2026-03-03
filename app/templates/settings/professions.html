@@ -143,7 +143,7 @@
                                                     </button>
                                                 </form>
                                                 <button type="button" class="btn btn-outline-danger" title="Supprimer" aria-label="Supprimer"
-                                                        onclick="showConfirmModal('{{ url_for('settings.professions_delete', id=profession.id) }}', 'Supprimer la profession {{ profession.name_fr }} ? Cette action est irréversible.', 'Supprimer')">
+                                                        data-confirm-url="{{ url_for('settings.professions_delete', id=profession.id) }}" data-confirm-message="Supprimer la profession {{ profession.name_fr }} ? Cette action est irréversible." data-confirm-btn="Supprimer">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </div>

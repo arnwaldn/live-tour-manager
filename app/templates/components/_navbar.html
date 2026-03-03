@@ -60,7 +60,7 @@
                             <li class="notification-item {{ 'unread' if not notification.is_read else '' }}" data-id="{{ notification.id }}">
                                 <a class="dropdown-item py-2 {% if not notification.is_read %}bg-light{% endif %}"
                                    href="{{ notification.link if notification.link else '#' }}"
-                                   onclick="markAsRead({{ notification.id }})">
+                                   data-mark-read="{{ notification.id }}">
                                     <div class="d-flex align-items-start">
                                         <i class="bi {{ 'bi-info-circle text-info' if notification.type == 'info' else 'bi-check-circle text-success' if notification.type == 'success' else 'bi-exclamation-triangle text-warning' if notification.type == 'warning' else 'bi-x-circle text-danger' }} me-2 mt-1"></i>
                                         <div class="flex-grow-1">
@@ -202,6 +202,12 @@ function markAsRead(notificationId) {
         }
     });
 }
+
+// Delegated listener for [data-mark-read]
+document.addEventListener('click', function(e) {
+    var link = e.target.closest('[data-mark-read]');
+    if (link) markAsRead(link.dataset.markRead);
+});
 
 function updateNotificationBadge() {
     fetch('/notifications/api/unread-count', {

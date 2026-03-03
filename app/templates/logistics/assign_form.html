@@ -91,7 +91,7 @@
                         <form action="{{ url_for('logistics.unassign_user', id=logistics.id, user_id=user.id) }}" method="POST" class="d-inline ms-2">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="button" class="btn btn-sm btn-outline-danger p-0 px-1" title="Désassigner"
-                                    onclick="showConfirmModal('{{ url_for('logistics.unassign_user', id=logistics.id, user_id=user.id) }}', 'Désassigner {{ user.first_name }} ?', 'Désassigner')">
+                                    data-confirm-url="{{ url_for('logistics.unassign_user', id=logistics.id, user_id=user.id) }}" data-confirm-message="Désassigner {{ user.first_name }} ?" data-confirm-btn="Désassigner">
                                 <i class="bi bi-x-lg"></i>
                             </button>
                         </form>

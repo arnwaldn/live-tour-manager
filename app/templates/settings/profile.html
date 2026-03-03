@@ -55,7 +55,7 @@
 
                 {% if current_user.profile_picture_data %}
                 <button type="button" class="btn btn-outline-danger btn-sm"
-                        onclick="showConfirmModal('{{ url_for('settings.delete_profile_picture') }}', 'Supprimer votre photo de profil ?', 'Supprimer')">
+                        data-confirm-url="{{ url_for('settings.delete_profile_picture') }}" data-confirm-message="Supprimer votre photo de profil ?" data-confirm-btn="Supprimer">
                     <i class="bi bi-trash me-1"></i>Supprimer la photo
                 </button>
                 {% endif %}
@@ -235,7 +235,7 @@
                                     {% for card in current_user.travel_cards %}
                                     <button type="button" class="btn btn-outline-danger btn-sm mb-1"
                                             title="Supprimer {{ card.card_name or card.card_number }}"
-                                            onclick="showConfirmModal('{{ url_for('settings.delete_own_travel_card', card_id=card.id) }}', 'Supprimer la carte {{ card.card_name or card.card_number }} ?', 'Supprimer')">
+                                            data-confirm-url="{{ url_for('settings.delete_own_travel_card', card_id=card.id) }}" data-confirm-message="Supprimer la carte {{ card.card_name or card.card_number }} ?" data-confirm-btn="Supprimer">
                                         <i class="bi bi-trash me-1"></i>{{ card.card_name or card.card_number }}
                                     </button>
                                     {% endfor %}
@@ -543,7 +543,7 @@
                                         </a>
                                         <button type="button" class="btn btn-outline-danger"
                                                 title="Supprimer"
-                                                onclick="showConfirmModal('{{ url_for('settings.delete_profile_document', doc_id=doc.id) }}', 'Supprimer ce document ?', 'Supprimer')">
+                                                data-confirm-url="{{ url_for('settings.delete_profile_document', doc_id=doc.id) }}" data-confirm-message="Supprimer ce document ?" data-confirm-btn="Supprimer">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </div>

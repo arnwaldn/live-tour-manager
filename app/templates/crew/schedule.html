@@ -92,14 +92,23 @@
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         <li>
-                                            <button class="dropdown-item" onclick="editSlot({{ slot.id }}, '{{ slot.task_name }}', '{{ slot.task_description or '' }}', '{{ slot.start_time.strftime('%H:%M') }}', '{{ slot.end_time.strftime('%H:%M') }}', '{{ slot.profession_category.value if slot.profession_category else '' }}', '{{ slot.color }}')">
+                                            <button class="dropdown-item" data-edit-slot
+                                                    data-slot-id="{{ slot.id }}"
+                                                    data-slot-name="{{ slot.task_name }}"
+                                                    data-slot-description="{{ slot.task_description or '' }}"
+                                                    data-slot-start="{{ slot.start_time.strftime('%H:%M') }}"
+                                                    data-slot-end="{{ slot.end_time.strftime('%H:%M') }}"
+                                                    data-slot-category="{{ slot.profession_category.value if slot.profession_category else '' }}"
+                                                    data-slot-color="{{ slot.color }}">
                                                 <i class="bi bi-pencil me-2"></i>Modifier
                                             </button>
                                         </li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <button type="button" class="dropdown-item text-danger"
-                                                    onclick="showConfirmModal('{{ url_for('crew.delete_slot', slot_id=slot.id) }}', 'Supprimer le créneau « {{ slot.task_name }} » ? Les assignations associées seront aussi supprimées.', 'Supprimer')">
+                                                    data-confirm-url="{{ url_for('crew.delete_slot', slot_id=slot.id) }}"
+                                                    data-confirm-message="Supprimer le créneau « {{ slot.task_name }} » ? Les assignations associées seront aussi supprimées."
+                                                    data-confirm-btn="Supprimer">
                                                 <i class="bi bi-trash me-2"></i>Supprimer
                                             </button>
                                         </li>
@@ -132,7 +141,9 @@
                                     </div>
                                     {% if can_edit %}
                                     <button type="button" class="btn btn-sm btn-link text-danger p-0"
-                                            onclick="showConfirmModal('{{ url_for('crew.delete_assignment', id=assignment.id) }}', 'Retirer {{ assignment.person_name }} de ce créneau ?', 'Retirer')"
+                                            data-confirm-url="{{ url_for('crew.delete_assignment', id=assignment.id) }}"
+                                            data-confirm-message="Retirer {{ assignment.person_name }} de ce créneau ?"
+                                            data-confirm-btn="Retirer"
                                             aria-label="Retirer du créneau">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
@@ -142,7 +153,8 @@
 
                                 {% if can_edit %}
                                 <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-2"
-                                        onclick="openAssignModal({{ slot.id }}, '{{ slot.task_name }}')">
+                                        data-assign-slot="{{ slot.id }}"
+                                        data-slot-name="{{ slot.task_name }}">
                                     <i class="bi bi-person-plus me-1"></i>Assigner
                                 </button>
                                 {% endif %}
@@ -237,7 +249,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Type d'assignation *</label>
-                        <select class="form-select" name="assignment_type" id="assignType" required onchange="toggleAssignFields()">
+                        <select class="form-select" name="assignment_type" id="assignType" required>
                             <option value="user">Utilisateur système</option>
                             <option value="external">Contact externe</option>
                         </select>
@@ -373,6 +385,37 @@ document.getElementById('slotModal').addEventListener('hidden.bs.modal', functio
     document.getElementById('slotForm').reset();
     document.getElementById('slotColor').value = '#3B82F6';
 });
+
+// CSP-compliant event delegation for page-specific actions
+document.addEventListener('click', function (e) {
+    // Edit slot buttons
+    var editBtn = e.target.closest('[data-edit-slot]');
+    if (editBtn) {
+        editSlot(
+            parseInt(editBtn.dataset.slotId, 10),
+            editBtn.dataset.slotName,
+            editBtn.dataset.slotDescription,
+            editBtn.dataset.slotStart,
+            editBtn.dataset.slotEnd,
+            editBtn.dataset.slotCategory,
+            editBtn.dataset.slotColor
+        );
+        return;
+    }
+
+    // Assign slot buttons
+    var assignBtn = e.target.closest('[data-assign-slot]');
+    if (assignBtn) {
+        openAssignModal(
+            parseInt(assignBtn.dataset.assignSlot, 10),
+            assignBtn.dataset.slotName
+        );
+        return;
+    }
+});
+
+// Toggle assign fields on type change
+document.getElementById('assignType').addEventListener('change', toggleAssignFields);
 
 </script>
 {% endif %}

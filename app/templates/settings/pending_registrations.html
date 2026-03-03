@@ -71,11 +71,11 @@
                         <td data-label="" class="text-end">
                             <div class="btn-group">
                                 <button type="button" class="btn btn-success"
-                                        onclick="showConfirmModal('{{ url_for('settings.approve_user', id=user.id) }}', 'Approuver l\'inscription de {{ user.full_name }} ({{ user.email }}) ? Un email de confirmation sera envoyé.', 'Approuver', 'success')">
+                                        data-confirm-url="{{ url_for('settings.approve_user', id=user.id) }}" data-confirm-message="Approuver l'inscription de {{ user.full_name }} ({{ user.email }}) ? Un email de confirmation sera envoyé." data-confirm-btn="Approuver" data-confirm-variant="success">
                                     <i class="bi bi-check-lg me-1"></i>Approuver
                                 </button>
                                 <button type="button" class="btn btn-danger"
-                                        onclick="showConfirmModal('{{ url_for('settings.reject_user', id=user.id) }}', 'Refuser l\'inscription de {{ user.full_name }} ({{ user.email }}) ? Cette action supprimera définitivement sa demande.', 'Refuser', 'danger')">
+                                        data-confirm-url="{{ url_for('settings.reject_user', id=user.id) }}" data-confirm-message="Refuser l'inscription de {{ user.full_name }} ({{ user.email }}) ? Cette action supprimera définitivement sa demande." data-confirm-btn="Refuser">
                                     <i class="bi bi-x-lg me-1"></i>Refuser
                                 </button>
                             </div>
