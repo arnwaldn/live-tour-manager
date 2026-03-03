@@ -167,7 +167,7 @@
         <a href="{{ url_for('logistics.export_ical', stop_id=stop.id) }}" class="btn btn-outline-success">
             <i class="bi bi-calendar-plus me-1"></i>iCal
         </a>
-        <button onclick="window.print()" class="btn btn-outline-secondary">
+        <button data-action="print" class="btn btn-outline-secondary">
             <i class="bi bi-printer me-1"></i>Imprimer
         </button>
     </div>

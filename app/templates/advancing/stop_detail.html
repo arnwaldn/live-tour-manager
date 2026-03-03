@@ -151,7 +151,7 @@
                   class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-outline-danger btn-sm"
-                        onclick="return confirm('Réinitialiser la checklist ? Toutes les données seront perdues.')">
+                        data-native-confirm="Réinitialiser la checklist ? Toutes les données seront perdues.">
                     <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
                     Réinitialiser
                 </button>

@@ -356,7 +356,7 @@
                                         </a>
                                         <button type="button" class="btn btn-outline-danger"
                                                 title="Supprimer"
-                                                onclick="showConfirmModal('{{ url_for('documents.delete', id=doc.id) }}', 'Supprimer le document {{ doc.original_filename }} ?', 'Supprimer')">
+                                                data-confirm-url="{{ url_for('documents.delete', id=doc.id) }}" data-confirm-message="Supprimer le document {{ doc.original_filename }} ?" data-confirm-btn="Supprimer">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </div>

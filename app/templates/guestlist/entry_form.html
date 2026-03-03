@@ -60,7 +60,7 @@
                             <label for="entry_type" class="form-label">
                                 Type d'entrée <span class="text-danger">*</span>
                             </label>
-                            {{ form.entry_type(class="form-select", id="entry_type", onchange="toggleArtistSelect()") }}
+                            {{ form.entry_type(class="form-select", id="entry_type") }}
                             {% if form.entry_type.errors %}
                             <div class="invalid-feedback d-block">{{ form.entry_type.errors[0] }}</div>
                             {% endif %}
@@ -158,8 +158,9 @@ function toggleArtistSelect() {
     }
 }
 
-// Appel initial pour gérer le mode édition (pré-remplissage)
+// Wire change listener + initial call for edit mode
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('entry_type').addEventListener('change', toggleArtistSelect);
     toggleArtistSelect();
 });
 </script>

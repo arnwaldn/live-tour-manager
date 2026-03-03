@@ -565,22 +565,22 @@
                             <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
                             <input type="text" class="form-control border-start-0" id="member-search"
                                    placeholder="Rechercher par nom, email ou profession...">
-                            <button type="button" class="btn btn-outline-secondary" onclick="clearMemberSearch()" title="Effacer">
+                            <button type="button" class="btn btn-outline-secondary" id="clearSearchBtn" title="Effacer">
                                 <i class="bi bi-x-lg"></i>
                             </button>
                         </div>
 
                         <!-- Actions rapides -->
                         <div class="d-flex flex-wrap gap-2 mb-3">
-                            <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAllVisible()">
+                            <button type="button" class="btn btn-outline-success btn-sm" id="selectAllBtn">
                                 <i class="bi bi-check-all me-1"></i>Tout sélectionner
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllMembers()">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllBtn">
                                 <i class="bi bi-x-lg me-1"></i>Tout désélectionner
                             </button>
                             {% if stop %}
                             <!-- Bouton copier équipe précédente (seulement en mode édition) -->
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="copyPreviousCrew()">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="copyPrevCrewBtn">
                                 <i class="bi bi-clipboard-check me-1"></i>Copier équipe précédente
                             </button>
                             {% endif %}
@@ -639,7 +639,7 @@
                                     </h6>
                                     <div class="row g-2">
                                         {% for user in prof.users %}
-                                        <div class="col-12 col-md-6 member-card"
+                                        <div class="col-12 col-md-6 member-card member-card-toggle"
                                              data-name="{{ user.full_name|lower }}"
                                              data-fullname="{{ user.full_name }}"
                                              data-email="{{ user.email|lower }}"
@@ -647,14 +647,13 @@
                                              data-profession-name="{{ prof.name }}"
                                              data-category="{{ cat.key }}"
                                              data-category-label="{{ cat.label }}"
-                                             data-category-color="{{ cat.color }}"
-                                             onclick="toggleMemberCard(this)">
+                                             data-category-color="{{ cat.color }}">
                                             <div class="card border h-100 {% if user.id in assigned_ids %}selected{% endif %}">
                                                 <div class="card-body p-2 d-flex align-items-center">
                                                     <input type="checkbox" name="member_ids" value="{{ user.id }}"
                                                            class="form-check-input me-3 member-checkbox flex-shrink-0"
                                                            {% if user.id in assigned_ids %}checked{% endif %}
-                                                           onclick="event.stopPropagation()">
+                                                           data-stop-propagation>
                                                     {% if user.profile_picture_data %}
                                                     <img src="{{ url_for('settings.serve_profile_picture', user_id=user.id) }}"
                                                          class="rounded-circle me-2 flex-shrink-0" style="width: 40px; height: 40px; object-fit: cover;"
@@ -706,7 +705,7 @@
                                 </h6>
                                 <div class="row g-2">
                                     {% for user in users_without_profession %}
-                                    <div class="col-12 col-md-6 member-card"
+                                    <div class="col-12 col-md-6 member-card member-card-toggle"
                                          data-name="{{ user.full_name|lower }}"
                                          data-fullname="{{ user.full_name }}"
                                          data-email="{{ user.email|lower }}"
@@ -714,14 +713,13 @@
                                          data-profession-name=""
                                          data-category="autres"
                                          data-category-label="Autres"
-                                         data-category-color="secondary"
-                                         onclick="toggleMemberCard(this)">
+                                         data-category-color="secondary">
                                         <div class="card border h-100 {% if user.id in assigned_ids %}selected{% endif %}">
                                             <div class="card-body p-2 d-flex align-items-center">
                                                 <input type="checkbox" name="member_ids" value="{{ user.id }}"
                                                        class="form-check-input me-3 member-checkbox flex-shrink-0"
                                                        {% if user.id in assigned_ids %}checked{% endif %}
-                                                       onclick="event.stopPropagation()">
+                                                       data-stop-propagation>
                                                 {% if user.profile_picture_data %}
                                                 <img src="{{ url_for('settings.serve_profile_picture', user_id=user.id) }}"
                                                      class="rounded-circle me-2 flex-shrink-0" style="width: 40px; height: 40px; object-fit: cover;"
@@ -1054,6 +1052,27 @@ function copyPreviousCrew() {
     );
 }
 {% endif %}
+
+// Wire up button event listeners (CSP-compliant, no inline handlers)
+var clearSearchBtn = document.getElementById('clearSearchBtn');
+if (clearSearchBtn) clearSearchBtn.addEventListener('click', clearMemberSearch);
+
+var selectAllBtn = document.getElementById('selectAllBtn');
+if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllVisible);
+
+var deselectAllBtn = document.getElementById('deselectAllBtn');
+if (deselectAllBtn) deselectAllBtn.addEventListener('click', deselectAllMembers);
+
+{% if stop %}
+var copyPrevCrewBtn = document.getElementById('copyPrevCrewBtn');
+if (copyPrevCrewBtn) copyPrevCrewBtn.addEventListener('click', copyPreviousCrew);
+{% endif %}
+
+// Delegated listener for member card toggle (handles both category and "other" sections)
+document.addEventListener('click', function(e) {
+    var card = e.target.closest('.member-card-toggle');
+    if (card) toggleMemberCard(card);
+});
 </script>
 <!-- Autocomplétion d'adresses -->
 <script src="{{ versioned_static('js/address-autocomplete.js') }}"></script>

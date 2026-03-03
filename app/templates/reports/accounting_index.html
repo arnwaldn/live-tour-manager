@@ -46,7 +46,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="downloadBordereau()">
+                        <button type="button" class="btn btn-primary" id="downloadBordereauBtn">
                             <i class="bi bi-download me-1"></i> Télécharger PDF
                         </button>
                     </form>
@@ -91,7 +91,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <button type="button" class="btn btn-success" onclick="downloadMasseSalariale()">
+                        <button type="button" class="btn btn-success" id="downloadMasseSalarialeBtn">
                             <i class="bi bi-download me-1"></i> Télécharger CSV
                         </button>
                     </form>
@@ -159,7 +159,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <button type="button" class="btn btn-info" onclick="downloadBudget()">
+                        <button type="button" class="btn btn-info" id="downloadBudgetBtn">
                             <i class="bi bi-download me-1"></i> Télécharger PDF
                         </button>
                     </form>
@@ -207,7 +207,7 @@
                             <input type="date" class="form-control" id="endDate">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
-                            <button type="button" class="btn btn-secondary w-100" onclick="downloadFicheMembre()">
+                            <button type="button" class="btn btn-secondary w-100" id="downloadFicheMembreBtn">
                                 <i class="bi bi-download me-1"></i> PDF
                             </button>
                         </div>
@@ -284,5 +284,11 @@ function downloadFicheMembre() {
 
     window.location.href = url;
 }
+
+// Wire button listeners
+document.getElementById('downloadBordereauBtn')?.addEventListener('click', downloadBordereau);
+document.getElementById('downloadMasseSalarialeBtn')?.addEventListener('click', downloadMasseSalariale);
+document.getElementById('downloadBudgetBtn')?.addEventListener('click', downloadBudget);
+document.getElementById('downloadFicheMembreBtn')?.addEventListener('click', downloadFicheMembre);
 </script>
 {% endblock %}

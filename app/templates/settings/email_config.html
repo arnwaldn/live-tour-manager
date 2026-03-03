@@ -68,7 +68,7 @@
                         <div class="input-group">
                             <input type="password" name="mail_password" class="form-control" id="mail_password"
                                    placeholder="{{ '********' if config.MAIL_PASSWORD else 'Entrez le mot de passe' }}">
-                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()" aria-label="Afficher le mot de passe">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-password-btn" aria-label="Afficher le mot de passe">
                                 <i class="bi bi-eye" id="toggle-icon" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -87,7 +87,7 @@
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-check-lg me-1"></i>Enregistrer
                         </button>
-                        <button type="button" class="btn btn-outline-secondary" id="test-btn" onclick="testEmail()">
+                        <button type="button" class="btn btn-outline-secondary" id="test-btn">
                             <i class="bi bi-send me-1"></i>Tester la configuration
                         </button>
                     </div>
@@ -160,7 +160,7 @@
 
                                 <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-sm btn-primary flex-grow-1"
-                                            onclick="prefillProvider('gmail')">
+                                            data-provider="gmail">
                                         <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
                                     </button>
                                     <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer"
@@ -204,7 +204,7 @@
 
                                 <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-sm btn-primary flex-grow-1"
-                                            onclick="prefillProvider('outlook')">
+                                            data-provider="outlook">
                                         <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
                                     </button>
                                     <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer"
@@ -248,7 +248,7 @@
 
                                 <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-sm btn-primary flex-grow-1"
-                                            onclick="prefillProvider('yahoo')">
+                                            data-provider="yahoo">
                                         <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
                                     </button>
                                     <a href="https://login.yahoo.com/account/security" target="_blank" rel="noopener noreferrer"
@@ -289,7 +289,7 @@
                                 </div>
 
                                 <button type="button" class="btn btn-sm btn-primary w-100"
-                                        onclick="prefillProvider('ovh')">
+                                        data-provider="ovh">
                                     <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
                                 </button>
                             </div>
@@ -319,7 +319,7 @@
                                 </div>
 
                                 <button type="button" class="btn btn-sm btn-primary w-100"
-                                        onclick="prefillProvider('ionos')">
+                                        data-provider="ionos">
                                     <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
                                 </button>
                             </div>
@@ -357,7 +357,7 @@
 
                                 <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-sm btn-primary flex-grow-1"
-                                            onclick="prefillProvider('free')">
+                                            data-provider="free">
                                         <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
                                     </button>
                                     <a href="https://subscribe.free.fr/login/" target="_blank" rel="noopener noreferrer"
@@ -400,7 +400,7 @@
 
                                 <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-sm btn-primary flex-grow-1"
-                                            onclick="prefillProvider('orange')">
+                                            data-provider="orange">
                                         <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
                                     </button>
                                     <a href="https://messagerie.orange.fr" target="_blank" rel="noopener noreferrer"
@@ -435,7 +435,7 @@
                                 </div>
 
                                 <button type="button" class="btn btn-sm btn-primary w-100"
-                                        onclick="prefillProvider('infomaniak')">
+                                        data-provider="infomaniak">
                                     <i class="bi bi-lightning me-1"></i>Utiliser ces paramètres
                                 </button>
                             </div>
@@ -605,5 +605,15 @@ function testEmail() {
         btn.innerHTML = originalText;
     });
 }
+
+// Wire event listeners (CSP-compliant — no inline handlers)
+document.getElementById('toggle-password-btn').addEventListener('click', togglePassword);
+document.getElementById('test-btn').addEventListener('click', testEmail);
+document.addEventListener('click', function(e) {
+    const providerBtn = e.target.closest('[data-provider]');
+    if (providerBtn) {
+        prefillProvider(providerBtn.dataset.provider);
+    }
+});
 </script>
 {% endblock %}

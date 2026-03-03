@@ -122,7 +122,7 @@
         <a href="{{ url_for('logistics.export_stop_pdf', stop_id=stop.id) }}" class="btn btn-outline-success">
             <i class="bi bi-file-pdf me-1"></i>PDF
         </a>
-        <button onclick="window.print()" class="btn btn-outline-secondary">
+        <button data-action="print" class="btn btn-outline-secondary">
             <i class="bi bi-printer me-1"></i>Imprimer
         </button>
     </div>

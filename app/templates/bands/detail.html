@@ -113,7 +113,7 @@
                             </li>
                             <li>
                                 <button type="button" class="dropdown-item text-danger"
-                                        onclick="showConfirmModal('{{ url_for('bands.remove_member', id=band.id, member_id=membership.id) }}', 'Retirer {{ membership.user.full_name }} du groupe ? Cette personne n\'aura plus accès au groupe ni à ses tournées.', 'Retirer')">
+                                        data-confirm-url="{{ url_for('bands.remove_member', id=band.id, member_id=membership.id) }}" data-confirm-message="Retirer {{ membership.user.full_name }} du groupe ? Cette personne n'aura plus accès au groupe ni à ses tournées." data-confirm-btn="Retirer">
                                     <i class="bi bi-person-x me-2"></i>Retirer
                                 </button>
                             </li>

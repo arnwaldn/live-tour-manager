@@ -71,7 +71,7 @@
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item" href="#" onclick="showCalendarSubscription({{ tour.id }}); return false;">
+                    <a class="dropdown-item" href="#" data-calendar-sub="{{ tour.id }}">
                         <i class="bi bi-link-45deg me-2"></i>URL d'abonnement
                     </a>
                 </li>
@@ -360,7 +360,7 @@
                     <label class="form-label fw-bold">URL d'abonnement</label>
                     <div class="input-group">
                         <input type="text" class="form-control" id="calendarFeedUrl" readonly>
-                        <button class="btn btn-outline-primary" type="button" onclick="copyCalendarUrl()" aria-label="Copier l'URL">
+                        <button class="btn btn-outline-primary" type="button" id="copyCalendarUrlBtn" aria-label="Copier l'URL">
                             <i class="bi bi-clipboard"></i>
                         </button>
                     </div>
@@ -478,5 +478,15 @@ function copyCalendarUrl() {
         document.execCommand('copy');
     });
 }
+
+// Wire event listeners
+document.addEventListener('click', function(e) {
+    var el = e.target.closest('[data-calendar-sub]');
+    if (el) {
+        e.preventDefault();
+        showCalendarSubscription(el.dataset.calendarSub);
+    }
+});
+document.getElementById('copyCalendarUrlBtn')?.addEventListener('click', copyCalendarUrl);
 </script>
 {% endblock %}

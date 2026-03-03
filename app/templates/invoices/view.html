@@ -168,7 +168,7 @@
                             {% if invoice.status.value == 'draft' %}
                             <td>
                                 <button type="button" class="btn btn-sm btn-outline-danger" title="Supprimer" aria-label="Supprimer"
-                                    onclick="showConfirmModal('{{ url_for('invoices.delete_line', invoice_id=invoice.id, line_id=line.id) }}', 'Supprimer cette ligne de facture ?', 'Supprimer')">
+                                    data-confirm-url="{{ url_for('invoices.delete_line', invoice_id=invoice.id, line_id=line.id) }}" data-confirm-message="Supprimer cette ligne de facture ?" data-confirm-btn="Supprimer">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>

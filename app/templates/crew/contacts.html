@@ -60,7 +60,7 @@
                         </td>
                         <td data-label="Société">{{ contact.company or '—' }}</td>
                         <td data-label="" class="text-end">
-                            <form method="POST" action="{{ url_for('crew.delete_contact', id=contact.id) }}" class="d-inline" onsubmit="return confirm('Supprimer ce contact ?')">
+                            <form method="POST" action="{{ url_for('crew.delete_contact', id=contact.id) }}" class="d-inline" data-native-confirm="Supprimer ce contact ?">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
                                     <i class="bi bi-trash"></i>
