@@ -1005,29 +1005,21 @@ def api_create_band():
         return api_error('validation_error', 'Missing required fields.', 422,
                          {'name': 'name is required.'})
 
-    org_id = get_current_org_id()
-    if not org_id:
-        # Fallback: try user's org memberships directly
-        from app.models.organization import OrganizationMembership
-        membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
-        if not membership:
-            return api_error('forbidden', 'User has no organization.', 403)
-        org_id = membership.org_id
+    from app.models.organization import OrganizationMembership
+    membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
+    if not membership:
+        return api_error('forbidden', 'User has no organization.', 403)
 
-    try:
-        band = Band(
-            name=data['name'].strip(),
-            genre=data.get('genre', '').strip() or None,
-            bio=data.get('bio', '').strip() or None,
-            website=data.get('website', '').strip() or None,
-            org_id=org_id,
-            manager_id=user.id,
-        )
-        db.session.add(band)
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        return api_error('internal_error', 'Failed to create band.', 500)
+    band = Band(
+        name=data['name'].strip(),
+        genre=data.get('genre', '').strip() or None,
+        bio=data.get('bio', '').strip() or None,
+        website=data.get('website', '').strip() or None,
+        org_id=membership.org_id,
+        manager_id=user.id,
+    )
+    db.session.add(band)
+    db.session.commit()
 
     band = Band.query.options(joinedload(Band.manager)).get(band.id)
     return api_success(BandSchema().dump(band)), 201
