@@ -1005,9 +1005,9 @@ def api_create_band():
         return api_error('validation_error', 'Missing required fields.', 422,
                          {'name': 'name is required.'})
 
-    org_id = get_current_org_id()
+    org_id = user.current_org_id
     if not org_id:
-        return api_error('forbidden', 'No organization context.', 403)
+        return api_error('forbidden', 'User has no organization.', 403)
 
     band = Band(
         name=data['name'].strip(),
