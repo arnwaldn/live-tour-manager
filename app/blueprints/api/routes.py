@@ -1005,30 +1005,23 @@ def api_create_band():
         return api_error('validation_error', 'Missing required fields.', 422,
                          {'name': 'name is required.'})
 
-    try:
-        import traceback as _tb
-        from app.models.organization import OrganizationMembership
-        membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
-        if not membership:
-            return api_error('forbidden', 'User has no organization.', 403)
+    from app.models.organization import OrganizationMembership
+    membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
+    if not membership:
+        return api_error('forbidden', 'User has no organization.', 403)
 
-        band = Band(
-            name=data['name'].strip(),
-            genre=data.get('genre', '').strip() or None,
-            bio=data.get('bio', '').strip() or None,
-            website=data.get('website', '').strip() or None,
-            org_id=membership.org_id,
-            manager_id=user.id,
-        )
-        db.session.add(band)
-        db.session.commit()
+    band = Band(
+        name=data['name'].strip(),
+        genre=data.get('genre', '').strip() or None,
+        bio=data.get('bio', '').strip() or None,
+        website=data.get('website', '').strip() or None,
+        org_id=membership.org_id,
+        manager_id=user.id,
+    )
+    db.session.add(band)
+    db.session.commit()
 
-        band = Band.query.options(joinedload(Band.manager)).get(band.id)
-        return api_success(BandSchema().dump(band)), 201
-    except Exception:
-        db.session.rollback()
-        tb = _tb.format_exc()
-        return jsonify({'error': {'code': 'band_create_error', 'traceback': tb[-800:]}}), 500
+    return jsonify({'data': {'id': band.id, 'name': band.name}}), 201
 
 
 # ── Venues ──────────────────────────────────────────────────
