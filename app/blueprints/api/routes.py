@@ -1028,7 +1028,7 @@ def api_create_band():
     except Exception:
         db.session.rollback()
         tb = _tb.format_exc()
-        return jsonify({'error': {'code': 'band_create_error', 'message': tb[-500:]}}), 500
+        return jsonify({'error': {'code': 'band_create_error', 'traceback': tb[-800:]}}), 500
 
 
 # ── Venues ──────────────────────────────────────────────────
