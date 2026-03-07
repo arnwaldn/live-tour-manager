@@ -1005,24 +1005,28 @@ def api_create_band():
         return api_error('validation_error', 'Missing required fields.', 422,
                          {'name': 'name is required.'})
 
-    from app.models.organization import OrganizationMembership
-    membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
-    if not membership:
-        return api_error('forbidden', 'User has no organization.', 403)
+    try:
+        from app.models.organization import OrganizationMembership
+        membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
+        if not membership:
+            return api_error('forbidden', 'User has no organization (v4).', 403)
 
-    band = Band(
-        name=data['name'].strip(),
-        genre=data.get('genre', '').strip() or None,
-        bio=data.get('bio', '').strip() or None,
-        website=data.get('website', '').strip() or None,
-        org_id=membership.org_id,
-        manager_id=user.id,
-    )
-    db.session.add(band)
-    db.session.commit()
+        band = Band(
+            name=data['name'].strip(),
+            genre=data.get('genre', '').strip() or None,
+            bio=data.get('bio', '').strip() or None,
+            website=data.get('website', '').strip() or None,
+            org_id=membership.org_id,
+            manager_id=user.id,
+        )
+        db.session.add(band)
+        db.session.commit()
 
-    band = Band.query.options(joinedload(Band.manager)).get(band.id)
-    return api_success(BandSchema().dump(band)), 201
+        band = Band.query.options(joinedload(Band.manager)).get(band.id)
+        return api_success(BandSchema().dump(band)), 201
+    except Exception as exc:
+        db.session.rollback()
+        return api_error('band_create_error', f'v4: {type(exc).__name__}: {str(exc)[:200]}', 500)
 
 
 # ── Venues ──────────────────────────────────────────────────
