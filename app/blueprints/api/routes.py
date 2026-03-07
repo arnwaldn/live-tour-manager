@@ -214,8 +214,9 @@ def api_create_tour():
     db.session.add(tour)
     db.session.commit()
 
-    # Reload with band relationship for serialization
-    tour = Tour.query.options(joinedload(Tour.band)).get(tour.id)
+    tour_id = tour.id
+    db.session.expire_all()
+    tour = Tour.query.options(joinedload(Tour.band)).get(tour_id)
     return api_success(TourSchema().dump(tour)), 201
 
 
@@ -461,11 +462,13 @@ def api_create_stop(tour_id):
     db.session.add(stop)
     db.session.commit()
 
+    stop_id = stop.id
+    db.session.expire_all()
     stop = TourStop.query.options(
         joinedload(TourStop.venue),
         joinedload(TourStop.band),
         joinedload(TourStop.tour),
-    ).get(stop.id)
+    ).get(stop_id)
     return api_success(TourStopSchema().dump(stop)), 201
 
 
@@ -709,9 +712,11 @@ def api_create_guestlist_entry(stop_id):
     db.session.add(entry)
     db.session.commit()
 
+    entry_id = entry.id
+    db.session.expire_all()
     entry = GuestlistEntry.query.options(
         joinedload(GuestlistEntry.requested_by),
-    ).get(entry.id)
+    ).get(entry_id)
     return api_success(GuestlistEntrySchema().dump(entry)), 201
 
 
@@ -1021,7 +1026,10 @@ def api_create_band():
     db.session.add(band)
     db.session.commit()
 
-    return jsonify({'data': {'id': band.id, 'name': band.name}}), 201
+    band_id = band.id
+    db.session.expire_all()
+    band = Band.query.options(joinedload(Band.manager)).get(band_id)
+    return api_success(BandSchema().dump(band)), 201
 
 
 # ── Venues ──────────────────────────────────────────────────
