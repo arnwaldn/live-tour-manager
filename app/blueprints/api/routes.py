@@ -11,8 +11,13 @@ from app.blueprints.api import api_bp
 from app.blueprints.api.decorators import jwt_required, requires_api_access
 from app.blueprints.api.schemas import (
     TourSchema, TourStopSchema, GuestlistEntrySchema,
-    NotificationSchema, PaymentSchema, BandSchema, VenueSchema,
-    TourStopMinimalSchema,
+    NotificationSchema, PaymentSchema, BandSchema, BandDetailSchema,
+    VenueSchema, VenueDetailSchema, TourStopMinimalSchema,
+    UserSchema, LogisticsInfoSchema,
+    AdvancingChecklistItemSchema, RiderRequirementSchema,
+    AdvancingContactSchema, LineupSlotSchema,
+    CrewScheduleSlotSchema, CrewAssignmentSchema,
+    DocumentSchema, InvoiceSchema, InvoiceLineSchema, InvoiceMinimalSchema,
 )
 from app.blueprints.api.helpers import paginate_query, api_error, api_success
 from app.extensions import db, limiter
@@ -24,8 +29,17 @@ from app.models.guestlist import GuestlistEntry, GuestlistStatus
 from app.models.notification import Notification
 from app.models.payments import TeamMemberPayment
 from app.models.band import Band, BandMembership
-from app.models.venue import Venue
+from app.models.venue import Venue, VenueContact
 from app.models.guestlist import GuestlistEntry, GuestlistStatus, EntryType
+from app.models.advancing import (
+    AdvancingChecklistItem, ChecklistCategory, RiderRequirement, RiderCategory,
+    AdvancingContact, DEFAULT_CHECKLIST_ITEMS,
+)
+from app.models.logistics import LogisticsInfo, LogisticsType, LogisticsStatus
+from app.models.lineup import LineupSlot, PerformerType
+from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment, AssignmentStatus
+from app.models.document import Document, DocumentType, DocumentShare, ShareType
+from app.models.invoices import Invoice, InvoiceStatus, InvoiceType, InvoiceLine, InvoicePayment
 
 
 # ── Dashboard ────────────────────────────────────────────────
@@ -1069,3 +1083,2061 @@ def api_list_venues():
     query = query.order_by(Venue.name)
 
     return jsonify(paginate_query(query, VenueSchema())), 200
+
+
+@api_bp.route('/bands/<int:band_id>', methods=['GET'])
+@jwt_required
+def api_get_band(band_id):
+    """Get a single band with members."""
+    band = Band.query.options(
+        joinedload(Band.manager),
+        joinedload(Band.memberships).joinedload(BandMembership.user),
+    ).get(band_id)
+
+    if not band:
+        return api_error('not_found', 'Band not found.', 404)
+    user = request.api_user
+    if not band.has_access(user) and not user.is_manager_or_above():
+        return api_error('forbidden', 'No access to this band.', 403)
+
+    return api_success(BandDetailSchema().dump(band))
+
+
+@api_bp.route('/bands/<int:band_id>', methods=['PUT'])
+@jwt_required
+def api_update_band(band_id):
+    """Update an existing band.
+
+    Updatable fields: name, genre, bio, website, social_links
+    """
+    band = Band.query.options(joinedload(Band.manager)).get(band_id)
+    if not band:
+        return api_error('not_found', 'Band not found.', 404)
+    user = request.api_user
+    if not band.is_manager(user) and not user.is_manager_or_above():
+        return api_error('forbidden', 'No permission to edit this band.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    UPDATABLE = {'name', 'genre', 'bio', 'website'}
+    for field in UPDATABLE:
+        if field in data:
+            value = data[field]
+            if isinstance(value, str):
+                value = value.strip() or None
+            setattr(band, field, value)
+
+    if 'social_links' in data:
+        if isinstance(data['social_links'], dict):
+            band.social_links = data['social_links']
+        else:
+            return api_error('validation_error', 'social_links must be a JSON object.', 422)
+
+    # Validate name not empty
+    if band.name is None or (isinstance(band.name, str) and not band.name.strip()):
+        return api_error('validation_error', 'name cannot be empty.', 422)
+
+    db.session.commit()
+
+    band_id = band.id
+    db.session.expire_all()
+    band = Band.query.options(
+        joinedload(Band.manager),
+        joinedload(Band.memberships).joinedload(BandMembership.user),
+    ).get(band_id)
+    return api_success(BandDetailSchema().dump(band))
+
+
+@api_bp.route('/bands/<int:band_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_band(band_id):
+    """Delete a band. Checks for deletion blockers (active tours, pending payments)."""
+    band = Band.query.get(band_id)
+    if not band:
+        return api_error('not_found', 'Band not found.', 404)
+    user = request.api_user
+    if not band.is_manager(user) and not user.is_admin():
+        return api_error('forbidden', 'No permission to delete this band.', 403)
+
+    blockers = band.get_deletion_blockers()
+    if blockers:
+        return api_error(
+            'deletion_blocked',
+            f'Cannot delete band: {", ".join(blockers)}.',
+            409,
+            {'blockers': blockers},
+        )
+
+    db.session.delete(band)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/venues', methods=['POST'])
+@jwt_required
+def api_create_venue():
+    """Create a new venue.
+
+    Required fields: name, city, country
+    Optional fields: address, state, postal_code, capacity, venue_type,
+        latitude, longitude, timezone, website, phone, email, notes,
+        technical_specs, stage_dimensions, load_in_info, parking_info,
+        backline_available, backline_details
+    """
+    data = request.get_json(silent=True) or {}
+    user = request.api_user
+
+    errors = {}
+    for field in ('name', 'city', 'country'):
+        if not data.get(field, '').strip():
+            errors[field] = f'{field} is required.'
+    if errors:
+        return api_error('validation_error', 'Missing required fields.', 422, errors)
+
+    from app.models.organization import OrganizationMembership
+    membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
+    if not membership:
+        return api_error('forbidden', 'User has no organization.', 403)
+
+    venue = Venue(
+        name=data['name'].strip(),
+        city=data['city'].strip(),
+        country=data['country'].strip(),
+        address=data.get('address', '').strip() or None,
+        state=data.get('state', '').strip() or None,
+        postal_code=data.get('postal_code', '').strip() or None,
+        capacity=data.get('capacity'),
+        venue_type=data.get('venue_type', '').strip() or None,
+        latitude=data.get('latitude'),
+        longitude=data.get('longitude'),
+        timezone=data.get('timezone', 'Europe/Paris'),
+        website=data.get('website', '').strip() or None,
+        phone=data.get('phone', '').strip() or None,
+        email=data.get('email', '').strip() or None,
+        notes=data.get('notes', '').strip() or None,
+        technical_specs=data.get('technical_specs', '').strip() or None,
+        stage_dimensions=data.get('stage_dimensions', '').strip() or None,
+        load_in_info=data.get('load_in_info', '').strip() or None,
+        parking_info=data.get('parking_info', '').strip() or None,
+        backline_available=data.get('backline_available', False),
+        backline_details=data.get('backline_details', '').strip() or None,
+        org_id=membership.org_id,
+    )
+    db.session.add(venue)
+    db.session.commit()
+
+    venue_id = venue.id
+    db.session.expire_all()
+    venue = Venue.query.options(joinedload(Venue.contacts)).get(venue_id)
+    return api_success(VenueDetailSchema().dump(venue)), 201
+
+
+@api_bp.route('/venues/<int:venue_id>', methods=['GET'])
+@jwt_required
+def api_get_venue(venue_id):
+    """Get a single venue with contacts and technical specs."""
+    venue = Venue.query.options(joinedload(Venue.contacts)).get(venue_id)
+    if not venue:
+        return api_error('not_found', 'Venue not found.', 404)
+
+    return api_success(VenueDetailSchema().dump(venue))
+
+
+@api_bp.route('/venues/<int:venue_id>', methods=['PUT'])
+@jwt_required
+def api_update_venue(venue_id):
+    """Update an existing venue.
+
+    Updatable fields: name, address, city, state, country, postal_code,
+        capacity, venue_type, latitude, longitude, timezone, website,
+        phone, email, notes, technical_specs, stage_dimensions,
+        load_in_info, parking_info, backline_available, backline_details
+    """
+    venue = Venue.query.options(joinedload(Venue.contacts)).get(venue_id)
+    if not venue:
+        return api_error('not_found', 'Venue not found.', 404)
+
+    data = request.get_json(silent=True) or {}
+
+    STRING_FIELDS = [
+        'name', 'address', 'city', 'state', 'country', 'postal_code',
+        'venue_type', 'timezone', 'website', 'phone', 'email', 'notes',
+        'technical_specs', 'stage_dimensions', 'load_in_info', 'parking_info',
+        'backline_details',
+    ]
+    for field in STRING_FIELDS:
+        if field in data:
+            value = data[field]
+            if isinstance(value, str):
+                value = value.strip() or None
+            setattr(venue, field, value)
+
+    NUMERIC_FIELDS = ['capacity', 'latitude', 'longitude']
+    for field in NUMERIC_FIELDS:
+        if field in data:
+            setattr(venue, field, data[field])
+
+    if 'backline_available' in data:
+        venue.backline_available = bool(data['backline_available'])
+
+    # Validate required fields not empty
+    if venue.name is None or (isinstance(venue.name, str) and not venue.name.strip()):
+        return api_error('validation_error', 'name cannot be empty.', 422)
+    if venue.city is None or (isinstance(venue.city, str) and not venue.city.strip()):
+        return api_error('validation_error', 'city cannot be empty.', 422)
+    if venue.country is None or (isinstance(venue.country, str) and not venue.country.strip()):
+        return api_error('validation_error', 'country cannot be empty.', 422)
+
+    db.session.commit()
+    return api_success(VenueDetailSchema().dump(venue))
+
+
+@api_bp.route('/venues/<int:venue_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_venue(venue_id):
+    """Delete a venue. Fails if any tour stops reference it."""
+    venue = Venue.query.get(venue_id)
+    if not venue:
+        return api_error('not_found', 'Venue not found.', 404)
+
+    # Check for referencing tour stops
+    stop_count = TourStop.query.filter_by(venue_id=venue.id).count()
+    if stop_count > 0:
+        return api_error(
+            'deletion_blocked',
+            f'Cannot delete venue: {stop_count} tour stop(s) reference it.',
+            409,
+            {'blockers': [f'{stop_count} tour stop(s) reference this venue']},
+        )
+
+    db.session.delete(venue)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+# ── Profile ────────────────────────────────────────────────
+
+@api_bp.route('/auth/me', methods=['PUT'])
+@jwt_required
+def api_update_profile():
+    """Update current user's profile.
+
+    Updatable fields: first_name, last_name, phone
+    """
+    user = request.api_user
+    data = request.get_json(silent=True) or {}
+
+    UPDATABLE = {'first_name', 'last_name', 'phone'}
+    for field in UPDATABLE:
+        if field in data:
+            value = data[field]
+            if isinstance(value, str):
+                value = value.strip() or None
+            setattr(user, field, value)
+
+    # Validate required fields
+    if not user.first_name or not user.first_name.strip():
+        return api_error('validation_error', 'first_name cannot be empty.', 422)
+    if not user.last_name or not user.last_name.strip():
+        return api_error('validation_error', 'last_name cannot be empty.', 422)
+
+    db.session.commit()
+    return api_success(UserSchema().dump(user))
+
+
+# ── Advancing ──────────────────────────────────────────────
+
+@api_bp.route('/stops/<int:stop_id>/advancing', methods=['GET'])
+@jwt_required
+def api_get_advancing(stop_id):
+    """Get full advancing data for a tour stop.
+
+    Returns checklist items, rider requirements, contacts, and completion %.
+    """
+    stop = TourStop.query.options(
+        joinedload(TourStop.tour),
+        joinedload(TourStop.checklist_items),
+        joinedload(TourStop.rider_requirements),
+        joinedload(TourStop.advancing_contacts),
+    ).get(stop_id)
+
+    if not stop or not stop.tour.can_view(request.api_user):
+        return api_error('not_found', 'Tour stop not found.', 404)
+
+    checklist = AdvancingChecklistItemSchema(many=True).dump(stop.checklist_items)
+    rider = RiderRequirementSchema(many=True).dump(stop.rider_requirements)
+    contacts = AdvancingContactSchema(many=True).dump(stop.advancing_contacts)
+
+    total = len(stop.checklist_items)
+    completed = sum(1 for item in stop.checklist_items if item.is_completed)
+    completion_pct = round((completed / total * 100) if total > 0 else 0)
+
+    return api_success({
+        'checklist': checklist,
+        'rider': rider,
+        'contacts': contacts,
+        'completion': {
+            'total': total,
+            'completed': completed,
+            'percentage': completion_pct,
+        },
+    })
+
+
+@api_bp.route('/stops/<int:stop_id>/advancing/checklist', methods=['POST'])
+@jwt_required
+def api_create_checklist_item(stop_id):
+    """Add a checklist item to a tour stop's advancing.
+
+    Required fields: label, category
+    Optional fields: notes, due_date, sort_order
+    """
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Tour stop not found.', 404)
+    if not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this stop.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if not data.get('label', '').strip():
+        return api_error('validation_error', 'label is required.', 422)
+    if not data.get('category'):
+        return api_error('validation_error', 'category is required.', 422)
+
+    try:
+        category = ChecklistCategory(data['category'])
+    except ValueError:
+        return api_error('validation_error', f"Invalid category: {data['category']}.", 422)
+
+    due_date = None
+    if data.get('due_date'):
+        try:
+            due_date = date.fromisoformat(data['due_date'])
+        except (ValueError, TypeError):
+            return api_error('validation_error', 'due_date must be YYYY-MM-DD.', 422)
+
+    item = AdvancingChecklistItem(
+        tour_stop_id=stop.id,
+        category=category,
+        label=data['label'].strip(),
+        notes=data.get('notes', '').strip() or None,
+        due_date=due_date,
+        sort_order=data.get('sort_order', 0),
+    )
+    db.session.add(item)
+    db.session.commit()
+
+    return api_success(AdvancingChecklistItemSchema().dump(item)), 201
+
+
+@api_bp.route('/advancing/checklist/<int:item_id>', methods=['PUT'])
+@jwt_required
+def api_update_checklist_item(item_id):
+    """Update or toggle a checklist item.
+
+    Updatable fields: label, category, is_completed, notes, due_date, sort_order
+    """
+    item = AdvancingChecklistItem.query.options(
+        joinedload(AdvancingChecklistItem.tour_stop).joinedload(TourStop.tour),
+    ).get(item_id)
+    if not item:
+        return api_error('not_found', 'Checklist item not found.', 404)
+    if not item.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this item.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if 'label' in data:
+        value = data['label'].strip() if isinstance(data['label'], str) else data['label']
+        if not value:
+            return api_error('validation_error', 'label cannot be empty.', 422)
+        item.label = value
+
+    if 'category' in data:
+        try:
+            item.category = ChecklistCategory(data['category'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid category: {data['category']}.", 422)
+
+    if 'is_completed' in data:
+        item.toggle(request.api_user.id)
+
+    if 'notes' in data:
+        item.notes = data['notes'].strip() if isinstance(data['notes'], str) else data['notes']
+
+    if 'due_date' in data:
+        if data['due_date']:
+            try:
+                item.due_date = date.fromisoformat(data['due_date'])
+            except (ValueError, TypeError):
+                return api_error('validation_error', 'due_date must be YYYY-MM-DD.', 422)
+        else:
+            item.due_date = None
+
+    if 'sort_order' in data:
+        item.sort_order = data['sort_order']
+
+    db.session.commit()
+    return api_success(AdvancingChecklistItemSchema().dump(item))
+
+
+@api_bp.route('/advancing/checklist/<int:item_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_checklist_item(item_id):
+    """Delete a checklist item."""
+    item = AdvancingChecklistItem.query.options(
+        joinedload(AdvancingChecklistItem.tour_stop).joinedload(TourStop.tour),
+    ).get(item_id)
+    if not item:
+        return api_error('not_found', 'Checklist item not found.', 404)
+    if not item.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to delete this item.', 403)
+
+    db.session.delete(item)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/stops/<int:stop_id>/advancing/init', methods=['POST'])
+@jwt_required
+def api_init_advancing_checklist(stop_id):
+    """Initialize advancing checklist from default template (26 items).
+
+    Only works if checklist is empty (no existing items).
+    """
+    stop = TourStop.query.options(
+        joinedload(TourStop.tour),
+        joinedload(TourStop.checklist_items),
+    ).get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Tour stop not found.', 404)
+    if not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this stop.', 403)
+
+    if len(stop.checklist_items) > 0:
+        return api_error('invalid_state', 'Checklist already initialized.', 409)
+
+    for item_data in DEFAULT_CHECKLIST_ITEMS:
+        item = AdvancingChecklistItem(
+            tour_stop_id=stop.id,
+            category=ChecklistCategory(item_data['category']),
+            label=item_data['label'],
+            sort_order=item_data['sort_order'],
+        )
+        db.session.add(item)
+
+    db.session.commit()
+
+    # Re-fetch with items
+    db.session.expire_all()
+    stop = TourStop.query.options(joinedload(TourStop.checklist_items)).get(stop_id)
+    items = AdvancingChecklistItemSchema(many=True).dump(stop.checklist_items)
+    return api_success({'items': items, 'count': len(items)}), 201
+
+
+@api_bp.route('/stops/<int:stop_id>/advancing/rider', methods=['POST'])
+@jwt_required
+def api_create_rider_requirement(stop_id):
+    """Add a rider requirement.
+
+    Required fields: requirement, category
+    Optional fields: quantity, is_mandatory, notes, sort_order
+    """
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Tour stop not found.', 404)
+    if not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this stop.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if not data.get('requirement', '').strip():
+        return api_error('validation_error', 'requirement is required.', 422)
+    if not data.get('category'):
+        return api_error('validation_error', 'category is required.', 422)
+
+    try:
+        category = RiderCategory(data['category'])
+    except ValueError:
+        return api_error('validation_error', f"Invalid category: {data['category']}.", 422)
+
+    rider = RiderRequirement(
+        tour_stop_id=stop.id,
+        category=category,
+        requirement=data['requirement'].strip(),
+        quantity=data.get('quantity', 1),
+        is_mandatory=data.get('is_mandatory', True),
+        notes=data.get('notes', '').strip() or None,
+        sort_order=data.get('sort_order', 0),
+    )
+    db.session.add(rider)
+    db.session.commit()
+
+    return api_success(RiderRequirementSchema().dump(rider)), 201
+
+
+@api_bp.route('/advancing/rider/<int:rider_id>', methods=['PUT'])
+@jwt_required
+def api_update_rider_requirement(rider_id):
+    """Update a rider requirement.
+
+    Updatable fields: requirement, category, quantity, is_mandatory,
+        is_confirmed, venue_response, notes, sort_order
+    """
+    rider = RiderRequirement.query.options(
+        joinedload(RiderRequirement.tour_stop).joinedload(TourStop.tour),
+    ).get(rider_id)
+    if not rider:
+        return api_error('not_found', 'Rider requirement not found.', 404)
+    if not rider.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this item.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if 'requirement' in data:
+        value = data['requirement'].strip() if isinstance(data['requirement'], str) else data['requirement']
+        if not value:
+            return api_error('validation_error', 'requirement cannot be empty.', 422)
+        rider.requirement = value
+
+    if 'category' in data:
+        try:
+            rider.category = RiderCategory(data['category'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid category: {data['category']}.", 422)
+
+    SIMPLE_FIELDS = {'quantity', 'is_mandatory', 'is_confirmed', 'sort_order'}
+    for field in SIMPLE_FIELDS:
+        if field in data:
+            setattr(rider, field, data[field])
+
+    STRING_FIELDS = {'venue_response', 'notes'}
+    for field in STRING_FIELDS:
+        if field in data:
+            value = data[field]
+            if isinstance(value, str):
+                value = value.strip() or None
+            setattr(rider, field, value)
+
+    db.session.commit()
+    return api_success(RiderRequirementSchema().dump(rider))
+
+
+@api_bp.route('/advancing/rider/<int:rider_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_rider_requirement(rider_id):
+    """Delete a rider requirement."""
+    rider = RiderRequirement.query.options(
+        joinedload(RiderRequirement.tour_stop).joinedload(TourStop.tour),
+    ).get(rider_id)
+    if not rider:
+        return api_error('not_found', 'Rider requirement not found.', 404)
+    if not rider.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to delete this item.', 403)
+
+    db.session.delete(rider)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/stops/<int:stop_id>/advancing/contacts', methods=['POST'])
+@jwt_required
+def api_create_advancing_contact(stop_id):
+    """Add an advancing contact.
+
+    Required fields: name
+    Optional fields: role, email, phone, is_primary, notes
+    """
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Tour stop not found.', 404)
+    if not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this stop.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if not data.get('name', '').strip():
+        return api_error('validation_error', 'name is required.', 422)
+
+    contact = AdvancingContact(
+        tour_stop_id=stop.id,
+        name=data['name'].strip(),
+        role=data.get('role', '').strip() or None,
+        email=data.get('email', '').strip() or None,
+        phone=data.get('phone', '').strip() or None,
+        is_primary=data.get('is_primary', False),
+        notes=data.get('notes', '').strip() or None,
+    )
+    db.session.add(contact)
+    db.session.commit()
+
+    return api_success(AdvancingContactSchema().dump(contact)), 201
+
+
+@api_bp.route('/advancing/contacts/<int:contact_id>', methods=['PUT'])
+@jwt_required
+def api_update_advancing_contact(contact_id):
+    """Update an advancing contact.
+
+    Updatable fields: name, role, email, phone, is_primary, notes
+    """
+    contact = AdvancingContact.query.options(
+        joinedload(AdvancingContact.tour_stop).joinedload(TourStop.tour),
+    ).get(contact_id)
+    if not contact:
+        return api_error('not_found', 'Advancing contact not found.', 404)
+    if not contact.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this contact.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    STRING_FIELDS = {'name', 'role', 'email', 'phone', 'notes'}
+    for field in STRING_FIELDS:
+        if field in data:
+            value = data[field]
+            if isinstance(value, str):
+                value = value.strip() or None
+            setattr(contact, field, value)
+
+    if 'is_primary' in data:
+        contact.is_primary = bool(data['is_primary'])
+
+    if contact.name is None or (isinstance(contact.name, str) and not contact.name.strip()):
+        return api_error('validation_error', 'name cannot be empty.', 422)
+
+    db.session.commit()
+    return api_success(AdvancingContactSchema().dump(contact))
+
+
+@api_bp.route('/advancing/contacts/<int:contact_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_advancing_contact(contact_id):
+    """Delete an advancing contact."""
+    contact = AdvancingContact.query.options(
+        joinedload(AdvancingContact.tour_stop).joinedload(TourStop.tour),
+    ).get(contact_id)
+    if not contact:
+        return api_error('not_found', 'Advancing contact not found.', 404)
+    if not contact.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to delete this contact.', 403)
+
+    db.session.delete(contact)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+# ── Logistics ──────────────────────────────────────────────
+
+@api_bp.route('/stops/<int:stop_id>/logistics', methods=['GET'])
+@jwt_required
+def api_list_logistics(stop_id):
+    """List logistics items for a tour stop."""
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop or not stop.tour.can_view(request.api_user):
+        return api_error('not_found', 'Tour stop not found.', 404)
+
+    query = LogisticsInfo.query.filter_by(
+        tour_stop_id=stop_id
+    ).order_by(LogisticsInfo.start_datetime)
+
+    logistics_type = request.args.get('type')
+    if logistics_type:
+        try:
+            query = query.filter(LogisticsInfo.logistics_type == LogisticsType(logistics_type))
+        except ValueError:
+            return api_error('invalid_filter', f'Invalid type: {logistics_type}', 422)
+
+    items = query.all()
+    return api_success(LogisticsInfoSchema(many=True).dump(items))
+
+
+@api_bp.route('/stops/<int:stop_id>/logistics', methods=['POST'])
+@jwt_required
+def api_create_logistics(stop_id):
+    """Create a logistics item.
+
+    Required fields: logistics_type
+    Optional fields: provider, confirmation_number, start_datetime, end_datetime,
+        status, address, city, country, cost, currency, notes, and type-specific fields
+    """
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Tour stop not found.', 404)
+    if not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this stop.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if not data.get('logistics_type'):
+        return api_error('validation_error', 'logistics_type is required.', 422)
+
+    try:
+        ltype = LogisticsType(data['logistics_type'])
+    except ValueError:
+        return api_error('validation_error', f"Invalid logistics_type: {data['logistics_type']}.", 422)
+
+    # Parse status
+    lstatus = LogisticsStatus.PENDING
+    if data.get('status'):
+        try:
+            lstatus = LogisticsStatus(data['status'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid status: {data['status']}.", 422)
+
+    # Parse datetimes
+    start_dt = None
+    end_dt = None
+    if data.get('start_datetime'):
+        try:
+            start_dt = datetime.fromisoformat(data['start_datetime'])
+        except (ValueError, TypeError):
+            return api_error('validation_error', 'start_datetime must be ISO format.', 422)
+    if data.get('end_datetime'):
+        try:
+            end_dt = datetime.fromisoformat(data['end_datetime'])
+        except (ValueError, TypeError):
+            return api_error('validation_error', 'end_datetime must be ISO format.', 422)
+
+    # Parse time fields for hotels
+    def parse_time(value):
+        if not value:
+            return None
+        from datetime import time as dt_time
+        try:
+            parts = value.split(':')
+            return dt_time(int(parts[0]), int(parts[1]))
+        except (ValueError, IndexError):
+            return None
+
+    item = LogisticsInfo(
+        tour_stop_id=stop.id,
+        logistics_type=ltype,
+        status=lstatus,
+        provider=data.get('provider', '').strip() or None,
+        confirmation_number=data.get('confirmation_number', '').strip() or None,
+        start_datetime=start_dt,
+        end_datetime=end_dt,
+        address=data.get('address', '').strip() or None,
+        city=data.get('city', '').strip() or None,
+        country=data.get('country', '').strip() or None,
+        latitude=data.get('latitude'),
+        longitude=data.get('longitude'),
+        cost=data.get('cost'),
+        currency=data.get('currency', 'EUR'),
+        is_paid=data.get('is_paid', False),
+        paid_by=data.get('paid_by', '').strip() or None,
+        # Flight
+        flight_number=data.get('flight_number', '').strip() or None,
+        departure_airport=data.get('departure_airport', '').strip() or None,
+        arrival_airport=data.get('arrival_airport', '').strip() or None,
+        departure_terminal=data.get('departure_terminal', '').strip() or None,
+        arrival_terminal=data.get('arrival_terminal', '').strip() or None,
+        # Hotel
+        room_type=data.get('room_type', '').strip() or None,
+        number_of_rooms=data.get('number_of_rooms', 1),
+        breakfast_included=data.get('breakfast_included', False),
+        check_in_time=parse_time(data.get('check_in_time')),
+        check_out_time=parse_time(data.get('check_out_time')),
+        # Ground transport
+        pickup_location=data.get('pickup_location', '').strip() or None,
+        dropoff_location=data.get('dropoff_location', '').strip() or None,
+        vehicle_type=data.get('vehicle_type', '').strip() or None,
+        driver_name=data.get('driver_name', '').strip() or None,
+        driver_phone=data.get('driver_phone', '').strip() or None,
+        # Contact
+        contact_name=data.get('contact_name', '').strip() or None,
+        contact_phone=data.get('contact_phone', '').strip() or None,
+        contact_email=data.get('contact_email', '').strip() or None,
+        notes=data.get('notes', '').strip() or None,
+    )
+    db.session.add(item)
+    db.session.commit()
+
+    return api_success(LogisticsInfoSchema().dump(item)), 201
+
+
+@api_bp.route('/logistics/<int:item_id>', methods=['PUT'])
+@jwt_required
+def api_update_logistics(item_id):
+    """Update a logistics item."""
+    item = LogisticsInfo.query.options(
+        joinedload(LogisticsInfo.tour_stop).joinedload(TourStop.tour),
+    ).get(item_id)
+    if not item:
+        return api_error('not_found', 'Logistics item not found.', 404)
+    if not item.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this item.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if 'logistics_type' in data:
+        try:
+            item.logistics_type = LogisticsType(data['logistics_type'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid logistics_type.", 422)
+
+    if 'status' in data:
+        try:
+            item.status = LogisticsStatus(data['status'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid status.", 422)
+
+    # Datetime fields
+    for dt_field in ('start_datetime', 'end_datetime'):
+        if dt_field in data:
+            if data[dt_field]:
+                try:
+                    setattr(item, dt_field, datetime.fromisoformat(data[dt_field]))
+                except (ValueError, TypeError):
+                    return api_error('validation_error', f'{dt_field} must be ISO format.', 422)
+            else:
+                setattr(item, dt_field, None)
+
+    # Time fields
+    def parse_time(value):
+        if not value:
+            return None
+        from datetime import time as dt_time
+        try:
+            parts = value.split(':')
+            return dt_time(int(parts[0]), int(parts[1]))
+        except (ValueError, IndexError, AttributeError):
+            return None
+
+    for time_field in ('check_in_time', 'check_out_time'):
+        if time_field in data:
+            setattr(item, time_field, parse_time(data[time_field]))
+
+    # String fields
+    STRING_FIELDS = [
+        'provider', 'confirmation_number', 'address', 'city', 'country',
+        'paid_by', 'flight_number', 'departure_airport', 'arrival_airport',
+        'departure_terminal', 'arrival_terminal', 'room_type',
+        'pickup_location', 'dropoff_location', 'vehicle_type',
+        'driver_name', 'driver_phone', 'contact_name', 'contact_phone',
+        'contact_email', 'notes',
+    ]
+    for field in STRING_FIELDS:
+        if field in data:
+            value = data[field]
+            if isinstance(value, str):
+                value = value.strip() or None
+            setattr(item, field, value)
+
+    # Numeric/boolean fields
+    SIMPLE_FIELDS = [
+        'latitude', 'longitude', 'cost', 'currency', 'is_paid',
+        'number_of_rooms', 'breakfast_included',
+    ]
+    for field in SIMPLE_FIELDS:
+        if field in data:
+            setattr(item, field, data[field])
+
+    db.session.commit()
+    return api_success(LogisticsInfoSchema().dump(item))
+
+
+@api_bp.route('/logistics/<int:item_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_logistics(item_id):
+    """Delete a logistics item."""
+    item = LogisticsInfo.query.options(
+        joinedload(LogisticsInfo.tour_stop).joinedload(TourStop.tour),
+    ).get(item_id)
+    if not item:
+        return api_error('not_found', 'Logistics item not found.', 404)
+    if not item.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to delete this item.', 403)
+
+    db.session.delete(item)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+# ── Lineup ─────────────────────────────────────────────────
+
+@api_bp.route('/stops/<int:stop_id>/lineup', methods=['GET'])
+@jwt_required
+def api_list_lineup(stop_id):
+    """List lineup slots for a tour stop."""
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop or not stop.tour.can_view(request.api_user):
+        return api_error('not_found', 'Tour stop not found.', 404)
+
+    slots = LineupSlot.query.filter_by(
+        tour_stop_id=stop_id
+    ).order_by(LineupSlot.order, LineupSlot.start_time).all()
+
+    return api_success(LineupSlotSchema(many=True).dump(slots))
+
+
+@api_bp.route('/stops/<int:stop_id>/lineup', methods=['POST'])
+@jwt_required
+def api_create_lineup_slot(stop_id):
+    """Create a lineup slot.
+
+    Required fields: performer_name, start_time
+    Optional fields: performer_type, end_time, set_length_minutes, order, notes, is_confirmed
+    """
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Tour stop not found.', 404)
+    if not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this stop.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if not data.get('performer_name', '').strip():
+        return api_error('validation_error', 'performer_name is required.', 422)
+    if not data.get('start_time'):
+        return api_error('validation_error', 'start_time is required.', 422)
+
+    # Parse performer_type
+    ptype = PerformerType.SUPPORT
+    if data.get('performer_type'):
+        try:
+            ptype = PerformerType(data['performer_type'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid performer_type: {data['performer_type']}.", 422)
+
+    # Parse times
+    def parse_time(value):
+        if not value:
+            return None
+        from datetime import time as dt_time
+        try:
+            parts = value.split(':')
+            return dt_time(int(parts[0]), int(parts[1]))
+        except (ValueError, IndexError):
+            return None
+
+    start_time = parse_time(data['start_time'])
+    if not start_time:
+        return api_error('validation_error', 'start_time must be HH:MM format.', 422)
+
+    slot = LineupSlot(
+        tour_stop_id=stop.id,
+        performer_name=data['performer_name'].strip(),
+        performer_type=ptype,
+        start_time=start_time,
+        end_time=parse_time(data.get('end_time')),
+        set_length_minutes=data.get('set_length_minutes'),
+        order=data.get('order', 1),
+        notes=data.get('notes', '').strip() or None,
+        is_confirmed=data.get('is_confirmed', False),
+    )
+    db.session.add(slot)
+    db.session.commit()
+
+    return api_success(LineupSlotSchema().dump(slot)), 201
+
+
+@api_bp.route('/lineup/<int:slot_id>', methods=['PUT'])
+@jwt_required
+def api_update_lineup_slot(slot_id):
+    """Update a lineup slot.
+
+    Updatable fields: performer_name, performer_type, start_time, end_time,
+        set_length_minutes, order, notes, is_confirmed
+    """
+    slot = LineupSlot.query.options(
+        joinedload(LineupSlot.tour_stop).joinedload(TourStop.tour),
+    ).get(slot_id)
+    if not slot:
+        return api_error('not_found', 'Lineup slot not found.', 404)
+    if not slot.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this slot.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if 'performer_name' in data:
+        value = data['performer_name'].strip() if isinstance(data['performer_name'], str) else data['performer_name']
+        if not value:
+            return api_error('validation_error', 'performer_name cannot be empty.', 422)
+        slot.performer_name = value
+
+    if 'performer_type' in data:
+        try:
+            slot.performer_type = PerformerType(data['performer_type'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid performer_type.", 422)
+
+    # Parse times
+    def parse_time(value):
+        if not value:
+            return None
+        from datetime import time as dt_time
+        try:
+            parts = value.split(':')
+            return dt_time(int(parts[0]), int(parts[1]))
+        except (ValueError, IndexError, AttributeError):
+            return None
+
+    for time_field in ('start_time', 'end_time'):
+        if time_field in data:
+            setattr(slot, time_field, parse_time(data[time_field]))
+
+    SIMPLE_FIELDS = {'set_length_minutes', 'order', 'is_confirmed'}
+    for field in SIMPLE_FIELDS:
+        if field in data:
+            setattr(slot, field, data[field])
+
+    if 'notes' in data:
+        slot.notes = data['notes'].strip() if isinstance(data['notes'], str) else data['notes']
+
+    db.session.commit()
+    return api_success(LineupSlotSchema().dump(slot))
+
+
+@api_bp.route('/lineup/<int:slot_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_lineup_slot(slot_id):
+    """Delete a lineup slot."""
+    slot = LineupSlot.query.options(
+        joinedload(LineupSlot.tour_stop).joinedload(TourStop.tour),
+    ).get(slot_id)
+    if not slot:
+        return api_error('not_found', 'Lineup slot not found.', 404)
+    if not slot.tour_stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to delete this slot.', 403)
+
+    db.session.delete(slot)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+# ── Crew ───────────────────────────────────────────────────
+
+@api_bp.route('/stops/<int:stop_id>/crew', methods=['GET'])
+@jwt_required
+def api_list_crew(stop_id):
+    """List crew schedule slots and assignments for a tour stop."""
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop or not stop.tour.can_view(request.api_user):
+        return api_error('not_found', 'Tour stop not found.', 404)
+
+    slots = CrewScheduleSlot.query.options(
+        joinedload(CrewScheduleSlot.assignments),
+    ).filter_by(
+        tour_stop_id=stop_id
+    ).order_by(CrewScheduleSlot.order, CrewScheduleSlot.start_time).all()
+
+    return api_success(CrewScheduleSlotSchema(many=True).dump(slots))
+
+
+@api_bp.route('/stops/<int:stop_id>/crew/slots', methods=['POST'])
+@jwt_required
+def api_create_crew_slot(stop_id):
+    """Create a crew schedule slot.
+
+    Required fields: task_name, start_time, end_time
+    Optional fields: task_description, profession_category, color, order
+    """
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Tour stop not found.', 404)
+    if not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this stop.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if not data.get('task_name', '').strip():
+        return api_error('validation_error', 'task_name is required.', 422)
+    if not data.get('start_time') or not data.get('end_time'):
+        return api_error('validation_error', 'start_time and end_time are required.', 422)
+
+    def parse_time(value):
+        if not value:
+            return None
+        from datetime import time as dt_time
+        try:
+            parts = value.split(':')
+            return dt_time(int(parts[0]), int(parts[1]))
+        except (ValueError, IndexError):
+            return None
+
+    start_time = parse_time(data['start_time'])
+    end_time = parse_time(data['end_time'])
+    if not start_time or not end_time:
+        return api_error('validation_error', 'Times must be HH:MM format.', 422)
+
+    # Parse profession_category
+    prof_cat = None
+    if data.get('profession_category'):
+        from app.models.profession import ProfessionCategory
+        try:
+            prof_cat = ProfessionCategory(data['profession_category'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid profession_category.", 422)
+
+    slot = CrewScheduleSlot(
+        tour_stop_id=stop.id,
+        task_name=data['task_name'].strip(),
+        task_description=data.get('task_description', '').strip() or None,
+        start_time=start_time,
+        end_time=end_time,
+        profession_category=prof_cat,
+        color=data.get('color', '#3B82F6'),
+        order=data.get('order', 0),
+        created_by_id=request.api_user.id,
+    )
+    db.session.add(slot)
+    db.session.commit()
+
+    return api_success(CrewScheduleSlotSchema().dump(slot)), 201
+
+
+@api_bp.route('/crew/slots/<int:slot_id>', methods=['PUT'])
+@jwt_required
+def api_update_crew_slot(slot_id):
+    """Update a crew schedule slot.
+
+    Updatable fields: task_name, task_description, start_time, end_time,
+        profession_category, color, order
+    """
+    slot = CrewScheduleSlot.query.options(
+        joinedload(CrewScheduleSlot.assignments),
+    ).get(slot_id)
+    if not slot:
+        return api_error('not_found', 'Crew slot not found.', 404)
+
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(slot.tour_stop_id)
+    if not stop or not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this slot.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if 'task_name' in data:
+        value = data['task_name'].strip() if isinstance(data['task_name'], str) else data['task_name']
+        if not value:
+            return api_error('validation_error', 'task_name cannot be empty.', 422)
+        slot.task_name = value
+
+    if 'task_description' in data:
+        slot.task_description = data['task_description'].strip() if isinstance(data['task_description'], str) else data['task_description']
+
+    def parse_time(value):
+        if not value:
+            return None
+        from datetime import time as dt_time
+        try:
+            parts = value.split(':')
+            return dt_time(int(parts[0]), int(parts[1]))
+        except (ValueError, IndexError, AttributeError):
+            return None
+
+    for time_field in ('start_time', 'end_time'):
+        if time_field in data:
+            parsed = parse_time(data[time_field])
+            if not parsed:
+                return api_error('validation_error', f'{time_field} must be HH:MM.', 422)
+            setattr(slot, time_field, parsed)
+
+    if 'profession_category' in data:
+        if data['profession_category']:
+            from app.models.profession import ProfessionCategory
+            try:
+                slot.profession_category = ProfessionCategory(data['profession_category'])
+            except ValueError:
+                return api_error('validation_error', f"Invalid profession_category.", 422)
+        else:
+            slot.profession_category = None
+
+    if 'color' in data:
+        slot.color = data['color']
+    if 'order' in data:
+        slot.order = data['order']
+
+    db.session.commit()
+    return api_success(CrewScheduleSlotSchema().dump(slot))
+
+
+@api_bp.route('/crew/slots/<int:slot_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_crew_slot(slot_id):
+    """Delete a crew schedule slot (and all its assignments)."""
+    slot = CrewScheduleSlot.query.get(slot_id)
+    if not slot:
+        return api_error('not_found', 'Crew slot not found.', 404)
+
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(slot.tour_stop_id)
+    if not stop or not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to delete this slot.', 403)
+
+    db.session.delete(slot)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/crew/slots/<int:slot_id>/assign', methods=['POST'])
+@jwt_required
+def api_assign_crew(slot_id):
+    """Assign a person to a crew slot.
+
+    Required: user_id OR external_contact_id (at least one)
+    Optional: profession_id, call_time, notes
+    """
+    slot = CrewScheduleSlot.query.get(slot_id)
+    if not slot:
+        return api_error('not_found', 'Crew slot not found.', 404)
+
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(slot.tour_stop_id)
+    if not stop or not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to assign crew.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    user_id = data.get('user_id')
+    external_id = data.get('external_contact_id')
+    if not user_id and not external_id:
+        return api_error('validation_error', 'user_id or external_contact_id is required.', 422)
+
+    # Check for duplicate assignment
+    existing = CrewAssignment.query.filter_by(slot_id=slot.id)
+    if user_id:
+        existing = existing.filter_by(user_id=user_id).first()
+    elif external_id:
+        existing = existing.filter_by(external_contact_id=external_id).first()
+    if existing:
+        return api_error('conflict', 'Person already assigned to this slot.', 409)
+
+    def parse_time(value):
+        if not value:
+            return None
+        from datetime import time as dt_time
+        try:
+            parts = value.split(':')
+            return dt_time(int(parts[0]), int(parts[1]))
+        except (ValueError, IndexError):
+            return None
+
+    assignment = CrewAssignment(
+        slot_id=slot.id,
+        user_id=user_id,
+        external_contact_id=external_id,
+        profession_id=data.get('profession_id'),
+        call_time=parse_time(data.get('call_time')),
+        notes=data.get('notes', '').strip() or None,
+        assigned_by_id=request.api_user.id,
+        status=AssignmentStatus.ASSIGNED,
+    )
+    db.session.add(assignment)
+    db.session.commit()
+
+    return api_success(CrewAssignmentSchema().dump(assignment)), 201
+
+
+@api_bp.route('/crew/assignments/<int:assignment_id>', methods=['PUT'])
+@jwt_required
+def api_update_crew_assignment(assignment_id):
+    """Update a crew assignment (status, notes, call_time).
+
+    Updatable fields: status, call_time, notes
+    """
+    assignment = CrewAssignment.query.options(
+        joinedload(CrewAssignment.slot),
+    ).get(assignment_id)
+    if not assignment:
+        return api_error('not_found', 'Crew assignment not found.', 404)
+
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(assignment.slot.tour_stop_id)
+    if not stop or not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to edit this assignment.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if 'status' in data:
+        try:
+            new_status = AssignmentStatus(data['status'])
+            assignment.status = new_status
+            if new_status == AssignmentStatus.CONFIRMED:
+                assignment.confirmed_at = datetime.utcnow()
+        except ValueError:
+            return api_error('validation_error', f"Invalid status: {data['status']}.", 422)
+
+    if 'call_time' in data:
+        def parse_time(value):
+            if not value:
+                return None
+            from datetime import time as dt_time
+            try:
+                parts = value.split(':')
+                return dt_time(int(parts[0]), int(parts[1]))
+            except (ValueError, IndexError, AttributeError):
+                return None
+        assignment.call_time = parse_time(data['call_time'])
+
+    if 'notes' in data:
+        assignment.notes = data['notes'].strip() if isinstance(data['notes'], str) else data['notes']
+
+    db.session.commit()
+    return api_success(CrewAssignmentSchema().dump(assignment))
+
+
+@api_bp.route('/crew/assignments/<int:assignment_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_crew_assignment(assignment_id):
+    """Remove a crew assignment."""
+    assignment = CrewAssignment.query.options(
+        joinedload(CrewAssignment.slot),
+    ).get(assignment_id)
+    if not assignment:
+        return api_error('not_found', 'Crew assignment not found.', 404)
+
+    stop = TourStop.query.options(joinedload(TourStop.tour)).get(assignment.slot.tour_stop_id)
+    if not stop or not stop.can_edit(request.api_user):
+        return api_error('forbidden', 'No permission to delete this assignment.', 403)
+
+    db.session.delete(assignment)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+# ── Documents ─────────────────────────────────────────────
+
+@api_bp.route('/documents', methods=['GET'])
+@jwt_required
+def api_list_documents():
+    """List documents accessible to the current user.
+
+    Filters: type, owner_type (user/band/tour), expiring (true = expiring_soon + expired)
+    """
+    user = request.api_user
+    org_id = get_current_org_id()
+
+    # Base query: documents owned by user OR shared with user OR belonging to user's tours/bands
+    query = Document.query.filter(
+        db.or_(
+            Document.user_id == user.id,
+            Document.uploaded_by_id == user.id,
+            Document.id.in_(
+                db.session.query(DocumentShare.document_id).filter(
+                    DocumentShare.shared_to_user_id == user.id
+                )
+            ),
+        )
+    )
+
+    # Filter by type
+    doc_type = request.args.get('type')
+    if doc_type:
+        try:
+            query = query.filter(Document.document_type == DocumentType(doc_type))
+        except ValueError:
+            return api_error('invalid_filter', f'Invalid type: {doc_type}', 422)
+
+    # Filter by owner type
+    owner_type = request.args.get('owner_type')
+    if owner_type == 'user':
+        query = query.filter(Document.user_id.isnot(None))
+    elif owner_type == 'band':
+        query = query.filter(Document.band_id.isnot(None))
+    elif owner_type == 'tour':
+        query = query.filter(Document.tour_id.isnot(None))
+
+    # Filter expiring documents
+    if request.args.get('expiring') == 'true':
+        from datetime import timedelta
+        threshold = date.today() + timedelta(days=90)
+        query = query.filter(
+            Document.expiry_date.isnot(None),
+            Document.expiry_date <= threshold,
+        )
+
+    query = query.order_by(desc(Document.created_at))
+    return paginate_query(query, DocumentSchema())
+
+
+@api_bp.route('/documents', methods=['POST'])
+@jwt_required
+def api_create_document():
+    """Upload a new document (multipart/form-data).
+
+    Required: file, name, document_type
+    Optional: description, user_id, band_id, tour_id, expiry_date, issue_date,
+        document_number, issuing_country
+    """
+    import uuid
+    from werkzeug.utils import secure_filename
+
+    user = request.api_user
+
+    if 'file' not in request.files:
+        return api_error('validation_error', 'No file provided.', 422)
+
+    file = request.files['file']
+    if not file or not file.filename:
+        return api_error('validation_error', 'Empty file.', 422)
+
+    if not Document.is_allowed_file(file.filename):
+        return api_error('validation_error',
+                         f'File type not allowed. Allowed: {", ".join(Document.allowed_extensions())}', 422)
+
+    # Validate file content (magic bytes)
+    is_valid, error_msg = Document.validate_file_content(file, file.filename)
+    if not is_valid:
+        return api_error('validation_error', error_msg, 422)
+
+    # Check file size
+    file.seek(0, 2)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > Document.max_file_size():
+        return api_error('validation_error', 'File too large (max 16 MB).', 422)
+
+    name = request.form.get('name', '').strip()
+    if not name:
+        return api_error('validation_error', 'name is required.', 422)
+
+    doc_type_str = request.form.get('document_type', 'other')
+    try:
+        doc_type = DocumentType(doc_type_str)
+    except ValueError:
+        return api_error('validation_error', f'Invalid document_type: {doc_type_str}', 422)
+
+    # Generate stored filename
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    stored_filename = f'{uuid.uuid4().hex}.{ext}'
+    original_filename = secure_filename(file.filename)
+
+    # Save file
+    import os
+    from flask import current_app
+    upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+    os.makedirs(upload_folder, exist_ok=True)
+    file_path = os.path.join(upload_folder, stored_filename)
+    file.save(file_path)
+
+    # Parse optional dates
+    expiry_date = None
+    if request.form.get('expiry_date'):
+        try:
+            expiry_date = date.fromisoformat(request.form['expiry_date'])
+        except ValueError:
+            pass
+
+    issue_date = None
+    if request.form.get('issue_date'):
+        try:
+            issue_date = date.fromisoformat(request.form['issue_date'])
+        except ValueError:
+            pass
+
+    doc = Document(
+        name=name,
+        document_type=doc_type,
+        description=request.form.get('description', '').strip() or None,
+        original_filename=original_filename,
+        stored_filename=stored_filename,
+        file_path=file_path,
+        file_size=file_size,
+        mime_type=file.content_type,
+        user_id=request.form.get('user_id', type=int) or user.id,
+        band_id=request.form.get('band_id', type=int),
+        tour_id=request.form.get('tour_id', type=int),
+        expiry_date=expiry_date,
+        issue_date=issue_date,
+        document_number=request.form.get('document_number', '').strip() or None,
+        issuing_country=request.form.get('issuing_country', '').strip() or None,
+        uploaded_by_id=user.id,
+    )
+    db.session.add(doc)
+    db.session.commit()
+
+    return api_success(DocumentSchema().dump(doc)), 201
+
+
+@api_bp.route('/documents/<int:doc_id>', methods=['GET'])
+@jwt_required
+def api_get_document(doc_id):
+    """Get document detail."""
+    doc = Document.query.options(
+        joinedload(Document.uploaded_by),
+    ).get(doc_id)
+    if not doc:
+        return api_error('not_found', 'Document not found.', 404)
+
+    # Access check: owner, uploader, or shared with
+    user = request.api_user
+    if (doc.user_id != user.id
+            and doc.uploaded_by_id != user.id
+            and not DocumentShare.is_shared_with(doc.id, user.id)):
+        return api_error('forbidden', 'No access to this document.', 403)
+
+    return api_success(DocumentSchema().dump(doc))
+
+
+@api_bp.route('/documents/<int:doc_id>', methods=['PUT'])
+@jwt_required
+def api_update_document(doc_id):
+    """Update document metadata.
+
+    Updatable: name, description, document_type, expiry_date, issue_date,
+        document_number, issuing_country
+    """
+    doc = Document.query.get(doc_id)
+    if not doc:
+        return api_error('not_found', 'Document not found.', 404)
+
+    user = request.api_user
+    if doc.uploaded_by_id != user.id and doc.user_id != user.id:
+        return api_error('forbidden', 'No permission to edit this document.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    if 'name' in data:
+        value = data['name'].strip() if isinstance(data['name'], str) else data['name']
+        if not value:
+            return api_error('validation_error', 'name cannot be empty.', 422)
+        doc.name = value
+
+    if 'description' in data:
+        doc.description = data['description'].strip() if isinstance(data['description'], str) else data['description']
+
+    if 'document_type' in data:
+        try:
+            doc.document_type = DocumentType(data['document_type'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid document_type.", 422)
+
+    for date_field in ('expiry_date', 'issue_date'):
+        if date_field in data:
+            if data[date_field]:
+                try:
+                    setattr(doc, date_field, date.fromisoformat(data[date_field]))
+                except (ValueError, TypeError):
+                    return api_error('validation_error', f'{date_field} must be YYYY-MM-DD.', 422)
+            else:
+                setattr(doc, date_field, None)
+
+    STRING_FIELDS = {'document_number', 'issuing_country'}
+    for field in STRING_FIELDS:
+        if field in data:
+            value = data[field]
+            if isinstance(value, str):
+                value = value.strip() or None
+            setattr(doc, field, value)
+
+    db.session.commit()
+    return api_success(DocumentSchema().dump(doc))
+
+
+@api_bp.route('/documents/<int:doc_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_document(doc_id):
+    """Delete a document and its file."""
+    doc = Document.query.get(doc_id)
+    if not doc:
+        return api_error('not_found', 'Document not found.', 404)
+
+    user = request.api_user
+    if doc.uploaded_by_id != user.id and doc.user_id != user.id:
+        return api_error('forbidden', 'No permission to delete this document.', 403)
+
+    # Delete physical file
+    from flask import current_app
+    upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+    doc.delete_file(upload_folder)
+
+    db.session.delete(doc)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/documents/<int:doc_id>/share', methods=['POST'])
+@jwt_required
+def api_share_document(doc_id):
+    """Share a document with another user.
+
+    Required: user_id
+    Optional: share_type ('view' or 'edit', defaults to 'view')
+    """
+    doc = Document.query.get(doc_id)
+    if not doc:
+        return api_error('not_found', 'Document not found.', 404)
+
+    user = request.api_user
+    if doc.uploaded_by_id != user.id and doc.user_id != user.id:
+        return api_error('forbidden', 'No permission to share this document.', 403)
+
+    data = request.get_json(silent=True) or {}
+    target_user_id = data.get('user_id')
+    if not target_user_id:
+        return api_error('validation_error', 'user_id is required.', 422)
+
+    if target_user_id == user.id:
+        return api_error('validation_error', 'Cannot share with yourself.', 422)
+
+    # Check if already shared
+    existing = DocumentShare.get_share(doc.id, target_user_id)
+    if existing:
+        return api_error('conflict', 'Document already shared with this user.', 409)
+
+    share_type = ShareType.VIEW
+    if data.get('share_type') == 'edit':
+        share_type = ShareType.EDIT
+
+    share = DocumentShare(
+        document_id=doc.id,
+        shared_by_id=user.id,
+        shared_to_user_id=target_user_id,
+        share_type=share_type,
+    )
+    db.session.add(share)
+    db.session.commit()
+
+    return api_success({'shared': True, 'share_type': share_type.value}), 201
+
+
+# ── Invoices ──────────────────────────────────────────────
+
+@api_bp.route('/invoices', methods=['GET'])
+@jwt_required
+def api_list_invoices():
+    """List invoices.
+
+    Filters: status, tour_id, from_date, to_date
+    """
+    user = request.api_user
+    query = Invoice.query.filter(
+        db.or_(
+            Invoice.created_by_id == user.id,
+            Invoice.recipient_id == user.id,
+        )
+    )
+
+    status_filter = request.args.get('status')
+    if status_filter:
+        try:
+            query = query.filter(Invoice.status == InvoiceStatus(status_filter))
+        except ValueError:
+            return api_error('invalid_filter', f'Invalid status: {status_filter}', 422)
+
+    tour_id = request.args.get('tour_id', type=int)
+    if tour_id:
+        query = query.filter(Invoice.tour_id == tour_id)
+
+    from_date = request.args.get('from_date')
+    if from_date:
+        try:
+            query = query.filter(Invoice.issue_date >= date.fromisoformat(from_date))
+        except ValueError:
+            pass
+
+    to_date = request.args.get('to_date')
+    if to_date:
+        try:
+            query = query.filter(Invoice.issue_date <= date.fromisoformat(to_date))
+        except ValueError:
+            pass
+
+    query = query.order_by(desc(Invoice.created_at))
+    return paginate_query(query, InvoiceSchema())
+
+
+@api_bp.route('/invoices', methods=['POST'])
+@jwt_required
+def api_create_invoice():
+    """Create a draft invoice.
+
+    Required: recipient_name, issuer_name
+    Optional: type, tour_id, tour_stop_id, recipient_*, issuer_*, payment_terms, lines[]
+    """
+    user = request.api_user
+    data = request.get_json(silent=True) or {}
+
+    if not data.get('recipient_name', '').strip():
+        return api_error('validation_error', 'recipient_name is required.', 422)
+    if not data.get('issuer_name', '').strip():
+        return api_error('validation_error', 'issuer_name is required.', 422)
+
+    # Parse type
+    inv_type = InvoiceType.INVOICE
+    if data.get('type'):
+        try:
+            inv_type = InvoiceType(data['type'])
+        except ValueError:
+            return api_error('validation_error', f"Invalid type: {data['type']}.", 422)
+
+    # Generate draft number
+    import uuid
+    draft_number = f'BROUILLON-{uuid.uuid4().hex[:8].upper()}'
+
+    # Parse due_date
+    due_date = date.today()
+    if data.get('due_date'):
+        try:
+            due_date = date.fromisoformat(data['due_date'])
+        except (ValueError, TypeError):
+            return api_error('validation_error', 'due_date must be YYYY-MM-DD.', 422)
+    else:
+        from datetime import timedelta
+        due_date = date.today() + timedelta(days=data.get('payment_terms_days', 30))
+
+    # Parse issue_date
+    issue_date = date.today()
+    if data.get('issue_date'):
+        try:
+            issue_date = date.fromisoformat(data['issue_date'])
+        except (ValueError, TypeError):
+            pass
+
+    invoice = Invoice(
+        number=draft_number,
+        type=inv_type,
+        status=InvoiceStatus.DRAFT,
+        issue_date=issue_date,
+        due_date=due_date,
+        created_by_id=user.id,
+        currency=data.get('currency', 'EUR'),
+        tour_id=data.get('tour_id'),
+        tour_stop_id=data.get('tour_stop_id'),
+        payment_terms=data.get('payment_terms', 'Paiement a 30 jours'),
+        payment_terms_days=data.get('payment_terms_days', 30),
+    )
+
+    # Issuer fields
+    for field in ['issuer_name', 'issuer_legal_form', 'issuer_address_line1',
+                  'issuer_address_line2', 'issuer_city', 'issuer_postal_code',
+                  'issuer_country', 'issuer_siren', 'issuer_siret', 'issuer_vat',
+                  'issuer_rcs', 'issuer_capital', 'issuer_phone', 'issuer_email',
+                  'issuer_website', 'issuer_iban', 'issuer_bic']:
+        if field in data:
+            setattr(invoice, field, data[field])
+
+    # Recipient fields
+    for field in ['recipient_name', 'recipient_legal_form', 'recipient_address_line1',
+                  'recipient_address_line2', 'recipient_city', 'recipient_postal_code',
+                  'recipient_country', 'recipient_siren', 'recipient_siret',
+                  'recipient_vat', 'recipient_email', 'recipient_phone']:
+        if field in data:
+            setattr(invoice, field, data[field])
+
+    if data.get('recipient_id'):
+        invoice.recipient_id = data['recipient_id']
+
+    # Notes fields
+    for field in ['special_mentions', 'internal_notes', 'public_notes', 'vat_mention']:
+        if field in data:
+            setattr(invoice, field, data[field])
+
+    db.session.add(invoice)
+
+    # Add lines if provided
+    lines = data.get('lines', [])
+    for i, line_data in enumerate(lines, start=1):
+        line = InvoiceLine(
+            invoice=invoice,
+            line_number=line_data.get('line_number', i),
+            description=line_data.get('description', ''),
+            detail=line_data.get('detail'),
+            reference=line_data.get('reference'),
+            quantity=line_data.get('quantity', 1),
+            unit=line_data.get('unit', 'unite'),
+            unit_price_ht=line_data.get('unit_price_ht', 0),
+            discount_percent=line_data.get('discount_percent', 0),
+            vat_rate=line_data.get('vat_rate', 20.00),
+        )
+        line.calculate_totals()
+        db.session.add(line)
+
+    db.session.flush()
+    invoice.calculate_totals()
+    db.session.commit()
+
+    return api_success(InvoiceSchema().dump(invoice)), 201
+
+
+@api_bp.route('/invoices/<int:invoice_id>', methods=['GET'])
+@jwt_required
+def api_get_invoice(invoice_id):
+    """Get invoice detail with lines."""
+    invoice = Invoice.query.options(
+        joinedload(Invoice.lines),
+        joinedload(Invoice.tour),
+    ).get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+
+    user = request.api_user
+    if invoice.created_by_id != user.id and invoice.recipient_id != user.id:
+        return api_error('forbidden', 'No access to this invoice.', 403)
+
+    return api_success(InvoiceSchema().dump(invoice))
+
+
+@api_bp.route('/invoices/<int:invoice_id>', methods=['PUT'])
+@jwt_required
+def api_update_invoice(invoice_id):
+    """Update a draft invoice."""
+    invoice = Invoice.query.options(joinedload(Invoice.lines)).get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+    if invoice.created_by_id != request.api_user.id:
+        return api_error('forbidden', 'No permission to edit this invoice.', 403)
+    if invoice.status != InvoiceStatus.DRAFT:
+        return api_error('invalid_state', 'Only draft invoices can be edited.', 409)
+
+    data = request.get_json(silent=True) or {}
+
+    # Update all string fields
+    ALL_FIELDS = [
+        'issuer_name', 'issuer_legal_form', 'issuer_address_line1',
+        'issuer_address_line2', 'issuer_city', 'issuer_postal_code',
+        'issuer_country', 'issuer_siren', 'issuer_siret', 'issuer_vat',
+        'issuer_rcs', 'issuer_capital', 'issuer_phone', 'issuer_email',
+        'issuer_website', 'issuer_iban', 'issuer_bic',
+        'recipient_name', 'recipient_legal_form', 'recipient_address_line1',
+        'recipient_address_line2', 'recipient_city', 'recipient_postal_code',
+        'recipient_country', 'recipient_siren', 'recipient_siret',
+        'recipient_vat', 'recipient_email', 'recipient_phone',
+        'payment_terms', 'special_mentions', 'internal_notes',
+        'public_notes', 'vat_mention', 'currency',
+    ]
+    for field in ALL_FIELDS:
+        if field in data:
+            setattr(invoice, field, data[field])
+
+    # Date fields
+    for date_field in ('issue_date', 'due_date', 'delivery_date'):
+        if date_field in data:
+            if data[date_field]:
+                try:
+                    setattr(invoice, date_field, date.fromisoformat(data[date_field]))
+                except (ValueError, TypeError):
+                    return api_error('validation_error', f'{date_field} must be YYYY-MM-DD.', 422)
+            else:
+                setattr(invoice, date_field, None)
+
+    # Update lines if provided
+    if 'lines' in data:
+        # Remove existing lines
+        for line in invoice.lines:
+            db.session.delete(line)
+
+        for i, line_data in enumerate(data['lines'], start=1):
+            line = InvoiceLine(
+                invoice=invoice,
+                line_number=line_data.get('line_number', i),
+                description=line_data.get('description', ''),
+                detail=line_data.get('detail'),
+                reference=line_data.get('reference'),
+                quantity=line_data.get('quantity', 1),
+                unit=line_data.get('unit', 'unite'),
+                unit_price_ht=line_data.get('unit_price_ht', 0),
+                discount_percent=line_data.get('discount_percent', 0),
+                vat_rate=line_data.get('vat_rate', 20.00),
+            )
+            line.calculate_totals()
+            db.session.add(line)
+
+        db.session.flush()
+        invoice.calculate_totals()
+
+    db.session.commit()
+    return api_success(InvoiceSchema().dump(invoice))
+
+
+@api_bp.route('/invoices/<int:invoice_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_invoice(invoice_id):
+    """Delete a draft invoice."""
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+    if invoice.created_by_id != request.api_user.id:
+        return api_error('forbidden', 'No permission to delete this invoice.', 403)
+    if invoice.status != InvoiceStatus.DRAFT:
+        return api_error('invalid_state', 'Only draft invoices can be deleted.', 409)
+
+    db.session.delete(invoice)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/invoices/<int:invoice_id>/validate', methods=['POST'])
+@jwt_required
+def api_validate_invoice(invoice_id):
+    """Validate an invoice (generates final number)."""
+    invoice = Invoice.query.options(joinedload(Invoice.lines)).get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+    if invoice.created_by_id != request.api_user.id:
+        return api_error('forbidden', 'No permission to validate this invoice.', 403)
+
+    try:
+        invoice.mark_as_validated(request.api_user.id)
+    except ValueError as e:
+        return api_error('validation_error', str(e), 422)
+
+    db.session.commit()
+    return api_success(InvoiceSchema().dump(invoice))
+
+
+@api_bp.route('/invoices/<int:invoice_id>/send', methods=['POST'])
+@jwt_required
+def api_send_invoice(invoice_id):
+    """Mark invoice as sent."""
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+    if invoice.created_by_id != request.api_user.id:
+        return api_error('forbidden', 'No permission.', 403)
+
+    try:
+        invoice.mark_as_sent()
+    except ValueError as e:
+        return api_error('invalid_state', str(e), 409)
+
+    db.session.commit()
+    return api_success(InvoiceSchema().dump(invoice))
+
+
+@api_bp.route('/invoices/<int:invoice_id>/payment', methods=['POST'])
+@jwt_required
+def api_record_invoice_payment(invoice_id):
+    """Record a payment on an invoice.
+
+    Required: amount
+    Optional: payment_date, payment_method, reference, bank_reference, notes
+    """
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+    if invoice.created_by_id != request.api_user.id:
+        return api_error('forbidden', 'No permission.', 403)
+
+    data = request.get_json(silent=True) or {}
+
+    amount = data.get('amount')
+    if not amount or float(amount) <= 0:
+        return api_error('validation_error', 'amount must be positive.', 422)
+
+    payment_date = None
+    if data.get('payment_date'):
+        try:
+            payment_date = date.fromisoformat(data['payment_date'])
+        except (ValueError, TypeError):
+            return api_error('validation_error', 'payment_date must be YYYY-MM-DD.', 422)
+
+    # Record payment on invoice
+    invoice.record_payment(amount, payment_date)
+
+    # Create payment record
+    payment_record = InvoicePayment(
+        invoice_id=invoice.id,
+        amount=amount,
+        payment_date=payment_date or date.today(),
+        payment_method=data.get('payment_method'),
+        reference=data.get('reference'),
+        bank_reference=data.get('bank_reference'),
+        notes=data.get('notes'),
+        created_by_id=request.api_user.id,
+    )
+    db.session.add(payment_record)
+    db.session.commit()
+
+    return api_success(InvoiceSchema().dump(invoice))
+
+
+# ── Calendar ──────────────────────────────────────────────
+
+@api_bp.route('/calendar', methods=['GET'])
+@jwt_required
+def api_calendar():
+    """Get all stops across all user's tours for calendar view.
+
+    Params: from_date, to_date, band_id
+    Returns: list of tour stops with tour and venue info.
+    """
+    user = request.api_user
+
+    # Get tours the user has access to
+    query = TourStop.query.join(Tour).filter(
+        db.or_(
+            Tour.created_by_id == user.id,
+            Tour.id.in_(
+                db.session.query(TourStopMember.tour_stop_id).filter(
+                    TourStopMember.user_id == user.id
+                ).correlate(None).subquery().select()
+            ) if False else True,  # fallback: show all org tours
+        )
+    ).options(
+        joinedload(TourStop.tour).joinedload(Tour.band),
+        joinedload(TourStop.venue),
+    )
+
+    from_date = request.args.get('from_date')
+    if from_date:
+        try:
+            query = query.filter(TourStop.date >= date.fromisoformat(from_date))
+        except ValueError:
+            pass
+
+    to_date = request.args.get('to_date')
+    if to_date:
+        try:
+            query = query.filter(TourStop.date <= date.fromisoformat(to_date))
+        except ValueError:
+            pass
+
+    band_id = request.args.get('band_id', type=int)
+    if band_id:
+        query = query.filter(Tour.band_id == band_id)
+
+    stops = query.order_by(TourStop.date).all()
+    return api_success(TourStopSchema(many=True).dump(stops))
+
+
+# ── Map ───────────────────────────────────────────────────
+
+@api_bp.route('/tours/<int:tour_id>/map-data', methods=['GET'])
+@jwt_required
+def api_tour_map_data(tour_id):
+    """Get tour stops with GPS coordinates for map display.
+
+    Returns stops ordered chronologically with venue coordinates.
+    """
+    tour = Tour.query.get(tour_id)
+    if not tour or not tour.can_view(request.api_user):
+        return api_error('not_found', 'Tour not found.', 404)
+
+    stops = TourStop.query.filter_by(tour_id=tour_id).options(
+        joinedload(TourStop.venue),
+    ).order_by(TourStop.date).all()
+
+    markers = []
+    for stop in stops:
+        lat = None
+        lng = None
+        venue_name = None
+
+        if stop.venue:
+            lat = stop.venue.latitude
+            lng = stop.venue.longitude
+            venue_name = stop.venue.name
+
+        # Skip stops without coordinates
+        if lat is None or lng is None:
+            continue
+
+        markers.append({
+            'stop_id': stop.id,
+            'date': stop.date.isoformat() if stop.date else None,
+            'city': stop.city or (stop.venue.city if stop.venue else None),
+            'country': stop.country or (stop.venue.country if stop.venue else None),
+            'venue_name': venue_name,
+            'latitude': float(lat),
+            'longitude': float(lng),
+            'status': stop.status.value if stop.status else None,
+            'event_type': stop.event_type.value if stop.event_type else None,
+        })
+
+    return api_success({
+        'tour_id': tour.id,
+        'tour_name': tour.name,
+        'markers': markers,
+        'total_stops': len(stops),
+        'mapped_stops': len(markers),
+    })
