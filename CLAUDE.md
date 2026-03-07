@@ -135,13 +135,19 @@ Le projet est en cours de rebrand de "Live Tour Manager" / "Studio Palenque Tour
 
 ### Plan strategique
 
-Voir `../Plan strategique complet.txt` pour la roadmap complete (4 phases, 20 semaines).
+**Pivot mobile** : GigRoute est desormais developpe comme app smartphone (Flutter + Dart).
+Le backend Flask est conserve et etendu comme API REST. Voir `ROADMAP_MOBILE.md` pour la roadmap Flutter.
 
-Phase 1 (MVP) — Sprints prioritaires :
-1. Bugs critiques + rebrand GigRoute
-2. Champs horaires/hebergement/transport par date
-3. Permissions RBAC + securite
-4. PWA + mobile
+Historique web : `../Plan strategique complet.txt` (roadmap initiale web, 4 phases, 20 semaines).
+
+### App Mobile (Flutter)
+
+- **Projet** : `../gigroute_mobile/` (Clean Architecture)
+- **Stack** : Flutter + Dart, Riverpod, GoRouter, Dio, drift (SQLite offline)
+- **Theme** : Material 3 avec couleurs GigRoute
+- **API** : `/api/v1` etendue avec endpoints CRUD + auth JWT
+- **Offline-first** : SQLite local, sync bidirectionnelle
+- **Push** : Firebase Cloud Messaging (FCM uniquement, pas de Firebase backend)
 
 ## Commandes utiles
 

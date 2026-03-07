@@ -106,3 +106,6 @@ atum-audit.config.json
 
 # Orphan test scripts at root (tests belong in tests/)
 /test_*.py
+
+# ATUM Dashboard config
+.atum.json
