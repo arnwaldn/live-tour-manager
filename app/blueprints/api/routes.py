@@ -990,6 +990,40 @@ def api_list_bands():
     return jsonify(paginate_query(query, BandSchema())), 200
 
 
+@api_bp.route('/bands', methods=['POST'])
+@jwt_required
+def api_create_band():
+    """Create a new band.
+
+    Required fields: name
+    Optional fields: genre, bio, website
+    """
+    data = request.get_json(silent=True) or {}
+    user = request.api_user
+
+    if not data.get('name', '').strip():
+        return api_error('validation_error', 'Missing required fields.', 422,
+                         {'name': 'name is required.'})
+
+    org_id = get_current_org_id()
+    if not org_id:
+        return api_error('forbidden', 'No organization context.', 403)
+
+    band = Band(
+        name=data['name'].strip(),
+        genre=data.get('genre', '').strip() or None,
+        bio=data.get('bio', '').strip() or None,
+        website=data.get('website', '').strip() or None,
+        org_id=org_id,
+        manager_id=user.id,
+    )
+    db.session.add(band)
+    db.session.commit()
+
+    band = Band.query.options(joinedload(Band.manager)).get(band.id)
+    return api_success(BandSchema().dump(band)), 201
+
+
 # ── Venues ──────────────────────────────────────────────────
 
 @api_bp.route('/venues', methods=['GET'])
