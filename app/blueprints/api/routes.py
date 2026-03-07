@@ -1006,10 +1006,11 @@ def api_create_band():
                          {'name': 'name is required.'})
 
     try:
+        import traceback as _tb
         from app.models.organization import OrganizationMembership
         membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
         if not membership:
-            return api_error('forbidden', 'User has no organization (v4).', 403)
+            return api_error('forbidden', 'User has no organization.', 403)
 
         band = Band(
             name=data['name'].strip(),
@@ -1024,9 +1025,10 @@ def api_create_band():
 
         band = Band.query.options(joinedload(Band.manager)).get(band.id)
         return api_success(BandSchema().dump(band)), 201
-    except Exception as exc:
+    except Exception:
         db.session.rollback()
-        return api_error('band_create_error', f'v4: {type(exc).__name__}: {str(exc)[:200]}', 500)
+        tb = _tb.format_exc()
+        return jsonify({'error': {'code': 'band_create_error', 'message': tb[-500:]}}), 500
 
 
 # ── Venues ──────────────────────────────────────────────────
