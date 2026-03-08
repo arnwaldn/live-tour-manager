@@ -47,7 +47,7 @@ from app.models.invoices import Invoice, InvoiceStatus, InvoiceType, InvoiceLine
 @api_bp.route('/version', methods=['GET'])
 def api_version():
     """Return API version to verify deployment."""
-    return jsonify({'version': '2026-03-08-v5', 'routes': 116})
+    return jsonify({'version': '2026-03-08-v6', 'routes': 116})
 
 
 # ── Dashboard ────────────────────────────────────────────────
@@ -239,7 +239,7 @@ def api_create_tour():
     tour_id = tour.id
     db.session.expire_all()
     tour = Tour.query.options(joinedload(Tour.band)).get(tour_id)
-    return api_success(TourSchema().dump(tour)), 201
+    return api_success(TourSchema().dump(tour, 201)
 
 
 @api_bp.route('/tours/<int:tour_id>', methods=['PUT'])
@@ -491,7 +491,7 @@ def api_create_stop(tour_id):
         joinedload(TourStop.band),
         joinedload(TourStop.tour),
     ).get(stop_id)
-    return api_success(TourStopSchema().dump(stop)), 201
+    return api_success(TourStopSchema().dump(stop, 201)
 
 
 @api_bp.route('/stops/<int:stop_id>', methods=['PUT'])
@@ -739,7 +739,7 @@ def api_create_guestlist_entry(stop_id):
     entry = GuestlistEntry.query.options(
         joinedload(GuestlistEntry.requested_by),
     ).get(entry_id)
-    return api_success(GuestlistEntrySchema().dump(entry)), 201
+    return api_success(GuestlistEntrySchema().dump(entry, 201)
 
 
 @api_bp.route('/guestlist/<int:entry_id>', methods=['GET'])
@@ -1053,7 +1053,7 @@ def api_create_band():
         band_id = band.id
         db.session.expire_all()
         band = Band.query.options(joinedload(Band.manager)).get(band_id)
-        return api_success(BandSchema().dump(band)), 201
+        return api_success(BandSchema().dump(band, 201)
     except Exception as e:
         db.session.rollback()
         tb = traceback.format_exc()
@@ -1238,7 +1238,7 @@ def api_create_venue():
         venue_id = venue.id
         db.session.expire_all()
         venue = Venue.query.options(joinedload(Venue.contacts)).get(venue_id)
-        return api_success(VenueDetailSchema().dump(venue)), 201
+        return api_success(VenueDetailSchema().dump(venue, 201)
     except Exception as e:
         db.session.rollback()
         tb = traceback.format_exc()
@@ -1441,7 +1441,7 @@ def api_create_checklist_item(stop_id):
     db.session.add(item)
     db.session.commit()
 
-    return api_success(AdvancingChecklistItemSchema().dump(item)), 201
+    return api_success(AdvancingChecklistItemSchema().dump(item, 201)
 
 
 @api_bp.route('/advancing/checklist/<int:item_id>', methods=['PUT'])
@@ -1546,7 +1546,7 @@ def api_init_advancing_checklist(stop_id):
     db.session.expire_all()
     stop = TourStop.query.options(joinedload(TourStop.checklist_items)).get(stop_id)
     items = AdvancingChecklistItemSchema(many=True).dump(stop.checklist_items)
-    return api_success({'items': items, 'count': len(items)}), 201
+    return api_success({'items': items, 'count': len(items)}, 201)
 
 
 @api_bp.route('/stops/<int:stop_id>/advancing/rider', methods=['POST'])
@@ -1587,7 +1587,7 @@ def api_create_rider_requirement(stop_id):
     db.session.add(rider)
     db.session.commit()
 
-    return api_success(RiderRequirementSchema().dump(rider)), 201
+    return api_success(RiderRequirementSchema().dump(rider, 201)
 
 
 @api_bp.route('/advancing/rider/<int:rider_id>', methods=['PUT'])
@@ -1685,7 +1685,7 @@ def api_create_advancing_contact(stop_id):
     db.session.add(contact)
     db.session.commit()
 
-    return api_success(AdvancingContactSchema().dump(contact)), 201
+    return api_success(AdvancingContactSchema().dump(contact, 201)
 
 
 @api_bp.route('/advancing/contacts/<int:contact_id>', methods=['PUT'])
@@ -1867,7 +1867,7 @@ def api_create_logistics(stop_id):
     db.session.add(item)
     db.session.commit()
 
-    return api_success(LogisticsInfoSchema().dump(item)), 201
+    return api_success(LogisticsInfoSchema().dump(item, 201)
 
 
 @api_bp.route('/logistics/<int:item_id>', methods=['PUT'])
@@ -2043,7 +2043,7 @@ def api_create_lineup_slot(stop_id):
     db.session.add(slot)
     db.session.commit()
 
-    return api_success(LineupSlotSchema().dump(slot)), 201
+    return api_success(LineupSlotSchema().dump(slot, 201)
 
 
 @api_bp.route('/lineup/<int:slot_id>', methods=['PUT'])
@@ -2198,7 +2198,7 @@ def api_create_crew_slot(stop_id):
     db.session.add(slot)
     db.session.commit()
 
-    return api_success(CrewScheduleSlotSchema().dump(slot)), 201
+    return api_success(CrewScheduleSlotSchema().dump(slot, 201)
 
 
 @api_bp.route('/crew/slots/<int:slot_id>', methods=['PUT'])
@@ -2338,7 +2338,7 @@ def api_assign_crew(slot_id):
     db.session.add(assignment)
     db.session.commit()
 
-    return api_success(CrewAssignmentSchema().dump(assignment)), 201
+    return api_success(CrewAssignmentSchema().dump(assignment, 201)
 
 
 @api_bp.route('/crew/assignments/<int:assignment_id>', methods=['PUT'])
@@ -2558,7 +2558,7 @@ def api_create_document():
     db.session.add(doc)
     db.session.commit()
 
-    return api_success(DocumentSchema().dump(doc)), 201
+    return api_success(DocumentSchema().dump(doc, 201)
 
 
 @api_bp.route('/documents/<int:doc_id>', methods=['GET'])
@@ -2700,7 +2700,7 @@ def api_share_document(doc_id):
     db.session.add(share)
     db.session.commit()
 
-    return api_success({'shared': True, 'share_type': share_type.value}), 201
+    return api_success({'shared': True, 'share_type': share_type.value}, 201)
 
 
 # ── Invoices ──────────────────────────────────────────────
@@ -2859,7 +2859,7 @@ def api_create_invoice():
     invoice.calculate_totals()
     db.session.commit()
 
-    return api_success(InvoiceSchema().dump(invoice)), 201
+    return api_success(InvoiceSchema().dump(invoice, 201)
 
 
 @api_bp.route('/invoices/<int:invoice_id>', methods=['GET'])
