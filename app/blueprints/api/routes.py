@@ -3141,3 +3141,962 @@ def api_tour_map_data(tour_id):
         'total_stops': len(stops),
         'mapped_stops': len(markers),
     })
+
+
+# ══════════════════════════════════════════════════════════════
+# PAYMENTS — Full CRUD + Workflow
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/payments', methods=['GET'])
+@jwt_required
+def api_list_payments():
+    """List payments with optional filters (status, tour_id, user_id)."""
+    from app.models.payments import PaymentStatus as PS
+    query = TeamMemberPayment.query.filter(
+        TeamMemberPayment.user_id == request.api_user.id
+    )
+
+    status = request.args.get('status')
+    if status:
+        try:
+            query = query.filter(TeamMemberPayment.status == PS(status))
+        except ValueError:
+            pass
+
+    tour_id = request.args.get('tour_id', type=int)
+    if tour_id:
+        query = query.filter(TeamMemberPayment.tour_id == tour_id)
+
+    query = query.options(
+        joinedload(TeamMemberPayment.user),
+        joinedload(TeamMemberPayment.tour_stop),
+    ).order_by(desc(TeamMemberPayment.created_at))
+
+    return api_success(paginate_query(query, PaymentSchema()))
+
+
+@api_bp.route('/payments/<int:payment_id>', methods=['GET'])
+@jwt_required
+def api_get_payment(payment_id):
+    """Get a single payment by ID."""
+    payment = TeamMemberPayment.query.options(
+        joinedload(TeamMemberPayment.user),
+        joinedload(TeamMemberPayment.tour_stop),
+    ).get(payment_id)
+    if not payment:
+        return api_error('not_found', 'Payment not found.', 404)
+    if payment.user_id != request.api_user.id and not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Access denied.', 403)
+    return api_success(PaymentSchema().dump(payment))
+
+
+@api_bp.route('/payments', methods=['POST'])
+@jwt_required
+def api_create_payment():
+    """Create a new payment (manager only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    data = request.get_json() or {}
+    required = ['user_id', 'amount', 'payment_type', 'staff_category']
+    missing = [f for f in required if f not in data]
+    if missing:
+        return api_error('validation', f'Missing fields: {", ".join(missing)}')
+
+    from app.models.payments import PaymentType, StaffCategory, PaymentStatus as PS
+    try:
+        payment = TeamMemberPayment(
+            user_id=data['user_id'],
+            tour_id=data.get('tour_id'),
+            tour_stop_id=data.get('tour_stop_id'),
+            amount=data['amount'],
+            currency=data.get('currency', 'EUR'),
+            payment_type=PaymentType(data['payment_type']),
+            staff_category=StaffCategory(data['staff_category']),
+            description=data.get('description', ''),
+            notes=data.get('notes', ''),
+            status=PS.DRAFT,
+            reference=_generate_payment_reference(),
+        )
+        db.session.add(payment)
+        db.session.commit()
+        return api_success(PaymentSchema().dump(payment), 201)
+    except (ValueError, KeyError) as e:
+        db.session.rollback()
+        return api_error('validation', str(e))
+
+
+@api_bp.route('/payments/<int:payment_id>', methods=['PUT'])
+@jwt_required
+def api_update_payment(payment_id):
+    """Update a payment (manager only, draft/rejected only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    payment = TeamMemberPayment.query.get(payment_id)
+    if not payment:
+        return api_error('not_found', 'Payment not found.', 404)
+
+    from app.models.payments import PaymentStatus as PS
+    if payment.status not in (PS.DRAFT, PS.REJECTED):
+        return api_error('conflict', 'Only draft or rejected payments can be edited.', 409)
+
+    data = request.get_json() or {}
+    for field in ['amount', 'currency', 'description', 'notes', 'tour_id', 'tour_stop_id', 'due_date']:
+        if field in data:
+            setattr(payment, field, data[field])
+
+    db.session.commit()
+    return api_success(PaymentSchema().dump(payment))
+
+
+@api_bp.route('/payments/<int:payment_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_payment(payment_id):
+    """Delete a payment (manager only, draft only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    payment = TeamMemberPayment.query.get(payment_id)
+    if not payment:
+        return api_error('not_found', 'Payment not found.', 404)
+
+    from app.models.payments import PaymentStatus as PS
+    if payment.status != PS.DRAFT:
+        return api_error('conflict', 'Only draft payments can be deleted.', 409)
+
+    db.session.delete(payment)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/payments/<int:payment_id>/submit', methods=['POST'])
+@jwt_required
+def api_submit_payment(payment_id):
+    """Submit a payment for approval."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    payment = TeamMemberPayment.query.get(payment_id)
+    if not payment:
+        return api_error('not_found', 'Payment not found.', 404)
+
+    from app.models.payments import PaymentStatus as PS
+    if payment.status not in (PS.DRAFT, PS.REJECTED):
+        return api_error('conflict', 'Payment cannot be submitted in current status.', 409)
+
+    payment.status = PS.PENDING_APPROVAL
+    payment.submitted_at = datetime.utcnow()
+    payment.submitted_by_id = request.api_user.id
+    db.session.commit()
+    return api_success(PaymentSchema().dump(payment))
+
+
+@api_bp.route('/payments/<int:payment_id>/approve', methods=['POST'])
+@jwt_required
+def api_approve_payment(payment_id):
+    """Approve a pending payment."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    payment = TeamMemberPayment.query.get(payment_id)
+    if not payment:
+        return api_error('not_found', 'Payment not found.', 404)
+
+    from app.models.payments import PaymentStatus as PS
+    if payment.status != PS.PENDING_APPROVAL:
+        return api_error('conflict', 'Payment is not pending approval.', 409)
+
+    payment.status = PS.APPROVED
+    payment.approved_by_id = request.api_user.id
+    payment.approved_at = datetime.utcnow()
+    db.session.commit()
+    return api_success(PaymentSchema().dump(payment))
+
+
+@api_bp.route('/payments/<int:payment_id>/reject', methods=['POST'])
+@jwt_required
+def api_reject_payment(payment_id):
+    """Reject a pending payment."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    payment = TeamMemberPayment.query.get(payment_id)
+    if not payment:
+        return api_error('not_found', 'Payment not found.', 404)
+
+    from app.models.payments import PaymentStatus as PS
+    if payment.status != PS.PENDING_APPROVAL:
+        return api_error('conflict', 'Payment is not pending approval.', 409)
+
+    data = request.get_json() or {}
+    payment.status = PS.REJECTED
+    payment.rejection_reason = data.get('reason', '')
+    db.session.commit()
+    return api_success(PaymentSchema().dump(payment))
+
+
+@api_bp.route('/payments/<int:payment_id>/mark-paid', methods=['POST'])
+@jwt_required
+def api_mark_payment_paid(payment_id):
+    """Mark an approved payment as paid."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    payment = TeamMemberPayment.query.get(payment_id)
+    if not payment:
+        return api_error('not_found', 'Payment not found.', 404)
+
+    from app.models.payments import PaymentStatus as PS
+    if payment.status not in (PS.APPROVED, PS.SCHEDULED, PS.PROCESSING):
+        return api_error('conflict', 'Payment must be approved first.', 409)
+
+    data = request.get_json() or {}
+    payment.status = PS.PAID
+    payment.paid_date = date.today()
+    payment.bank_reference = data.get('bank_reference', '')
+    db.session.commit()
+    return api_success(PaymentSchema().dump(payment))
+
+
+@api_bp.route('/payments/<int:payment_id>/cancel', methods=['POST'])
+@jwt_required
+def api_cancel_payment(payment_id):
+    """Cancel a payment."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    payment = TeamMemberPayment.query.get(payment_id)
+    if not payment:
+        return api_error('not_found', 'Payment not found.', 404)
+
+    from app.models.payments import PaymentStatus as PS
+    if payment.status == PS.PAID:
+        return api_error('conflict', 'Cannot cancel a paid payment.', 409)
+
+    payment.status = PS.CANCELLED
+    db.session.commit()
+    return api_success(PaymentSchema().dump(payment))
+
+
+@api_bp.route('/payments/approval-queue', methods=['GET'])
+@jwt_required
+def api_payment_approval_queue():
+    """List payments pending approval (manager only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.payments import PaymentStatus as PS
+    query = TeamMemberPayment.query.filter(
+        TeamMemberPayment.status == PS.PENDING_APPROVAL
+    ).options(
+        joinedload(TeamMemberPayment.user),
+        joinedload(TeamMemberPayment.tour_stop),
+    ).order_by(TeamMemberPayment.submitted_at)
+
+    return api_success(PaymentSchema().dump(query.all(), many=True))
+
+
+def _generate_payment_reference():
+    """Generate unique payment reference like PAY-2026-00042."""
+    from app.models.payments import TeamMemberPayment as TMP
+    year = datetime.utcnow().year
+    last = db.session.query(func.max(TMP.id)).scalar() or 0
+    return f'PAY-{year}-{last + 1:05d}'
+
+
+# ══════════════════════════════════════════════════════════════
+# REPORTS — Financial, Guestlist, Dashboard analytics
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/reports/summary', methods=['GET'])
+@jwt_required
+def api_reports_summary():
+    """Global KPIs: tours, stops, revenue, guestlist stats."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    user = request.api_user
+    user_bands = user.bands + user.managed_bands
+    user_band_ids = [b.id for b in user_bands]
+
+    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).all()
+    stops = TourStop.query.join(Tour).filter(Tour.band_id.in_(user_band_ids)).all()
+
+    total_revenue = sum(float(s.guaranteed_fee or 0) for s in stops)
+    total_guestlist = sum(len(s.guestlist_entries) for s in stops)
+    total_checked_in = sum(
+        1 for s in stops for e in s.guestlist_entries
+        if e.status == GuestlistStatus.CHECKED_IN
+    )
+
+    return api_success({
+        'total_tours': len(tours),
+        'total_stops': len(stops),
+        'total_revenue': total_revenue,
+        'total_guestlist': total_guestlist,
+        'total_checked_in': total_checked_in,
+        'fill_rate': round(total_checked_in / total_guestlist * 100, 1) if total_guestlist > 0 else 0,
+    })
+
+
+@api_bp.route('/reports/financial/<int:tour_id>', methods=['GET'])
+@jwt_required
+def api_report_financial_tour(tour_id):
+    """Detailed financial report for a tour."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    tour = Tour.query.options(
+        joinedload(Tour.stops),
+    ).get(tour_id)
+    if not tour:
+        return api_error('not_found', 'Tour not found.', 404)
+
+    stops_data = []
+    total_revenue = 0
+    total_tickets_sold = 0
+    total_capacity = 0
+
+    for stop in sorted(tour.stops, key=lambda s: s.date or date.min):
+        fee = float(stop.guaranteed_fee or 0)
+        bonus = float(stop.bonus_percentage or 0)
+        sold = stop.tickets_sold or 0
+        cap = stop.capacity or 0
+
+        total_revenue += fee
+        total_tickets_sold += sold
+        total_capacity += cap
+
+        stops_data.append({
+            'stop_id': stop.id,
+            'date': stop.date.isoformat() if stop.date else None,
+            'city': stop.city,
+            'venue': stop.venue.name if stop.venue else None,
+            'guaranteed_fee': fee,
+            'bonus_percentage': bonus,
+            'tickets_sold': sold,
+            'capacity': cap,
+            'fill_rate': round(sold / cap * 100, 1) if cap > 0 else 0,
+        })
+
+    return api_success({
+        'tour_id': tour.id,
+        'tour_name': tour.name,
+        'total_revenue': total_revenue,
+        'total_tickets_sold': total_tickets_sold,
+        'total_capacity': total_capacity,
+        'avg_fill_rate': round(total_tickets_sold / total_capacity * 100, 1) if total_capacity > 0 else 0,
+        'stops': stops_data,
+    })
+
+
+@api_bp.route('/reports/guestlist', methods=['GET'])
+@jwt_required
+def api_report_guestlist():
+    """Guestlist analytics across all tours."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    user = request.api_user
+    user_bands = user.bands + user.managed_bands
+    user_band_ids = [b.id for b in user_bands]
+
+    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).all()
+    tour_stats = []
+
+    for tour in tours:
+        stops = TourStop.query.filter_by(tour_id=tour.id).all()
+        total = 0
+        checked_in = 0
+        pending = 0
+        approved = 0
+        denied = 0
+        plus_ones = 0
+
+        for stop in stops:
+            for entry in stop.guestlist_entries:
+                total += 1
+                plus_ones += entry.plus_ones or 0
+                if entry.status == GuestlistStatus.CHECKED_IN:
+                    checked_in += 1
+                elif entry.status == GuestlistStatus.PENDING:
+                    pending += 1
+                elif entry.status == GuestlistStatus.APPROVED:
+                    approved += 1
+                elif entry.status == GuestlistStatus.DENIED:
+                    denied += 1
+
+        if total > 0:
+            tour_stats.append({
+                'tour_id': tour.id,
+                'tour_name': tour.name,
+                'total_entries': total,
+                'checked_in': checked_in,
+                'pending': pending,
+                'approved': approved,
+                'denied': denied,
+                'plus_ones': plus_ones,
+            })
+
+    return api_success(tour_stats)
+
+
+# ══════════════════════════════════════════════════════════════
+# SETTINGS — Password, Notifications, Professions, Users
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/auth/change-password', methods=['POST'])
+@jwt_required
+def api_change_password():
+    """Change the current user's password."""
+    data = request.get_json() or {}
+    current_pw = data.get('current_password', '')
+    new_pw = data.get('new_password', '')
+
+    if not current_pw or not new_pw:
+        return api_error('validation', 'Both current_password and new_password are required.')
+
+    if len(new_pw) < 8:
+        return api_error('validation', 'New password must be at least 8 characters.')
+
+    user = request.api_user
+    if not user.check_password(current_pw):
+        return api_error('auth', 'Current password is incorrect.', 401)
+
+    user.set_password(new_pw)
+    db.session.commit()
+    return api_success({'changed': True})
+
+
+@api_bp.route('/auth/forgot-password', methods=['POST'])
+def api_forgot_password():
+    """Request a password reset email (no auth required)."""
+    from app.models.user import User as UserModel
+    data = request.get_json() or {}
+    email = data.get('email', '').strip().lower()
+
+    if not email:
+        return api_error('validation', 'Email is required.')
+
+    user = UserModel.query.filter_by(email=email).first()
+    if user:
+        token = user.generate_reset_token()
+        db.session.commit()
+        # In production, send email with token
+        # For now, just confirm the request was accepted
+    # Always return success to prevent email enumeration
+    return api_success({'message': 'If that email exists, a reset link has been sent.'})
+
+
+@api_bp.route('/auth/reset-password', methods=['POST'])
+def api_reset_password():
+    """Reset password using a token."""
+    from app.models.user import User as UserModel
+    data = request.get_json() or {}
+    token = data.get('token', '')
+    new_pw = data.get('new_password', '')
+
+    if not token or not new_pw:
+        return api_error('validation', 'Token and new_password are required.')
+
+    if len(new_pw) < 8:
+        return api_error('validation', 'Password must be at least 8 characters.')
+
+    user = UserModel.verify_reset_token(token)
+    if not user:
+        return api_error('auth', 'Invalid or expired token.', 401)
+
+    user.set_password(new_pw)
+    db.session.commit()
+    return api_success({'reset': True})
+
+
+@api_bp.route('/settings/notifications', methods=['GET'])
+@jwt_required
+def api_get_notification_prefs():
+    """Get notification preferences for the current user."""
+    user = request.api_user
+    prefs = {
+        'email_notifications': getattr(user, 'email_notifications', True),
+        'push_notifications': getattr(user, 'push_notifications', True),
+        'mission_alerts': getattr(user, 'mission_alerts', True),
+        'payment_alerts': getattr(user, 'payment_alerts', True),
+        'guestlist_alerts': getattr(user, 'guestlist_alerts', True),
+    }
+    return api_success(prefs)
+
+
+@api_bp.route('/settings/notifications', methods=['PUT'])
+@jwt_required
+def api_update_notification_prefs():
+    """Update notification preferences."""
+    data = request.get_json() or {}
+    user = request.api_user
+
+    for field in ['email_notifications', 'push_notifications', 'mission_alerts',
+                  'payment_alerts', 'guestlist_alerts']:
+        if field in data and hasattr(user, field):
+            setattr(user, field, bool(data[field]))
+
+    db.session.commit()
+    return api_success({'updated': True})
+
+
+@api_bp.route('/users', methods=['GET'])
+@jwt_required
+def api_list_users():
+    """List users (manager only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.user import User as UserModel
+    query = UserModel.query.order_by(UserModel.last_name)
+
+    role = request.args.get('role')
+    if role:
+        try:
+            query = query.filter(UserModel.access_level == AccessLevel(role))
+        except ValueError:
+            pass
+
+    active = request.args.get('active')
+    if active is not None:
+        query = query.filter(UserModel.is_active == (active.lower() == 'true'))
+
+    return api_success(UserSchema().dump(query.all(), many=True))
+
+
+@api_bp.route('/users/<int:user_id>', methods=['GET'])
+@jwt_required
+def api_get_user(user_id):
+    """Get a single user (manager only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.user import User as UserModel
+    user = UserModel.query.get(user_id)
+    if not user:
+        return api_error('not_found', 'User not found.', 404)
+    return api_success(UserSchema().dump(user))
+
+
+@api_bp.route('/users', methods=['POST'])
+@jwt_required
+def api_invite_user():
+    """Invite a new user (manager only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.user import User as UserModel
+    data = request.get_json() or {}
+
+    email = data.get('email', '').strip().lower()
+    if not email:
+        return api_error('validation', 'Email is required.')
+
+    existing = UserModel.query.filter_by(email=email).first()
+    if existing:
+        return api_error('conflict', 'A user with this email already exists.', 409)
+
+    user = UserModel(
+        email=email,
+        first_name=data.get('first_name', ''),
+        last_name=data.get('last_name', ''),
+        phone=data.get('phone', ''),
+        is_active=False,
+    )
+    if data.get('role'):
+        try:
+            user.access_level = AccessLevel(data['role'])
+        except ValueError:
+            pass
+
+    temp_pw = data.get('password', email)  # Temp password
+    user.set_password(temp_pw)
+    db.session.add(user)
+    db.session.commit()
+    return api_success(UserSchema().dump(user), 201)
+
+
+@api_bp.route('/users/<int:user_id>', methods=['PUT'])
+@jwt_required
+def api_update_user(user_id):
+    """Update a user (manager only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.user import User as UserModel
+    user = UserModel.query.get(user_id)
+    if not user:
+        return api_error('not_found', 'User not found.', 404)
+
+    data = request.get_json() or {}
+    for field in ['first_name', 'last_name', 'phone', 'is_active']:
+        if field in data:
+            setattr(user, field, data[field])
+
+    if 'role' in data:
+        try:
+            user.access_level = AccessLevel(data['role'])
+        except ValueError:
+            pass
+
+    db.session.commit()
+    return api_success(UserSchema().dump(user))
+
+
+@api_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_user(user_id):
+    """Delete a user (manager only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.user import User as UserModel
+    user = UserModel.query.get(user_id)
+    if not user:
+        return api_error('not_found', 'User not found.', 404)
+
+    if user.id == request.api_user.id:
+        return api_error('conflict', 'Cannot delete yourself.', 409)
+
+    db.session.delete(user)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/users/<int:user_id>/approve', methods=['POST'])
+@jwt_required
+def api_approve_user(user_id):
+    """Approve a pending user registration."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.user import User as UserModel
+    user = UserModel.query.get(user_id)
+    if not user:
+        return api_error('not_found', 'User not found.', 404)
+
+    user.is_active = True
+    user.email_verified = True
+    db.session.commit()
+    return api_success(UserSchema().dump(user))
+
+
+@api_bp.route('/users/<int:user_id>/reject', methods=['POST'])
+@jwt_required
+def api_reject_user(user_id):
+    """Reject a pending user registration."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.user import User as UserModel
+    user = UserModel.query.get(user_id)
+    if not user:
+        return api_error('not_found', 'User not found.', 404)
+
+    user.is_active = False
+    db.session.commit()
+    return api_success({'rejected': True})
+
+
+# ══════════════════════════════════════════════════════════════
+# TOURS — Advanced (duplicate, reschedule, copy-crew, export)
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/tours/<int:tour_id>/duplicate', methods=['POST'])
+@jwt_required
+def api_duplicate_tour(tour_id):
+    """Duplicate a tour with all its stops."""
+    tour = Tour.query.options(joinedload(Tour.stops)).get(tour_id)
+    if not tour or not tour.can_view(request.api_user):
+        return api_error('not_found', 'Tour not found.', 404)
+
+    new_tour = Tour(
+        name=f'{tour.name} (copie)',
+        band_id=tour.band_id,
+        start_date=tour.start_date,
+        end_date=tour.end_date,
+        status=TourStatus.DRAFT,
+        notes=tour.notes,
+        created_by_id=request.api_user.id,
+    )
+    db.session.add(new_tour)
+    db.session.flush()
+
+    for stop in tour.stops:
+        new_stop = TourStop(
+            tour_id=new_tour.id,
+            venue_id=stop.venue_id,
+            date=stop.date,
+            city=stop.city,
+            country=stop.country,
+            event_type=stop.event_type,
+            status=stop.status,
+            guaranteed_fee=stop.guaranteed_fee,
+            capacity=stop.capacity,
+            notes=stop.notes,
+        )
+        db.session.add(new_stop)
+
+    db.session.commit()
+    return api_success(TourSchema().dump(new_tour), 201)
+
+
+@api_bp.route('/stops/<int:stop_id>/reschedule', methods=['POST'])
+@jwt_required
+def api_reschedule_stop(stop_id):
+    """Reschedule a stop to a new date."""
+    stop = TourStop.query.get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Stop not found.', 404)
+
+    data = request.get_json() or {}
+    new_date = data.get('date')
+    if not new_date:
+        return api_error('validation', 'New date is required.')
+
+    try:
+        stop.date = date.fromisoformat(new_date)
+    except ValueError:
+        return api_error('validation', 'Invalid date format. Use YYYY-MM-DD.')
+
+    db.session.commit()
+    return api_success(TourStopSchema().dump(stop))
+
+
+@api_bp.route('/stops/<int:stop_id>/copy-crew', methods=['POST'])
+@jwt_required
+def api_copy_crew(stop_id):
+    """Copy crew slots from another stop."""
+    stop = TourStop.query.get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Destination stop not found.', 404)
+
+    data = request.get_json() or {}
+    source_id = data.get('source_stop_id')
+    if not source_id:
+        return api_error('validation', 'source_stop_id is required.')
+
+    source = TourStop.query.get(source_id)
+    if not source:
+        return api_error('not_found', 'Source stop not found.', 404)
+
+    source_slots = CrewScheduleSlot.query.filter_by(stop_id=source_id).all()
+    created = 0
+    for slot in source_slots:
+        new_slot = CrewScheduleSlot(
+            stop_id=stop_id,
+            role_name=slot.role_name,
+            department=slot.department,
+            required_count=slot.required_count,
+            start_time=slot.start_time,
+            end_time=slot.end_time,
+            notes=slot.notes,
+        )
+        db.session.add(new_slot)
+        created += 1
+
+    db.session.commit()
+    return api_success({'copied_slots': created})
+
+
+# ══════════════════════════════════════════════════════════════
+# GUESTLIST — Advanced (approve, deny, undo, bulk, export)
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/guestlist/<int:entry_id>/approve', methods=['POST'])
+@jwt_required
+def api_approve_guestlist_entry(entry_id):
+    """Approve a guestlist entry."""
+    entry = GuestlistEntry.query.get(entry_id)
+    if not entry:
+        return api_error('not_found', 'Entry not found.', 404)
+
+    entry.status = GuestlistStatus.APPROVED
+    db.session.commit()
+    return api_success(GuestlistEntrySchema().dump(entry))
+
+
+@api_bp.route('/guestlist/<int:entry_id>/deny', methods=['POST'])
+@jwt_required
+def api_deny_guestlist_entry(entry_id):
+    """Deny a guestlist entry."""
+    entry = GuestlistEntry.query.get(entry_id)
+    if not entry:
+        return api_error('not_found', 'Entry not found.', 404)
+
+    entry.status = GuestlistStatus.DENIED
+    db.session.commit()
+    return api_success(GuestlistEntrySchema().dump(entry))
+
+
+@api_bp.route('/guestlist/<int:entry_id>/undo-checkin', methods=['POST'])
+@jwt_required
+def api_undo_checkin(entry_id):
+    """Undo a check-in (revert to approved)."""
+    entry = GuestlistEntry.query.get(entry_id)
+    if not entry:
+        return api_error('not_found', 'Entry not found.', 404)
+
+    if entry.status != GuestlistStatus.CHECKED_IN:
+        return api_error('conflict', 'Entry is not checked in.', 409)
+
+    entry.status = GuestlistStatus.APPROVED
+    entry.checked_in_at = None
+    db.session.commit()
+    return api_success(GuestlistEntrySchema().dump(entry))
+
+
+@api_bp.route('/stops/<int:stop_id>/guestlist/bulk', methods=['POST'])
+@jwt_required
+def api_bulk_guestlist(stop_id):
+    """Bulk action on guestlist entries (approve_all, deny_all, delete_all)."""
+    data = request.get_json() or {}
+    action = data.get('action')
+    entry_ids = data.get('entry_ids', [])
+
+    if action not in ('approve_all', 'deny_all', 'delete_all'):
+        return api_error('validation', 'action must be approve_all, deny_all, or delete_all.')
+
+    query = GuestlistEntry.query.filter(
+        GuestlistEntry.stop_id == stop_id,
+    )
+    if entry_ids:
+        query = query.filter(GuestlistEntry.id.in_(entry_ids))
+
+    entries = query.all()
+    count = len(entries)
+
+    if action == 'approve_all':
+        for e in entries:
+            e.status = GuestlistStatus.APPROVED
+    elif action == 'deny_all':
+        for e in entries:
+            e.status = GuestlistStatus.DENIED
+    elif action == 'delete_all':
+        for e in entries:
+            db.session.delete(e)
+
+    db.session.commit()
+    return api_success({'action': action, 'affected': count})
+
+
+# ══════════════════════════════════════════════════════════════
+# NOTIFICATIONS — Advanced (delete, delete-all, delete-read)
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/notifications/<int:notif_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_notification(notif_id):
+    """Delete a single notification."""
+    notif = Notification.query.get(notif_id)
+    if not notif or notif.user_id != request.api_user.id:
+        return api_error('not_found', 'Notification not found.', 404)
+
+    db.session.delete(notif)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/notifications/delete-all', methods=['POST'])
+@jwt_required
+def api_delete_all_notifications():
+    """Delete all notifications for the current user."""
+    count = Notification.query.filter_by(user_id=request.api_user.id).delete()
+    db.session.commit()
+    return api_success({'deleted': count})
+
+
+@api_bp.route('/notifications/delete-read', methods=['POST'])
+@jwt_required
+def api_delete_read_notifications():
+    """Delete all read notifications for the current user."""
+    count = Notification.query.filter_by(
+        user_id=request.api_user.id,
+        is_read=True,
+    ).delete()
+    db.session.commit()
+    return api_success({'deleted': count})
+
+
+# ══════════════════════════════════════════════════════════════
+# INVOICES — Advanced (lines, cancel, overdue, send-email)
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/invoices/<int:invoice_id>/lines', methods=['POST'])
+@jwt_required
+def api_add_invoice_line(invoice_id):
+    """Add a line to an invoice."""
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+
+    if invoice.status != InvoiceStatus.DRAFT:
+        return api_error('conflict', 'Cannot modify a non-draft invoice.', 409)
+
+    data = request.get_json() or {}
+    line = InvoiceLine(
+        invoice_id=invoice_id,
+        description=data.get('description', ''),
+        quantity=data.get('quantity', 1),
+        unit_price=data.get('unit_price', 0),
+        tax_rate=data.get('tax_rate', 0),
+    )
+    db.session.add(line)
+
+    # Recalculate invoice total
+    invoice.recalculate_total()
+    db.session.commit()
+    return api_success(InvoiceLineSchema().dump(line), 201)
+
+
+@api_bp.route('/invoices/<int:invoice_id>/lines/<int:line_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_invoice_line(invoice_id, line_id):
+    """Delete a line from an invoice."""
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+
+    if invoice.status != InvoiceStatus.DRAFT:
+        return api_error('conflict', 'Cannot modify a non-draft invoice.', 409)
+
+    line = InvoiceLine.query.filter_by(id=line_id, invoice_id=invoice_id).first()
+    if not line:
+        return api_error('not_found', 'Line not found.', 404)
+
+    db.session.delete(line)
+    invoice.recalculate_total()
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/invoices/<int:invoice_id>/cancel', methods=['POST'])
+@jwt_required
+def api_cancel_invoice(invoice_id):
+    """Cancel an invoice."""
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+
+    if invoice.status in (InvoiceStatus.PAID,):
+        return api_error('conflict', 'Cannot cancel a paid invoice.', 409)
+
+    invoice.status = InvoiceStatus.CANCELLED
+    db.session.commit()
+    return api_success(InvoiceSchema().dump(invoice))
+
+
+@api_bp.route('/invoices/<int:invoice_id>/mark-overdue', methods=['POST'])
+@jwt_required
+def api_mark_invoice_overdue(invoice_id):
+    """Mark an invoice as overdue."""
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return api_error('not_found', 'Invoice not found.', 404)
+
+    invoice.status = InvoiceStatus.OVERDUE
+    db.session.commit()
+    return api_success(InvoiceSchema().dump(invoice))
