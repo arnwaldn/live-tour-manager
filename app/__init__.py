@@ -283,12 +283,15 @@ def register_error_handlers(app):
         app.logger.error('500 Internal Server Error: %s (request_id=%s)', type(error).__name__, request_id, exc_info=True)
         if _is_api_request():
             import traceback
-            tb = traceback.format_exc()
+            # Extract the original exception from Flask's wrapper
+            original = getattr(error, 'original_exception', None) or error.__cause__ or error
+            tb_lines = traceback.format_exception(type(original), original, original.__traceback__) if hasattr(original, '__traceback__') and original.__traceback__ else []
+            tb = ''.join(tb_lines)
             return jsonify({'error': {
                 'code': 'internal_error',
-                'message': str(error),
-                'type': type(error).__name__,
-                'trace': tb[-800:] if tb and tb != 'NoneType: None\n' else None,
+                'message': str(original),
+                'type': type(original).__name__,
+                'trace': tb[-1500:] if tb else None,
                 'request_id': request_id
             }}), 500
         return render_template('errors/500.html', request_id=request_id), 500
