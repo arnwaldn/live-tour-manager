@@ -3073,27 +3073,27 @@ def api_calendar():
         query = TourStop.query.join(Tour).join(Band).filter(
             Band.org_id == org_id
         ).options(
-        joinedload(TourStop.tour).joinedload(Tour.band),
-        joinedload(TourStop.venue),
-    )
+            joinedload(TourStop.tour).joinedload(Tour.band),
+            joinedload(TourStop.venue),
+        )
 
-    from_date = request.args.get('from_date')
-    if from_date:
-        try:
-            query = query.filter(TourStop.date >= date.fromisoformat(from_date))
-        except ValueError:
-            pass
+        from_date_str = request.args.get('from_date')
+        if from_date_str:
+            try:
+                query = query.filter(TourStop.date >= date.fromisoformat(from_date_str))
+            except ValueError:
+                pass
 
-    to_date = request.args.get('to_date')
-    if to_date:
-        try:
-            query = query.filter(TourStop.date <= date.fromisoformat(to_date))
-        except ValueError:
-            pass
+        to_date_str = request.args.get('to_date')
+        if to_date_str:
+            try:
+                query = query.filter(TourStop.date <= date.fromisoformat(to_date_str))
+            except ValueError:
+                pass
 
-    band_id = request.args.get('band_id', type=int)
-    if band_id:
-        query = query.filter(Tour.band_id == band_id)
+        band_id = request.args.get('band_id', type=int)
+        if band_id:
+            query = query.filter(Tour.band_id == band_id)
 
         stops = query.order_by(TourStop.date).all()
         return api_success(TourStopSchema(many=True).dump(stops))

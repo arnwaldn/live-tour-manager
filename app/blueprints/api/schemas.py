@@ -51,17 +51,31 @@ class BandSchema(BaseSchema):
     bio = fields.Str()
     website = fields.Str()
     manager = fields.Nested(UserMinimalSchema, dump_only=True)
+    tours_count = fields.Method('get_tours_count')
     created_at = fields.DateTime(format='iso')
+
+    def get_tours_count(self, obj):
+        return len(obj.tours) if hasattr(obj, 'tours') and obj.tours else 0
 
 
 class BandMembershipSchema(BaseSchema):
-    """Band membership (member info)."""
+    """Band membership (flat format for mobile app)."""
     id = fields.Int(dump_only=True)
-    user = fields.Nested(UserMinimalSchema, dump_only=True)
+    user_id = fields.Method('get_user_id')
+    first_name = fields.Method('get_first_name')
+    last_name = fields.Method('get_last_name')
     instrument = fields.Str()
     role_in_band = fields.Str()
     is_active = fields.Bool()
-    joined_at = fields.DateTime(format='iso')
+
+    def get_user_id(self, obj):
+        return obj.user.id if obj.user else None
+
+    def get_first_name(self, obj):
+        return obj.user.first_name if obj.user else None
+
+    def get_last_name(self, obj):
+        return obj.user.last_name if obj.user else None
 
 
 class BandDetailSchema(BandSchema):
