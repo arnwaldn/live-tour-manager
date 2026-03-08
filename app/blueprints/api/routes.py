@@ -1045,8 +1045,12 @@ def api_create_band():
         org_id=membership.org_id,
         manager_id=user.id,
     )
-    db.session.add(band)
-    db.session.commit()
+    try:
+        db.session.add(band)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return api_error('internal_error', f'Failed to create band: {e}', 500)
 
     band_id = band.id
     db.session.expire_all()
@@ -1231,8 +1235,12 @@ def api_create_venue():
         backline_details=data.get('backline_details', '').strip() or None,
         org_id=membership.org_id,
     )
-    db.session.add(venue)
-    db.session.commit()
+    try:
+        db.session.add(venue)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return api_error('internal_error', f'Failed to create venue: {e}', 500)
 
     venue_id = venue.id
     db.session.expire_all()
@@ -3061,16 +3069,10 @@ def api_calendar():
     """
     user = request.api_user
 
-    # Get tours the user has access to
+    # Get all stops from org tours the user has access to
+    org_id = get_current_org_id()
     query = TourStop.query.join(Tour).filter(
-        db.or_(
-            Tour.created_by_id == user.id,
-            Tour.id.in_(
-                db.session.query(TourStopMember.tour_stop_id).filter(
-                    TourStopMember.user_id == user.id
-                ).correlate(None).subquery().select()
-            ) if False else True,  # fallback: show all org tours
-        )
+        Tour.org_id == org_id
     ).options(
         joinedload(TourStop.tour).joinedload(Tour.band),
         joinedload(TourStop.venue),
@@ -3133,8 +3135,8 @@ def api_tour_map_data(tour_id):
         markers.append({
             'stop_id': stop.id,
             'date': stop.date.isoformat() if stop.date else None,
-            'city': stop.city or (stop.venue.city if stop.venue else None),
-            'country': stop.country or (stop.venue.country if stop.venue else None),
+            'city': stop.location_city or (stop.venue.city if stop.venue else None),
+            'country': stop.location_country or (stop.venue.country if stop.venue else None),
             'venue_name': venue_name,
             'latitude': float(lat),
             'longitude': float(lng),
@@ -3431,7 +3433,7 @@ def api_reports_summary():
     tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).all()
     stops = TourStop.query.join(Tour).filter(Tour.band_id.in_(user_band_ids)).all()
 
-    total_revenue = sum(float(s.guaranteed_fee or 0) for s in stops)
+    total_revenue = sum(float(s.guarantee or 0) for s in stops)
     total_guestlist = sum(len(s.guestlist_entries) for s in stops)
     total_checked_in = sum(
         1 for s in stops for e in s.guestlist_entries
@@ -3467,10 +3469,10 @@ def api_report_financial_tour(tour_id):
     total_capacity = 0
 
     for stop in sorted(tour.stops, key=lambda s: s.date or date.min):
-        fee = float(stop.guaranteed_fee or 0)
-        bonus = float(stop.bonus_percentage or 0)
-        sold = stop.tickets_sold or 0
-        cap = stop.capacity or 0
+        fee = float(stop.guarantee or 0)
+        bonus = float(stop.bonus_pct or 0) if hasattr(stop, 'bonus_pct') else 0
+        sold = stop.tickets_sold or 0 if hasattr(stop, 'tickets_sold') else 0
+        cap = stop.venue.capacity if stop.venue and stop.venue.capacity else 0
 
         total_revenue += fee
         total_tickets_sold += sold
@@ -3479,7 +3481,7 @@ def api_report_financial_tour(tour_id):
         stops_data.append({
             'stop_id': stop.id,
             'date': stop.date.isoformat() if stop.date else None,
-            'city': stop.city,
+            'city': stop.location_city,
             'venue': stop.venue.name if stop.venue else None,
             'guaranteed_fee': fee,
             'bonus_percentage': bonus,
