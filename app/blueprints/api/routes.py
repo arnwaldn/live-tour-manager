@@ -1025,37 +1025,39 @@ def api_create_band():
     Required fields: name
     Optional fields: genre, bio, website
     """
-    data = request.get_json(silent=True) or {}
-    user = request.api_user
-
-    if not data.get('name', '').strip():
-        return api_error('validation_error', 'Missing required fields.', 422,
-                         {'name': 'name is required.'})
-
-    from app.models.organization import OrganizationMembership
-    membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
-    if not membership:
-        return api_error('forbidden', 'User has no organization.', 403)
-
-    band = Band(
-        name=data['name'].strip(),
-        genre=data.get('genre', '').strip() or None,
-        bio=data.get('bio', '').strip() or None,
-        website=data.get('website', '').strip() or None,
-        org_id=membership.org_id,
-        manager_id=user.id,
-    )
+    import traceback
     try:
+        data = request.get_json(silent=True) or {}
+        user = request.api_user
+
+        if not data.get('name', '').strip():
+            return api_error('validation_error', 'Missing required fields.', 422,
+                             {'name': 'name is required.'})
+
+        from app.models.organization import OrganizationMembership
+        membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
+        if not membership:
+            return api_error('forbidden', 'User has no organization.', 403)
+
+        band = Band(
+            name=data['name'].strip(),
+            genre=data.get('genre', '').strip() or None,
+            bio=data.get('bio', '').strip() or None,
+            website=data.get('website', '').strip() or None,
+            org_id=membership.org_id,
+            manager_id=user.id,
+        )
         db.session.add(band)
         db.session.commit()
+
+        band_id = band.id
+        db.session.expire_all()
+        band = Band.query.options(joinedload(Band.manager)).get(band_id)
+        return api_success(BandSchema().dump(band)), 201
     except Exception as e:
         db.session.rollback()
-        return api_error('internal_error', f'Failed to create band: {e}', 500)
-
-    band_id = band.id
-    db.session.expire_all()
-    band = Band.query.options(joinedload(Band.manager)).get(band_id)
-    return api_success(BandSchema().dump(band)), 201
+        tb = traceback.format_exc()
+        return jsonify({'error': {'code': 'debug', 'message': str(e), 'trace': tb[-500:]}}), 500
 
 
 # ── Venues ──────────────────────────────────────────────────
@@ -1188,64 +1190,59 @@ def api_delete_band(band_id):
 @api_bp.route('/venues', methods=['POST'])
 @jwt_required
 def api_create_venue():
-    """Create a new venue.
-
-    Required fields: name, city, country
-    Optional fields: address, state, postal_code, capacity, venue_type,
-        latitude, longitude, timezone, website, phone, email, notes,
-        technical_specs, stage_dimensions, load_in_info, parking_info,
-        backline_available, backline_details
-    """
-    data = request.get_json(silent=True) or {}
-    user = request.api_user
-
-    errors = {}
-    for field in ('name', 'city', 'country'):
-        if not data.get(field, '').strip():
-            errors[field] = f'{field} is required.'
-    if errors:
-        return api_error('validation_error', 'Missing required fields.', 422, errors)
-
-    from app.models.organization import OrganizationMembership
-    membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
-    if not membership:
-        return api_error('forbidden', 'User has no organization.', 403)
-
-    venue = Venue(
-        name=data['name'].strip(),
-        city=data['city'].strip(),
-        country=data['country'].strip(),
-        address=data.get('address', '').strip() or None,
-        state=data.get('state', '').strip() or None,
-        postal_code=data.get('postal_code', '').strip() or None,
-        capacity=data.get('capacity'),
-        venue_type=data.get('venue_type', '').strip() or None,
-        latitude=data.get('latitude'),
-        longitude=data.get('longitude'),
-        timezone=data.get('timezone', 'Europe/Paris'),
-        website=data.get('website', '').strip() or None,
-        phone=data.get('phone', '').strip() or None,
-        email=data.get('email', '').strip() or None,
-        notes=data.get('notes', '').strip() or None,
-        technical_specs=data.get('technical_specs', '').strip() or None,
-        stage_dimensions=data.get('stage_dimensions', '').strip() or None,
-        load_in_info=data.get('load_in_info', '').strip() or None,
-        parking_info=data.get('parking_info', '').strip() or None,
-        backline_available=data.get('backline_available', False),
-        backline_details=data.get('backline_details', '').strip() or None,
-        org_id=membership.org_id,
-    )
+    """Create a new venue."""
+    import traceback
     try:
+        data = request.get_json(silent=True) or {}
+        user = request.api_user
+
+        errors = {}
+        for field in ('name', 'city', 'country'):
+            if not data.get(field, '').strip():
+                errors[field] = f'{field} is required.'
+        if errors:
+            return api_error('validation_error', 'Missing required fields.', 422, errors)
+
+        from app.models.organization import OrganizationMembership
+        membership = OrganizationMembership.query.filter_by(user_id=user.id).first()
+        if not membership:
+            return api_error('forbidden', 'User has no organization.', 403)
+
+        venue = Venue(
+            name=data['name'].strip(),
+            city=data['city'].strip(),
+            country=data['country'].strip(),
+            address=data.get('address', '').strip() or None,
+            state=data.get('state', '').strip() or None,
+            postal_code=data.get('postal_code', '').strip() or None,
+            capacity=data.get('capacity'),
+            venue_type=data.get('venue_type', '').strip() or None,
+            latitude=data.get('latitude'),
+            longitude=data.get('longitude'),
+            timezone=data.get('timezone', 'Europe/Paris'),
+            website=data.get('website', '').strip() or None,
+            phone=data.get('phone', '').strip() or None,
+            email=data.get('email', '').strip() or None,
+            notes=data.get('notes', '').strip() or None,
+            technical_specs=data.get('technical_specs', '').strip() or None,
+            stage_dimensions=data.get('stage_dimensions', '').strip() or None,
+            load_in_info=data.get('load_in_info', '').strip() or None,
+            parking_info=data.get('parking_info', '').strip() or None,
+            backline_available=data.get('backline_available', False),
+            backline_details=data.get('backline_details', '').strip() or None,
+            org_id=membership.org_id,
+        )
         db.session.add(venue)
         db.session.commit()
+
+        venue_id = venue.id
+        db.session.expire_all()
+        venue = Venue.query.options(joinedload(Venue.contacts)).get(venue_id)
+        return api_success(VenueDetailSchema().dump(venue)), 201
     except Exception as e:
         db.session.rollback()
-        return api_error('internal_error', f'Failed to create venue: {e}', 500)
-
-    venue_id = venue.id
-    db.session.expire_all()
-    venue = Venue.query.options(joinedload(Venue.contacts)).get(venue_id)
-    return api_success(VenueDetailSchema().dump(venue)), 201
+        tb = traceback.format_exc()
+        return jsonify({'error': {'code': 'debug', 'message': str(e), 'trace': tb[-500:]}}), 500
 
 
 @api_bp.route('/venues/<int:venue_id>', methods=['GET'])
@@ -3067,13 +3064,15 @@ def api_calendar():
     Params: from_date, to_date, band_id
     Returns: list of tour stops with tour and venue info.
     """
-    user = request.api_user
+    import traceback
+    try:
+        user = request.api_user
 
-    # Get all stops from org tours the user has access to
-    org_id = get_current_org_id()
-    query = TourStop.query.join(Tour).filter(
-        Tour.org_id == org_id
-    ).options(
+        # Get all stops from org tours (via band org_id)
+        org_id = get_current_org_id()
+        query = TourStop.query.join(Tour).join(Band).filter(
+            Band.org_id == org_id
+        ).options(
         joinedload(TourStop.tour).joinedload(Tour.band),
         joinedload(TourStop.venue),
     )
@@ -3096,8 +3095,12 @@ def api_calendar():
     if band_id:
         query = query.filter(Tour.band_id == band_id)
 
-    stops = query.order_by(TourStop.date).all()
-    return api_success(TourStopSchema(many=True).dump(stops))
+        stops = query.order_by(TourStop.date).all()
+        return api_success(TourStopSchema(many=True).dump(stops))
+    except Exception as e:
+        db.session.rollback()
+        tb = traceback.format_exc()
+        return jsonify({'error': {'code': 'debug', 'message': str(e), 'trace': tb[-500:]}}), 500
 
 
 # ── Map ───────────────────────────────────────────────────
