@@ -47,7 +47,7 @@ from app.models.invoices import Invoice, InvoiceStatus, InvoiceType, InvoiceLine
 @api_bp.route('/version', methods=['GET'])
 def api_version():
     """Return API version to verify deployment."""
-    return jsonify({'version': '2026-03-08-v3', 'routes': 116})
+    return jsonify({'version': '2026-03-08-v4', 'routes': 116})
 
 
 # ── Dashboard ────────────────────────────────────────────────

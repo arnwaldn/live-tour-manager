@@ -282,7 +282,15 @@ def register_error_handlers(app):
         request_id = g.get('request_id', '-')
         app.logger.error('500 Internal Server Error: %s (request_id=%s)', type(error).__name__, request_id, exc_info=True)
         if _is_api_request():
-            return jsonify({'error': {'code': 'internal_error', 'message': 'Internal server error.', 'request_id': request_id}}), 500
+            import traceback
+            tb = traceback.format_exc()
+            return jsonify({'error': {
+                'code': 'internal_error',
+                'message': str(error),
+                'type': type(error).__name__,
+                'trace': tb[-800:] if tb and tb != 'NoneType: None\n' else None,
+                'request_id': request_id
+            }}), 500
         return render_template('errors/500.html', request_id=request_id), 500
 
     @app.errorhandler(429)
