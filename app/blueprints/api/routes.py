@@ -42,6 +42,14 @@ from app.models.document import Document, DocumentType, DocumentShare, ShareType
 from app.models.invoices import Invoice, InvoiceStatus, InvoiceType, InvoiceLine, InvoicePayment
 
 
+# ── Version check (deploy verification) ─────────────────────
+
+@api_bp.route('/version', methods=['GET'])
+def api_version():
+    """Return API version to verify deployment."""
+    return jsonify({'version': '2026-03-08-v3', 'routes': 116})
+
+
 # ── Dashboard ────────────────────────────────────────────────
 
 @api_bp.route('/dashboard/stats', methods=['GET'])
