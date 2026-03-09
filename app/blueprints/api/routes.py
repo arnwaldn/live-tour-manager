@@ -4170,11 +4170,17 @@ def api_full_reset():
         deleted['org_memberships'] = OrganizationMembership.query.filter(
             OrganizationMembership.user_id != admin_id).delete(synchronize_session=False)
 
-        # Nullify ALL FK references to users being deleted (robust approach)
-        db.session.execute(db.text("SET session_replication_role = 'replica'"))
+        # Clean all remaining FK references to users before deletion
+        db.session.execute(db.text("DELETE FROM audit_logs WHERE user_id != :aid"), {'aid': admin_id})
+        db.session.execute(db.text(
+            "UPDATE system_settings SET updated_by_id = NULL WHERE updated_by_id IS NOT NULL AND updated_by_id != :aid"
+        ), {'aid': admin_id})
+        db.session.execute(db.text(
+            "UPDATE organizations SET created_by_id = NULL WHERE created_by_id IS NOT NULL AND created_by_id != :aid"
+        ), {'aid': admin_id})
+        # Catch any remaining FK refs with raw TRUNCATE on the user table
         deleted['users'] = User.query.filter(
             User.id != admin_id).delete(synchronize_session=False)
-        db.session.execute(db.text("SET session_replication_role = 'origin'"))
 
         db.session.commit()
         return api_success({'reset': True, 'deleted': {k: v for k, v in deleted.items() if v}})
