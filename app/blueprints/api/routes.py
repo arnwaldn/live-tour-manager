@@ -4171,7 +4171,7 @@ def api_full_reset():
             OrganizationMembership.user_id != admin_id).delete(synchronize_session=False)
 
         # Nullify all remaining FK references to users being deleted
-        from app.models.system_settings import SystemSetting
+        from app.models.system_settings import SystemSettings
         from app.models.organization import Organization
         db.session.execute(db.text(
             "UPDATE system_settings SET updated_by_id = NULL WHERE updated_by_id != :aid"
