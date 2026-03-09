@@ -4169,6 +4169,17 @@ def api_full_reset():
         db.session.execute(user_roles.delete().where(user_roles.c.user_id != admin_id))
         deleted['org_memberships'] = OrganizationMembership.query.filter(
             OrganizationMembership.user_id != admin_id).delete(synchronize_session=False)
+
+        # Nullify all remaining FK references to users being deleted
+        from app.models.system_settings import SystemSetting
+        from app.models.organization import Organization
+        db.session.execute(db.text(
+            "UPDATE system_settings SET updated_by_id = NULL WHERE updated_by_id != :aid"
+        ), {'aid': admin_id})
+        db.session.execute(db.text(
+            "UPDATE organizations SET created_by_id = NULL WHERE created_by_id IS NOT NULL AND created_by_id != :aid"
+        ), {'aid': admin_id})
+
         deleted['users'] = User.query.filter(
             User.id != admin_id).delete(synchronize_session=False)
 
