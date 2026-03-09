@@ -4126,6 +4126,7 @@ def api_full_reset():
     from app.models.mission_invitation import MissionInvitation
     from app.models.venue import Venue, VenueContact
     from app.models.oauth_token import OAuthToken
+    from app.models.organization import OrganizationMembership
 
     admin_id = request.api_user.id
     deleted = {}
@@ -4166,6 +4167,8 @@ def api_full_reset():
         deleted['oauth_tokens'] = OAuthToken.query.filter(
             OAuthToken.user_id != admin_id).delete(synchronize_session=False)
         db.session.execute(user_roles.delete().where(user_roles.c.user_id != admin_id))
+        deleted['org_memberships'] = OrganizationMembership.query.filter(
+            OrganizationMembership.user_id != admin_id).delete(synchronize_session=False)
         deleted['users'] = User.query.filter(
             User.id != admin_id).delete(synchronize_session=False)
 
