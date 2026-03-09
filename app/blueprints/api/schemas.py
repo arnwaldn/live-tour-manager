@@ -146,6 +146,8 @@ class VenueMinimalSchema(BaseSchema):
     name = fields.Str()
     city = fields.Str()
     country = fields.Str()
+    latitude = fields.Float()
+    longitude = fields.Float()
 
 
 # ── Tour ────────────────────────────────────────────────────
