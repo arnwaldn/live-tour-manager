@@ -4913,8 +4913,10 @@ def api_search():
         Tour.name.ilike(f'%{query}%')
     ).limit(10).all()
 
-    # Search venues
-    venues = Venue.query.filter(
+    # Search venues (scoped to current org)
+    org_id = get_current_org_id()
+    venue_query = Venue.query.filter_by(org_id=org_id) if org_id else Venue.query
+    venues = venue_query.filter(
         Venue.name.ilike(f'%{query}%') |
         Venue.city.ilike(f'%{query}%')
     ).limit(10).all()
@@ -4957,40 +4959,42 @@ def api_settlements_list():
     from sqlalchemy.orm import selectinload
     from app.utils.reports import calculate_settlement
 
-    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).options(
-        selectinload(Tour.stops).joinedload(TourStop.venue),
-    ).order_by(Tour.start_date.desc()).all()
+    # Build stop query with date filter pushed to SQL
+    filter_type = request.args.get('filter', 'all')
+    today = date.today()
+
+    stop_query = TourStop.query.join(Tour).filter(
+        Tour.band_id.in_(user_band_ids),
+        TourStop.venue_id.isnot(None),
+    ).options(
+        joinedload(TourStop.venue),
+        joinedload(TourStop.tour),
+    )
+
+    if filter_type == 'past':
+        stop_query = stop_query.filter(TourStop.date < today)
+    elif filter_type == 'future':
+        stop_query = stop_query.filter(TourStop.date >= today)
+
+    stops = stop_query.order_by(TourStop.date.desc()).all()
 
     all_settlements = []
-    for tour in tours:
-        for stop in tour.stops:
-            if stop.venue:
-                settlement_data = calculate_settlement(stop)
-                all_settlements.append({
-                    'stop_id': stop.id,
-                    'tour_id': tour.id,
-                    'tour_name': tour.name,
-                    'date': stop.date.isoformat() if stop.date else None,
-                    'venue_name': stop.venue.name if stop.venue else None,
-                    'city': stop.location_city,
-                    'guarantee': float(settlement_data.get('guarantee', 0)),
-                    'gross_revenue': float(settlement_data.get('gross_revenue', 0)),
-                    'net_revenue': float(settlement_data.get('nbor', 0)),
-                    'artist_payment': float(settlement_data.get('artist_payment', 0)),
-                    'currency': settlement_data.get('currency', 'EUR'),
-                    'status': stop.status.value if stop.status else None,
-                })
-
-    # Sort by date descending
-    all_settlements.sort(key=lambda x: x['date'] or '', reverse=True)
-
-    # Filter
-    filter_type = request.args.get('filter', 'all')
-    today = date.today().isoformat()
-    if filter_type == 'past':
-        all_settlements = [s for s in all_settlements if s['date'] and s['date'] < today]
-    elif filter_type == 'future':
-        all_settlements = [s for s in all_settlements if s['date'] and s['date'] >= today]
+    for stop in stops:
+        settlement_data = calculate_settlement(stop)
+        all_settlements.append({
+            'stop_id': stop.id,
+            'tour_id': stop.tour.id,
+            'tour_name': stop.tour.name,
+            'date': stop.date.isoformat() if stop.date else None,
+            'venue_name': stop.venue.name if stop.venue else None,
+            'city': stop.location_city,
+            'guarantee': float(settlement_data.get('guarantee', 0)),
+            'gross_revenue': float(settlement_data.get('gross_revenue', 0)),
+            'net_revenue': float(settlement_data.get('nbor', 0)),
+            'artist_payment': float(settlement_data.get('artist_payment', 0)),
+            'currency': settlement_data.get('currency', 'EUR'),
+            'status': stop.status.value if stop.status else None,
+        })
 
     return api_success(all_settlements)
 
@@ -5004,6 +5008,7 @@ def api_settlement_detail(stop_id):
 
     stop = TourStop.query.options(
         joinedload(TourStop.venue),
+        joinedload(TourStop.tour),
     ).get(stop_id)
     if not stop:
         return api_error('not_found', 'Stop not found.', 404)
@@ -5019,16 +5024,19 @@ def api_settlement_detail(stop_id):
     from app.utils.reports import calculate_settlement
     settlement_data = calculate_settlement(stop)
 
-    # Convert non-JSON-serializable values (Decimal, date) for JSON output
+    # Convert non-JSON-serializable values (Decimal, date) recursively
     def json_safe(val):
         from decimal import Decimal
         if isinstance(val, Decimal):
             return float(val)
         if isinstance(val, date):
             return val.isoformat()
+        if isinstance(val, dict):
+            return {k: json_safe(v) for k, v in val.items()}
+        if isinstance(val, list):
+            return [json_safe(item) for item in val]
         return val
 
-    result = {k: json_safe(v) if not isinstance(v, (dict, list)) else v
-              for k, v in settlement_data.items()}
+    result = json_safe(settlement_data)
 
     return api_success(result)
