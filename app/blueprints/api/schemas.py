@@ -24,7 +24,7 @@ class UserMinimalSchema(BaseSchema):
 
 
 class UserSchema(BaseSchema):
-    """Full user representation (for /me endpoint)."""
+    """Full user representation (for /me endpoint and user management)."""
     id = fields.Int(dump_only=True)
     email = fields.Email()
     first_name = fields.Str()
@@ -35,10 +35,73 @@ class UserSchema(BaseSchema):
     access_level_label = fields.Str(dump_only=True)
     is_active = fields.Bool()
     email_verified = fields.Bool()
+    professions = fields.Method('get_professions')
     created_at = fields.DateTime(format='iso')
+
+    # Personal information
+    date_of_birth = fields.Date()
+    nationality = fields.Str()
+    label_name = fields.Str()
+    receive_emails = fields.Bool()
+
+    # Travel preferences
+    preferred_airline = fields.Str()
+    seat_preference = fields.Str()
+    meal_preference = fields.Str()
+    hotel_preferences = fields.Str()
+
+    # Emergency contact
+    emergency_contact_name = fields.Str()
+    emergency_contact_relation = fields.Str()
+    emergency_contact_phone = fields.Str()
+    emergency_contact_email = fields.Str()
+
+    # Health / Dietary
+    dietary_restrictions = fields.Str()
+    allergies = fields.Str()
+
+    # Billing � Contract
+    contract_type = fields.Str()
+    payment_frequency = fields.Str()
+
+    # Billing � Rates
+    show_rate = fields.Decimal(as_string=True)
+    daily_rate = fields.Decimal(as_string=True)
+    half_day_rate = fields.Decimal(as_string=True)
+    hourly_rate = fields.Decimal(as_string=True)
+    per_diem = fields.Decimal(as_string=True)
+    overtime_rate_25 = fields.Decimal(as_string=True)
+    overtime_rate_50 = fields.Decimal(as_string=True)
+    weekend_rate = fields.Decimal(as_string=True)
+    holiday_rate = fields.Decimal(as_string=True)
+    night_rate = fields.Decimal(as_string=True)
+
+    # Billing � Bank details
+    iban = fields.Str()
+    bic = fields.Str()
+    bank_name = fields.Str()
+    account_holder = fields.Str()
+
+    # Billing � Tax info
+    siret = fields.Str()
+    siren = fields.Str()
+    vat_number = fields.Str()
 
     def get_access_level(self, obj):
         return obj.access_level.value if obj.access_level else None
+
+    def get_professions(self, obj):
+        if not hasattr(obj, 'user_professions') or not obj.user_professions:
+            return []
+        return [
+            {
+                'id': up.profession_id,
+                'name_fr': up.profession.name_fr if up.profession else None,
+                'category': up.profession.category.value if up.profession and up.profession.category else None,
+                'is_primary': up.is_primary,
+            }
+            for up in obj.user_professions
+        ]
 
 
 # ── Band ────────────────────────────────────────────────────
@@ -453,6 +516,8 @@ class CrewAssignmentSchema(BaseSchema):
     person_name = fields.Str(dump_only=True)
     person_email = fields.Str(dump_only=True)
     is_external = fields.Bool(dump_only=True)
+    profession_id = fields.Int(dump_only=True)
+    profession_name = fields.Method('get_profession_name')
     status = fields.Method('get_status')
     call_time = fields.Method('format_call_time')
     notes = fields.Str()
@@ -461,6 +526,11 @@ class CrewAssignmentSchema(BaseSchema):
 
     def get_status(self, obj):
         return obj.status.value if obj.status else None
+
+    def get_profession_name(self, obj):
+        if hasattr(obj, 'profession') and obj.profession:
+            return obj.profession.name_fr
+        return None
 
     def format_call_time(self, obj):
         return obj.call_time.strftime('%H:%M') if obj.call_time else None
@@ -574,3 +644,94 @@ class InvoiceMinimalSchema(BaseSchema):
 
     def get_status(self, obj):
         return obj.status.value if obj.status else None
+
+
+# ── Profession ─────────────────────────────────────────────
+
+class ProfessionSchema(BaseSchema):
+    """Profession representation (for settings / profession management)."""
+    id = fields.Int(dump_only=True)
+    code = fields.Str()
+    name_fr = fields.Str()
+    name_en = fields.Str()
+    category = fields.Method('get_category')
+    category_label = fields.Str(dump_only=True)
+    category_color = fields.Str(dump_only=True)
+    description = fields.Str()
+    default_access_level = fields.Str()
+    sort_order = fields.Int()
+    is_active = fields.Bool()
+    show_rate = fields.Method('get_show_rate')
+    daily_rate = fields.Method('get_daily_rate')
+    weekly_rate = fields.Method('get_weekly_rate')
+    per_diem = fields.Method('get_per_diem')
+    default_frequency = fields.Str()
+
+    def get_category(self, obj):
+        return obj.category.value if obj.category else None
+
+    def get_show_rate(self, obj):
+        return float(obj.show_rate) if obj.show_rate else None
+
+    def get_daily_rate(self, obj):
+        return float(obj.daily_rate) if obj.daily_rate else None
+
+    def get_weekly_rate(self, obj):
+        return float(obj.weekly_rate) if obj.weekly_rate else None
+
+    def get_per_diem(self, obj):
+        return float(obj.per_diem) if obj.per_diem else None
+
+
+class ProfessionMinimalSchema(BaseSchema):
+    """Minimal profession reference (for dropdowns, assignment display)."""
+    id = fields.Int(dump_only=True)
+    code = fields.Str()
+    name_fr = fields.Str()
+    category = fields.Method('get_category')
+
+    def get_category(self, obj):
+        return obj.category.value if obj.category else None
+
+
+class UserProfessionSchema(BaseSchema):
+    """User-profession association."""
+    id = fields.Int(dump_only=True)
+    profession_id = fields.Int()
+    name_fr = fields.Method('get_name_fr')
+    category = fields.Method('get_category')
+    is_primary = fields.Bool()
+    notes = fields.Str()
+
+    def get_name_fr(self, obj):
+        return obj.profession.name_fr if obj.profession else None
+
+    def get_category(self, obj):
+        return obj.profession.category.value if obj.profession and obj.profession.category else None
+
+
+# ── Planning Slot ─────────────────────────────────────────
+
+class PlanningSlotSchema(BaseSchema):
+    """Planning slot for daily concert staff scheduling."""
+    id = fields.Int(dump_only=True)
+    tour_stop_id = fields.Int(dump_only=True)
+    role_name = fields.Str()
+    category = fields.Str()
+    category_color = fields.Str(dump_only=True)
+    start_time = fields.Method('format_start_time')
+    end_time = fields.Method('format_end_time')
+    time_range = fields.Str(dump_only=True)
+    task_description = fields.Str()
+    user_id = fields.Int(allow_none=True)
+    user_name = fields.Method('get_user_name')
+    created_at = fields.DateTime(format='iso')
+
+    def format_start_time(self, obj):
+        return obj.start_time.strftime('%H:%M') if obj.start_time else None
+
+    def format_end_time(self, obj):
+        return obj.end_time.strftime('%H:%M') if obj.end_time else None
+
+    def get_user_name(self, obj):
+        return obj.user.full_name if obj.user else None

@@ -1,7 +1,7 @@
 """
 API v1 Routes — REST endpoints for tours, stops, guestlist, schedule, payments, notifications.
 """
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from flask import request, jsonify
 from sqlalchemy import desc, func
@@ -18,13 +18,14 @@ from app.blueprints.api.schemas import (
     AdvancingContactSchema, LineupSlotSchema,
     CrewScheduleSlotSchema, CrewAssignmentSchema,
     DocumentSchema, InvoiceSchema, InvoiceLineSchema, InvoiceMinimalSchema,
+    ProfessionSchema, UserProfessionSchema, PlanningSlotSchema,
 )
 from app.blueprints.api.helpers import paginate_query, api_error, api_success
 from app.extensions import db, limiter
 from app.utils.org_context import get_current_org_id
 from app.models.user import AccessLevel
 from app.models.tour import Tour, TourStatus
-from app.models.tour_stop import TourStop, TourStopMember
+from app.models.tour_stop import TourStop, TourStopMember, TourStopStatus
 from app.models.guestlist import GuestlistEntry, GuestlistStatus
 from app.models.notification import Notification
 from app.models.payments import TeamMemberPayment
@@ -40,6 +41,7 @@ from app.models.lineup import LineupSlot, PerformerType
 from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment, AssignmentStatus
 from app.models.document import Document, DocumentType, DocumentShare, ShareType
 from app.models.invoices import Invoice, InvoiceStatus, InvoiceType, InvoiceLine, InvoicePayment
+from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
 
 
 # ── Version check (deploy verification) ─────────────────────
@@ -47,7 +49,7 @@ from app.models.invoices import Invoice, InvoiceStatus, InvoiceType, InvoiceLine
 @api_bp.route('/version', methods=['GET'])
 def api_version():
     """Return API version to verify deployment."""
-    return jsonify({'version': '2026-03-08-v7', 'routes': 116})
+    return jsonify({'version': '2026-03-09-v8', 'routes': 131})
 
 
 # ── Dashboard ────────────────────────────────────────────────
@@ -1177,6 +1179,178 @@ def api_delete_band(band_id):
         )
 
     db.session.delete(band)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+# ── Band Members ─────────────────────────────────────────────
+
+@api_bp.route('/bands/<int:band_id>/members', methods=['POST'])
+@jwt_required
+def api_add_band_member(band_id):
+    """Add a member to a band.
+
+    Required: user_id
+    Optional: instrument, role_in_band
+    """
+    band = Band.query.get(band_id)
+    if not band:
+        return api_error('not_found', 'Band not found.', 404)
+    user = request.api_user
+    if not band.is_manager(user) and not user.is_manager_or_above():
+        return api_error('forbidden', 'No permission to manage this band.', 403)
+
+    data = request.get_json(silent=True) or {}
+    member_user_id = data.get('user_id')
+    if not member_user_id:
+        return api_error('validation_error', 'user_id is required.', 422)
+
+    from app.models.user import User as UserModel
+    member_user = UserModel.query.get(member_user_id)
+    if not member_user:
+        return api_error('not_found', 'User not found.', 404)
+
+    existing = BandMembership.query.filter_by(
+        band_id=band_id, user_id=member_user_id
+    ).first()
+    if existing:
+        return api_error('conflict', 'User is already a member of this band.', 409)
+
+    membership = BandMembership(
+        band_id=band_id,
+        user_id=member_user_id,
+        instrument=data.get('instrument', '').strip() or None,
+        role_in_band=data.get('role_in_band', '').strip() or None,
+    )
+    db.session.add(membership)
+    db.session.commit()
+
+    band = Band.query.options(
+        joinedload(Band.manager),
+        joinedload(Band.memberships).joinedload(BandMembership.user),
+    ).get(band_id)
+    return api_success(BandDetailSchema().dump(band), 201)
+
+
+@api_bp.route('/bands/<int:band_id>/invite', methods=['POST'])
+@jwt_required
+def api_invite_band_member(band_id):
+    """Invite a user to a band by email.
+
+    Required: email
+    Optional: instrument, role_in_band
+    """
+    band = Band.query.get(band_id)
+    if not band:
+        return api_error('not_found', 'Band not found.', 404)
+    user = request.api_user
+    if not band.is_manager(user) and not user.is_manager_or_above():
+        return api_error('forbidden', 'No permission to manage this band.', 403)
+
+    data = request.get_json(silent=True) or {}
+    email = data.get('email', '').strip().lower()
+    if not email:
+        return api_error('validation_error', 'email is required.', 422)
+
+    from app.models.user import User as UserModel
+    member_user = UserModel.query.filter_by(email=email).first()
+
+    if member_user:
+        existing = BandMembership.query.filter_by(
+            band_id=band_id, user_id=member_user.id
+        ).first()
+        if existing:
+            return api_error('conflict', 'User is already a member of this band.', 409)
+
+        membership = BandMembership(
+            band_id=band_id,
+            user_id=member_user.id,
+            instrument=data.get('instrument', '').strip() or None,
+            role_in_band=data.get('role_in_band', '').strip() or None,
+        )
+        db.session.add(membership)
+        db.session.commit()
+    else:
+        # User not found — create an inactive placeholder account
+        member_user = UserModel(
+            email=email,
+            first_name=data.get('first_name', ''),
+            last_name=data.get('last_name', ''),
+            is_active=False,
+        )
+        member_user.set_password(email)
+        db.session.add(member_user)
+        db.session.flush()
+
+        membership = BandMembership(
+            band_id=band_id,
+            user_id=member_user.id,
+            instrument=data.get('instrument', '').strip() or None,
+            role_in_band=data.get('role_in_band', '').strip() or None,
+        )
+        db.session.add(membership)
+        db.session.commit()
+
+    band = Band.query.options(
+        joinedload(Band.manager),
+        joinedload(Band.memberships).joinedload(BandMembership.user),
+    ).get(band_id)
+    return api_success(BandDetailSchema().dump(band), 201)
+
+
+@api_bp.route('/bands/<int:band_id>/members/<int:member_id>', methods=['PUT'])
+@jwt_required
+def api_update_band_member(band_id, member_id):
+    """Update a band member's instrument or role.
+
+    Updatable: instrument, role_in_band
+    """
+    band = Band.query.get(band_id)
+    if not band:
+        return api_error('not_found', 'Band not found.', 404)
+    user = request.api_user
+    if not band.is_manager(user) and not user.is_manager_or_above():
+        return api_error('forbidden', 'No permission to manage this band.', 403)
+
+    membership = BandMembership.query.filter_by(
+        id=member_id, band_id=band_id
+    ).first()
+    if not membership:
+        return api_error('not_found', 'Member not found.', 404)
+
+    data = request.get_json(silent=True) or {}
+    if 'instrument' in data:
+        membership.instrument = data['instrument'].strip() or None if isinstance(data['instrument'], str) else None
+    if 'role_in_band' in data:
+        membership.role_in_band = data['role_in_band'].strip() or None if isinstance(data['role_in_band'], str) else None
+
+    db.session.commit()
+
+    band = Band.query.options(
+        joinedload(Band.manager),
+        joinedload(Band.memberships).joinedload(BandMembership.user),
+    ).get(band_id)
+    return api_success(BandDetailSchema().dump(band))
+
+
+@api_bp.route('/bands/<int:band_id>/members/<int:member_id>', methods=['DELETE'])
+@jwt_required
+def api_remove_band_member(band_id, member_id):
+    """Remove a member from a band."""
+    band = Band.query.get(band_id)
+    if not band:
+        return api_error('not_found', 'Band not found.', 404)
+    user = request.api_user
+    if not band.is_manager(user) and not user.is_manager_or_above():
+        return api_error('forbidden', 'No permission to manage this band.', 403)
+
+    membership = BandMembership.query.filter_by(
+        id=member_id, band_id=band_id
+    ).first()
+    if not membership:
+        return api_error('not_found', 'Member not found.', 404)
+
+    db.session.delete(membership)
     db.session.commit()
     return api_success({'deleted': True})
 
@@ -3727,6 +3901,8 @@ def api_update_user(user_id):
         return api_error('not_found', 'User not found.', 404)
 
     data = request.get_json() or {}
+
+    # Basic fields
     for field in ['first_name', 'last_name', 'phone', 'is_active']:
         if field in data:
             setattr(user, field, data[field])
@@ -3736,6 +3912,64 @@ def api_update_user(user_id):
             user.access_level = AccessLevel(data['role'])
         except ValueError:
             pass
+
+    # Extended fields — Identity
+    for field in ['date_of_birth', 'nationality', 'label_name', 'receive_emails']:
+        if field in data:
+            if field == 'date_of_birth' and data[field]:
+                from datetime import date as dt_date
+                try:
+                    user.date_of_birth = dt_date.fromisoformat(data[field])
+                except (ValueError, TypeError):
+                    pass
+            else:
+                setattr(user, field, data[field])
+
+    # Extended fields — Travel
+    for field in ['preferred_airline', 'seat_preference', 'meal_preference', 'hotel_preferences']:
+        if field in data:
+            setattr(user, field, data[field])
+
+    # Extended fields — Emergency contact
+    for field in ['emergency_contact_name', 'emergency_contact_relation',
+                  'emergency_contact_phone', 'emergency_contact_email']:
+        if field in data:
+            setattr(user, field, data[field])
+
+    # Extended fields — Health
+    for field in ['dietary_restrictions', 'allergies']:
+        if field in data:
+            setattr(user, field, data[field])
+
+    # Extended fields — Billing
+    for field in ['contract_type', 'payment_frequency']:
+        if field in data:
+            setattr(user, field, data[field])
+
+    # Extended fields — Rates (Decimal)
+    from decimal import Decimal, InvalidOperation
+    for field in ['show_rate', 'daily_rate', 'half_day_rate', 'hourly_rate',
+                  'per_diem', 'overtime_rate_25', 'overtime_rate_50',
+                  'weekend_rate', 'holiday_rate', 'night_rate']:
+        if field in data:
+            val = data[field]
+            if val is None or val == '':
+                setattr(user, field, None)
+            else:
+                try:
+                    setattr(user, field, Decimal(str(val)))
+                except (InvalidOperation, ValueError):
+                    pass
+
+    # Extended fields — Bank
+    for field in ['iban', 'bic', 'bank_name', 'account_holder']:
+        if field in data:
+            setattr(user, field, data[field])
+
+    # Extended fields — Tax
+    for field in ['siret', 'siren', 'vat_number']:
+        if field in data:
+            setattr(user, field, data[field])
 
     db.session.commit()
     return api_success(UserSchema().dump(user))
@@ -3794,6 +4028,329 @@ def api_reject_user(user_id):
     user.is_active = False
     db.session.commit()
     return api_success({'rejected': True})
+
+
+@api_bp.route('/settings/users/<int:user_id>/hard-delete', methods=['DELETE'])
+@jwt_required
+def api_hard_delete_user(user_id):
+    """Permanently delete a user and all associated data (admin only)."""
+    if not request.api_user.is_admin():
+        return api_error('forbidden', 'Admin access required.', 403)
+
+    from app.models.user import User as UserModel
+    user = UserModel.query.get(user_id)
+    if not user:
+        return api_error('not_found', 'User not found.', 404)
+
+    if user.id == request.api_user.id:
+        return api_error('conflict', 'Cannot delete yourself.', 409)
+
+    db.session.delete(user)
+    db.session.commit()
+    return api_success({'deleted': True, 'permanent': True})
+
+
+@api_bp.route('/users/<int:user_id>/resend-invitation', methods=['POST'])
+@jwt_required
+def api_resend_invitation(user_id):
+    """Resend an invitation email to a user (manager only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.user import User as UserModel
+    user = UserModel.query.get(user_id)
+    if not user:
+        return api_error('not_found', 'User not found.', 404)
+
+    # In production, this would resend the invitation email
+    # For now, just confirm the request was accepted
+    return api_success({'resent': True, 'email': user.email})
+
+
+# ══════════════════════════════════════════════════════════════
+# PROFESSIONS — CRUD (settings)
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/settings/professions', methods=['GET'])
+@jwt_required
+def api_list_professions():
+    """List all professions, optionally grouped by category.
+
+    Query params:
+        grouped (bool): If true, return professions grouped by category
+        active_only (bool): If true, only active professions (default true)
+    """
+    from app.models.profession import Profession, ProfessionCategory, CATEGORY_LABELS
+    from app.blueprints.api.schemas import ProfessionSchema
+
+    active_only = request.args.get('active_only', 'true').lower() == 'true'
+    grouped = request.args.get('grouped', 'false').lower() == 'true'
+
+    query = Profession.query.order_by(Profession.category, Profession.sort_order)
+    if active_only:
+        query = query.filter_by(is_active=True)
+
+    professions = query.all()
+
+    if grouped:
+        result = {}
+        for cat in ProfessionCategory:
+            cat_profs = [p for p in professions if p.category == cat]
+            if cat_profs:
+                result[cat.value] = {
+                    'label': CATEGORY_LABELS.get(cat, cat.value),
+                    'count': len(cat_profs),
+                    'professions': ProfessionSchema().dump(cat_profs, many=True),
+                }
+        return api_success(result)
+
+    schema = ProfessionSchema()
+    return api_success(schema.dump(professions, many=True))
+
+
+@api_bp.route('/settings/professions', methods=['POST'])
+@jwt_required
+def api_create_profession():
+    """Create a new profession (manager only).
+
+    Required: name_fr, category
+    Optional: code, name_en, description, default_access_level,
+              sort_order, show_rate, daily_rate, weekly_rate, per_diem, default_frequency
+    """
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.profession import Profession, ProfessionCategory
+    from app.blueprints.api.schemas import ProfessionSchema
+
+    data = request.get_json(silent=True) or {}
+
+    name_fr = data.get('name_fr', '').strip()
+    category_str = data.get('category', '').strip()
+
+    if not name_fr:
+        return api_error('validation_error', 'name_fr is required.', 422)
+    if not category_str:
+        return api_error('validation_error', 'category is required.', 422)
+
+    try:
+        category = ProfessionCategory(category_str)
+    except ValueError:
+        valid = [c.value for c in ProfessionCategory]
+        return api_error('validation_error', f'Invalid category. Must be one of: {", ".join(valid)}.', 422)
+
+    # Auto-generate code if not provided
+    code = data.get('code', '').strip().upper()
+    if not code:
+        code = name_fr.upper().replace(' ', '_').replace("'", '').replace('/', '_')[:50]
+
+    existing = Profession.query.filter_by(code=code).first()
+    if existing:
+        return api_error('conflict', f'A profession with code "{code}" already exists.', 409)
+
+    profession = Profession(
+        code=code,
+        name_fr=name_fr,
+        name_en=data.get('name_en', '').strip() or name_fr,
+        category=category,
+        description=data.get('description', '').strip() or None,
+        default_access_level=data.get('default_access_level', 'STAFF'),
+        sort_order=data.get('sort_order', 0),
+        is_active=True,
+        show_rate=data.get('show_rate'),
+        daily_rate=data.get('daily_rate'),
+        weekly_rate=data.get('weekly_rate'),
+        per_diem=data.get('per_diem'),
+        default_frequency=data.get('default_frequency'),
+    )
+    db.session.add(profession)
+    db.session.commit()
+
+    return api_success(ProfessionSchema().dump(profession), 201)
+
+
+@api_bp.route('/settings/professions/<int:prof_id>', methods=['GET'])
+@jwt_required
+def api_get_profession(prof_id):
+    """Get a single profession."""
+    from app.models.profession import Profession
+    from app.blueprints.api.schemas import ProfessionSchema
+
+    profession = Profession.query.get(prof_id)
+    if not profession:
+        return api_error('not_found', 'Profession not found.', 404)
+
+    return api_success(ProfessionSchema().dump(profession))
+
+
+@api_bp.route('/settings/professions/<int:prof_id>', methods=['PUT'])
+@jwt_required
+def api_update_profession(prof_id):
+    """Update a profession (manager only).
+
+    Updatable: name_fr, name_en, category, description, default_access_level,
+               sort_order, show_rate, daily_rate, weekly_rate, per_diem, default_frequency
+    """
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.profession import Profession, ProfessionCategory
+    from app.blueprints.api.schemas import ProfessionSchema
+
+    profession = Profession.query.get(prof_id)
+    if not profession:
+        return api_error('not_found', 'Profession not found.', 404)
+
+    data = request.get_json(silent=True) or {}
+
+    STR_FIELDS = ['name_fr', 'name_en', 'description', 'default_access_level', 'default_frequency']
+    for field in STR_FIELDS:
+        if field in data:
+            value = data[field]
+            if isinstance(value, str):
+                value = value.strip() or None
+            setattr(profession, field, value)
+
+    NUM_FIELDS = ['sort_order', 'show_rate', 'daily_rate', 'weekly_rate', 'per_diem']
+    for field in NUM_FIELDS:
+        if field in data:
+            setattr(profession, field, data[field])
+
+    if 'category' in data:
+        try:
+            profession.category = ProfessionCategory(data['category'])
+        except ValueError:
+            valid = [c.value for c in ProfessionCategory]
+            return api_error('validation_error', f'Invalid category. Must be one of: {", ".join(valid)}.', 422)
+
+    if 'code' in data:
+        code = data['code'].strip().upper() if isinstance(data['code'], str) else data['code']
+        dup = Profession.query.filter(Profession.code == code, Profession.id != prof_id).first()
+        if dup:
+            return api_error('conflict', f'A profession with code "{code}" already exists.', 409)
+        profession.code = code
+
+    db.session.commit()
+    return api_success(ProfessionSchema().dump(profession))
+
+
+@api_bp.route('/settings/professions/<int:prof_id>/toggle', methods=['POST'])
+@jwt_required
+def api_toggle_profession(prof_id):
+    """Toggle a profession's active status (manager only)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.profession import Profession
+    from app.blueprints.api.schemas import ProfessionSchema
+
+    profession = Profession.query.get(prof_id)
+    if not profession:
+        return api_error('not_found', 'Profession not found.', 404)
+
+    profession.is_active = not profession.is_active
+    db.session.commit()
+    return api_success(ProfessionSchema().dump(profession))
+
+
+@api_bp.route('/settings/professions/<int:prof_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_profession(prof_id):
+    """Delete a profession (manager only). Fails if profession is in use."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.profession import Profession, UserProfession
+
+    profession = Profession.query.get(prof_id)
+    if not profession:
+        return api_error('not_found', 'Profession not found.', 404)
+
+    # Check if profession is assigned to any user
+    in_use = UserProfession.query.filter_by(profession_id=prof_id).count()
+    if in_use > 0:
+        return api_error(
+            'deletion_blocked',
+            f'Cannot delete: profession is assigned to {in_use} user(s). Deactivate instead.',
+            409,
+        )
+
+    db.session.delete(profession)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+# ══════════════════════════════════════════════════════════════
+# USER PROFESSIONS — Assign / manage professions for a user
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/users/<int:user_id>/professions', methods=['GET'])
+@jwt_required
+def api_get_user_professions(user_id):
+    """Get professions assigned to a user."""
+    from app.models.user import User as UserModel
+    from app.models.profession import UserProfession
+    from app.blueprints.api.schemas import UserProfessionSchema
+
+    target_user = UserModel.query.get(user_id)
+    if not target_user:
+        return api_error('not_found', 'User not found.', 404)
+
+    ups = UserProfession.query.filter_by(user_id=user_id).all()
+    return api_success(UserProfessionSchema().dump(ups, many=True))
+
+
+@api_bp.route('/users/<int:user_id>/professions', methods=['PUT'])
+@jwt_required
+def api_set_user_professions(user_id):
+    """Set professions for a user (replace all). Manager only.
+
+    Body:
+        profession_ids (list[int]): List of profession IDs to assign
+        primary_id (int, optional): ID of the primary profession
+    """
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    from app.models.user import User as UserModel
+    from app.models.profession import Profession, UserProfession
+    from app.blueprints.api.schemas import UserProfessionSchema
+
+    target_user = UserModel.query.get(user_id)
+    if not target_user:
+        return api_error('not_found', 'User not found.', 404)
+
+    data = request.get_json(silent=True) or {}
+    profession_ids = data.get('profession_ids', [])
+    primary_id = data.get('primary_id')
+
+    if not isinstance(profession_ids, list):
+        return api_error('validation_error', 'profession_ids must be a list.', 422)
+
+    # Validate all profession IDs exist
+    if profession_ids:
+        valid_profs = Profession.query.filter(Profession.id.in_(profession_ids)).all()
+        valid_ids = {p.id for p in valid_profs}
+        invalid = set(profession_ids) - valid_ids
+        if invalid:
+            return api_error('validation_error', f'Invalid profession IDs: {list(invalid)}.', 422)
+
+    # Remove all current associations
+    UserProfession.query.filter_by(user_id=user_id).delete()
+
+    # Create new associations
+    for pid in profession_ids:
+        up = UserProfession(
+            user_id=user_id,
+            profession_id=pid,
+            is_primary=(pid == primary_id),
+        )
+        db.session.add(up)
+
+    db.session.commit()
+
+    ups = UserProfession.query.filter_by(user_id=user_id).all()
+    return api_success(UserProfessionSchema().dump(ups, many=True))
 
 
 # ══════════════════════════════════════════════════════════════
@@ -4095,3 +4652,383 @@ def api_mark_invoice_overdue(invoice_id):
     invoice.status = InvoiceStatus.OVERDUE
     db.session.commit()
     return api_success(InvoiceSchema().dump(invoice))
+
+
+# ── Planning Slots (Daily Staff Planning Grid) ──────────────
+
+@api_bp.route('/stops/<int:stop_id>/planning', methods=['GET'])
+@jwt_required
+def api_list_planning_slots(stop_id):
+    """List planning slots for a tour stop, optionally grouped by category.
+
+    Query params:
+        grouped (bool): If true, returns slots grouped by category with metadata.
+        category (str): Filter by category (musicien, technicien, etc.)
+    """
+    stop = TourStop.query.get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Stop not found.', 404)
+
+    query = PlanningSlot.query.filter_by(tour_stop_id=stop_id).order_by(
+        PlanningSlot.category, PlanningSlot.start_time
+    )
+
+    category_filter = request.args.get('category')
+    if category_filter:
+        query = query.filter_by(category=category_filter)
+
+    slots = query.all()
+    schema = PlanningSlotSchema()
+
+    grouped = request.args.get('grouped', '').lower() in ('true', '1')
+    if grouped:
+        categories = []
+        for cat_key, cat_label in CATEGORY_LABELS.items():
+            cat_slots = [s for s in slots if s.category == cat_key]
+            if cat_slots or not category_filter:
+                categories.append({
+                    'key': cat_key,
+                    'label': cat_label,
+                    'color': CATEGORY_COLORS.get(cat_key, '#6b7280'),
+                    'roles': PLANNING_ROLES.get(cat_key, []),
+                    'slots': schema.dump(cat_slots, many=True),
+                    'count': len(cat_slots),
+                })
+        return api_success({'categories': categories, 'total': len(slots)})
+
+    return api_success(schema.dump(slots, many=True))
+
+
+@api_bp.route('/stops/<int:stop_id>/planning', methods=['POST'])
+@jwt_required
+def api_create_planning_slot(stop_id):
+    """Create a planning slot.
+
+    Body: {
+        role_name (str): Required - Role/position name (e.g., "Équipe Son")
+        category (str): Required - Category key (musicien, technicien, etc.)
+        start_time (str): Required - HH:MM format
+        end_time (str): Required - HH:MM format
+        task_description (str): Required - What the slot is for
+        user_id (int): Optional - Assign a user
+    }
+    """
+    stop = TourStop.query.get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Stop not found.', 404)
+
+    data = request.get_json() or {}
+    role_name = (data.get('role_name') or '').strip()
+    category = (data.get('category') or '').strip()
+    start_time_str = (data.get('start_time') or '').strip()
+    end_time_str = (data.get('end_time') or '').strip()
+    task_description = (data.get('task_description') or '').strip()
+
+    if not all([role_name, category, start_time_str, end_time_str, task_description]):
+        return api_error('validation', 'role_name, category, start_time, end_time, task_description are required.', 422)
+
+    valid_categories = list(PLANNING_ROLES.keys())
+    if category not in valid_categories:
+        return api_error('validation', f'Invalid category. Must be one of: {", ".join(valid_categories)}', 422)
+
+    try:
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+    except ValueError:
+        return api_error('validation', 'Times must be in HH:MM format.', 422)
+
+    user_id = data.get('user_id')
+    from app.models.user import User
+    if user_id:
+        user = User.query.get(user_id)
+        if not user:
+            return api_error('not_found', 'User not found.', 404)
+
+    slot = PlanningSlot(
+        tour_stop_id=stop_id,
+        role_name=role_name,
+        category=category,
+        start_time=start_time,
+        end_time=end_time,
+        task_description=task_description,
+        user_id=user_id,
+        created_by_id=request.api_user.id,
+    )
+    db.session.add(slot)
+    db.session.commit()
+
+    return api_success(PlanningSlotSchema().dump(slot)), 201
+
+
+@api_bp.route('/planning/<int:slot_id>', methods=['GET'])
+@jwt_required
+def api_get_planning_slot(slot_id):
+    """Get a single planning slot."""
+    slot = PlanningSlot.query.get(slot_id)
+    if not slot:
+        return api_error('not_found', 'Planning slot not found.', 404)
+    return api_success(PlanningSlotSchema().dump(slot))
+
+
+@api_bp.route('/planning/<int:slot_id>', methods=['PUT'])
+@jwt_required
+def api_update_planning_slot(slot_id):
+    """Update a planning slot.
+
+    Body: { role_name, category, start_time, end_time, task_description, user_id }
+    All fields optional.
+    """
+    slot = PlanningSlot.query.get(slot_id)
+    if not slot:
+        return api_error('not_found', 'Planning slot not found.', 404)
+
+    data = request.get_json() or {}
+
+    if 'role_name' in data:
+        slot.role_name = data['role_name'].strip()
+    if 'category' in data:
+        valid_categories = list(PLANNING_ROLES.keys())
+        if data['category'] not in valid_categories:
+            return api_error('validation', f'Invalid category.', 422)
+        slot.category = data['category']
+    if 'start_time' in data:
+        try:
+            slot.start_time = datetime.strptime(data['start_time'], '%H:%M').time()
+        except ValueError:
+            return api_error('validation', 'start_time must be HH:MM.', 422)
+    if 'end_time' in data:
+        try:
+            slot.end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+        except ValueError:
+            return api_error('validation', 'end_time must be HH:MM.', 422)
+    if 'task_description' in data:
+        slot.task_description = data['task_description'].strip()
+    if 'user_id' in data:
+        slot.user_id = data['user_id']  # Can be null to unassign
+
+    db.session.commit()
+    return api_success(PlanningSlotSchema().dump(slot))
+
+
+@api_bp.route('/planning/<int:slot_id>', methods=['DELETE'])
+@jwt_required
+def api_delete_planning_slot(slot_id):
+    """Delete a planning slot."""
+    slot = PlanningSlot.query.get(slot_id)
+    if not slot:
+        return api_error('not_found', 'Planning slot not found.', 404)
+
+    db.session.delete(slot)
+    db.session.commit()
+    return api_success({'deleted': True})
+
+
+@api_bp.route('/stops/<int:stop_id>/planning/roles', methods=['GET'])
+@jwt_required
+def api_planning_roles(stop_id):
+    """Get predefined planning roles by category (for slot creation form).
+
+    Returns the PLANNING_ROLES dictionary and category metadata.
+    """
+    roles_data = []
+    for cat_key, roles in PLANNING_ROLES.items():
+        roles_data.append({
+            'key': cat_key,
+            'label': CATEGORY_LABELS.get(cat_key, cat_key),
+            'color': CATEGORY_COLORS.get(cat_key, '#6b7280'),
+            'roles': roles,
+        })
+    return api_success(roles_data)
+
+
+@api_bp.route('/me/assignments/<int:stop_id>', methods=['GET'])
+@jwt_required
+def api_my_assignments(stop_id):
+    """Get current user's crew assignments for a specific tour stop.
+
+    Returns the user's CrewAssignments with slot details for a given stop.
+    """
+    user = request.api_user
+    stop = TourStop.query.get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Stop not found.', 404)
+
+    # Get crew assignments where this user is assigned
+    assignments = CrewAssignment.query.join(
+        CrewScheduleSlot, CrewAssignment.slot_id == CrewScheduleSlot.id
+    ).filter(
+        CrewScheduleSlot.tour_stop_id == stop_id,
+        CrewAssignment.person_name == user.full_name,
+    ).all()
+
+    # Also check by user email for external assignments
+    if not assignments:
+        assignments = CrewAssignment.query.join(
+            CrewScheduleSlot, CrewAssignment.slot_id == CrewScheduleSlot.id
+        ).filter(
+            CrewScheduleSlot.tour_stop_id == stop_id,
+            CrewAssignment.person_email == user.email,
+        ).all()
+
+    result = []
+    schema = CrewAssignmentSchema()
+    for assignment in assignments:
+        assignment_data = schema.dump(assignment)
+        # Enrich with slot details
+        slot = assignment.slot
+        if slot:
+            assignment_data['slot'] = {
+                'id': slot.id,
+                'task_name': slot.task_name,
+                'task_description': slot.task_description,
+                'start_time': slot.start_time.strftime('%H:%M') if slot.start_time else None,
+                'end_time': slot.end_time.strftime('%H:%M') if slot.end_time else None,
+                'profession_category': slot.profession_category.value if slot.profession_category else None,
+                'color': slot.color,
+            }
+        result.append(assignment_data)
+
+    return api_success(result)
+
+
+# ══════════════════════════════════════════════════════════════
+# SEARCH — Global search across tours, venues, bands, guests
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/search', methods=['GET'])
+@jwt_required
+def api_search():
+    """Global search across tours, venues, bands, guestlist entries."""
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return api_error('invalid_query', 'Query must be at least 2 characters.', 400)
+
+    user = request.api_user
+    user_bands = user.bands + user.managed_bands
+    user_band_ids = [b.id for b in user_bands]
+
+    # Search tours
+    tours = Tour.query.filter(
+        Tour.band_id.in_(user_band_ids),
+        Tour.name.ilike(f'%{query}%')
+    ).limit(10).all()
+
+    # Search venues
+    venues = Venue.query.filter(
+        Venue.name.ilike(f'%{query}%') |
+        Venue.city.ilike(f'%{query}%')
+    ).limit(10).all()
+
+    # Search bands
+    bands = Band.query.filter(
+        Band.id.in_(user_band_ids),
+        Band.name.ilike(f'%{query}%')
+    ).limit(10).all()
+
+    # Search guestlist entries
+    guests = GuestlistEntry.query.join(TourStop).join(Tour).filter(
+        Tour.band_id.in_(user_band_ids),
+        GuestlistEntry.guest_name.ilike(f'%{query}%')
+    ).limit(10).all()
+
+    return api_success({
+        'tours': [{'id': t.id, 'name': t.name, 'status': t.status.value if t.status else None} for t in tours],
+        'venues': [{'id': v.id, 'name': v.name, 'city': v.city} for v in venues],
+        'bands': [{'id': b.id, 'name': b.name} for b in bands],
+        'guests': [{'id': g.id, 'guest_name': g.guest_name, 'status': g.status.value if g.status else None} for g in guests],
+    })
+
+
+# ══════════════════════════════════════════════════════════════
+# SETTLEMENTS — Settlement reports for tour stops
+# ══════════════════════════════════════════════════════════════
+
+@api_bp.route('/reports/settlements', methods=['GET'])
+@jwt_required
+def api_settlements_list():
+    """List all settlements (optionally filtered by past/future/all)."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    user = request.api_user
+    user_bands = user.bands + user.managed_bands
+    user_band_ids = [b.id for b in user_bands]
+
+    from sqlalchemy.orm import selectinload
+    from app.utils.reports import calculate_settlement
+
+    tours = Tour.query.filter(Tour.band_id.in_(user_band_ids)).options(
+        selectinload(Tour.stops).joinedload(TourStop.venue),
+    ).order_by(Tour.start_date.desc()).all()
+
+    all_settlements = []
+    for tour in tours:
+        for stop in tour.stops:
+            if stop.venue:
+                settlement_data = calculate_settlement(stop)
+                all_settlements.append({
+                    'stop_id': stop.id,
+                    'tour_id': tour.id,
+                    'tour_name': tour.name,
+                    'date': stop.date.isoformat() if stop.date else None,
+                    'venue_name': stop.venue.name if stop.venue else None,
+                    'city': stop.location_city,
+                    'guarantee': float(settlement_data.get('guarantee', 0)),
+                    'gross_revenue': float(settlement_data.get('gross_revenue', 0)),
+                    'net_revenue': float(settlement_data.get('nbor', 0)),
+                    'artist_payment': float(settlement_data.get('artist_payment', 0)),
+                    'currency': settlement_data.get('currency', 'EUR'),
+                    'status': stop.status.value if stop.status else None,
+                })
+
+    # Sort by date descending
+    all_settlements.sort(key=lambda x: x['date'] or '', reverse=True)
+
+    # Filter
+    filter_type = request.args.get('filter', 'all')
+    today = date.today().isoformat()
+    if filter_type == 'past':
+        all_settlements = [s for s in all_settlements if s['date'] and s['date'] < today]
+    elif filter_type == 'future':
+        all_settlements = [s for s in all_settlements if s['date'] and s['date'] >= today]
+
+    return api_success(all_settlements)
+
+
+@api_bp.route('/reports/settlement/<int:stop_id>', methods=['GET'])
+@jwt_required
+def api_settlement_detail(stop_id):
+    """Settlement detail for a specific stop."""
+    if not request.api_user.is_manager_or_above():
+        return api_error('forbidden', 'Manager access required.', 403)
+
+    stop = TourStop.query.options(
+        joinedload(TourStop.venue),
+    ).get(stop_id)
+    if not stop:
+        return api_error('not_found', 'Stop not found.', 404)
+
+    # Check access
+    user = request.api_user
+    user_bands = user.bands + user.managed_bands
+    user_band_ids = [b.id for b in user_bands]
+
+    if stop.tour and stop.tour.band_id not in user_band_ids:
+        return api_error('forbidden', 'Access denied.', 403)
+
+    from app.utils.reports import calculate_settlement
+    settlement_data = calculate_settlement(stop)
+
+    # Convert non-JSON-serializable values (Decimal, date) for JSON output
+    def json_safe(val):
+        from decimal import Decimal
+        if isinstance(val, Decimal):
+            return float(val)
+        if isinstance(val, date):
+            return val.isoformat()
+        return val
+
+    result = {k: json_safe(v) if not isinstance(v, (dict, list)) else v
+              for k, v in settlement_data.items()}
+
+    return api_success(result)

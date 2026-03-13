@@ -134,8 +134,16 @@ class Profession(db.Model):
             'category': self.category.value,
             'category_label': self.category_label,
             'category_color': self.category_color,
+            'description': self.description,
             'default_access_level': self.default_access_level,
-            'default_rates': rates
+            'sort_order': self.sort_order,
+            'is_active': self.is_active,
+            'show_rate': float(self.show_rate) if self.show_rate else None,
+            'daily_rate': float(self.daily_rate) if self.daily_rate else None,
+            'weekly_rate': float(self.weekly_rate) if self.weekly_rate else None,
+            'per_diem': float(self.per_diem) if self.per_diem else None,
+            'default_frequency': self.default_frequency,
+            'default_rates': rates,
         }
 
 
