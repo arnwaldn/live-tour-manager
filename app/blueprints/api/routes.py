@@ -4525,8 +4525,7 @@ def api_duplicate_tour(tour_id):
         return api_success(TourSchema().dump(new_tour), 201)
     except Exception as e:
         db.session.rollback()
-        import traceback
-        return api_error('duplicate_failed', f'{type(e).__name__}: {str(e)}', 500)
+        return api_error('server_error', 'Failed to duplicate tour.', 500)
 
 
 @api_bp.route('/stops/<int:stop_id>/reschedule', methods=['POST'])
