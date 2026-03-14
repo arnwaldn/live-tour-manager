@@ -42,6 +42,7 @@ from app.models.crew_schedule import CrewScheduleSlot, CrewAssignment, Assignmen
 from app.models.document import Document, DocumentType, DocumentShare, ShareType
 from app.models.invoices import Invoice, InvoiceStatus, InvoiceType, InvoiceLine, InvoicePayment
 from app.models.planning_slot import PlanningSlot, PLANNING_ROLES, CATEGORY_COLORS, CATEGORY_LABELS
+from app.models.ticket_tier import TicketTier
 
 
 # ── Version check (deploy verification) ─────────────────────
@@ -484,6 +485,41 @@ def api_create_stop(tour_id):
         location_country=data.get('location_country'),
     )
     db.session.add(stop)
+    db.session.flush()  # Flush to get stop.id for ticket tiers
+
+    # Ticket tiers creation
+    tiers_data = data.get('ticket_tiers')
+    if tiers_data:
+        if not isinstance(tiers_data, list):
+            db.session.rollback()
+            return api_error('validation_error', 'ticket_tiers must be an array.', 422)
+
+        for idx, tier_data in enumerate(tiers_data):
+            if not tier_data.get('name'):
+                db.session.rollback()
+                return api_error(
+                    'validation_error',
+                    f'ticket_tiers[{idx}].name is required.',
+                    422,
+                )
+            if tier_data.get('price') is None:
+                db.session.rollback()
+                return api_error(
+                    'validation_error',
+                    f'ticket_tiers[{idx}].price is required.',
+                    422,
+                )
+
+            tier = TicketTier(
+                tour_stop_id=stop.id,
+                name=tier_data['name'],
+                price=tier_data['price'],
+                quantity_available=tier_data.get('quantity_available'),
+                sold=tier_data.get('sold', 0),
+                sort_order=idx,
+            )
+            db.session.add(tier)
+
     db.session.commit()
 
     stop_id = stop.id
@@ -585,6 +621,63 @@ def api_update_stop(stop_id):
             if isinstance(value, str):
                 value = value.strip() or None
             setattr(stop, field, value)
+
+    # Ticket tiers sync (3-way: update existing, create new, delete removed)
+    if 'ticket_tiers' in data:
+        tiers_data = data['ticket_tiers']
+        if not isinstance(tiers_data, list):
+            return api_error('validation_error', 'ticket_tiers must be an array.', 422)
+
+        if len(tiers_data) == 0:
+            # Empty array: delete all existing tiers
+            for tier in list(stop.ticket_tiers):
+                db.session.delete(tier)
+        else:
+            # Build a map of existing tiers by id
+            existing_tiers = {t.id: t for t in stop.ticket_tiers}
+            incoming_ids = set()
+
+            for idx, tier_data in enumerate(tiers_data):
+                # Validate required fields
+                if not tier_data.get('name'):
+                    return api_error(
+                        'validation_error',
+                        f'ticket_tiers[{idx}].name is required.',
+                        422,
+                    )
+                if tier_data.get('price') is None:
+                    return api_error(
+                        'validation_error',
+                        f'ticket_tiers[{idx}].price is required.',
+                        422,
+                    )
+
+                tier_id = tier_data.get('id')
+                if tier_id and tier_id in existing_tiers:
+                    # Update existing tier
+                    tier = existing_tiers[tier_id]
+                    tier.name = tier_data['name']
+                    tier.price = tier_data['price']
+                    tier.quantity_available = tier_data.get('quantity_available')
+                    tier.sold = tier_data.get('sold', tier.sold)
+                    tier.sort_order = idx
+                    incoming_ids.add(tier_id)
+                else:
+                    # Create new tier
+                    new_tier = TicketTier(
+                        tour_stop_id=stop.id,
+                        name=tier_data['name'],
+                        price=tier_data['price'],
+                        quantity_available=tier_data.get('quantity_available'),
+                        sold=tier_data.get('sold', 0),
+                        sort_order=idx,
+                    )
+                    db.session.add(new_tier)
+
+            # Delete tiers that were not in the incoming data
+            for tier_id, tier in existing_tiers.items():
+                if tier_id not in incoming_ids:
+                    db.session.delete(tier)
 
     db.session.commit()
     return api_success(TourStopSchema().dump(stop))
