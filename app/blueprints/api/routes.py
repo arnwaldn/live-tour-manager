@@ -21,7 +21,7 @@ from app.blueprints.api.schemas import (
     DocumentSchema, InvoiceSchema, InvoiceLineSchema, InvoiceMinimalSchema,
     ProfessionSchema, UserProfessionSchema, PlanningSlotSchema,
 )
-from app.blueprints.api.helpers import paginate_query, api_error, api_success
+from app.blueprints.api.helpers import paginate_query, api_error, api_success, sanitize_string
 from app.extensions import db, limiter
 from app.utils.org_context import get_current_org_id
 from app.models.user import AccessLevel
@@ -4507,13 +4507,17 @@ def api_duplicate_tour(tour_id):
             tour_id=new_tour.id,
             venue_id=stop.venue_id,
             date=stop.date,
-            city=stop.city,
-            country=stop.country,
+            location_city=stop.location_city,
+            location_country=stop.location_country,
+            location_address=stop.location_address,
             event_type=stop.event_type,
-            status=stop.status,
-            guaranteed_fee=stop.guaranteed_fee,
-            capacity=stop.capacity,
-            notes=stop.notes,
+            status=TourStopStatus.PENDING,
+            guarantee=stop.guarantee,
+            ticket_price=stop.ticket_price,
+            load_in_time=stop.load_in_time,
+            soundcheck_time=stop.soundcheck_time,
+            doors_time=stop.doors_time,
+            location_notes=stop.location_notes,
         )
         db.session.add(new_stop)
 

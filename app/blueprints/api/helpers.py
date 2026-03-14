@@ -2,6 +2,28 @@
 API helper functions — pagination, error formatting, response builders.
 """
 from flask import request, jsonify
+from markupsafe import escape as _escape
+
+
+def sanitize_string(value):
+    """Sanitize a string input to prevent XSS.
+    Escapes HTML special characters: < > & " '
+    """
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return value
+    return str(_escape(value.strip()))
+
+
+def sanitize_dict(data, fields):
+    """Sanitize specified string fields in a dict."""
+    for field in fields:
+        if field in data and isinstance(data[field], str):
+            data[field] = sanitize_string(data[field])
+    return data
+
+
 
 
 def paginate_query(query, schema, default_per_page=20, max_per_page=100):

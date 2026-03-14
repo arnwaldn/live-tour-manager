@@ -21,4 +21,35 @@ CORS(api_bp, resources={r"/*": {
     "max_age": 600,
 }})
 
+
+from flask import request as _req, g
+from markupsafe import escape as _html_escape
+import uuid
+
+
+def _sanitize_value(v):
+    """Recursively sanitize string values in JSON data."""
+    if isinstance(v, str):
+        return str(_html_escape(v))
+    if isinstance(v, dict):
+        return {k: _sanitize_value(val) for k, val in v.items()}
+    if isinstance(v, list):
+        return [_sanitize_value(item) for item in v]
+    return v
+
+
+@api_bp.before_request
+def _sanitize_json_input():
+    """Sanitize all string values in JSON request bodies to prevent XSS."""
+    g.request_id = uuid.uuid4().hex[:8]
+    if _req.is_json and _req.data:
+        try:
+            raw = _req.get_json(silent=True)
+            if raw and isinstance(raw, dict):
+                sanitized = _sanitize_value(raw)
+                # Replace the parsed JSON cache
+                _req._cached_json = (sanitized, sanitized)
+        except Exception:
+            pass  # Let the route handler deal with invalid JSON
+
 from app.blueprints.api import auth, routes  # noqa: E402, F401
