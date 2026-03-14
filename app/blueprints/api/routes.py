@@ -1,6 +1,7 @@
 """
 API v1 Routes — REST endpoints for tours, stops, guestlist, schedule, payments, notifications.
 """
+import secrets
 from datetime import datetime, date, timedelta
 
 from flask import request, jsonify
@@ -1399,7 +1400,7 @@ def api_invite_band_member(band_id):
             last_name=data.get('last_name', ''),
             is_active=False,
         )
-        member_user.set_password(email)
+        member_user.set_password(secrets.token_urlsafe(32))
         db.session.add(member_user)
         db.session.flush()
 
@@ -3837,6 +3838,7 @@ def api_report_guestlist():
 # ══════════════════════════════════════════════════════════════
 
 @api_bp.route('/auth/change-password', methods=['POST'])
+@limiter.limit('5 per minute')
 @jwt_required
 def api_change_password():
     """Change the current user's password."""
@@ -3860,6 +3862,7 @@ def api_change_password():
 
 
 @api_bp.route('/auth/forgot-password', methods=['POST'])
+@limiter.limit('5 per minute')
 def api_forgot_password():
     """Request a password reset email (no auth required)."""
     from app.models.user import User as UserModel
@@ -3880,6 +3883,7 @@ def api_forgot_password():
 
 
 @api_bp.route('/auth/reset-password', methods=['POST'])
+@limiter.limit('5 per minute')
 def api_reset_password():
     """Reset password using a token."""
     from app.models.user import User as UserModel
@@ -4002,7 +4006,7 @@ def api_invite_user():
         except ValueError:
             pass
 
-    temp_pw = data.get('password', email)  # Temp password
+    temp_pw = data.get('password') or secrets.token_urlsafe(32)
     user.set_password(temp_pw)
     db.session.add(user)
     db.session.commit()
