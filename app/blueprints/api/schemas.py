@@ -60,11 +60,11 @@ class UserSchema(BaseSchema):
     dietary_restrictions = fields.Str()
     allergies = fields.Str()
 
-    # Billing — Contract
+    # Billing ï¿½ Contract
     contract_type = fields.Str()
     payment_frequency = fields.Str()
 
-    # Billing — Rates
+    # Billing ï¿½ Rates
     show_rate = fields.Decimal(as_string=True)
     daily_rate = fields.Decimal(as_string=True)
     half_day_rate = fields.Decimal(as_string=True)
@@ -76,13 +76,13 @@ class UserSchema(BaseSchema):
     holiday_rate = fields.Decimal(as_string=True)
     night_rate = fields.Decimal(as_string=True)
 
-    # Billing — Bank details
+    # Billing ï¿½ Bank details
     iban = fields.Str()
     bic = fields.Str()
     bank_name = fields.Str()
     account_holder = fields.Str()
 
-    # Billing — Tax info
+    # Billing ï¿½ Tax info
     siret = fields.Str()
     siren = fields.Str()
     vat_number = fields.Str()
@@ -228,6 +228,8 @@ class TourSchema(BaseSchema):
     notes = fields.Str()
     band = fields.Nested(BandMinimalSchema, dump_only=True)
     stops_count = fields.Method('get_stops_count')
+    upcoming_stops_count = fields.Method('get_upcoming_stops_count')
+    past_stops_count = fields.Method('get_past_stops_count')
     created_at = fields.DateTime(format='iso')
 
     def get_status(self, obj):
@@ -235,6 +237,12 @@ class TourSchema(BaseSchema):
 
     def get_stops_count(self, obj):
         return len(obj.stops) if hasattr(obj, 'stops') and obj.stops else 0
+
+    def get_upcoming_stops_count(self, obj):
+        return len(obj.upcoming_stops) if hasattr(obj, 'stops') and obj.stops else 0
+
+    def get_past_stops_count(self, obj):
+        return len(obj.past_stops) if hasattr(obj, 'stops') and obj.stops else 0
 
 
 class TourMinimalSchema(BaseSchema):
@@ -257,10 +265,20 @@ class TourStopSchema(BaseSchema):
     event_type = fields.Method('get_event_type')
 
     # Location
+    venue_id = fields.Int(allow_none=True)
     venue = fields.Nested(VenueMinimalSchema, dump_only=True)
-    address = fields.Str()
-    city = fields.Str()
-    country = fields.Str()
+    address = fields.Method('get_address')
+    city = fields.Method('get_city')
+    country = fields.Method('get_country')
+
+    def get_address(self, obj):
+        return obj.location_address
+
+    def get_city(self, obj):
+        return obj.location_city
+
+    def get_country(self, obj):
+        return obj.location_country
 
     # Schedule
     doors_time = fields.Method('format_time', dump_only=True)

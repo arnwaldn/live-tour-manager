@@ -121,12 +121,35 @@ def api_dashboard_stats():
         ).filter(Band.org_id == org_id)
     shows_this_month = shows_month_query.count()
 
+    # Upcoming shows (all future stops)
+    upcoming_query = TourStop.query.options(
+        joinedload(TourStop.venue),
+        joinedload(TourStop.tour),
+    ).join(Tour).filter(
+        TourStop.date >= today,
+    )
+    if org_id:
+        upcoming_query = upcoming_query.join(
+            Band, Tour.band_id == Band.id
+        ).filter(Band.org_id == org_id)
+    upcoming_stops = upcoming_query.order_by(TourStop.date).limit(20).all()
+
+    upcoming_shows = [{
+        'date': s.date.isoformat(),
+        'venue_name': s.venue.name if s.venue else None,
+        'city': s.venue.city if s.venue else s.location_city,
+        'tour_name': s.tour.name if s.tour else None,
+        'stop_id': s.id,
+        'tour_id': s.tour_id,
+    } for s in upcoming_stops]
+
     return api_success({
         'active_tours': active_tours,
         'next_show_date': next_show_date,
         'next_show_venue': next_show_venue,
         'unread_notifications': unread_notifications,
         'shows_this_month': shows_this_month,
+        'upcoming_shows': upcoming_shows,
     })
 
 
@@ -429,6 +452,11 @@ def api_create_stop(tour_id):
 
     # Validate venue if provided
     venue_id = data.get('venue_id')
+    if venue_id is not None:
+        try:
+            venue_id = int(venue_id)
+        except (ValueError, TypeError):
+            venue_id = None
     if venue_id:
         venue = Venue.query.get(venue_id)
         if not venue:
