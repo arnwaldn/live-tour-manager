@@ -4490,39 +4490,43 @@ def api_duplicate_tour(tour_id):
     if not tour or not tour.can_view(request.api_user):
         return api_error('not_found', 'Tour not found.', 404)
 
-    new_tour = Tour(
-        name=f'{tour.name} (copie)',
-        band_id=tour.band_id,
-        start_date=tour.start_date,
-        end_date=tour.end_date,
-        status=TourStatus.DRAFT,
-        notes=tour.notes,
-        created_by_id=request.api_user.id,
-    )
-    db.session.add(new_tour)
-    db.session.flush()
-
-    for stop in tour.stops:
-        new_stop = TourStop(
-            tour_id=new_tour.id,
-            venue_id=stop.venue_id,
-            date=stop.date,
-            location_city=stop.location_city,
-            location_country=stop.location_country,
-            location_address=stop.location_address,
-            event_type=stop.event_type,
-            status=TourStopStatus.PENDING,
-            guarantee=stop.guarantee,
-            ticket_price=stop.ticket_price,
-            load_in_time=stop.load_in_time,
-            soundcheck_time=stop.soundcheck_time,
-            doors_time=stop.doors_time,
-            location_notes=stop.location_notes,
+    try:
+        new_tour = Tour(
+            name=f'{tour.name} (copie)',
+            band_id=tour.band_id,
+            start_date=tour.start_date,
+            end_date=tour.end_date,
+            status=TourStatus.DRAFT,
+            notes=tour.notes,
         )
-        db.session.add(new_stop)
+        db.session.add(new_tour)
+        db.session.flush()
 
-    db.session.commit()
-    return api_success(TourSchema().dump(new_tour), 201)
+        for stop in tour.stops:
+            new_stop = TourStop(
+                tour_id=new_tour.id,
+                venue_id=stop.venue_id,
+                date=stop.date,
+                location_city=stop.location_city,
+                location_country=stop.location_country,
+                location_address=stop.location_address,
+                event_type=stop.event_type,
+                status=TourStopStatus.PENDING,
+                guarantee=stop.guarantee,
+                ticket_price=stop.ticket_price,
+                load_in_time=stop.load_in_time,
+                soundcheck_time=stop.soundcheck_time,
+                doors_time=stop.doors_time,
+                location_notes=stop.location_notes,
+            )
+            db.session.add(new_stop)
+
+        db.session.commit()
+        return api_success(TourSchema().dump(new_tour), 201)
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        return api_error('duplicate_failed', f'{type(e).__name__}: {str(e)}', 500)
 
 
 @api_bp.route('/stops/<int:stop_id>/reschedule', methods=['POST'])
