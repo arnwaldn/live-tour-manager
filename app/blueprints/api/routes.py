@@ -5179,7 +5179,7 @@ def api_register_device_token():
 
     from app.models.device_token import DeviceToken
     dt = DeviceToken.register_token(
-        user_id=request.current_user.id,
+        user_id=request.api_user.id,
         token=token,
         platform=platform,
         device_name=device_name,
