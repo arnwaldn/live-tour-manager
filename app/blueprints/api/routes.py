@@ -5161,3 +5161,46 @@ def api_settlement_detail(stop_id):
     result = json_safe(settlement_data)
 
     return api_success(result)
+
+
+# ── Device Tokens (FCM Push Notifications) ─────────────────────
+
+@api_bp.route('/device-tokens', methods=['POST'])
+@jwt_required
+def api_register_device_token():
+    """Register a FCM device token for push notifications."""
+    data = request.get_json(silent=True) or {}
+    token = data.get('token', '').strip()
+    if not token:
+        return api_error('Token requis', 400)
+
+    platform = data.get('platform', 'android')
+    device_name = data.get('device_name')
+
+    from app.models.device_token import DeviceToken
+    dt = DeviceToken.register_token(
+        user_id=request.current_user.id,
+        token=token,
+        platform=platform,
+        device_name=device_name,
+    )
+    return api_success({
+        'id': dt.id,
+        'token': dt.token,
+        'platform': dt.platform,
+        'is_active': dt.is_active,
+    }, 201)
+
+
+@api_bp.route('/device-tokens', methods=['DELETE'])
+@jwt_required
+def api_unregister_device_token():
+    """Unregister a FCM device token."""
+    data = request.get_json(silent=True) or {}
+    token = data.get('token', '').strip()
+    if not token:
+        return api_error('Token requis', 400)
+
+    from app.models.device_token import DeviceToken
+    DeviceToken.unregister_token(token)
+    return api_success({'message': 'Token désactivé'})

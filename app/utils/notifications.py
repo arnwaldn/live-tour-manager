@@ -1,18 +1,44 @@
 """
-Helper functions for creating in-app notifications.
+Helper functions for creating in-app notifications + push via FCM.
 
 Ce module fournit des fonctions pour créer des notifications in-app
-en parallèle du système email existant.
+et envoyer automatiquement un push FCM aux devices enregistrés.
 """
+import logging
+
 from app.extensions import db
 from app.models.notification import Notification, NotificationType, NotificationCategory
+
+logger = logging.getLogger(__name__)
+
+
+def _send_push_async(user_id, title, body, data=None):
+    """Send push notification (best-effort, never blocks)."""
+    try:
+        from app.services.fcm_service import send_push_to_user
+        result = send_push_to_user(user_id, title, body or '', data)
+        if result.get('success_count', 0) > 0:
+            logger.debug('Push sent to user %s: %s', user_id, title)
+    except Exception as e:
+        logger.warning('Push notification failed for user %s: %s', user_id, e)
+
+
+def _send_push_batch(user_ids, title, body, data=None):
+    """Send push notification to multiple users (best-effort)."""
+    try:
+        from app.services.fcm_service import send_push_to_users
+        result = send_push_to_users(user_ids, title, body or '', data)
+        if result.get('success_count', 0) > 0:
+            logger.debug('Push sent to %d users: %s', result['success_count'], title)
+    except Exception as e:
+        logger.warning('Push batch failed for %d users: %s', len(user_ids), e)
 
 
 def create_notification(user_id, title, message=None, type=NotificationType.INFO,
                        category=NotificationCategory.SYSTEM, link=None):
     """
-    Créer une notification pour un utilisateur.
-    
+    Créer une notification pour un utilisateur + envoi push FCM.
+
     Args:
         user_id: ID de l'utilisateur destinataire
         title: Titre de la notification
@@ -20,7 +46,7 @@ def create_notification(user_id, title, message=None, type=NotificationType.INFO
         type: Type de notification (info, success, warning, error)
         category: Catégorie (tour, guestlist, system, band, registration)
         link: URL de redirection (optionnel)
-    
+
     Returns:
         Notification créée
     """
@@ -34,17 +60,25 @@ def create_notification(user_id, title, message=None, type=NotificationType.INFO
     )
     db.session.add(notification)
     db.session.commit()
+
+    # Push FCM (best-effort, ne bloque jamais la réponse)
+    _send_push_async(user_id, title, message, data={
+        'type': type,
+        'category': category,
+        'notification_id': str(notification.id),
+    })
+
     return notification
 
 
 def create_notification_batch(notifications_data):
     """
-    Créer plusieurs notifications en une seule transaction.
-    
+    Créer plusieurs notifications en une seule transaction + push FCM.
+
     Args:
         notifications_data: Liste de dictionnaires avec les données de notification
             [{'user_id': 1, 'title': '...', ...}, ...]
-    
+
     Returns:
         Liste des notifications créées
     """
@@ -60,8 +94,23 @@ def create_notification_batch(notifications_data):
         )
         db.session.add(notification)
         notifications.append(notification)
-    
+
     db.session.commit()
+
+    # Push FCM batch (best-effort)
+    user_ids = list({d['user_id'] for d in notifications_data})
+    if user_ids and notifications_data:
+        first = notifications_data[0]
+        _send_push_batch(
+            user_ids,
+            first['title'],
+            first.get('message'),
+            data={
+                'type': first.get('type', NotificationType.INFO),
+                'category': first.get('category', NotificationCategory.SYSTEM),
+            },
+        )
+
     return notifications
 
 

@@ -69,5 +69,8 @@ Pillow>=10.0.0
 # Stripe (SaaS billing)
 stripe>=14.0.0
 
+# Push Notifications (FCM)
+firebase-admin>=6.4.0
+
 # Error Monitoring
 sentry-sdk[flask]>=2.0.0

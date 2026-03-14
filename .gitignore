@@ -109,3 +109,6 @@ atum-audit.config.json
 
 # ATUM Dashboard config
 .atum.json
+
+# Firebase service account key (NEVER commit)
+firebase-service-account.json

@@ -29,6 +29,7 @@ from app.models.guestlist import GuestlistEntry
 from app.models.logistics import LogisticsInfo, LocalContact, PromotorExpenses, LogisticsAssignment
 from app.models.document import Document, DocumentType, DocumentShare, ShareType
 from app.models.notification import Notification, NotificationType, NotificationCategory
+from app.models.device_token import DeviceToken
 from app.models.oauth_token import OAuthToken, OAuthProvider
 from app.models.mission_invitation import MissionInvitation, MissionInvitationStatus
 from app.models.reminder import TourStopReminder
@@ -152,6 +153,8 @@ __all__ = [
     'Notification',
     'NotificationType',
     'NotificationCategory',
+    # Device Tokens (FCM)
+    'DeviceToken',
     # OAuth
     'OAuthToken',
     'OAuthProvider',
