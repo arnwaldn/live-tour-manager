@@ -4878,7 +4878,7 @@ def api_create_planning_slot(stop_id):
     db.session.add(slot)
     db.session.commit()
 
-    return api_success(PlanningSlotSchema().dump(slot)), 201
+    return api_success(PlanningSlotSchema().dump(slot), 201)
 
 
 @api_bp.route('/planning/<int:slot_id>', methods=['GET'])
